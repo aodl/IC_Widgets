@@ -21,6 +21,9 @@ Retained families are `subnet_list`, `subnet_record_`, `node_record_`, `node_ope
 | 5 | Production scheduler, durable call lease, stage budget and observation ID counter |
 | 6–7 | Source observations and SHA-256 indexed evidence blobs |
 | 8–11 | Registry projection state, sparse history, current page stage and key index |
+| 12–15 | Governance collector, captures, indexes and refresh schedule |
+| 16–20 | Metrics roster, subnet collector state, due times, samples and integrity findings |
+| 21–22 | Membership review requests and immutable report bytes |
 
 Structured M1 values start with format tag 1 followed by Candid bytes. A later writer has to retain readers for tags already in use or migrate to a new memory ID. Memory IDs and stable key shapes are persistent. Blobs keep their exact bytes and rely on the enclosing observation or capture for schema and decoder revision. Only selected Registry record bytes are retained from valid pages. The observation commits to the full wire hash and length, and failed decoding or integrity replies are retained for examination.
 
@@ -63,3 +66,5 @@ The next request starts inclusively at the last committed sample. The callback v
 Daily collection leaves ample margin against a rolling history of up to 60 timestamps and supports initial backfill from timestamp zero. Shorter history after an oversized reply starts at most seven days back and carries a gap. Transient failures back off at five and ten minutes under the default attempt cap. An exhausted or permanently invalid reply gets a per-subnet failure status and another daily attempt. The other due subnets remain eligible. Collection resumes through the durable queue on upgrade.
 
 `metrics_roster`, `metrics_status`, `metric_samples`, `metric_sample_rows` and `metric_conflicts` expose bounded controller reads. Sample pages carry collection status, so a page with no stored samples can still report an unobserved or rejected source. The raw and derived availability fields can distinguish no sample, an empty reply, a failed fetch, a sampled node row and a continuity gap. M2 can use `registry_provider` to enumerate at most one bounded page of operators of a provider at the chosen Registry version, and compose a node/operator/DC join through typed records at the same version.
+
+The [M2 review manifest](M2.md#evidence-and-revision) validates the records required by a membership scenario and retains each typed input reference alongside the resulting revision.

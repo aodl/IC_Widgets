@@ -5,4 +5,6 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
+candid.workspace = true
+serde.workspace = true
 nexus-domain.workspace = true

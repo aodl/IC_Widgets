@@ -8,3 +8,10 @@ Follow the implementation pack under `materials/network-nexus-codex-pack/` when 
 - Runtime source acquisition uses direct replicated inter-canister reads only. Use pinned interfaces and preserve source bytes and provenance. Explicitly distinguish registered facts, proposer claims, observed metrics, inferences and unavailable evidence.
 - Keep source transport, stable persistence, pure analysis and display in their respective units. Bound work, persist job intent before awaiting and protect commits with the job generation.
 - Preserve public Candid interfaces unless a change is requested. Regenerate `canisters/reviewer/reviewer.did` when the interface changes. Add or update behavioral tests and run the relevant suites before delivery.
+
+## Engineering principles
+
+- Choose the simplest implementation that meets the actual requirement. Reuse existing modules and libraries. Generalize for future widgets when a concrete need appears.
+- Weigh edge cases by likelihood, impact and implementation cost. For low-impact cases, an explicit unsupported or unavailable result can be the clearest outcome.
+- Preserve correctness, source integrity, access control and durable-state safety. Give each new option, abstraction and persistent structure a practical reason to exist.
+- Keep changes small and reviewable. Test meaningful behavior. Leave working code in place unless the task calls for a concrete improvement.

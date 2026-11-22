@@ -139,6 +139,7 @@ pub enum Details {
         kind: i32,
         configured_version: String,
         halted: bool,
+        sev_enabled: Option<bool>,
     },
     Node {
         operator: Option<Principal>,
@@ -148,6 +149,7 @@ pub enum Details {
         hostos: Option<String>,
         ipv4: Option<String>,
         reward_type: Option<i32>,
+        has_chip_id: Option<bool>,
     },
     Operator {
         provider: Option<Principal>,
@@ -209,6 +211,11 @@ pub fn details(key: &RecordKey, value: &[u8]) -> Result<Details, String> {
                 kind: record.subnet_type,
                 configured_version: record.replica_version_id,
                 halted: record.is_halted,
+                sev_enabled: Some(
+                    record
+                        .features
+                        .is_some_and(|features| features.sev_enabled == Some(true)),
+                ),
             }
         }
         RecordKey::Node(_) => {
@@ -221,6 +228,7 @@ pub fn details(key: &RecordKey, value: &[u8]) -> Result<Details, String> {
                 hostos: record.hostos_version_id,
                 ipv4: record.public_ipv4_config.map(|record| record.ip_addr),
                 reward_type: record.node_reward_type,
+                has_chip_id: Some(record.chip_id.is_some()),
             }
         }
         RecordKey::Operator(id) => {

@@ -1137,7 +1137,9 @@ dependencies = [
 name = "nexus-review-engine"
 version = "0.1.0"
 dependencies = [
+ "candid",
  "nexus-domain",
+ "serde",
 ]
 
 [[package]]
@@ -1150,6 +1152,7 @@ dependencies = [
  "ic-stable-structures",
  "nexus-domain",
  "nexus-ic-sources",
+ "nexus-review-engine",
  "pocket-ic",
  "prost",
  "serde",

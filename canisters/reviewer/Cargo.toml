@@ -17,6 +17,7 @@ ic-cdk.workspace = true
 ic-cdk-timers.workspace = true
 ic-stable-structures.workspace = true
 nexus-domain.workspace = true
+nexus-review-engine.workspace = true
 nexus-ic-sources.workspace = true
 
 [dev-dependencies]
