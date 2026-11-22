@@ -1,0 +1,13 @@
+/materials/
+/*.zip
+/.local/
+/.dfx/
+/.icp/
+/target/
+/web/node_modules/
+/web/dist/
+.env*
+*.pem
+*.key
+*.pfx
+*.p12
