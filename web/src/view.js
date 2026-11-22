@@ -24,6 +24,7 @@ export const words = value => value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 const scenarioLabels = { A: 'A independently', B: 'B independently', AThenB: 'A then B', BThenA: 'B then A' };
 const functions = { 2: 'Add nodes to subnet', 13: 'Remove nodes from subnets', 31: 'Change subnet membership' };
 const lifecycle = { 1: 'Open', 2: 'Rejected', 3: 'Adopted', 4: 'Executed', 5: 'Failed' };
+const outcomes = { Applied: 'Simulated', Rejected: 'Rejected in simulation', Skipped: 'Skipped' };
 const findingLabels = {
   ExecutedProposalHypothesis: 'Executed proposal evaluated as a hypothesis at the selected baseline.',
   HistoricalBaselineUnavailable: 'Historical baseline unavailable. This execution was not reconstructed.',
@@ -77,6 +78,7 @@ export function reviewHeader(review) {
   return styled('section', 'card',
     el('h2', `Proposal ${ids}`),
     el('p', 'Registry baseline ', el('strong', number(manifest.registry_version))),
+    manifest.proposals.every(row => [1, 3].includes(row.lifecycle_status)) ? el('p', 'Prospective simulation') : null,
     executed && hypothetical ? styled('p', 'notice warning',
       'Hypothetical evaluation of an executed proposal. The selected Registry version is the simulation baseline. Actual historical execution remains unverified.') : null,
     executed && !hypothetical ? styled('p', 'notice warning',
@@ -137,7 +139,7 @@ export function renderScenario(review, scenario, subnet, stateIndex, container) 
     const state = states[index + 1];
     const operation = branch(step.requested);
     const requested = step.requested[operation];
-    return el('li', el('strong', `#${step.proposal} · ${outcome}`),
+    return el('li', el('strong', `#${step.proposal} · ${outcomes[outcome]}`),
       state ? ` · ${number(state.member_count)} members after step` : '',
       details('Requested changes',
         requested.subnet ? el('p', 'Target subnet ', el('code', principal(requested.subnet))) : null,
