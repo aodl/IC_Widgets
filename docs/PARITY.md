@@ -1,67 +1,39 @@
 # Subnet Membership parity ledger
 
-The proposed first release replaces the existing-subnet membership review workflow. It is not a promise to reproduce unavailable external observations or every adjacent tool. This ledger makes the proposed boundary reviewable. Final release acceptance must record the actual implementation and test evidence for every row.
+**Local** means implemented and verified with PocketIC, Rust tests or the local asset-canister demo. **Live pending** means the implemented workflow still needs replicated source evidence from an authorized mainnet application canister. **Library only** covers computed results outside the current widget. **Missing** records a feasible feature that has no implementation. **Deferred** is a scope decision. **Unavailable** means the approved sources cannot establish the legacy observation.
 
-**Reproduce** means the useful behavior has a sufficient on-chain source. **Correct** means preserve the question while replacing erroneous semantics. **Unavailable** means the verified source boundary does not support the old observation. **Defer** is a deliberate scope decision, not a claim that the capability is impossible. **New** identifies an added requirement rather than inherited functionality.
-
-| Legacy behavior or new need | Proposed v1 disposition | Required result |
+| Legacy capability | Current status | What the application can show |
 |---|---|---|
-| ChangeSubnetMembership review | Reproduce and correct | Native payload, pinned baseline, exact semantics |
-| AddNodeToSubnet review | Correct | Recognize actual function 2 rather than legacy AddNodes string |
-| RemoveNodesFromSubnet review | Reproduce and correct | Complete proposal-wide effect, per-subnet scopes |
-| CreateSubnet membership preview | Defer explicitly | Legacy has an active but fragile creation path. Recognize and explain unsupported creation review in v1. Add a distinct new-subnet context later without inventing a principal or historical baseline |
-| Implicit grouping of all open proposals | Correct | Explicit single or paired selection. Independent and ordered scenarios |
-| Proposal metadata, summary, raw action and status | Reproduce | Direct Governance retrieval. Summary remains a proposer claim |
-| Before/after membership | Correct | Captured Registry V, no reversed current-state fabrication |
-| Added/removed/retained node lists | Reproduce and extend | Also preserve touched nodes and per-step roles |
-| Same-node overlap, wrong target and redundant changes | Correct | Pinned protocol semantics plus distinct reviewer findings |
-| Cross-proposal node conflict | Correct and extend | Relevant action extractors, dependency/competition distinction and scan coverage |
-| Node/operator/provider/DC fields | Reproduce | Full principals and Registry joins at V |
-| Registered region/country/continent and GPS | Reproduce and correct | Original string plus documented parsing, no fabricated geography |
-| Distinct counts and min/max/mean concentration | Reproduce and correct | Correct denominators, unknown coverage and edge handling |
-| Pairwise registered-location distances | Reproduce and correct | Documented formula, valid-pair coverage and safe zero/one-node behavior |
-| Map with membership roles | Reproduce | Bundled canister assets and registered coordinates. No external tiles |
-| Independent IP-location discrepancy lines | Unavailable | No IPInfo/OpenCage or imported cache. Explain the lost observation |
-| Node UP/DOWN/DEGRADED and infrastructure alert names | Unavailable | No sufficient native equivalent. Do not rename consensus metrics |
-| Global DOWN/DEGRADED by-subnet warnings | Unavailable as old telemetry | A separate consensus-evidence summary may exist with different labels and coverage |
-| Network/provider UP percentages and reward extrapolation | Unavailable as old telemetry | Do not infer readiness/reward equivalence from different evidence |
-| Assigned/unassigned/provider structural totals | Reproduce | Complete relevant Registry inventory. Classify boundary/unsupported kinds explicitly. Unassigned is not healthy spare |
-| Alternative unassigned candidates | Reproduce with changed evidence | Structural filters/ranking only, health unknown, bounded scan |
-| Desired subnet/unassigned GuestOS comparison | Reproduce and improve | Registry configuration plus separately timed observed subnet_info |
-| Actual running HostOS/version from external node probe | Unavailable where no sufficient source | Show desired Registry fields and clearly limit observations |
-| Provider display names and DFINITY substring inventory | Unavailable as canonical identity labels | Principals are identity. No substring matching |
-| Minimum DFINITY presence warning | Defer policy | Would require explicit scoped identity/policy provenance. Not a protocol invariant |
-| Manually grouped related-party providers | Unavailable as verified ownership | Do not copy source-code clusters into canonical facts |
-| Historical cordon and MU1/decommissioning assumptions | Correct/defer policy | Proposer text may be displayed as a claim. No permanent current eligibility from prose or hardcoded name |
-| Forum-ready report with vote/TLDR placeholders | Reproduce and improve | Same structured revision, evidence/limitations, human decision. No automatic vote |
-| Link to a separate node metrics dashboard | Replace and extend | Integrated independently reusable node-performance widget consuming scope |
-| Static metrics JSON to daily CSV | Correct and extend | Autonomous direct collection with baselines, epochs, gaps and source subnets |
-| General Nakamoto display | New | Legacy TODO. Transparent threshold definition, test n divisible by three |
-| SEV readiness checks | Not inherited. Unavailable as attestation | Legacy TODO. Registered chip-ID presence is a distinct field |
-| Providers with no assigned nodes | New small derived view | Legacy TODO. Possible once complete registry inventory exists |
-| Widget constraints and immutable shareable reviews | New | Typed scopes, server-side validation, certified results, durable evidence |
+| ChangeSubnetMembership, AddNodeToSubnet, RemoveNodesFromSubnet | Local, live pending | Functions 31, 2 and 13 use the pinned Registry rules. Multi-subnet removal retains proposal-wide findings and resolves each affected subnet separately. |
+| CreateSubnet preview | Deferred | The first widget covers existing-subnet reviews. |
+| Combining open proposals | Local, live pending | A selected single or paired revision exposes independent runs and both execution orders, including intermediate states. |
+| Proposal ID, status and action | Local, live pending | Displayed in the widget from an archived individual lookup, including the requested nodes and payload hash. |
+| Proposer summary and other text | Archived locally, UI missing | Governance wire bytes preserve the text and its provenance. The widget shows metadata and actions. Displaying useful proposer text as claims remains open. |
+| Before/after membership, additions, removals and retained members | Local, live pending | A completed Registry version anchors the baseline. The widget shows the simulated result and intermediate counts. The report contains the retained set. |
+| Overlapping instructions, wrong targets and selected-proposal conflicts | Local, live pending | Structured findings cover validation, conflicts and failure in either selected execution order. |
+| Search for competing proposals across the archive | Missing | Governance discovery is bounded. Explicit proposal IDs and pair analysis work. Global conflict coverage is unestablished. |
+| Historical pre-execution reconstruction | Deferred | Executed actions can be evaluated as labelled hypotheticals at a selected Registry version. Exact attribution and before-state reconstruction require additional evidence. |
+| Operator, provider, data-center and registered owner | Local, live pending | The widget shows group distributions and missing counts. Detailed per-node joins are available in Registry evidence and analysis inputs. |
+| Registered country and continent | Local, live pending | Group distributions use the registered region and show unknown coverage. GPS is retained where registered. |
+| Concentration thresholds and registered distances | Library only | The engine calculates thresholds and pairwise registered distances with coverage. The widget currently displays group counts and findings. Threshold details and distances have no dedicated presentation. |
+| Map and geographic role overlays | Deferred | The widget has no map. Registered-coordinate analysis exists in the library. |
+| Independent IP location and mismatch lines | Unavailable | Approved sources provide registered locations and network endpoints without an independent IP-geolocation observation. |
+| Node UP/DOWN/DEGRADED, alert names and global outage warnings | Unavailable | Approved management observations measure consensus blockmaking. Infrastructure alerts and wall-clock uptime require other evidence. |
+| Node performance linked to the membership review | Local, live pending | One archived subnet sample shows cumulative counters, scoped rows and coverage. Missing rows and conflicts have explicit states. |
+| Blockmaking interval changes | Library only | The pure interval contract handles known epochs, gaps and resets. The widget currently displays a single sample. Cross-subnet history is deferred. |
+| Static metrics JSON and daily CSV | Current archive local, export missing | Autonomous management calls produce timestamped archive records. The widget reads the archive. CSV generation and reward extrapolation are outside the current workflow. |
+| Assigned, unassigned and provider structural totals | Library and evidence APIs only, live pending | Versioned assignment, boundary classification and provider records support structural queries. No fleet totals are shown in the widget. |
+| Alternative unassigned nodes | Deferred | Candidate discovery and ranking are open. Blockmaking evidence cannot establish whether an unassigned node is healthy. |
+| Configured and observed subnet versions | Evidence APIs and probe only, live pending | Registry carries desired configuration. `subnet_info` provides a separately timed observed replica version. No comparison is shown in the widget. |
+| External HostOS probe and provider labels or beneficial ownership | Unavailable from approved sources | Registry provides configured HostOS, principals and registered labels. Live host measurements and verified beneficial ownership need other evidence. |
+| DFINITY, related-party and decommissioning policy | Deferred | The widget uses protocol rules and explicit registered evidence. Policy claims from prose and verified identity remain distinct. |
+| Forum-ready report, Markdown export or vote output | Missing | An immutable revision and bounded report bytes exist. No user-facing Markdown, CSV or voting action exists. |
+| Immutable reviews and linked widget scope | Local, live pending | The standard agent verifies replicated reads. The asset-hosted widget selects a revision and narrows the sample to the resolved subnet scope. |
 
-The CreateSubnet deferral is the principal deliberate omission from the legacy membership action set beyond source-impossible fields. If creation must be part of the first acceptance boundary, add a separately specified creation preview milestone before sign-off: an empty proposed baseline, native creation payload, proposed-node scope, and an explicit unknown/new target identity. Do not silently reuse an existing-subnet ID or flatten creation into an ordinary change.
+## Evidence for the current checkpoint
 
-## Source-to-feature mapping
+- PocketIC verifies pinned Governance and Registry calls, native management calls, historical records, ordered simulations and stable upgrades. [Source manifest](SOURCES.md) · [Evidence contracts](EVIDENCE.md)
+- The browser opens the replayed Governance reply for real proposal 144942. The local fixture Registry lacks that proposal's target. The synthetic 93/92 pair demonstrates successful before/after review and both execution orders. [Widget demonstration](../web/README.md)
+- Anonymous source sampling supplied transport and sizing evidence. A mainnet application-canister run and a completed real Registry projection are still pending. [Operations](OPERATIONS.md)
 
-| Workflow area | Canonical source | Delivery |
-|---|---|---|
-| Discovery, proposal text, action bytes and lifecycle | Governance listing plus individual lookup | M0 wire probe, M1 archive and conflict indexing |
-| Membership, assignments and candidate structure | Registry mutation replay at pinned version, including node and API-boundary key families | M0 spot checks and page diagnostics, M1 complete projection |
-| Providers, geography, ownership strings, desired versions | Registry node/operator/DC/subnet and unassigned config records | M0 spot-check join, M2 comparisons, M3 canister-hosted geography |
-| Order outcomes, roles, diversification and distance | Deterministic derivations from proposal actions and pinned Registry facts | M2 |
-| Running subnet context | Management `subnet_info` at receipt time | M0 probe, later context widget |
-| Node performance | Management `node_metrics_history`, observed counts and explicit coverage | M0 probe, later autonomous archive and metrics analysis |
-| Report, export and linked presentation | One immutable analysis revision with typed node selection | M3–M5 |
-| IP location, uptime, alert names and beneficial ownership | Evidence gap | Explicitly unavailable |
-
-Legacy code cross-checks include `IC_Subnet_Analysis/SubnetMembership.cs` for action selection and grouping (lines 175–184 and 499–608), reverse-engineered before-state (634–643), and health classification (1056). `ProposalVisualiser/Pages/SubnetMembership.cshtml` includes map rendering, node alerts and Markdown export. `TrustWorthyNodeMetrics/Program.cs` reads local JSON for the CSV workflow. Line references are to the retained archive and may differ from previous versions.
-
-## M1 evidence coverage
-
-M1 supplies historical Registry joins and inventory classification, full Governance payloads and lifecycle evidence, and a subnet-scoped blockmaking archive. Explicitly unavailable legacy telemetry remains in the parity ledger. The next milestone uses these inputs to implement the versioned membership simulations and resolve node scopes. The performance widget needs only the resolved scope and evidence manifest. It has no independent proposal collector or selection logic.
-
-Governance discovery initially scans up to five pages. The selected-proposal workflow can request older IDs directly and use their full individual captures. Historical conflict-search completeness remains a separate capability.
-
-The M2 library covers single and paired membership transitions, intermediate states, operator/provider and registered geography joins, distribution and distance summaries, and resolved node sets for child blockmaking views. The controller API persists review revisions and supplies bounded result pages. Dashboard rendering, historical pre-execution version resolution, metrics aggregation and certified public reads remain open.
+Legacy cross-checks include `IC_Subnet_Analysis/SubnetMembership.cs` for proposal grouping, health classification and reconstructed before-state, `ProposalVisualiser/Pages/SubnetMembership.cshtml` for maps and Markdown, and `TrustWorthyNodeMetrics/Program.cs` for the CSV workflow.
