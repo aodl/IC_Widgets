@@ -9,9 +9,9 @@ The proposed first release replaces the existing-subnet membership review workfl
 | ChangeSubnetMembership review | Reproduce and correct | Native payload, pinned baseline, exact semantics |
 | AddNodeToSubnet review | Correct | Recognize actual function 2 rather than legacy AddNodes string |
 | RemoveNodesFromSubnet review | Reproduce and correct | Complete proposal-wide effect, per-subnet scopes |
-| CreateSubnet membership preview | Defer explicitly | Legacy has an active but fragile creation path. Recognize and explain unsupported creation review in v1; add a distinct new-subnet context later without inventing a principal or historical baseline |
-| Implicit grouping of all open proposals | Correct | Explicit single or paired selection; independent and ordered scenarios |
-| Proposal metadata, summary, raw action and status | Reproduce | Direct Governance retrieval; summary remains a proposer claim |
+| CreateSubnet membership preview | Defer explicitly | Legacy has an active but fragile creation path. Recognize and explain unsupported creation review in v1. Add a distinct new-subnet context later without inventing a principal or historical baseline |
+| Implicit grouping of all open proposals | Correct | Explicit single or paired selection. Independent and ordered scenarios |
+| Proposal metadata, summary, raw action and status | Reproduce | Direct Governance retrieval. Summary remains a proposer claim |
 | Before/after membership | Correct | Captured Registry V, no reversed current-state fabrication |
 | Added/removed/retained node lists | Reproduce and extend | Also preserve touched nodes and per-step roles |
 | Same-node overlap, wrong target and redundant changes | Correct | Pinned protocol semantics plus distinct reviewer findings |
@@ -20,25 +20,25 @@ The proposed first release replaces the existing-subnet membership review workfl
 | Registered region/country/continent and GPS | Reproduce and correct | Original string plus documented parsing, no fabricated geography |
 | Distinct counts and min/max/mean concentration | Reproduce and correct | Correct denominators, unknown coverage and edge handling |
 | Pairwise registered-location distances | Reproduce and correct | Documented formula, valid-pair coverage and safe zero/one-node behavior |
-| Map with membership roles | Reproduce | Bundled canister assets and registered coordinates; no external tiles |
-| Independent IP-location discrepancy lines | Unavailable | No IPInfo/OpenCage or imported cache; explain the lost observation |
-| Node UP/DOWN/DEGRADED and infrastructure alert names | Unavailable | No sufficient native equivalent; do not rename consensus metrics |
+| Map with membership roles | Reproduce | Bundled canister assets and registered coordinates. No external tiles |
+| Independent IP-location discrepancy lines | Unavailable | No IPInfo/OpenCage or imported cache. Explain the lost observation |
+| Node UP/DOWN/DEGRADED and infrastructure alert names | Unavailable | No sufficient native equivalent. Do not rename consensus metrics |
 | Global DOWN/DEGRADED by-subnet warnings | Unavailable as old telemetry | A separate consensus-evidence summary may exist with different labels and coverage |
 | Network/provider UP percentages and reward extrapolation | Unavailable as old telemetry | Do not infer readiness/reward equivalence from different evidence |
-| Assigned/unassigned/provider structural totals | Reproduce | Complete relevant Registry inventory; classify boundary/unsupported kinds explicitly; unassigned is not healthy spare |
+| Assigned/unassigned/provider structural totals | Reproduce | Complete relevant Registry inventory. Classify boundary/unsupported kinds explicitly. Unassigned is not healthy spare |
 | Alternative unassigned candidates | Reproduce with changed evidence | Structural filters/ranking only, health unknown, bounded scan |
 | Desired subnet/unassigned GuestOS comparison | Reproduce and improve | Registry configuration plus separately timed observed subnet_info |
 | Actual running HostOS/version from external node probe | Unavailable where no sufficient source | Show desired Registry fields and clearly limit observations |
-| Provider display names and DFINITY substring inventory | Unavailable as canonical identity labels | Principals are identity; no substring matching |
-| Minimum DFINITY presence warning | Defer policy | Would require explicit scoped identity/policy provenance; not a protocol invariant |
+| Provider display names and DFINITY substring inventory | Unavailable as canonical identity labels | Principals are identity. No substring matching |
+| Minimum DFINITY presence warning | Defer policy | Would require explicit scoped identity/policy provenance. Not a protocol invariant |
 | Manually grouped related-party providers | Unavailable as verified ownership | Do not copy source-code clusters into canonical facts |
-| Historical cordon and MU1/decommissioning assumptions | Correct/defer policy | Proposer text may be displayed as a claim; no permanent current eligibility from prose or hardcoded name |
-| Forum-ready report with vote/TLDR placeholders | Reproduce and improve | Same structured revision, evidence/limitations, human decision; no automatic vote |
+| Historical cordon and MU1/decommissioning assumptions | Correct/defer policy | Proposer text may be displayed as a claim. No permanent current eligibility from prose or hardcoded name |
+| Forum-ready report with vote/TLDR placeholders | Reproduce and improve | Same structured revision, evidence/limitations, human decision. No automatic vote |
 | Link to a separate node metrics dashboard | Replace and extend | Integrated independently reusable node-performance widget consuming scope |
 | Static metrics JSON to daily CSV | Correct and extend | Autonomous direct collection with baselines, epochs, gaps and source subnets |
-| General Nakamoto display | New | Legacy TODO; transparent threshold definition, test n divisible by three |
-| SEV readiness checks | Not inherited; unavailable as attestation | Legacy TODO; registered chip-ID presence is a distinct field |
-| Providers with no assigned nodes | New small derived view | Legacy TODO; possible once complete registry inventory exists |
+| General Nakamoto display | New | Legacy TODO. Transparent threshold definition, test n divisible by three |
+| SEV readiness checks | Not inherited. Unavailable as attestation | Legacy TODO. Registered chip-ID presence is a distinct field |
+| Providers with no assigned nodes | New small derived view | Legacy TODO. Possible once complete registry inventory exists |
 | Widget constraints and immutable shareable reviews | New | Typed scopes, server-side validation, certified results, durable evidence |
 
 The CreateSubnet deferral is the principal deliberate omission from the legacy membership action set beyond source-impossible fields. If creation must be part of the first acceptance boundary, add a separately specified creation preview milestone before sign-off: an empty proposed baseline, native creation payload, proposed-node scope, and an explicit unknown/new target identity. Do not silently reuse an existing-subnet ID or flatten creation into an ordinary change.
@@ -55,3 +55,5 @@ The CreateSubnet deferral is the principal deliberate omission from the legacy m
 | Node performance | Management `node_metrics_history`, observed counts and explicit coverage | M0 probe, later autonomous archive and metrics analysis |
 | Report, export and linked presentation | One immutable analysis revision with typed node selection | M3–M5 |
 | IP location, uptime, alert names and beneficial ownership | Evidence gap | Explicitly unavailable |
+
+Legacy code cross-checks include `IC_Subnet_Analysis/SubnetMembership.cs` for action selection and grouping (lines 175–184 and 499–608), reverse-engineered before-state (634–643), and health classification (1056). `ProposalVisualiser/Pages/SubnetMembership.cshtml` includes map rendering, node alerts and Markdown export. `TrustWorthyNodeMetrics/Program.cs` reads local JSON for the CSV workflow. Line references are to the retained archive and may differ from previous versions.

@@ -1,0 +1,29 @@
+[workspace]
+members = ["crates/domain", "crates/ic-sources", "crates/review-engine", "canisters/reviewer", "tests/source-fixture"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+candid = "=0.10.37"
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+prost = "=0.14.4"
+prost-build = "=0.14.4"
+ic-cdk = "=0.20.3"
+ic-cdk-timers = "=1.0.0"
+ic-stable-structures = "=0.7.2"
+ic-management-canister-types = "=0.8.0"
+pocket-ic = "=14.0.0"
+nexus-domain = { path = "crates/domain" }
+nexus-ic-sources = { path = "crates/ic-sources" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "debuginfo"

@@ -1,0 +1,15 @@
+[package]
+name = "nexus-source-fixture"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+candid.workspace = true
+ic-cdk.workspace = true
+prost.workspace = true
+nexus-domain.workspace = true
+nexus-ic-sources.workspace = true

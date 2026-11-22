@@ -1,0 +1,2 @@
+vendor/ic/** -text
+vendor/ic/rs/nns/governance/canister/governance.did whitespace=-blank-at-eol

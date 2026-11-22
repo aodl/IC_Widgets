@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "dfx": "0.31.0",
+  "canisters": {
+    "reviewer": {
+      "type": "custom",
+      "candid": "canisters/reviewer/reviewer.did",
+      "wasm": "target/wasm32-unknown-unknown/release/nexus_reviewer.wasm",
+      "build": "cargo build --locked --release --target wasm32-unknown-unknown -p nexus-reviewer"
+    }
+  }
+}
