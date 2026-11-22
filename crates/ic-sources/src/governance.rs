@@ -56,6 +56,8 @@ pub struct ProposalInfo {
     pub topic: i32,
     pub proposal_timestamp_seconds: u64,
     pub executed_timestamp_seconds: u64,
+    pub failed_timestamp_seconds: Option<u64>,
+    pub decided_timestamp_seconds: Option<u64>,
     pub proposal: Option<Proposal>,
 }
 

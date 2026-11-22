@@ -234,3 +234,190 @@ fn fixed_registry_target_and_atomic_history_survive_upgrade() {
     assert!(malformed.blocked.unwrap().contains("node_record_"));
     assert!(record(6, RecordKey::Node(projected_node(1201))).is_err());
 }
+
+#[test]
+#[ignore = "run through scripts/test-m0.sh to build Wasm and start PocketIC"]
+fn governance_archive_keeps_wire_content_and_distinct_lifecycle() {
+    use nexus_domain::MembershipAction;
+    use nexus_reviewer::{
+        ActionStatus, CapturePage, DiscoveryStatus, ProposalCapture, ProposalStatus, ReplyPage,
+    };
+
+    assert!(enabled());
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+    let topology = pic.topology();
+    let fixture = pic.create_canister_on_subnet(None, None, topology.get_nns().unwrap());
+    let reviewer = pic.create_canister_on_subnet(None, None, topology.get_app_subnets()[0]);
+    let binary = wasm(".local/reviewer-fixture.wasm");
+    pic.install_canister(
+        fixture,
+        wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
+        encode_args(()).unwrap(),
+        None,
+    );
+    pic.install_canister(
+        reviewer,
+        binary.clone(),
+        encode_one(Some(Sources {
+            registry: fixture,
+            governance: fixture,
+        }))
+        .unwrap(),
+        None,
+    );
+    call::<()>(
+        &pic,
+        fixture,
+        "enable_proposal_fixture",
+        encode_args(()).unwrap(),
+    );
+    configure(&pic, reviewer, Some(COLLECTION_LIMITS));
+    let status = |id| {
+        call::<Result<ProposalStatus, String>>(
+            &pic,
+            reviewer,
+            "proposal_status",
+            encode_one::<u64>(id).unwrap(),
+        )
+        .unwrap()
+    };
+    let until = |id, predicate: &dyn Fn(&ProposalStatus) -> bool| {
+        for _ in 0..150 {
+            advance(&pic);
+            let current = status(id);
+            if predicate(&current) {
+                return current;
+            }
+        }
+        panic!(
+            "proposal {id} did not reach expected state, captures {}, latest {:?}",
+            status(id).capture_count,
+            status(id).last_status
+        );
+    };
+    let capture = |id, observation| {
+        call::<Result<ProposalCapture, String>>(
+            &pic,
+            reviewer,
+            "proposal_archive",
+            encode_args((id, observation)).unwrap(),
+        )
+        .unwrap()
+    };
+    let queue = |id| {
+        call::<Result<(), String>>(
+            &pic,
+            reviewer,
+            "capture_proposal",
+            encode_one::<u64>(id).unwrap(),
+        )
+        .unwrap();
+    };
+    let initial = until(101, &|status| status.capture_count == 1);
+    let initial_capture = capture(101u64, None::<u64>);
+    assert!(matches!(
+        initial_capture.action_status,
+        ActionStatus::Membership
+    ));
+    assert_eq!(initial_capture.function, Some(31));
+    let first_raw = call::<Result<ReplyPage, String>>(
+        &pic,
+        reviewer,
+        "evidence_bytes",
+        encode_args((initial_capture.raw_hash, 0u32)).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        nexus_domain::sha256(&first_raw.bytes),
+        initial_capture.raw_hash
+    );
+    assert!(first_raw.bytes.len() > 1000);
+    let action = call::<Result<MembershipAction, String>>(
+        &pic,
+        reviewer,
+        "proposal_action",
+        encode_args((101u64, None::<u64>)).unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(action, MembershipAction::Change { add, .. } if add.len() == 37));
+
+    queue(101);
+    queue(101);
+    let repeated = until(101, &|status| {
+        status.last_observation > initial.last_observation
+    });
+    assert_eq!(repeated.capture_count, 1);
+    assert_eq!(repeated.last_capture, initial.last_capture);
+
+    for (id, function) in [(99, 2), (98, 13), (97, 18), (96, 31)] {
+        queue(id);
+        until(id, &|status| status.capture_count == 1);
+        let row = capture(id, None::<u64>);
+        assert_eq!(row.function, Some(function));
+        match id {
+            97 => assert!(matches!(
+                row.action_status,
+                ActionStatus::UnsupportedFunction(18)
+            )),
+            96 => {
+                assert!(matches!(
+                    row.action_status,
+                    ActionStatus::MalformedPayload(_)
+                ));
+                assert!(row.payload_hash.is_some());
+            }
+            _ => assert!(matches!(row.action_status, ActionStatus::Membership)),
+        }
+    }
+    queue(95);
+    until(95, &|status| status.capture_count == 1);
+    assert!(matches!(
+        capture(95, None::<u64>).action_status,
+        ActionStatus::UnsupportedAction
+    ));
+    queue(94);
+    until(94, &|status| {
+        status.last_status == Some(SourceStatus::Oversized)
+    });
+    assert_eq!(status(94).capture_count, 0);
+    queue(999);
+    until(999, &|status| {
+        status.last_status == Some(SourceStatus::Unavailable)
+    });
+    assert_eq!(status(999).capture_count, 0);
+
+    call::<()>(
+        &pic,
+        fixture,
+        "set_proposal_executed",
+        encode_one(true).unwrap(),
+    );
+    pic.upgrade_canister(reviewer, binary, encode_args(()).unwrap(), None)
+        .unwrap();
+    pic.advance_time(std::time::Duration::from_secs(3600));
+    until(101, &|status| status.capture_count == 2);
+    let history = call::<Result<CapturePage, String>>(
+        &pic,
+        reviewer,
+        "proposal_history",
+        encode_args((101u64, None::<u64>)).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(history.rows.len(), 2);
+    assert_eq!(history.rows[0].payload_hash, history.rows[1].payload_hash);
+    assert_eq!(history.rows[0].lifecycle.status, 1);
+    assert_eq!(history.rows[1].lifecycle.status, 4);
+    assert_eq!(history.rows[1].lifecycle.decided_at_seconds, Some(120));
+    assert_eq!(history.rows[1].lifecycle.executed_at_seconds, Some(130));
+    let discovered = call::<Result<DiscoveryStatus, String>>(
+        &pic,
+        reviewer,
+        "discovery_status",
+        encode_args(()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(discovered.high_watermark, Some(101));
+}

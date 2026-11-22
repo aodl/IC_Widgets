@@ -1,6 +1,7 @@
 mod budget;
 mod diagnostics;
 mod evidence;
+mod governance_archive;
 mod ingestion;
 mod model;
 mod probe;
@@ -8,12 +9,15 @@ mod registry_sync;
 mod store;
 
 use candid::Principal;
-use nexus_domain::Hash;
+use nexus_domain::{Hash, MembershipAction};
 pub use nexus_ic_sources::projection::RecordKey;
 
 pub use budget::{Limits, Stop, Usage};
 pub use diagnostics::{ProbeBudget, ReplyPage, Status};
 pub use evidence::{EvidenceManifest, SourceObservation, SourceStatus};
+pub use governance_archive::{
+    ActionStatus, CapturePage, DiscoveryStatus, ProposalCapture, ProposalStatus,
+};
 pub use ingestion::{COLLECTION_LIMITS, CollectionStatus, Work};
 pub use model::{Observation, ProbeRequest, Receipt, Sources};
 pub use registry_sync::{Assignment, KeyPage, RecordAt, RecordEvidence, RegistryStatus};

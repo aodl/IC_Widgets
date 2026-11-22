@@ -3,7 +3,7 @@ pub mod management;
 pub mod projection;
 pub mod registry;
 
-pub const DECODER_REVISION: &str = "m0.1";
+pub const DECODER_REVISION: &str = "m1.1";
 pub const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 
 pub fn decode_candid<'a, T>(bytes: &'a [u8]) -> Result<T, String>

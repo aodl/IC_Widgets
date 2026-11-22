@@ -32,3 +32,5 @@ jobs:
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - run: cargo clippy --locked --workspace --target wasm32-unknown-unknown --all-features -- -D warnings
       - run: ./scripts/test-m0.sh
+        env:
+          NEXUS_TEST_VERBOSE: "0"

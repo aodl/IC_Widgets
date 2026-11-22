@@ -1,3 +1,9 @@
+type ActionStatus = variant {
+  MalformedPayload : text;
+  UnsupportedAction;
+  Membership;
+  UnsupportedFunction : int32;
+};
 type Assembled = record {
   hash : blob;
   bytes : nat32;
@@ -11,6 +17,7 @@ type Assignment = variant {
   Incomplete : text;
   Conflict : record { replicas : vec principal; api_boundary : bool };
 };
+type CapturePage = record { next : opt nat64; rows : vec ProposalCapture };
 type CollectionStatus = record {
   allocated_pages : nat64;
   enabled : bool;
@@ -55,6 +62,14 @@ type Details = variant {
     registered_region : text;
   };
 };
+type DiscoveryStatus = record {
+  next_discovery : nat64;
+  in_progress : bool;
+  last_discovery_observation : opt nat64;
+  high_watermark : opt nat64;
+  queued : nat32;
+  oldest_scanned : opt nat64;
+};
 type Endpoint = record { ip : text; port : nat32 };
 type EvidenceManifest = record {
   manifest_id : blob;
@@ -71,6 +86,14 @@ type Key = variant {
   DataCenter : text;
 };
 type KeyPage = record { keys : vec RecordKey; next : opt text };
+type Lifecycle = record {
+  status : int32;
+  decided_at_seconds : opt nat64;
+  topic : int32;
+  proposed_at_seconds : nat64;
+  executed_at_seconds : opt nat64;
+  failed_at_seconds : opt nat64;
+};
 type Limits = record {
   calls : nat32;
   attempts : nat8;
@@ -151,6 +174,24 @@ type ProbeRequest = record {
   remote_subnet : opt principal;
   proposal_id : opt nat64;
 };
+type ProposalCapture = record {
+  function : opt int32;
+  action_status : ActionStatus;
+  claim_hash : opt blob;
+  proposal_id : nat64;
+  observation : nat64;
+  lifecycle : Lifecycle;
+  raw_hash : blob;
+  collected_at : nat64;
+  payload_hash : opt blob;
+};
+type ProposalStatus = record {
+  last_status : opt SourceStatus;
+  next_lifecycle_check : opt nat64;
+  last_capture : opt nat64;
+  last_observation : opt nat64;
+  capture_count : nat64;
+};
 type Receipt = record {
   method : text;
   sent_at_nanos : nat64;
@@ -228,19 +269,24 @@ type RegistryStatus = record {
   superseded_mutations : nat64;
 };
 type ReplyPage = record { bytes : blob; next_offset : opt nat32 };
-type Result = variant { Ok : CollectionStatus; Err : text };
-type Result_1 = variant { Ok; Err : text };
-type Result_10 = variant { Ok : RegistryStatus; Err : text };
-type Result_11 = variant { Ok : SourceObservation; Err : text };
-type Result_12 = variant { Ok : nat64; Err : text };
-type Result_2 = variant { Ok : ReplyPage; Err : text };
-type Result_3 = variant { Ok : EvidenceManifest; Err : text };
-type Result_4 = variant { Ok : ProbeBudget; Err : text };
-type Result_5 = variant { Ok : Receipt; Err : text };
-type Result_6 = variant { Ok : Status; Err : text };
-type Result_7 = variant { Ok : Assignment; Err : text };
-type Result_8 = variant { Ok : KeyPage; Err : text };
-type Result_9 = variant { Ok : RecordAt; Err : text };
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : CollectionStatus; Err : text };
+type Result_10 = variant { Ok : CapturePage; Err : text };
+type Result_11 = variant { Ok : ProposalStatus; Err : text };
+type Result_12 = variant { Ok : Assignment; Err : text };
+type Result_13 = variant { Ok : KeyPage; Err : text };
+type Result_14 = variant { Ok : RecordAt; Err : text };
+type Result_15 = variant { Ok : RegistryStatus; Err : text };
+type Result_16 = variant { Ok : SourceObservation; Err : text };
+type Result_17 = variant { Ok : nat64; Err : text };
+type Result_2 = variant { Ok : DiscoveryStatus; Err : text };
+type Result_3 = variant { Ok : ReplyPage; Err : text };
+type Result_4 = variant { Ok : EvidenceManifest; Err : text };
+type Result_5 = variant { Ok : ProbeBudget; Err : text };
+type Result_6 = variant { Ok : Receipt; Err : text };
+type Result_7 = variant { Ok : Status; Err : text };
+type Result_8 = variant { Ok : MembershipAction; Err : text };
+type Result_9 = variant { Ok : ProposalCapture; Err : text };
 type SourceObservation = record {
   id : nat64;
   argument : blob;
@@ -320,25 +366,33 @@ type VersionSpan = record {
   tombstones : nat32;
 };
 type Work = variant {
+  GovernanceList : record { limit : nat32; before : opt nat64 };
   RegistryChanges : nat64;
   RegistryChunk : blob;
+  GovernanceProposal : nat64;
   RegistryHead;
 };
 service : (opt Sources) -> {
-  collection_status : () -> (Result);
-  configure_collection : (opt Limits) -> (Result_1);
-  evidence_bytes : (blob, nat32) -> (Result_2);
-  evidence_manifest : (opt nat64, vec nat64) -> (Result_3);
-  probe_budget : (nat64) -> (Result_4);
-  probe_receipt : (nat64, nat32) -> (Result_5);
-  probe_reply : (nat64, nat32, nat32) -> (Result_2);
-  probe_status : (nat64) -> (Result_6);
-  registry_assignment : (nat64, principal) -> (Result_7);
-  registry_keys : (nat64, opt text) -> (Result_8);
-  registry_record : (nat64, RecordKey) -> (Result_9);
-  registry_status : () -> (Result_10);
-  retry_registry : () -> (Result_1);
-  source_observation : (nat64) -> (Result_11);
-  start_probe : (ProbeRequest) -> (Result_12);
-  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_12);
+  capture_proposal : (nat64) -> (Result);
+  collection_status : () -> (Result_1);
+  configure_collection : (opt Limits) -> (Result);
+  discovery_status : () -> (Result_2);
+  evidence_bytes : (blob, nat32) -> (Result_3);
+  evidence_manifest : (opt nat64, vec nat64) -> (Result_4);
+  probe_budget : (nat64) -> (Result_5);
+  probe_receipt : (nat64, nat32) -> (Result_6);
+  probe_reply : (nat64, nat32, nat32) -> (Result_3);
+  probe_status : (nat64) -> (Result_7);
+  proposal_action : (nat64, opt nat64) -> (Result_8);
+  proposal_archive : (nat64, opt nat64) -> (Result_9);
+  proposal_history : (nat64, opt nat64) -> (Result_10);
+  proposal_status : (nat64) -> (Result_11);
+  registry_assignment : (nat64, principal) -> (Result_12);
+  registry_keys : (nat64, opt text) -> (Result_13);
+  registry_record : (nat64, RecordKey) -> (Result_14);
+  registry_status : () -> (Result_15);
+  retry_registry : () -> (Result);
+  source_observation : (nat64) -> (Result_16);
+  start_probe : (ProbeRequest) -> (Result_17);
+  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_17);
 }

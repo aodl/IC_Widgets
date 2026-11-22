@@ -1,6 +1,7 @@
 //! Synthetic, test-only wire endpoints. Installed on a different subnet from the probe.
 #![cfg(target_arch = "wasm32")]
 
+mod proposal_fixture;
 mod registry_fixture;
 
 use candid::{CandidType, Principal, encode_one};
@@ -61,6 +62,8 @@ fn proposal(id: u64, full: bool) -> ProposalInfo {
         topic: 3,
         proposal_timestamp_seconds: 100,
         executed_timestamp_seconds: 0,
+        failed_timestamp_seconds: None,
+        decided_timestamp_seconds: None,
         proposal: Some(Proposal {
             title: Some("Synthetic membership proposal".into()),
             summary: "A test fixture, not an on-chain proposal.".into(),
@@ -109,19 +112,32 @@ fn set_delay_target(target: Principal) {
 
 fn list(request: ListRequest) -> ListResponse {
     let before = request.before_proposal.map_or(u64::MAX, |id| id.id);
+    let extended = proposal_fixture::ENABLED.get();
+    let first = if extended { 94 } else { 100 };
     ListResponse {
-        proposal_info: [101, 100]
-            .into_iter()
-            .filter(|id| *id < before)
+        proposal_info: (first..=101)
+            .rev()
+            .filter(|&id| id < before)
             .take(request.limit as usize)
-            .map(|id| proposal(id, false))
+            .map(|id| {
+                let base = proposal(id, false);
+                if extended {
+                    proposal_fixture::proposal(id, false, base)
+                } else {
+                    base
+                }
+            })
             .collect(),
     }
 }
 
 #[ic_cdk::query]
 fn get_proposal_info(id: u64) -> Option<ProposalInfo> {
-    matches!(id, 101 | 100).then(|| proposal(id, true))
+    if proposal_fixture::ENABLED.get() && (94..=101).contains(&id) {
+        Some(proposal_fixture::proposal(id, true, proposal(id, true)))
+    } else {
+        matches!(id, 101 | 100).then(|| proposal(id, true))
+    }
 }
 
 fn data_center() -> Vec<u8> {

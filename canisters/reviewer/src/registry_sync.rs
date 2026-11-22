@@ -169,6 +169,7 @@ pub fn accept(work: &Work, bytes: &[u8], observation: u64, now: u64) -> SourceSt
         Work::RegistryHead => accept_head(&mut state, bytes, now),
         Work::RegistryChanges(after) => accept_page(&mut state, bytes, *after, observation, now),
         Work::RegistryChunk(hash) => accept_chunk(&state, bytes, *hash, observation),
+        _ => unreachable!("Registry producer received another source's task"),
     };
     if let Err(error) = result {
         return error;

@@ -7,12 +7,13 @@ use ic_cdk::{
 };
 use ic_stable_structures::StableCell;
 use nexus_domain::{Hash, sha256};
-use nexus_ic_sources::{DECODER_REVISION, MAX_RESPONSE_BYTES, registry};
+use nexus_ic_sources::{DECODER_REVISION, MAX_RESPONSE_BYTES, governance, registry};
 use serde::Deserialize;
 
 use crate::{
     budget::{CALL_TIMEOUT, LEASE, Limits, SECOND, Stop, Usage},
     evidence::{self, EvidenceManifest, SourceObservation, SourceStatus},
+    governance_archive,
     model::Sources,
     registry_sync, require_controller,
     store::{self, Memory, V1, memory},
@@ -36,6 +37,8 @@ pub enum Work {
     RegistryHead,
     RegistryChanges(u64),
     RegistryChunk(Hash),
+    GovernanceList { before: Option<u64>, limit: u32 },
+    GovernanceProposal(u64),
 }
 
 pub struct Request {
@@ -58,6 +61,21 @@ impl Work {
                 })
                 .expect("chunk request"),
             ),
+            Self::GovernanceList { before, limit } => {
+                return Request {
+                    source: sources.governance,
+                    method: "list_proposals",
+                    bytes: candid::encode_one(governance::list_request(*before, true, *limit))
+                        .expect("list request"),
+                };
+            }
+            Self::GovernanceProposal(id) => {
+                return Request {
+                    source: sources.governance,
+                    method: "get_proposal_info",
+                    bytes: candid::encode_one(id).expect("proposal request"),
+                };
+            }
         };
         Request {
             source: sources.registry,
@@ -81,6 +99,7 @@ struct Scheduler {
     generation: u64,
     observation: u64,
     lease: Option<Lease>,
+    governance_turn: Option<bool>,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -212,7 +231,19 @@ async fn tick(generation: u64) {
     if now >= usage.started_at.saturating_add(DAY) {
         usage = Usage::new(limits, now, canister_cycle_balance());
     }
-    let task = registry_sync::next(now);
+    let governance = || governance_archive::next(now).map(registry_sync::Next::Call);
+    let task = if state.governance_turn.unwrap_or(false) {
+        governance().unwrap_or_else(|| registry_sync::next(now))
+    } else {
+        match registry_sync::next(now) {
+            registry_sync::Next::Idle => governance().unwrap_or(registry_sync::Next::Idle),
+            task => task,
+        }
+    };
+    state.governance_turn = Some(!matches!(
+        &task,
+        registry_sync::Next::Call(Work::GovernanceList { .. } | Work::GovernanceProposal(_))
+    ));
     let (work, request) = match task {
         registry_sync::Next::Idle => {
             state.usage = Some(usage);
@@ -284,7 +315,12 @@ async fn tick(generation: u64) {
             let bytes = reply.into_bytes();
             let hash = sha256(&bytes);
             let len = bytes.len() as u32;
-            let status = registry_sync::accept(&lease.work, &bytes, id, observed_at);
+            let status = match lease.work {
+                Work::GovernanceList { .. } | Work::GovernanceProposal(_) => {
+                    governance_archive::accept(&lease.work, &bytes, id, observed_at)
+                }
+                _ => registry_sync::accept(&lease.work, &bytes, id, observed_at),
+            };
             if matches!(
                 status,
                 SourceStatus::Malformed(_) | SourceStatus::Integrity(_)
@@ -300,7 +336,7 @@ async fn tick(generation: u64) {
         usage.raw_bytes += u64::from(raw_bytes.unwrap_or(0));
     }
     if !matches!(status, SourceStatus::Valid) {
-        registry_sync::failed(&status, id, observed_at, limits.attempts);
+        failed(&lease.work, &status, id, observed_at, limits.attempts);
     }
     evidence::observe(row(
         id,
@@ -313,6 +349,15 @@ async fn tick(generation: u64) {
     ));
     account_instructions(&mut state);
     next_tick(state, SECOND);
+}
+
+fn failed(work: &Work, error: &SourceStatus, id: u64, now: u64, attempts: u8) {
+    match work {
+        Work::GovernanceList { .. } | Work::GovernanceProposal(_) => {
+            governance_archive::failed(work, error, id, now, attempts)
+        }
+        _ => registry_sync::failed(error, id, now, attempts),
+    }
 }
 
 fn call_error(err: CallFailed) -> SourceStatus {
@@ -338,7 +383,8 @@ pub fn short(message: &str) -> String {
 fn record_interruption(state: &mut Scheduler, lease: &Lease) {
     state.observation += 1;
     let now = time();
-    registry_sync::failed(
+    failed(
+        &lease.work,
         &SourceStatus::Interrupted,
         state.observation,
         now,
