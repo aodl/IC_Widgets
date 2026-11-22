@@ -70,8 +70,42 @@ fn proposal(id: u64, full: bool) -> ProposalInfo {
     }
 }
 
+#[cfg(not(feature = "slow-governance"))]
 #[ic_cdk::query]
 fn list_proposals(request: ListRequest) -> ListResponse {
+    list(request)
+}
+
+#[cfg(feature = "slow-governance")]
+#[ic_cdk::update]
+async fn list_proposals(request: ListRequest) -> ListResponse {
+    let target = DELAY_TARGET
+        .get()
+        .expect("configure cross-subnet fixture target");
+    for _ in 0..20 {
+        ic_cdk::call::Call::bounded_wait(target, "delay_round")
+            .await
+            .expect("fixture round");
+    }
+    list(request)
+}
+
+#[cfg(feature = "slow-governance")]
+#[ic_cdk::update]
+fn delay_round() {}
+
+#[cfg(feature = "slow-governance")]
+thread_local! {
+    static DELAY_TARGET: std::cell::Cell<Option<Principal>> = const { std::cell::Cell::new(None) };
+}
+
+#[cfg(feature = "slow-governance")]
+#[ic_cdk::update]
+fn set_delay_target(target: Principal) {
+    DELAY_TARGET.set(Some(target));
+}
+
+fn list(request: ListRequest) -> ListResponse {
     let before = request.before_proposal.map_or(u64::MAX, |id| id.id);
     ListResponse {
         proposal_info: [101, 100]

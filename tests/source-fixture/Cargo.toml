@@ -13,3 +13,6 @@ ic-cdk.workspace = true
 prost.workspace = true
 nexus-domain.workspace = true
 nexus-ic-sources.workspace = true
+
+[features]
+slow-governance = []

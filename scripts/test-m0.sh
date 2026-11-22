@@ -17,6 +17,11 @@ fi
 if [[ -n "${POCKET_IC_BIN:-}" ]]; then
     [[ "$("$POCKET_IC_BIN" --version)" = "pocket-ic-server 14.0.0" ]]
 fi
+command -v didc >/dev/null
+[[ "$(candid-extractor --version)" = "candid-extractor 0.1.6" ]]
+./scripts/build-m0-fixture.sh
+cargo build --locked --release --target wasm32-unknown-unknown -p nexus-source-fixture --features slow-governance
+cp target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm .local/slow-source-fixture.wasm
 cargo build --locked --release --target wasm32-unknown-unknown -p nexus-reviewer --features local-fixtures -p nexus-source-fixture
 cp target/wasm32-unknown-unknown/release/nexus_reviewer.wasm .local/reviewer-fixture.wasm
 cargo build --locked --release --target wasm32-unknown-unknown -p nexus-reviewer
@@ -24,7 +29,6 @@ export NEXUS_M0_TEST=1
 ./scripts/fetch-nns-test-wasms.sh
 cargo test --locked --workspace -- --nocapture
 cargo test --locked -p nexus-reviewer --test m0 -- --ignored --nocapture
-if command -v candid-extractor >/dev/null; then
-    candid-extractor target/wasm32-unknown-unknown/release/nexus_reviewer.wasm > .local/reviewer.did
-    diff -u canisters/reviewer/reviewer.did .local/reviewer.did
-fi
+candid-extractor target/wasm32-unknown-unknown/release/nexus_reviewer.wasm > .local/reviewer.did
+diff -u canisters/reviewer/reviewer.did .local/reviewer.did
+didc check .local/reviewer.did canisters/reviewer/m0.did

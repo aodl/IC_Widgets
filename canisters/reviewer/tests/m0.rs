@@ -7,8 +7,10 @@ use std::{
 use candid::{CandidType, Principal, decode_one, encode_args, encode_one};
 use nexus_domain::sha256;
 use nexus_ic_sources::registry::{Key, RecordSummary};
-use nexus_reviewer::{Observation, ProbeRequest, Receipt, ReplyPage, Sources, Status};
-use pocket_ic::{PocketIc, PocketIcBuilder};
+use nexus_reviewer::{
+    Limits, Observation, ProbeBudget, ProbeRequest, Receipt, ReplyPage, Sources, Status, Stop,
+};
+use pocket_ic::{CreateCanisterParams, CreateCanisterPlacement, PocketIc, PocketIcBuilder};
 use serde::de::DeserializeOwned;
 
 const FUNDING: u128 = 10_000_000_000_000;
@@ -58,7 +60,14 @@ fn run_to_completion(pic: &PocketIc, canister: Principal, id: u64) -> Status {
         if i % 4 == 0 {
             let current = status(pic, canister, id);
             if current.completed_at_nanos.is_some() {
-                assert_eq!(current.stop_reason, None);
+                let budget = call::<Result<ProbeBudget, String>>(
+                    pic,
+                    canister,
+                    "probe_budget",
+                    encode_one(id).unwrap(),
+                )
+                .unwrap();
+                assert_eq!(current.stop_reason, None, "{:?}", budget.usage);
                 return current;
             }
         }
@@ -179,7 +188,7 @@ fn cross_subnet_wire_calls_and_upgrade() {
     let reviewer_wasm = wasm(".local/reviewer-fixture.wasm");
     pic.install_canister(
         reviewer,
-        reviewer_wasm.clone(),
+        wasm(".local/m0-wasm/reviewer.wasm"),
         encode_one(Some(Sources {
             governance: fixture,
             registry: fixture,
@@ -221,6 +230,16 @@ fn cross_subnet_wire_calls_and_upgrade() {
     pic.upgrade_canister(reviewer, reviewer_wasm, encode_args(()).unwrap(), None)
         .unwrap();
     assert_eq!(raw(&pic, reviewer, &first), original);
+    assert!(
+        call::<Result<ProbeBudget, String>>(
+            &pic,
+            reviewer,
+            "probe_budget",
+            encode_one(id).unwrap()
+        )
+        .unwrap()
+        .migrated_from_m0
+    );
     let final_status = run_to_completion(&pic, reviewer, id);
     println!(
         "fixture lifecycle spent {} cycles including upgrade and status polling",
@@ -518,4 +537,152 @@ fn replicated_queries_have_different_limits_from_client_queries() {
     );
     println!("replicated response size failure: {message}");
     assert!(message.contains("2097152"), "{message}");
+}
+
+#[test]
+#[ignore = "run through scripts/test-m0.sh to build both Wasm generations"]
+fn in_flight_upgrade_and_budget_exhaustion() {
+    assert!(enabled());
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+    let topology = pic.topology();
+    let app = topology.get_app_subnets()[0];
+    let fixture = pic.create_canister_on_subnet(None, None, topology.get_nns().unwrap());
+    let slow = wasm(".local/slow-source-fixture.wasm");
+    let delay_target = pic.create_canister_on_subnet(None, None, app);
+    pic.install_canister(delay_target, slow.clone(), encode_args(()).unwrap(), None);
+    pic.install_canister(fixture, slow, encode_args(()).unwrap(), None);
+    pic.update_call(
+        fixture,
+        Principal::anonymous(),
+        "set_delay_target",
+        encode_one(delay_target).unwrap(),
+    )
+    .unwrap();
+    let reviewer = pic.create_canister_on_subnet(None, None, app);
+    pic.add_cycles(reviewer, FUNDING);
+    pic.install_canister(
+        reviewer,
+        wasm(".local/m0-wasm/reviewer.wasm"),
+        encode_one(Some(Sources {
+            governance: fixture,
+            registry: fixture,
+        }))
+        .unwrap(),
+        None,
+    );
+    let request = ProbeRequest {
+        proposal_id: None,
+        registry_subnet: None,
+        remote_subnet: None,
+        metrics_start_nanos: 0,
+    };
+    let id = start(&pic, reviewer, &request);
+    advance(&pic);
+    let inflight = status(&pic, reviewer, id);
+    assert!(
+        inflight.in_flight,
+        "remaining {}, receipts {}, first {:?}",
+        inflight.remaining_steps,
+        inflight.receipt_count,
+        (inflight.receipt_count > 0).then(|| receipt(&pic, reviewer, id, 0).observation)
+    );
+    assert_eq!(inflight.receipt_count, 0);
+    let new_binary = wasm(".local/reviewer-fixture.wasm");
+    pic.upgrade_canister(reviewer, new_binary.clone(), encode_args(()).unwrap(), None)
+        .unwrap();
+    pic.upgrade_canister(
+        fixture,
+        wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
+        encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let final_status = run_to_completion(&pic, reviewer, id);
+    let ledger = |id| {
+        call::<Result<ProbeBudget, String>>(&pic, reviewer, "probe_budget", encode_one(id).unwrap())
+            .unwrap()
+    };
+    let recovered = ledger(id);
+    assert!(recovered.migrated_from_m0);
+    assert_eq!(recovered.usage.calls, final_status.receipt_count + 1);
+    assert_eq!(recovered.usage.stop, Some(Stop::Completed));
+    assert_eq!(receipt(&pic, reviewer, id, 0).attempt, 2);
+
+    for (limits, expected, calls) in [
+        (
+            Limits {
+                calls: 1,
+                ..Limits::PROBE
+            },
+            Stop::CallLimit,
+            1,
+        ),
+        (
+            Limits {
+                cycle_ceiling: 1,
+                ..Limits::PROBE
+            },
+            Stop::CycleCeiling,
+            0,
+        ),
+        (
+            Limits {
+                raw_bytes: 2 * 1024 * 1024,
+                ..Limits::PROBE
+            },
+            Stop::RawByteLimit,
+            1,
+        ),
+        (
+            Limits {
+                duration_secs: 1,
+                ..Limits::PROBE
+            },
+            Stop::Deadline,
+            0,
+        ),
+    ] {
+        let id = call::<Result<u64, String>>(
+            &pic,
+            reviewer,
+            "start_probe_with_limits",
+            encode_args((&request, limits)).unwrap(),
+        )
+        .unwrap();
+        for _ in 0..5 {
+            advance(&pic);
+        }
+        let budget = ledger(id);
+        assert_eq!(budget.usage.stop, Some(expected));
+        assert_eq!(budget.usage.calls, calls);
+    }
+
+    let low = pic
+        .create_canister_with_params(
+            None,
+            CreateCanisterParams {
+                cycles: Some(40_000_000_000),
+                placement: Some(CreateCanisterPlacement::SubnetId(
+                    topology.get_nns().unwrap(),
+                )),
+                settings: None,
+            },
+        )
+        .unwrap();
+    pic.install_canister(
+        low,
+        new_binary,
+        encode_one::<Option<Sources>>(None).unwrap(),
+        None,
+    );
+    let id = start(&pic, low, &request);
+    advance(&pic);
+    let budget =
+        call::<Result<ProbeBudget, String>>(&pic, low, "probe_budget", encode_one(id).unwrap())
+            .unwrap();
+    assert_eq!(budget.usage.stop, Some(Stop::CycleBalance));
+    assert_eq!(budget.usage.calls, 0);
 }

@@ -1,0 +1,154 @@
+type Assembled = record {
+  hash : blob;
+  bytes : nat32;
+  "record" : opt RecordSummary;
+};
+type Key = variant {
+  Operator : principal;
+  Node : principal;
+  MissingProbe;
+  Subnet : principal;
+  SubnetList;
+  DataCenter : text;
+};
+type ListedProposal = record {
+  id : nat64;
+  function : opt int32;
+  listed_payload_bytes : opt nat32;
+};
+// Source order and duplicates are preserved for review.
+type MembershipAction = variant {
+  Add : record { subnet : principal; nodes : vec principal };
+  Remove : record { nodes : vec principal };
+  Change : record {
+    add : vec principal;
+    remove : vec principal;
+    subnet : principal;
+  };
+};
+type Observation = variant {
+  ProposalList : vec ListedProposal;
+  RegistryChunks : record {
+    registry_key : text;
+    hashes : vec blob;
+    mutation_version : nat64;
+  };
+  InvalidResponse : text;
+  RegistryValue : record {
+    key : Key;
+    source_timestamp_nanos : opt nat64;
+    requested_version : nat64;
+    mutation_version : nat64;
+    "record" : RecordSummary;
+  };
+  Rejected : record { code : opt nat32; message : text; retryable : bool };
+  Proposal : record {
+    id : nat64;
+    status : int32;
+    topic : int32;
+    function : opt int32;
+    payload_bytes : opt nat32;
+    proposal_time_seconds : nat64;
+    membership : opt MembershipAction;
+    executed_time_seconds : opt nat64;
+    payload_decode_error : opt text;
+    payload_hash : opt blob;
+  };
+  RegistryHead : nat64;
+  RegistryPage : VersionSpan;
+  Chunk : record { hash : blob; assembled : opt Assembled; bytes : nat32 };
+  SubnetInfo : record {
+    replica_version : text;
+    registry_version : nat64;
+    subnet : principal;
+  };
+  Unavailable;
+  Metrics : record {
+    requested_start_nanos : nat64;
+    first_sample_hash : opt blob;
+    sample_count : nat32;
+    overlap_matches : opt bool;
+    maximum_rows : opt nat32;
+    subnet : principal;
+    first_timestamp_nanos : opt nat64;
+    last_timestamp_nanos : opt nat64;
+    minimum_rows : opt nat32;
+  };
+};
+type ProbeRequest = record {
+  registry_subnet : opt principal;
+  metrics_start_nanos : nat64;
+  remote_subnet : opt principal;
+  proposal_id : opt nat64;
+};
+type Receipt = record {
+  method : text;
+  sent_at_nanos : nat64;
+  cycles_at_callback : nat;
+  attempt : nat8;
+  source : principal;
+  request : blob;
+  decoder_revision : text;
+  calling_subnet : principal;
+  job_id : nat64;
+  received_at_nanos : nat64;
+  calling_canister : principal;
+  raw_bytes : opt nat32;
+  observation : Observation;
+  index : nat32;
+  raw_hash : opt blob;
+  cycles_before : nat;
+};
+type RecordSummary = variant {
+  Operator : record { dc : text; provider : principal };
+  Node : record { operator : principal };
+  Subnet : record {
+    first : opt principal;
+    configured_version : text;
+    member_count : nat32;
+    subnet_type : int32;
+  };
+  SubnetList : record { first : opt principal; count : nat32 };
+  DataCenter : record {
+    id : text;
+    region : text;
+    has_gps : bool;
+    registered_owner : text;
+  };
+};
+type ReplyPage = record { bytes : blob; next_offset : opt nat32 };
+type Result = variant { Ok : Receipt; Err : text };
+type Result_1 = variant { Ok : ReplyPage; Err : text };
+type Result_2 = variant { Ok : Status; Err : text };
+type Result_3 = variant { Ok : nat64; Err : text };
+type Sources = record { governance : principal; registry : principal };
+type Status = record {
+  caller_subnet : principal;
+  captured_registry_head : opt nat64;
+  receipt_count : nat32;
+  cycles : nat;
+  job_id : nat64;
+  remaining_steps : nat32;
+  detected_remote_subnet : opt principal;
+  completed_at_nanos : opt nat64;
+  in_flight : bool;
+  stable_pages : nat64;
+  stored_reply_bytes : nat64;
+  started_at_nanos : nat64;
+  stop_reason : opt text;
+};
+type VersionSpan = record {
+  mutations : nat32;
+  requested_after : nat64;
+  chunked_mutations : nat32;
+  delivered_through : nat64;
+  distinct_keys : nat32;
+  observed_head : nat64;
+  tombstones : nat32;
+};
+service : (opt Sources) -> {
+  probe_receipt : (nat64, nat32) -> (Result);
+  probe_reply : (nat64, nat32, nat32) -> (Result_1);
+  probe_status : (nat64) -> (Result_2);
+  start_probe : (ProbeRequest) -> (Result_3);
+}

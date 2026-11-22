@@ -1,0 +1,34 @@
+name: Verify evidence backend
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install verification tools
+        run: |
+          mkdir -p .local/ci-tools
+          curl -fsSL --retry 3 https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-linux-x86_64.zip -o .local/protoc.zip
+          unzip -q .local/protoc.zip -d .local/ci-tools/protobuf
+          curl -fsSL --retry 3 https://github.com/dfinity/candid/releases/download/2025-12-18/didc-linux64 -o .local/ci-tools/didc
+          printf '%s  %s\n' 32693c76d9c6fe0f273f2c1ebf7e48ba3c383e925e5afd17dd264a06aed9fbcc .local/ci-tools/didc | sha256sum --check
+          chmod +x .local/ci-tools/didc
+          echo "$PWD/.local/ci-tools" >> "$GITHUB_PATH"
+          echo "$PWD/.local/ci-tools/protobuf/bin" >> "$GITHUB_PATH"
+          rustup show
+          cargo install --locked candid-extractor --version 0.1.6
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - run: cargo clippy --locked --workspace --target wasm32-unknown-unknown --all-features -- -D warnings
+      - run: ./scripts/test-m0.sh

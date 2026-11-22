@@ -8,7 +8,7 @@ use ic_stable_structures::{
 
 use crate::model::{Job, Receipt, Sources};
 
-type Memory = VirtualMemory<DefaultMemoryImpl>;
+pub type Memory = VirtualMemory<DefaultMemoryImpl>;
 type ReceiptKey = (u64, u32);
 
 #[derive(candid::CandidType, serde::Deserialize)]
@@ -46,7 +46,7 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(3)));
 }
 
-fn memory(id: u8) -> Memory {
+pub fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|manager| manager.get(MemoryId::new(id)))
 }
 
@@ -97,10 +97,10 @@ macro_rules! stable_candid {
     ($($type:ty),+) => {$(
         impl Storable for $type {
             fn to_bytes(&self) -> Cow<'_, [u8]> {
-                Cow::Owned(self.into_bytes_by_ref())
+                Cow::Owned(self.encode_legacy())
             }
             fn into_bytes(self) -> Vec<u8> {
-                self.into_bytes_by_ref()
+                self.encode_legacy()
             }
             fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
                 candid::decode_one(&bytes).expect("decode stable schema v1")
@@ -108,7 +108,7 @@ macro_rules! stable_candid {
             const BOUND: Bound = Bound::Unbounded;
         }
         impl $type {
-            fn into_bytes_by_ref(&self) -> Vec<u8> {
+            fn encode_legacy(&self) -> Vec<u8> {
                 candid::encode_one(self).expect("encode stable schema v1")
             }
         }
@@ -116,3 +116,28 @@ macro_rules! stable_candid {
 }
 
 stable_candid!(Config, Job, Receipt);
+
+/// Stable records introduced after M0 use a one-byte format tag. Add a decoder
+/// for every previously written tag before changing the writer.
+pub struct V1<T>(pub T);
+
+impl<T: candid::CandidType + serde::de::DeserializeOwned> Storable for V1<T> {
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        let mut bytes = vec![1];
+        bytes.extend(candid::encode_one(&self.0).expect("encode stable record"));
+        Cow::Owned(bytes)
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        self.to_bytes().into_owned()
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        match bytes.split_first() {
+            Some((1, data)) => Self(candid::decode_one(data).expect("decode stable record v1")),
+            _ => panic!("unsupported stable record version"),
+        }
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}

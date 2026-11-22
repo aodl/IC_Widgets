@@ -93,13 +93,12 @@ impl Step {
                     })
                     .collect();
                 if before.is_none() && *omit_large_fields {
-                    if job.request.proposal_id.is_none() {
-                        if let Some(row) = listed
+                    if job.request.proposal_id.is_none()
+                        && let Some(row) = listed
                             .iter()
                             .find(|row| row.function.is_some_and(governance::is_membership))
-                        {
-                            job.pending.push(Self::Proposal(row.id));
-                        }
+                    {
+                        job.pending.push(Self::Proposal(row.id));
                     }
                     if let Some(last) = listed.last() {
                         job.pending.push(Self::List {
@@ -237,14 +236,14 @@ impl Step {
                 let first = history.first().map(|sample| sample.timestamp_nanos);
                 let last = history.last().map(|sample| sample.timestamp_nanos);
                 let first_sample_hash = history.first().map(|sample| sha256(&encode(sample)));
-                if expected_boundary_hash.is_none() {
-                    if let Some(last) = history.last() {
-                        job.pending.push(Self::Metrics {
-                            subnet: *subnet,
-                            start: last.timestamp_nanos,
-                            expected_boundary_hash: Some(sha256(&encode(last))),
-                        });
-                    }
+                if expected_boundary_hash.is_none()
+                    && let Some(last) = history.last()
+                {
+                    job.pending.push(Self::Metrics {
+                        subnet: *subnet,
+                        start: last.timestamp_nanos,
+                        expected_boundary_hash: Some(sha256(&encode(last))),
+                    });
                 }
                 Ok(Observation::Metrics {
                     subnet: *subnet,
@@ -326,15 +325,14 @@ fn continue_join(job: &mut Job, key: &Key, at: u64, version: u64, record: &Recor
         RecordSummary::Subnet {
             subnet_type, first, ..
         } => {
-            if let Key::Subnet(subnet) = key {
-                if job.request.remote_subnet.is_none()
-                    && *subnet != job.caller_subnet
-                    && matches!(subnet_type, 1 | 2 | 4)
-                    && job.auto_remote.is_none()
-                {
-                    job.auto_remote = Some(*subnet);
-                    add_management(&mut job.pending, *subnet, job.request.metrics_start_nanos);
-                }
+            if let Key::Subnet(subnet) = key
+                && job.request.remote_subnet.is_none()
+                && *subnet != job.caller_subnet
+                && matches!(subnet_type, 1 | 2 | 4)
+                && job.auto_remote.is_none()
+            {
+                job.auto_remote = Some(*subnet);
+                add_management(&mut job.pending, *subnet, job.request.metrics_start_nanos);
             }
             first.map(Key::Node)
         }
