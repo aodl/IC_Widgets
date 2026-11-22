@@ -614,10 +614,13 @@ pub struct ScopeCursor {
 #[ic_cdk::update]
 fn membership_review_scope(request: ScopeRequest) -> Result<ScopePage, String> {
     require_controller()?;
-    resolved_page(request)
+    resolved_page(request, |selection| selection)
 }
 
-fn resolved_page(request: ScopeRequest) -> Result<ScopePage, String> {
+fn resolved_page(
+    request: ScopeRequest,
+    cursor_selection: impl FnOnce(Hash) -> Hash,
+) -> Result<ScopePage, String> {
     if request
         .nodes
         .as_ref()
@@ -642,8 +645,8 @@ fn resolved_page(request: ScopeRequest) -> Result<ScopePage, String> {
     };
     let selection = scope.selection_id();
     let start = if let Some(cursor) = request.cursor {
-        if cursor.selection != selection {
-            return Err("cursor belongs to a different scope selection".into());
+        if cursor.selection != cursor_selection(selection) {
+            return Err("cursor belongs to a different scope or sample selection".into());
         }
         Excluded(cursor.after)
     } else {
@@ -689,24 +692,39 @@ fn read_membership_performance(request: PerformanceRequest) -> Result<Performanc
         return Err("public reads temporarily unavailable due to low canister balance".into());
     }
     let continuation = request.scope.cursor.is_some();
-    let scope = resolved_page(request.scope)?;
+    let scope = resolved_page(request.scope, |selection| {
+        performance_selection(selection, request.timestamp)
+    })?;
     let mut page = PerformancePage {
         scope,
         sample: None,
         last_success_at: None,
         rows: vec![],
     };
-    if let ScopePage::Nodes { identity, rows, .. } = &page.scope
-        && !rows.is_empty()
+    if let ScopePage::Nodes {
+        identity,
+        selection,
+        rows,
+        ..
+    } = &mut page.scope
     {
-        if continuation && request.timestamp.is_none() {
-            return Ok(page);
+        if !rows.is_empty() && (!continuation || request.timestamp.is_some()) {
+            let subnet = identity.target_subnet;
+            let nodes = rows.iter().map(|(id, _)| *id).collect();
+            (page.sample, page.rows) =
+                metrics_archive::scoped_sample(subnet, request.timestamp, &nodes)?;
+            page.last_success_at = metrics_archive::last_success_at(subnet);
         }
-        let subnet = identity.target_subnet;
-        let nodes = rows.iter().map(|(id, _)| *id).collect();
-        (page.sample, page.rows) =
-            metrics_archive::scoped_sample(subnet, request.timestamp, &nodes)?;
-        page.last_success_at = metrics_archive::last_success_at(subnet);
+        *selection = performance_selection(
+            *selection,
+            page.sample.as_ref().map(|sample| sample.timestamp_nanos),
+        );
     }
     Ok(page)
+}
+
+fn performance_selection(scope: Hash, timestamp: Option<u64>) -> Hash {
+    sha256(
+        &candid::encode_args(("membership-performance", scope, timestamp)).expect("scope cursor"),
+    )
 }

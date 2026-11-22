@@ -42,7 +42,7 @@ fn review_waits_resolves_and_serves_immutable_scopes_across_upgrade() {
         .unwrap(),
         None,
     );
-    call::<()>(&pic, fixture, "set_registry_mode", encode_one(1u8).unwrap());
+    call::<()>(&pic, fixture, "set_registry_mode", encode_one(6u8).unwrap());
     call::<()>(
         &pic,
         fixture,
@@ -99,6 +99,26 @@ fn review_waits_resolves_and_serves_immutable_scopes_across_upgrade() {
         )
         .unwrap()
     };
+    let removal_key = submit(&ReviewRequest {
+        proposals: vec![SelectedProposal {
+            id: 91,
+            observation: None,
+        }],
+        ..request.clone()
+    });
+    let removal_progress = || {
+        call::<Result<ReviewJob, String>>(
+            &pic,
+            reviewer,
+            "advance_membership_review",
+            encode_one(removal_key).unwrap(),
+        )
+        .unwrap()
+    };
+    assert!(matches!(
+        removal_progress().state,
+        ReviewJobState::Waiting { .. }
+    ));
     collect(Some(COLLECTION_LIMITS));
 
     let before = pic.cycle_balance(reviewer);
@@ -112,6 +132,16 @@ fn review_waits_resolves_and_serves_immutable_scopes_across_upgrade() {
             }
         })
         .expect("archived evidence became available");
+    let removal_revision = (0..50)
+        .find_map(|_| {
+            advance(&pic);
+            match removal_progress().state {
+                ReviewJobState::Complete(revision) => Some(revision),
+                ReviewJobState::Blocked(_) => panic!("multi-subnet removal blocked"),
+                _ => None,
+            }
+        })
+        .expect("multi-subnet removal completed");
     collect(None);
     let mut contents = vec![];
     let mut offset = 0u32;
@@ -176,8 +206,8 @@ fn review_waits_resolves_and_serves_immutable_scopes_across_upgrade() {
     };
     assert_eq!(identity.review_revision, revision);
     assert_eq!(identity.ordered_proposals, [93, 92]);
-    assert_eq!(rows.len(), 51);
-    assert!(next.is_none());
+    assert_eq!(rows.len(), 64);
+    assert!(next.is_some());
     let candidate = principal(21, 1201);
     let ScopePage::Nodes { rows, .. } = scoped(Some(vec![NodeRole::NetAdded]), None, None).unwrap()
     else {
@@ -205,35 +235,104 @@ fn review_waits_resolves_and_serves_immutable_scopes_across_upgrade() {
     let before_reads = pic.cycle_balance(reviewer);
     let listed: Vec<CompletedReview> =
         decode_one(&public("list_completed_reviews", encode_args(()).unwrap())).unwrap();
-    assert_eq!(listed.len(), 1);
-    assert_eq!(listed[0].proposals, [93, 92]);
+    assert_eq!(listed.len(), 2);
+    assert!(listed.iter().any(|row| row.proposals == [93, 92]));
+    assert!(listed.iter().any(|row| row.proposals == [91]));
     let fetched: Result<Review, String> = decode_one(&public(
         "read_membership_review",
         encode_one(revision).unwrap(),
     ))
     .unwrap();
     assert_eq!(fetched.unwrap(), report);
-    let perf: Result<PerformancePage, String> = decode_one(&public(
-        "read_membership_performance",
-        encode_one(PerformanceRequest {
-            scope: ScopeRequest {
-                revision,
-                subnet,
-                scenario: ScenarioId::AThenB,
-                roles: None,
-                nodes: None,
-                cursor: None,
-            },
-            timestamp: None,
-        })
-        .unwrap(),
-    ))
-    .unwrap();
-    let perf = perf.unwrap();
-    assert!(matches!(perf.scope, ScopePage::Nodes { rows, .. } if rows.len() == 51));
+    let performance = |revision, subnet, scenario, nodes, cursor, timestamp| {
+        decode_one::<Result<PerformancePage, String>>(&public(
+            "read_membership_performance",
+            encode_one(PerformanceRequest {
+                scope: ScopeRequest {
+                    revision,
+                    subnet,
+                    scenario,
+                    roles: None,
+                    nodes,
+                    cursor,
+                },
+                timestamp,
+            })
+            .unwrap(),
+        ))
+        .unwrap()
+    };
+    let perf = performance(revision, subnet, ScenarioId::AThenB, None, None, None).unwrap();
+    let read_cycles = before_reads - pic.cycle_balance(reviewer);
     assert!(perf.sample.is_none());
     assert!(perf.rows.is_empty());
-    let read_cycles = before_reads - pic.cycle_balance(reviewer);
+    let ScopePage::Nodes {
+        rows,
+        selection,
+        next,
+        ..
+    } = perf.scope
+    else {
+        panic!("available scope")
+    };
+    assert_eq!(rows.len(), 64);
+    let cursor = || {
+        Some(ScopeCursor {
+            selection,
+            after: next.unwrap(),
+        })
+    };
+    let page = performance(revision, subnet, ScenarioId::AThenB, None, cursor(), None).unwrap();
+    assert!(page.sample.is_none());
+    assert!(
+        matches!(page.scope, ScopePage::Nodes { rows: rest, next: None, .. }
+        if rest.len() == 7 && rest.iter().all(|(node, _)| !rows.iter().any(|(first, _)| first == node)))
+    );
+    assert!(
+        performance(
+            revision,
+            subnet,
+            ScenarioId::AThenB,
+            None,
+            cursor(),
+            Some(1)
+        )
+        .is_err()
+    );
+    assert!(performance(revision, subnet, ScenarioId::BThenA, None, cursor(), None).is_err());
+    let empty = performance(
+        revision,
+        subnet,
+        ScenarioId::AThenB,
+        Some(vec![]),
+        None,
+        None,
+    )
+    .unwrap();
+    assert!(matches!(empty.scope, ScopePage::Nodes { rows, .. } if rows.is_empty()));
+    assert!(empty.sample.is_none());
+
+    let other = principal(22, 1);
+    for (target, member, outsider) in [
+        (subnet, principal(21, 1), principal(21, 80)),
+        (other, principal(21, 80), principal(21, 1)),
+    ] {
+        let perf = performance(removal_revision, target, ScenarioId::A, None, None, None).unwrap();
+        assert!(matches!(perf.scope, ScopePage::Nodes { identity, rows, .. }
+            if identity.target_subnet == target && rows.iter().any(|(node, _)| *node == member)
+                && rows.iter().all(|(node, _)| *node != outsider)));
+    }
+    let missing = performance(
+        removal_revision,
+        principal(22, 2),
+        ScenarioId::A,
+        None,
+        None,
+        None,
+    )
+    .unwrap();
+    assert!(matches!(missing.scope, ScopePage::Unavailable(_)));
+    assert!(missing.sample.is_none());
     let denied: Result<Hash, String> = decode_one(&public(
         "request_membership_review",
         encode_one(&request).unwrap(),

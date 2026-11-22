@@ -188,7 +188,7 @@ function renderReport(report) {
     styled('section', 'card', el('h2', 'Membership and topology'),
       styled('div', 'controls', scenarioLabelControl, subnetLabel, stateLabel), overview),
     styled('section', 'card', el('h2', 'Node performance'),
-      styled('p', 'muted', 'Archived consensus blockmaking observations for this scenario and subnet. Sparse samples can omit unchanged rows.'),
+      styled('p', 'muted', 'Archived blockmaking observations from this subnet, filtered to the scenario’s resolved node scope. Sparse samples can omit unchanged rows.'),
       styled('div', 'actions', load, more), performanceStatus, performance),
   );
   updateScenario();

@@ -147,9 +147,12 @@ pub fn changes(after: u64) -> HighCapacityRegistryGetChangesSinceResponse {
             ),
         ));
         for subnet_index in 0..24 {
-            let members = (subnet_index * 50..(subnet_index + 1) * 50)
-                .map(|index| node(index).as_slice().to_vec())
-                .collect();
+            let range = match (MODE.get(), subnet_index) {
+                (6, 0) => 0..70,
+                (6, 1) => 70..100,
+                _ => subnet_index * 50..(subnet_index + 1) * 50,
+            };
+            let members = range.map(|index| node(index).as_slice().to_vec()).collect();
             let record = SubnetRecord {
                 membership: members,
                 subnet_type: 1,

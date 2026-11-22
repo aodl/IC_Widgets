@@ -652,6 +652,23 @@ mod tests {
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].node_id, node(1, 0).node_id);
         assert_eq!(rows[0].num_blocks_proposed_total, 10);
+        let newer = candid::encode_one(vec![
+            day(1, vec![node(1, 10), node(2, 4)]),
+            day(2, vec![node(1, 12)]),
+        ])
+        .unwrap();
+        assert_eq!(
+            accept(subnet, DAILY, &newer, 2, 3 * DAILY),
+            SourceStatus::Valid
+        );
+        assert_eq!(
+            scoped_sample(subnet, None, &selected).unwrap().1[0].num_blocks_proposed_total,
+            12
+        );
+        assert_eq!(
+            scoped_sample(subnet, Some(DAILY), &selected).unwrap().1[0].num_blocks_proposed_total,
+            10
+        );
         assert!(
             scoped_sample(subnet, None, &BTreeSet::new())
                 .unwrap()
@@ -660,7 +677,7 @@ mod tests {
         );
         let conflicting = candid::encode_one(vec![day(1, vec![node(1, 11)])]).unwrap();
         assert!(matches!(
-            accept(subnet, DAILY, &conflicting, 2, 3 * DAILY),
+            accept(subnet, DAILY, &conflicting, 3, 4 * DAILY),
             SourceStatus::Integrity(_)
         ));
         let (sample, rows) = scoped_sample(subnet, Some(DAILY), &selected).unwrap();

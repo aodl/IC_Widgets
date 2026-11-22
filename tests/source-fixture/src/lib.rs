@@ -159,7 +159,7 @@ fn get_proposal_info(id: u64) {
     }) {
         return;
     }
-    let reply = if proposal_fixture::ENABLED.get() && (92..=101).contains(&id) {
+    let reply = if proposal_fixture::ENABLED.get() && (91..=101).contains(&id) {
         Some(proposal_fixture::proposal(id, true, proposal(id, true)))
     } else {
         matches!(id, 101 | 100).then(|| proposal(id, true))
