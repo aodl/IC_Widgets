@@ -434,8 +434,10 @@ fn accept_chunk(
             "Registry chunk does not match stage".into(),
         ));
     }
-    let chunk =
-        registry::chunk_bytes(bytes, hash).map_err(|err| SourceStatus::Integrity(short(&err)))?;
+    let chunk = registry::verify_chunk(bytes, hash).map_err(|err| match err {
+        registry::ChunkError::Schema(message) => malformed(message),
+        other => SourceStatus::Integrity(short(&other.to_string())),
+    })?;
     let required = pending.chunk_bytes + chunk.len() as u32;
     let recovery = if required as usize > projection::MAX_RECORD_BYTES {
         Some(RegistryRecovery::UpgradeAdapter)

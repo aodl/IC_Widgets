@@ -330,13 +330,36 @@ pub struct Chunk {
     pub content: Option<Vec<u8>>,
 }
 
-pub fn chunk_bytes(bytes: &[u8], expected: Hash) -> Result<Vec<u8>, String> {
-    let chunk: Result<Chunk, String> = crate::decode_candid(bytes)?;
-    let content = chunk?.content.ok_or("Registry chunk has no content")?;
+#[derive(Debug, PartialEq, Eq)]
+pub enum ChunkError {
+    Schema(String),
+    Source(String),
+    HashMismatch,
+}
+
+impl std::fmt::Display for ChunkError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Schema(message) | Self::Source(message) => f.write_str(message),
+            Self::HashMismatch => f.write_str("Registry chunk hash mismatch"),
+        }
+    }
+}
+
+pub fn verify_chunk(bytes: &[u8], expected: Hash) -> Result<Vec<u8>, ChunkError> {
+    let chunk: Result<Chunk, String> = crate::decode_candid(bytes).map_err(ChunkError::Schema)?;
+    let content = chunk
+        .map_err(ChunkError::Source)?
+        .content
+        .ok_or_else(|| ChunkError::Source("Registry chunk has no content".into()))?;
     if sha256(&content) != expected {
-        return Err("Registry chunk hash mismatch".into());
+        return Err(ChunkError::HashMismatch);
     }
     Ok(content)
+}
+
+pub fn chunk_bytes(bytes: &[u8], expected: Hash) -> Result<Vec<u8>, String> {
+    verify_chunk(bytes, expected).map_err(|error| error.to_string())
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
@@ -555,7 +578,18 @@ mod tests {
             chunk_bytes(&reply(Some(b"record".to_vec())), expected).unwrap(),
             b"record"
         );
-        assert!(chunk_bytes(&reply(Some(b"wrong".to_vec())), expected).is_err());
+        assert_eq!(
+            verify_chunk(&reply(Some(b"wrong".to_vec())), expected),
+            Err(ChunkError::HashMismatch)
+        );
+        assert!(matches!(
+            verify_chunk(&[0xff], expected),
+            Err(ChunkError::Schema(_))
+        ));
+        assert!(matches!(
+            verify_chunk(&reply(None), expected),
+            Err(ChunkError::Source(_))
+        ));
         assert!(chunk_bytes(&reply(None), expected).is_err());
         assert!(
             chunk_bytes(
