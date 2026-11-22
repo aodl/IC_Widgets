@@ -16,6 +16,7 @@ export const branch = value => Object.keys(value)[0];
 export const option = value => value[0];
 export const hex = bytes => Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
 export const principal = id => id.toText();
+export const proposalIds = ids => Array.from(ids, id => `#${id}`).join(' + ');
 export const number = value => value.toLocaleString('en-US');
 export const time = nanos => new Date(Number(nanos / 1_000_000n)).toISOString().replace('T', ' ').replace('.000Z', ' UTC');
 export const words = value => value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
@@ -70,7 +71,7 @@ function findingsList(findings) {
 
 export function reviewHeader(review) {
   const { manifest } = review;
-  const ids = manifest.proposals.map(row => `#${row.id}`).join(' + ');
+  const ids = proposalIds(manifest.proposals.map(row => row.id));
   const hypothetical = option(review.hypothetical_executed);
   const executed = manifest.proposals.some(row => row.lifecycle_status === 4 || row.executed_at_seconds.length);
   return styled('section', 'card',
@@ -110,7 +111,7 @@ function distributionPanel(state) {
   return styled('div', 'grid', state.distributions.map(([kind, row]) => {
     const title = dimensions[branch(kind)];
     return styled('div', 'stat', el('h4', title),
-      el('p', `${number(row.groups.length)} groups · ${number(row.unknown)} unknown`),
+      el('p', `${number(row.groups.length)} ${row.groups.length === 1 ? 'group' : 'groups'} · ${number(row.unknown)} unknown`),
       row.groups.length ? details('Group counts',
         table([title, 'Nodes'], row.groups.map(([group, count]) => [
           'Principal' in group ? el('code', principal(group.Principal)) : group.RegisteredLabel,
@@ -148,7 +149,7 @@ export function renderScenario(review, scenario, subnet, stateIndex, container) 
   const findings = [...review.findings, ...scenario.findings];
   const notes = findings.length ? details(`Scenario findings (${number(findings.length)})`, findingsList(findings)) : null;
 
-  container.replaceChildren(
+  container.replaceChildren(...[
     el('h3', scenarioLabel(scenario.id)),
     counts,
     timeline,
@@ -161,7 +162,7 @@ export function renderScenario(review, scenario, subnet, stateIndex, container) 
     selected ? el('h3', 'Registered distributions for selected state') : null,
     selected ? distributionPanel(selected) : null,
     view && !selected ? styled('p', 'notice warning', 'Membership after that step is unavailable.') : null,
-  );
+  ].filter(Boolean));
 }
 
 export function renderPerformance(page, section) {
@@ -176,7 +177,7 @@ export function renderPerformance(page, section) {
     : !stamp ? 'No archived blockmaking sample is available for this subnet.'
     : stamp.conflicted ? 'Conflicting sample. Counters are unavailable.'
     : `${observed.size} of ${rows.length} scoped nodes on this page have counter rows.`;
-  section.replaceChildren(
+  section.replaceChildren(...[
     el('p', summary),
     stamp ? el('p', `Sample ${time(stamp.timestamp_nanos)} · collected ${time(stamp.collected_at)} · observation ${stamp.observation}`) : null,
     option(page.last_success_at) !== undefined ? styled('p', 'muted', `Last successful source collection ${time(option(page.last_success_at))}`) : null,
@@ -187,5 +188,5 @@ export function renderPerformance(page, section) {
       return [el('code', principal(id)), node.roles.map(role => words(branch(role))).join(', '),
         row ? number(row.num_blocks_proposed_total) : empty, row ? number(row.num_block_failures_total) : empty];
     })) : null,
-  );
+  ].filter(Boolean));
 }

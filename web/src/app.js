@@ -1,5 +1,5 @@
 import { connect, result } from './client.js';
-import { branch, el, hex, number, option, principal, renderPerformance, renderScenario, reviewHeader, scenarioLabel, styled } from './view.js';
+import { branch, el, hex, number, option, principal, proposalIds, renderPerformance, renderScenario, reviewHeader, scenarioLabel, styled } from './view.js';
 
 const search = document.querySelector('#search');
 const catalog = document.querySelector('#catalog');
@@ -32,7 +32,7 @@ function renderCatalog(ids) {
   const matching = entries.filter(row => !ids.length
     || (ids.length === row.proposals.length && ids.every(id => row.proposals.includes(id))));
   catalog.replaceChildren(...matching.map(row => {
-    const label = `${row.proposals.map(id => `#${id}`).join(' + ')} · Registry ${number(row.registry_version)}`;
+    const label = `${proposalIds(row.proposals)} · Registry ${number(row.registry_version)}`;
     const button = el('button', label, option(row.hypothetical_executed) ? ' · Hypothetical' : '', ` · ${hex(row.revision).slice(0, 10)}`);
     button.type = 'button';
     button.addEventListener('click', () => loadReport(row.revision));
@@ -92,6 +92,7 @@ function selectControl(label, entries) {
     item.value = value;
     return item;
   }));
+  select.setAttribute('aria-label', label);
   return [el('label', label, select), select];
 }
 

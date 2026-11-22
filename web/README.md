@@ -31,3 +31,9 @@ This trades query latency for a simpler verification path. An initial visit cost
 The performance panel shows the latest archived management sample and per-node cumulative proposed blocks and blockmaking failures. A sparse omission remains “No row in sample”. The panel identifies conflicted samples and archive continuity gaps. A paginated result uses the selected sample timestamp and the resolved scope cursor. Historical membership and a sample's observation time are independent. Per-window derivation and reliability scoring are deferred.
 
 Mainnet deployment and live replication checks remain separately authorized. The initial workflow uses completed reports prepared by a controller.
+
+## Local demonstration
+
+Chromium exercised the asset canister on a local DFX replica. The catalogue included a replay of the complete anonymous NNS Governance reply for proposal 144942, with SHA-256 `bc49576421514963ec5df31417d8ea62c7a9cfde9e1d25bf21c7aae37599f573`. The fixture Registry deliberately lacks its actual target, so the report shows the requested changes and an unavailable topology. The separate 93/92 fixture has a 50-member baseline and preserves intermediate counts of 51 and 49 in the two orders. Both orders end with 50 members. Its performance panel returns the 51 relevant nodes and reports that its fixture subnet has no archived sample.
+
+In this demo, loading the catalogue, one pair report and one scoped performance page took about 2.7, 3.0 and 3.3 seconds respectively. A separate PocketIC measurement used about 99 million cycles in total for those three replicated reads with a 72 KiB report and an empty sample archive. Reads that decode a populated source reply and mainnet pricing can differ. The measured footprint supports the simpler update path for initial low traffic.

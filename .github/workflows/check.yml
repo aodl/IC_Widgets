@@ -41,4 +41,5 @@ jobs:
           didc bind --target js canisters/reviewer/reviewer.did > .local/reviewer.did.js
           diff -u web/src/reviewer.did.js .local/reviewer.did.js
           npm --prefix web ci
+          npm --prefix web test
           npm --prefix web run build
