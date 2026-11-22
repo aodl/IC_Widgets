@@ -235,6 +235,7 @@ pub struct ReviewInput {
     pub(crate) baseline: RegistryBaseline,
     pub(crate) proposals: Vec<Proposal>,
     pub(crate) manifest: ReviewManifest,
+    pub(crate) hypothetical_executed: bool,
 }
 
 pub(crate) fn digest<T: CandidType>(value: &T) -> Hash {
@@ -249,6 +250,7 @@ impl ReviewInput {
         policy: Policy,
         historical_head: Option<HistoricalHead>,
         metrics_revision: Option<Hash>,
+        hypothetical_executed: bool,
     ) -> Result<Self, ReviewError> {
         if !baseline.complete {
             return Err(ReviewError::IncompleteBaseline(baseline.version));
@@ -339,7 +341,7 @@ impl ReviewInput {
             )?;
         }
 
-        let input_hash = digest(&(&baseline, &proposals));
+        let input_hash = digest(&(&baseline, &proposals, hypothetical_executed));
         let manifest = ReviewManifest {
             schema: 1,
             registry_version: baseline.version,
@@ -359,6 +361,7 @@ impl ReviewInput {
             baseline,
             proposals,
             manifest,
+            hypothetical_executed,
         })
     }
 

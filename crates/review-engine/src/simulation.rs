@@ -50,6 +50,7 @@ pub enum FindingCode {
     HistoricalBaselineUnavailable,
     TerminalProposal(i32),
     EarlierBaselineHypothesis,
+    ExecutedProposalHypothesis,
     UnaffectedRemovalCandidate,
     MissingRegistryMetadata,
     UnknownDimension(Dimension),
@@ -110,6 +111,7 @@ pub struct Scenario {
 #[derive(Clone, Debug, PartialEq, Eq, CandidType, Deserialize)]
 pub struct Review {
     pub revision: Hash,
+    pub hypothetical_executed: Option<bool>,
     pub manifest: ReviewManifest,
     pub scenarios: Vec<Scenario>,
     pub findings: Vec<Finding>,
@@ -198,6 +200,7 @@ pub fn analyze(input: &ReviewInput) -> Review {
     let revision = digest(&(1u16, input.manifest.revision(), &scenarios, &findings));
     Review {
         revision,
+        hypothetical_executed: input.hypothetical_executed.then_some(true),
         manifest: input.manifest.clone(),
         scenarios,
         findings,
@@ -371,11 +374,14 @@ fn apply(
                     && head.observed_at_nanos / 1_000_000_000 < proposed
                     && head.observed_at_nanos <= evidence.observed_at_nanos
             });
-        if !safe {
+        if input.hypothetical_executed {
+            report(ExecutedProposalHypothesis, Note, vec![], vec![], vec![]);
+        } else if !safe {
             report(HistoricalBaselineUnavailable, Error, vec![], vec![], vec![]);
             return (StepOutcome::Rejected, findings);
+        } else {
+            report(EarlierBaselineHypothesis, Note, vec![], vec![], vec![]);
         }
-        report(EarlierBaselineHypothesis, Note, vec![], vec![], vec![]);
     } else if !matches!(evidence.lifecycle_status, 1 | 3) {
         report(
             TerminalProposal(evidence.lifecycle_status),

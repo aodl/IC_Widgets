@@ -44,6 +44,7 @@ pub struct ReviewRequest {
     pub proposals: Vec<SelectedProposal>,
     pub scenario: ScenarioSelection,
     pub request_missing: bool,
+    pub hypothetical_executed: Option<bool>,
 }
 
 #[derive(Clone, CandidType, Deserialize)]
@@ -118,6 +119,7 @@ fn request_membership_review(request: ReviewRequest) -> Result<Hash, String> {
     {
         return Err("select one or two distinct proposal IDs and an applicable scenario".into());
     }
+    request.hypothetical_executed = request.hypothetical_executed.filter(|enabled| *enabled);
     for selection in &mut request.proposals {
         if selection.observation.is_none() {
             selection.observation = governance_archive::index(selection.id).last_capture;
@@ -201,7 +203,13 @@ fn resolve(row: &mut ReviewJob) -> Result<Result<ReviewJobState, ReviewFailure>,
             registry: registry_waiting,
         }));
     }
-    Ok(build_report(version, captures, row.request.scenario).map(ReviewJobState::Complete))
+    Ok(build_report(
+        version,
+        captures,
+        row.request.scenario,
+        row.request.hypothetical_executed == Some(true),
+    )
+    .map(ReviewJobState::Complete))
 }
 
 fn full_capture(selection: &SelectedProposal) -> Result<Option<Proposal>, ReviewFailure> {
@@ -282,6 +290,7 @@ fn build_report(
     version: u64,
     proposals: Vec<Proposal>,
     scenario: ScenarioSelection,
+    hypothetical_executed: bool,
 ) -> Result<Hash, ReviewFailure> {
     let instructions = proposals
         .iter()
@@ -304,6 +313,7 @@ fn build_report(
         Policy::V1,
         None,
         None,
+        hypothetical_executed,
     )
     .map_err(ReviewFailure::InvalidEvidence)?;
     let review = analyze(&input);

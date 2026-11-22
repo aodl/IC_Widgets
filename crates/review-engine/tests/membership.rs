@@ -153,6 +153,7 @@ fn run(baseline: RegistryBaseline, proposals: Vec<Capture>) -> Review {
             Policy::V1,
             None,
             None,
+            false,
         )
         .unwrap(),
     )
@@ -302,14 +303,24 @@ fn removal_spans_subnets_and_keeps_unknown_candidates_visible() {
     let ScopeState::Resolved(scope) = report.scope(ScenarioId::A, id(51)) else {
         panic!("affected subnet");
     };
+    assert_eq!(
+        scope.nodes().keys().copied().collect::<Vec<_>>(),
+        [id(4), id(5)]
+    );
     assert!(
-        scope.nodes()[&id(7)]
+        scope.nodes()[&id(4)]
             .roles
             .contains(&NodeRole::MentionedForRemoval)
     );
     assert!(scope.nodes()[&id(4)].roles.contains(&NodeRole::NetRemoved));
     assert!(scope.nodes()[&id(5)].roles.contains(&NodeRole::Retained));
-    assert!(!scope.nodes().contains_key(&id(1)));
+    let ScopeState::Resolved(other) = report.scope(ScenarioId::A, id(50)) else {
+        panic!("second affected subnet");
+    };
+    assert_eq!(
+        other.nodes().keys().copied().collect::<Vec<_>>(),
+        [id(1), id(2)]
+    );
 }
 
 #[test]
@@ -322,6 +333,7 @@ fn manifests_validate_dependencies_capture_kind_and_previous_registry_state() {
             Policy::V1,
             None,
             None,
+            false,
         )
     };
     let mut incomplete = baseline();
@@ -398,6 +410,7 @@ fn manifests_validate_dependencies_capture_kind_and_previous_registry_state() {
             Policy::V1,
             Some(late),
             None,
+            false,
         )
         .unwrap(),
     );
@@ -419,6 +432,7 @@ fn manifests_validate_dependencies_capture_kind_and_previous_registry_state() {
             Policy::V1,
             Some(proof),
             None,
+            false,
         )
         .unwrap(),
     );
@@ -478,6 +492,7 @@ fn scopes_only_narrow_and_keep_revision_and_step_identity() {
             },
             None,
             Some([11; 32]),
+            false,
         )
         .unwrap(),
     );
@@ -645,6 +660,7 @@ fn evidence_policy_and_order_change_revision_independently() {
             policy,
             None,
             metrics,
+            false,
         )
         .unwrap()
     };
@@ -671,4 +687,60 @@ fn evidence_policy_and_order_change_revision_independently() {
     ] {
         assert_ne!(other.manifest().revision(), original.manifest().revision());
     }
+}
+
+#[test]
+fn untargeted_removal_uses_the_membership_after_the_first_step() {
+    let report = run(baseline(), vec![add(&[3]), remove(&[3, 6])]);
+    let ScopeState::Resolved(scope) = report.scope(ScenarioId::AThenB, id(50)) else {
+        panic!("explicit add target");
+    };
+    let added_then_removed = &scope.nodes()[&id(3)];
+    assert!(added_then_removed.steps[1].requested_remove);
+    assert_eq!(added_then_removed.steps[1].before, Some(true));
+    assert_eq!(added_then_removed.steps[1].after, Some(false));
+    assert!(!scope.nodes().contains_key(&id(6)));
+    let ScopeState::Resolved(scope) = report.scope(ScenarioId::BThenA, id(50)) else {
+        panic!("explicit add target");
+    };
+    assert!(!scope.nodes()[&id(3)].steps[0].requested_remove);
+}
+
+#[test]
+fn executed_hypothesis_requires_opt_in_and_binds_the_explicit_baseline() {
+    let mut capture = add(&[3]);
+    let Capture::Full(proposal) = &mut capture else {
+        unreachable!()
+    };
+    proposal.evidence.lifecycle_status = 4;
+    proposal.evidence.executed_at_seconds = Some(100);
+    let build = |hypothetical| {
+        analyze(
+            &ReviewInput::build(
+                baseline(),
+                vec![capture.clone()],
+                ScenarioSelection::A,
+                Policy::V1,
+                None,
+                None,
+                hypothetical,
+            )
+            .unwrap(),
+        )
+    };
+
+    let prospective = build(false);
+    let hypothetical = build(true);
+    assert_ne!(hypothetical.revision, prospective.revision);
+    assert_eq!(hypothetical.manifest.registry_version, 10);
+    assert_eq!(hypothetical.hypothetical_executed, Some(true));
+    assert!(!scenario(&prospective, ScenarioId::A).completed);
+    let scenario = scenario(&hypothetical, ScenarioId::A);
+    assert!(scenario.completed);
+    assert!(
+        scenario.steps[0]
+            .findings
+            .iter()
+            .any(|finding| finding.code == FindingCode::ExecutedProposalHypothesis)
+    );
 }

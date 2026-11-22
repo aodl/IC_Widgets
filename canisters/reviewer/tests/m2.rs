@@ -59,6 +59,7 @@ fn review_waits_resolves_and_serves_immutable_scopes_across_upgrade() {
             .collect(),
         scenario: ScenarioSelection::All,
         request_missing: true,
+        hypothetical_executed: None,
     };
     let submit = |request: &ReviewRequest| {
         call::<Result<Hash, String>>(

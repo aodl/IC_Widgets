@@ -448,6 +448,7 @@ type ReviewJobState = variant {
   Pending;
 };
 type ReviewRequest = record {
+  hypothetical_executed : opt bool;
   request_missing : bool;
   registry_version : nat64;
   scenario : ScenarioSelection;

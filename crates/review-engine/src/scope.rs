@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::{
     Review, ScenarioId, StepOutcome,
-    input::{digest, requested_nodes},
+    input::{digest, requested_nodes, target},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, CandidType, Deserialize)]
@@ -148,30 +148,46 @@ pub(crate) fn make_scope(review: &Review, id: ScenarioId, subnet: Principal) -> 
     let Some(result) = scenario.subnets.get(&subnet) else {
         return ScopeState::Unavailable(ScopeUnavailable::SubnetOutsideReview);
     };
-    let requests: Vec<_> = scenario
-        .steps
-        .iter()
-        .map(|step| {
-            let (add, remove) = requested_nodes(&step.requested);
-            (
-                add.iter().copied().collect::<BTreeSet<_>>(),
-                remove.iter().copied().collect::<BTreeSet<_>>(),
-            )
-        })
-        .collect();
     let baseline: BTreeSet<_> = result.baseline.members.iter().copied().collect();
-    let mut ids = baseline.clone();
-    for (add, remove) in &requests {
-        ids.extend(add);
-        ids.extend(remove);
-    }
-    let states: Vec<_> = result
+    let states: Vec<Option<BTreeSet<_>>> = result
         .after_steps
         .iter()
         .map(|state| {
             state
                 .as_ref()
-                .map(|state| state.members.iter().copied().collect::<BTreeSet<_>>())
+                .map(|state| state.members.iter().copied().collect())
+        })
+        .collect();
+    let mut ids = baseline.clone();
+    let mut known_members = &baseline;
+    let requests: Vec<_> = scenario
+        .steps
+        .iter()
+        .zip(&states)
+        .map(|(step, after)| {
+            let (add, remove) = requested_nodes(&step.requested);
+            let (add, remove): (BTreeSet<_>, BTreeSet<_>) = match target(&step.requested) {
+                Some(target) if target == subnet => (
+                    add.iter().copied().collect(),
+                    remove.iter().copied().collect(),
+                ),
+                Some(_) => (BTreeSet::new(), BTreeSet::new()),
+                None => (
+                    BTreeSet::new(),
+                    remove
+                        .iter()
+                        .copied()
+                        .filter(|node| known_members.contains(node))
+                        .collect(),
+                ),
+            };
+            ids.extend(&add);
+            ids.extend(&remove);
+            if let Some(after) = after {
+                ids.extend(after);
+                known_members = after;
+            }
+            (add, remove)
         })
         .collect();
     let nodes = ids
