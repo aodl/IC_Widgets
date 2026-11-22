@@ -1,0 +1,43 @@
+# M1 evidence foundation
+
+## Registry replay and publication
+
+The production collector reads an initial Registry head and fixes it as its bootstrap target. Every raw `get_changes_since` page has a source head and a separate delivered cursor. The adapter validates the delivered version sequence across all keys. The collector copies the selected key mutations into one stable stage, capped at the fixed target while bootstrapping. An apply slice validates and commits at most 64 staged rows. A required chunk has to arrive and match its SHA-256 before its stage row can advance. A staged schema failure or hash mismatch is recorded and holds the publication pointer.
+
+The collector may write a partial page to versioned history while processing its stage. Historical readers check the publication pointer before traversing history. At the end of the initial stage that completes the target, the same replicated execution advances both the applied cursor and publication pointer. Later complete pages advance them independently of the original target. An IC message trap rolls back the stage cursor and the writes it owns.
+
+The Registry stores an ordered sequence of operations within each atomic version, including repeated mutations of one key. The raw query returns a key's newest value first. A pinned `get_value` lookup chooses that same entry when several mutations share the version. The adapter projects the first entry for that key/version, verifies shared source time and counts superseded writes. A conflicting duplicated key group or a different committed value for the same history key is an integrity error. [Pinned Registry implementation](https://github.com/dfinity/ic/blob/87617d5fda3b2c8ec0919293a5f1e3a068b07f43/rs/registry/canister/src/registry.rs)
+
+History keys pair the canonical Registry key with its mutation version. A predecessor lookup returns present, deleted or missing at a completed requested version. It never resolves against an unrequested version. The indexed record contains an observation ID, original mutation timestamp, optional content hash, and any chunk observation IDs. A small versioned membership index avoids repeatedly decoding or loading full subnet records for assignment resolution. Key enumeration examines up to 64 keys per page. The cursor advances even when a historical filter returns an empty page.
+
+Retained families are `subnet_list`, `subnet_record_`, `node_record_`, `node_operator_record_`, `data_center_record_`, `api_boundary_node_`, `unassigned_nodes_config`, `replica_version_` and `standard_engine_replica_version`. The adapter uses full principals and the Registry's lower-cased data-center key. The wire bytes preserve the original assertions, including owner and region text. Registry state alone does not establish IP geography, beneficial ownership or observed uptime. [Pinned Registry keys](https://github.com/dfinity/ic/blob/87617d5fda3b2c8ec0919293a5f1e3a068b07f43/rs/registry/keys/src/lib.rs)
+
+## Observation and storage contracts
+
+| Stable memory ID | Format and contents |
+|---|---|
+| 0–3 | M0 config, jobs, receipts and raw replies in their original formats |
+| 4 | Probe admission ledger and migration provenance |
+| 5 | Production scheduler, durable call lease, stage budget and observation ID counter |
+| 6–7 | Source observations and SHA-256 indexed evidence blobs |
+| 8–11 | Registry projection state, sparse history, current page stage and key index |
+
+Structured M1 values start with format tag 1 followed by Candid bytes. A later writer has to retain readers for tags already in use or migrate to a new memory ID. Memory IDs and stable key shapes are persistent. Blobs keep their exact bytes and rely on the enclosing observation or capture for schema and decoder revision. Only selected Registry record bytes are retained from valid pages. The observation commits to the full wire hash and length, and failed decoding or integrity replies are retained for examination.
+
+`registry_status`, `registry_record`, `registry_keys` and `registry_assignment` are controller-only replicated reads. `source_observation` resolves a provenance ID and `evidence_bytes` exports retained bytes in 128 KiB pages. A bounded `evidence_manifest` binds the explicit completed Registry version and a sorted deduplicated set of source observations to one digest. The browser can use later certified review APIs. These administrative reads expose no UI certification claim.
+
+## Bootstrap sizing
+
+Anonymous development queries on 22 November 2026 observed Registry head 65,925. These are direct non-replicated source samples used for sizing.
+
+| Request after | Delivered versions | Wire bytes | Wire mutations including repeated writes | Selected wire mutations | Selected inline bytes |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 270 | 1,367,560 | 1,082 | 399 | 56,203 |
+| 32,962 | 983 | 1,314,806 | 2,086 | 808 | 313,304 |
+| 64,925 | 453 | 1,301,282 | 1,478 | 1,012 | 243,824 |
+
+A first-pass extrapolation from these page densities yields roughly 67–245 fetches and 87–335 MB of wire input. Storage depends on selected mutations and their sizes, the number of chunks and index overhead. The samples found no selected chunked values. Page-size and chunk outliers remain possible, and the live application subnet/callback path still requires a measured run. If full replay reaches its budgets, it resumes in the next authorized window. A future alternative is a trusted snapshot protocol that can prove complete enumeration at a fixed version. Individual reads and a subnet roster cannot prove a complete node inventory.
+
+The three sampled pages passed the production adapter's structural and record decoding checks. The middle page held 808 selected wire mutations and 741 effective keys at their versions. A direct non-replicated `get_value` at version 33,019 matched the first of two mutations for one node operator in that page. The SHA-256 of the pinned read is `1dc54d3270b98cbbe21a1689b8eb68d22e784f227d2ca0c5da64bb9d79adb8dd`.
+
+The 24-subnet, 1,200-node PocketIC run processed five versions, 1,237 wire mutations and 1,232 retained mutations. It received 348,471 raw source bytes and retained 99,632 selected value bytes. The instrumentation recorded 2.28 billion instructions in the callback and apply slices. The canister balance declined by 8.62 billion cycles including polling and upgrade. Stable structures allocated 1,025 pages, about 64 MiB, with fixed memory-manager buckets dominating this small archive. Per-byte charges from M0 and the three sampled page sizes suggest a transport component on the order of 90–350 billion cycles under comparable local pricing. That is a sizing scenario. Full cost also depends on replica pricing, decoding, writes, chunks, dispatch reservations and the mix of historical versions.

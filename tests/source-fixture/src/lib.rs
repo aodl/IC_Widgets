@@ -1,6 +1,8 @@
 //! Synthetic, test-only wire endpoints. Installed on a different subnet from the probe.
 #![cfg(target_arch = "wasm32")]
 
+mod registry_fixture;
+
 use candid::{CandidType, Principal, encode_one};
 use ic_cdk::api::{msg_arg_data, msg_reply};
 use nexus_domain::sha256;
@@ -150,7 +152,12 @@ extern "C" fn latest() {
         msg_arg_data().is_empty(),
         "latest must receive empty protobuf"
     );
-    msg_reply(RegistryGetLatestVersionResponse { version: 5 }.encode_to_vec());
+    let version = if registry_fixture::MODE.get() == 0 {
+        5
+    } else {
+        registry_fixture::head()
+    };
+    msg_reply(RegistryGetLatestVersionResponse { version }.encode_to_vec());
 }
 
 #[unsafe(export_name = "canister_query get_changes_since")]
@@ -159,6 +166,10 @@ extern "C" fn changes() {
     let after = RegistryGetChangesSinceRequest::decode(msg_arg_data().as_slice())
         .unwrap()
         .version;
+    if registry_fixture::MODE.get() != 0 {
+        msg_reply(registry_fixture::changes(after).encode_to_vec());
+        return;
+    }
     let delta = |key, values| HighCapacityRegistryDelta { key, values };
     let change = |version, content| HighCapacityRegistryValue {
         version,
@@ -265,6 +276,17 @@ extern "C" fn value() {
 #[ic_cdk::query]
 fn get_chunk(request: ChunkRequest) -> Result<Chunk, String> {
     let hash = request.content_sha256.ok_or("missing hash")?;
+    let mode = registry_fixture::MODE.get();
+    if mode != 0 {
+        let part = registry_fixture::chunks()
+            .into_iter()
+            .find(|part| sha256(part).as_slice() == hash);
+        return part
+            .map(|part| Chunk {
+                content: Some(if mode == 2 { vec![0] } else { part }),
+            })
+            .ok_or_else(|| "unknown fixture chunk".into());
+    }
     let content = pieces()
         .into_iter()
         .find(|part| sha256(part).as_slice() == hash);

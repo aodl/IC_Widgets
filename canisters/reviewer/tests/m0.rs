@@ -1,8 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+mod support;
 
 use candid::{CandidType, Principal, decode_one, encode_args, encode_one};
 use nexus_domain::sha256;
@@ -11,33 +7,10 @@ use nexus_reviewer::{
     Limits, Observation, ProbeBudget, ProbeRequest, Receipt, ReplyPage, Sources, Status, Stop,
 };
 use pocket_ic::{CreateCanisterParams, CreateCanisterPlacement, PocketIc, PocketIcBuilder};
-use serde::de::DeserializeOwned;
+use std::fs;
+use support::{advance, call, enabled, root, wasm};
 
 const FUNDING: u128 = 10_000_000_000_000;
-
-fn root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
-fn enabled() -> bool {
-    std::env::var_os("NEXUS_M0_TEST").is_some()
-}
-
-fn wasm(path: &str) -> Vec<u8> {
-    fs::read(root().join(path)).unwrap_or_else(|err| panic!("{path}: {err}"))
-}
-
-fn call<T: CandidType + DeserializeOwned>(
-    pic: &PocketIc,
-    canister: Principal,
-    method: &str,
-    args: Vec<u8>,
-) -> T {
-    let reply = pic
-        .update_call(canister, Principal::anonymous(), method, args)
-        .unwrap_or_else(|err| panic!("{method}: {err:?}"));
-    decode_one(&reply).unwrap()
-}
 
 fn status(pic: &PocketIc, canister: Principal, id: u64) -> Status {
     call::<Result<Status, String>>(pic, canister, "probe_status", encode_one(id).unwrap()).unwrap()
@@ -45,13 +18,6 @@ fn status(pic: &PocketIc, canister: Principal, id: u64) -> Status {
 
 fn start(pic: &PocketIc, canister: Principal, request: &ProbeRequest) -> u64 {
     call::<Result<u64, String>>(pic, canister, "start_probe", encode_one(request).unwrap()).unwrap()
-}
-
-fn advance(pic: &PocketIc) {
-    pic.advance_time(Duration::from_secs(2));
-    for _ in 0..4 {
-        pic.tick();
-    }
 }
 
 fn run_to_completion(pic: &PocketIc, canister: Principal, id: u64) -> Status {
@@ -229,6 +195,10 @@ fn cross_subnet_wire_calls_and_upgrade() {
     let original = raw(&pic, reviewer, &first);
     pic.upgrade_canister(reviewer, reviewer_wasm, encode_args(()).unwrap(), None)
         .unwrap();
+    assert_eq!(
+        encode_one(receipt(&pic, reviewer, id, 0)).unwrap(),
+        encode_one(&first).unwrap()
+    );
     assert_eq!(raw(&pic, reviewer, &first), original);
     assert!(
         call::<Result<ProbeBudget, String>>(

@@ -3,6 +3,65 @@ type Assembled = record {
   bytes : nat32;
   "record" : opt RecordSummary;
 };
+type Assignment = variant {
+  UnknownNode;
+  Replica : principal;
+  ApiBoundary;
+  Unassigned;
+  Incomplete : text;
+  Conflict : record { replicas : vec principal; api_boundary : bool };
+};
+type CollectionStatus = record {
+  allocated_pages : nat64;
+  enabled : bool;
+  last_observation : nat64;
+  usage : opt Usage;
+  in_flight : opt Work;
+};
+type Details = variant {
+  Operator : record {
+    provider : opt principal;
+    allowance : nat64;
+    data_center : text;
+  };
+  Node : record {
+    domain : opt text;
+    operator : opt principal;
+    http : opt Endpoint;
+    ipv4 : opt text;
+    xnet : opt Endpoint;
+    reward_type : opt int32;
+    hostos : opt text;
+  };
+  ReplicaVersion : record { archive_hash : text; archive_urls : vec text };
+  UnassignedConfig : record { configured_version : text };
+  ApiBoundary : record { configured_version : text };
+  StandardEngineVersion : record {
+    new_version : text;
+    old_version : text;
+    deployment_progress : float64;
+  };
+  Subnet : record {
+    members : vec principal;
+    configured_version : text;
+    kind : int32;
+    halted : bool;
+  };
+  SubnetList : vec principal;
+  DataCenter : record {
+    id : text;
+    gps : opt Position;
+    registered_owner : text;
+    registered_region : text;
+  };
+};
+type Endpoint = record { ip : text; port : nat32 };
+type EvidenceManifest = record {
+  manifest_id : blob;
+  registry_version : opt nat64;
+  schema_version : nat16;
+  observations : vec SourceObservation;
+};
 type Key = variant {
   Operator : principal;
   Node : principal;
@@ -11,6 +70,7 @@ type Key = variant {
   SubnetList;
   DataCenter : text;
 };
+type KeyPage = record { keys : vec RecordKey; next : opt text };
 type Limits = record {
   calls : nat32;
   attempts : nat8;
@@ -83,6 +143,7 @@ type Observation = variant {
     minimum_rows : opt nat32;
   };
 };
+type Position = record { latitude : float32; longitude : float32 };
 type ProbeBudget = record { migrated_from_m0 : bool; usage : Usage };
 type ProbeRequest = record {
   registry_subnet : opt principal;
@@ -108,6 +169,30 @@ type Receipt = record {
   raw_hash : opt blob;
   cycles_before : nat;
 };
+type RecordAt = variant {
+  Missing;
+  Present : record { evidence : RecordEvidence; details : Details };
+  Opaque : record { evidence : RecordEvidence; reason : text };
+  Deleted : RecordEvidence;
+};
+type RecordEvidence = record {
+  value_hash : opt blob;
+  page : nat64;
+  source_time : opt nat64;
+  chunks : vec nat64;
+  mutation_version : nat64;
+};
+type RecordKey = variant {
+  Operator : principal;
+  Node : principal;
+  ReplicaVersion : text;
+  UnassignedConfig;
+  ApiBoundary : principal;
+  StandardEngineVersion;
+  Subnet : principal;
+  SubnetList;
+  DataCenter : text;
+};
 type RecordSummary = variant {
   Operator : record { dc : text; provider : principal };
   Node : record { operator : principal };
@@ -125,13 +210,68 @@ type RecordSummary = variant {
     registered_owner : text;
   };
 };
+type RegistryStatus = record {
+  next_due : nat64;
+  processed_mutations : nat64;
+  updated_at : opt nat64;
+  staging : opt Staging;
+  retained_value_bytes : nat64;
+  blocked : opt text;
+  published : opt nat64;
+  ingested_through : nat64;
+  attempts : nat8;
+  bootstrap_target : opt nat64;
+  wire_bytes : nat64;
+  last_observation : opt nat64;
+  retained_mutations : nat64;
+  observed_head : opt nat64;
+  superseded_mutations : nat64;
+};
 type ReplyPage = record { bytes : blob; next_offset : opt nat32 };
-type Result = variant { Ok : ProbeBudget; Err : text };
-type Result_1 = variant { Ok : Receipt; Err : text };
+type Result = variant { Ok : CollectionStatus; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Result_10 = variant { Ok : RegistryStatus; Err : text };
+type Result_11 = variant { Ok : SourceObservation; Err : text };
+type Result_12 = variant { Ok : nat64; Err : text };
 type Result_2 = variant { Ok : ReplyPage; Err : text };
-type Result_3 = variant { Ok : Status; Err : text };
-type Result_4 = variant { Ok : nat64; Err : text };
+type Result_3 = variant { Ok : EvidenceManifest; Err : text };
+type Result_4 = variant { Ok : ProbeBudget; Err : text };
+type Result_5 = variant { Ok : Receipt; Err : text };
+type Result_6 = variant { Ok : Status; Err : text };
+type Result_7 = variant { Ok : Assignment; Err : text };
+type Result_8 = variant { Ok : KeyPage; Err : text };
+type Result_9 = variant { Ok : RecordAt; Err : text };
+type SourceObservation = record {
+  id : nat64;
+  argument : blob;
+  status : SourceStatus;
+  method : text;
+  argument_hash : blob;
+  dispatched_at : nat64;
+  source : principal;
+  decoder_revision : text;
+  raw_bytes : opt nat32;
+  raw_hash : opt blob;
+  observed_at : nat64;
+};
+type SourceStatus = variant {
+  Interrupted;
+  Rejected : record { code : opt nat32; message : text; retryable : bool };
+  Integrity : text;
+  Malformed : text;
+  Valid;
+  Unavailable;
+  Oversized;
+};
 type Sources = record { governance : principal; registry : principal };
+type Staging = record {
+  end : nat64;
+  count : nat32;
+  applied : nat32;
+  observation : nat64;
+  input_mutations : nat32;
+  superseded_mutations : nat32;
+};
 type Status = record {
   caller_subnet : principal;
   captured_registry_head : opt nat64;
@@ -179,11 +319,26 @@ type VersionSpan = record {
   observed_head : nat64;
   tombstones : nat32;
 };
+type Work = variant {
+  RegistryChanges : nat64;
+  RegistryChunk : blob;
+  RegistryHead;
+};
 service : (opt Sources) -> {
-  probe_budget : (nat64) -> (Result);
-  probe_receipt : (nat64, nat32) -> (Result_1);
+  collection_status : () -> (Result);
+  configure_collection : (opt Limits) -> (Result_1);
+  evidence_bytes : (blob, nat32) -> (Result_2);
+  evidence_manifest : (opt nat64, vec nat64) -> (Result_3);
+  probe_budget : (nat64) -> (Result_4);
+  probe_receipt : (nat64, nat32) -> (Result_5);
   probe_reply : (nat64, nat32, nat32) -> (Result_2);
-  probe_status : (nat64) -> (Result_3);
-  start_probe : (ProbeRequest) -> (Result_4);
-  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_4);
+  probe_status : (nat64) -> (Result_6);
+  registry_assignment : (nat64, principal) -> (Result_7);
+  registry_keys : (nat64, opt text) -> (Result_8);
+  registry_record : (nat64, RecordKey) -> (Result_9);
+  registry_status : () -> (Result_10);
+  retry_registry : () -> (Result_1);
+  source_observation : (nat64) -> (Result_11);
+  start_probe : (ProbeRequest) -> (Result_12);
+  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_12);
 }

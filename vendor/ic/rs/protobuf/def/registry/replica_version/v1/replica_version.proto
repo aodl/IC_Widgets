@@ -1,0 +1,54 @@
+syntax = "proto3";
+package registry.replica_version.v1;
+
+// Information about a Replica version
+message ReplicaVersionRecord {
+  // The hex-formatted SHA-256 hash of the archive file served by 'release_package_urls'
+  string release_package_sha256_hex = 6;
+
+  // The URLs against which a HTTP GET request will return a release package
+  // that corresponds to this version
+  repeated string release_package_urls = 7;
+
+  // The SEV-SNP measurements that belong to this release
+  GuestLaunchMeasurements guest_launch_measurements = 9;
+
+  // Replica version IDs are generally git commit IDs in the ic git repository,
+  // pointing to the sources from which the Replica was built. Currently this
+  // matches the suffix of the key for this record in the registry, and is
+  // included here to make it easier to work with the generated Rust types. A
+  // ReplicaVersionRecord almost always travels with its ID String.
+  string replica_version_id = 10;
+
+  reserved 1, 2, 3, 4, 5, 8;
+  reserved "binary_url";
+  reserved "sha256_hex";
+  reserved "node_manager_binary_url";
+  reserved "node_manager_sha256_hex";
+  reserved "release_package_url";
+  reserved "guest_launch_measurement_sha256_hex";
+}
+
+message GuestLaunchMeasurements {
+  // A list of valid SEV-SNP measurements. One release can have multiple valid
+  // measurements, e.g. depending on the kernel command line used to launch the
+  // guest. Must be non-empty.
+  repeated GuestLaunchMeasurement guest_launch_measurements = 1;
+}
+
+message GuestLaunchMeasurement {
+  // SEV-SNP measurement (48 bytes)
+  bytes measurement = 1;
+  // Metadata about how the measurement was obtained
+  GuestLaunchMeasurementMetadata metadata = 2;
+}
+
+message GuestLaunchMeasurementMetadata {
+  // Kernel command line string used to launch the guest. This can be absent,
+  // and if present, can hold any value, including the empty string, up to 100
+  // KiB.
+  optional string kernel_cmdline = 1;
+  // Virtual CPU type used to launch the guest.
+  // Supported values can be found in ic-os/defs.bzl under `vcpu_types`.
+  optional string vcpu_type = 2;
+}

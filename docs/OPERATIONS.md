@@ -15,3 +15,9 @@ Memory IDs 0–3 retain the original M0 encoding and structure. The separate bud
 ## Mainnet gate
 
 Deployment and cycle transfer require explicit approval for a funded application canister, its subnet, the authorized identity, install or upgrade mode, the build hash and maximum reserved cycles. Record certified controller/module state, selected proposal and subnet IDs, maximum duration and call count, and the intended receipts before executing. Follow the [M0 runbook](M0.md#authorized-live-verification) with the budgeted probe entry point. Preserve existing evidence through upgrades. An owner-controlled pause and evidence export precede any cleanup.
+
+## Production collection budget
+
+`configure_collection` takes an explicit controller policy or pauses collection with `null`. One durable lease owns the production dispatcher. The probe and collector cannot dispatch concurrently. A controller can pause while a call drains. Each 24-hour operating window independently enforces its cycle, raw input, call and slice allowances. The deadline applies to admissions. An already admitted callback can finish after the deadline. A new budget window keeps all source progress and staged data.
+
+The production stable allocation ceiling is approximately 2 GiB with a 64 MiB headroom allowance. The scheduler checks allocated stable pages before each slice. Existing evidence remains readable when admission is paused, and ongoing IC storage charges still apply. The collector stores complete sources within their supported limits and holds work on deterministic failures. Registry pages are capped at 40,000 incoming mutations and 8,192 retained staging rows. Large selected records are capped at 16 verified chunks and 16 MiB reconstructed. These are local operational limits. Registry pages can contain more unrelated data than the projection needs.

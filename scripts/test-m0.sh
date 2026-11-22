@@ -29,6 +29,7 @@ export NEXUS_M0_TEST=1
 ./scripts/fetch-nns-test-wasms.sh
 cargo test --locked --workspace -- --nocapture
 cargo test --locked -p nexus-reviewer --test m0 -- --ignored --nocapture
+cargo test --locked -p nexus-reviewer --test m1 -- --ignored --nocapture
 candid-extractor target/wasm32-unknown-unknown/release/nexus_reviewer.wasm > .local/reviewer.did
 diff -u canisters/reviewer/reviewer.did .local/reviewer.did
 didc check .local/reviewer.did canisters/reviewer/m0.did

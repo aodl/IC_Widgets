@@ -123,6 +123,9 @@ fn start_probe(request: ProbeRequest) -> Result<u64, String> {
 fn start_probe_with_limits(request: ProbeRequest, limits: Limits) -> Result<u64, String> {
     require_controller()?;
     limits.validate(Limits::PROBE)?;
+    if crate::ingestion::owns_dispatch() {
+        return Err("pause collection and let its outstanding call drain first".into());
+    }
     let mut config = store::config();
     if let Some(id) = config.active_job {
         return Err(format!("probe {id} is already in progress"));

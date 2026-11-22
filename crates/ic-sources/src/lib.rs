@@ -1,5 +1,6 @@
 pub mod governance;
 pub mod management;
+pub mod projection;
 pub mod registry;
 
 pub const DECODER_REVISION: &str = "m0.1";

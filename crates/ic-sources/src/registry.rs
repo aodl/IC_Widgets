@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
 
 use candid::{CandidType, Principal};
 use nexus_domain::{Hash, sha256};
@@ -9,10 +9,12 @@ pub mod wire {
     include!(concat!(env!("OUT_DIR"), "/registry.rs"));
 }
 
+use crate::projection::{self, Mutation, RecordKey};
 use transport::{
     HighCapacityRegistryGetChangesSinceResponse, HighCapacityRegistryGetValueResponse,
-    RegistryGetChangesSinceRequest, RegistryGetLatestVersionResponse, RegistryGetValueRequest,
-    high_capacity_registry_get_value_response, high_capacity_registry_value,
+    HighCapacityRegistryValue, RegistryGetChangesSinceRequest, RegistryGetLatestVersionResponse,
+    RegistryGetValueRequest, high_capacity_registry_get_value_response,
+    high_capacity_registry_value,
 };
 pub use wire::ic_registry_transport::pb::v1 as transport;
 
@@ -73,12 +75,32 @@ pub struct VersionSpan {
 
 pub struct Page {
     pub span: VersionSpan,
+    pub projected: Vec<Mutation>,
+    pub raw_mutations: u32,
+    pub superseded_mutations: u32,
     /// One source-derived chunk candidate for the diagnostic.
     pub chunk_example: Option<(Vec<u8>, u64, Vec<Hash>)>,
 }
 
 /// Validate whole contiguous version ranges independently of per-key wire order.
 pub fn decode_changes(bytes: &[u8], after: u64) -> Result<Page, String> {
+    decode_page(bytes, after, false, None)
+}
+
+pub fn decode_projection_changes(
+    bytes: &[u8],
+    after: u64,
+    through: Option<u64>,
+) -> Result<Page, String> {
+    decode_page(bytes, after, true, through)
+}
+
+fn decode_page(
+    bytes: &[u8],
+    after: u64,
+    project: bool,
+    through: Option<u64>,
+) -> Result<Page, String> {
     use high_capacity_registry_value::Content;
 
     let page = HighCapacityRegistryGetChangesSinceResponse::decode(bytes)
@@ -89,9 +111,11 @@ pub fn decode_changes(bytes: &[u8], after: u64) -> Result<Page, String> {
             error.code, error.reason
         ));
     }
-    let mut records = BTreeMap::new();
+    let mut records: BTreeMap<(u64, &[u8]), &HighCapacityRegistryValue> = BTreeMap::new();
     let mut versions = BTreeSet::new();
-    let mut keys = BTreeSet::new();
+    let mut keys = BTreeMap::new();
+    let mut raw_mutations = 0u32;
+    let mut superseded_mutations = 0u32;
     let mut span = VersionSpan {
         requested_after: after,
         delivered_through: after,
@@ -109,17 +133,35 @@ pub fn decode_changes(bytes: &[u8], after: u64) -> Result<Page, String> {
         if delta.key.is_empty() || delta.values.is_empty() {
             return Err("empty Registry delta".into());
         }
-        keys.insert(delta.key.as_slice());
+        raw_mutations += delta.values.len() as u32;
+        if let Some(previous) = keys.insert(delta.key.as_slice(), &delta.values) {
+            if previous != &delta.values {
+                return Err("conflicting Registry delta groups for one key".into());
+            }
+            continue;
+        }
         for value in &delta.values {
             let version = value.version;
             if version <= after || version > page.version {
                 return Err("Registry mutation lies outside requested range".into());
             }
-            if let Some(old) = records.insert((version, delta.key.as_slice()), value) {
-                if old != value {
-                    return Err("conflicting Registry mutations for one key/version".into());
+            // The Registry appends mutations in commit order and emits the
+            // deque in reverse. Its pinned get_value selects the same first
+            // entry even when an atomic request touched this key repeatedly.
+            match records.entry((version, delta.key.as_slice())) {
+                Entry::Occupied(old) => {
+                    let old: &HighCapacityRegistryValue = old.get();
+                    if old.timestamp_nanoseconds != value.timestamp_nanoseconds {
+                        return Err(
+                            "inconsistent mutation times for one Registry key/version".into()
+                        );
+                    }
+                    superseded_mutations += 1;
+                    continue;
                 }
-                continue;
+                Entry::Vacant(slot) => {
+                    slot.insert(value);
+                }
             }
             versions.insert(version);
             span.mutations += 1;
@@ -163,9 +205,51 @@ pub fn decode_changes(bytes: &[u8], after: u64) -> Result<Page, String> {
     if span.delivered_through == after && after < page.version {
         return Err("Registry head is ahead but the page made no progress".into());
     }
+    let mut projected = vec![];
+    if project {
+        if raw_mutations > projection::MAX_PAGE_MUTATIONS {
+            return Err("Registry page exceeds mutation budget".into());
+        }
+        for ((version, key), value) in records {
+            if through.is_some_and(|target| version > target) {
+                break;
+            }
+            let Some(key) = RecordKey::parse(key)? else {
+                continue;
+            };
+            if projected.len() >= 8192 {
+                return Err("Registry page exceeds retained staging budget".into());
+            }
+            let content = match value.content.as_ref().expect("validated page content") {
+                Content::Value(bytes) => projection::Content::Value(bytes.clone()),
+                Content::DeletionMarker(_) => projection::Content::Deleted,
+                Content::LargeValueChunkKeys(keys) => {
+                    if keys.chunk_content_sha256s.len() > projection::MAX_CHUNKS {
+                        return Err("Registry record exceeds production chunk count".into());
+                    }
+                    projection::Content::Chunks(
+                        keys.chunk_content_sha256s
+                            .iter()
+                            .map(|hash| hash.as_slice().try_into().expect("validated chunk hash"))
+                            .collect(),
+                    )
+                }
+            };
+            projected.push(Mutation {
+                key,
+                version,
+                value: content,
+                source_time: (value.timestamp_nanoseconds != 0)
+                    .then_some(value.timestamp_nanoseconds),
+            });
+        }
+    }
     Ok(Page {
         span,
         chunk_example,
+        projected,
+        raw_mutations,
+        superseded_mutations,
     })
 }
 
@@ -334,7 +418,7 @@ pub fn summarize(key: &Key, bytes: &[u8]) -> Result<RecordSummary, String> {
     }
 }
 
-fn principal(bytes: &[u8]) -> Result<Principal, String> {
+pub(crate) fn principal(bytes: &[u8]) -> Result<Principal, String> {
     if bytes.is_empty() {
         return Err("empty Registry principal".into());
     }
@@ -408,13 +492,10 @@ mod tests {
         for bytes in [
             page(vec![]),
             page(vec![delta(b"k", vec![(102, Content::Value(vec![2]))])]),
-            page(vec![delta(
-                b"k",
-                vec![
-                    (101, Content::Value(vec![1])),
-                    (101, Content::Value(vec![2])),
-                ],
-            )]),
+            page(vec![
+                delta(b"k", vec![(101, Content::Value(vec![1]))]),
+                delta(b"k", vec![(101, Content::Value(vec![2]))]),
+            ]),
             page(vec![delta(
                 b"k",
                 vec![(101, Content::DeletionMarker(false))],
@@ -422,6 +503,23 @@ mod tests {
         ] {
             assert!(decode_changes(&bytes, 100).is_err());
         }
+    }
+
+    #[test]
+    fn atomic_rewrite_uses_the_newest_entry_for_the_same_version() {
+        let bytes = page(vec![delta(
+            b"subnet_list",
+            vec![
+                (101, Content::Value(vec![2])),
+                (101, Content::Value(vec![1])),
+            ],
+        )]);
+        let result = decode_projection_changes(&bytes, 100, None).unwrap();
+        assert_eq!(result.raw_mutations, 2);
+        assert_eq!(result.superseded_mutations, 1);
+        assert!(
+            matches!(&result.projected[0].value, projection::Content::Value(bytes) if bytes == &[2])
+        );
     }
 
     #[test]
