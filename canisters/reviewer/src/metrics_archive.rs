@@ -51,6 +51,23 @@ pub struct SubnetCollection {
     pub history_retry_start: Option<u64>,
     pub gap: Option<CollectionGap>,
     pub gaps_observed: u64,
+    pub last_success: Option<SuccessfulHistory>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
+pub struct SuccessfulHistory {
+    pub observation: u64,
+    pub collected_at: u64,
+    pub raw_hash: Hash,
+    pub kind: HistoryKind,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
+pub enum HistoryKind {
+    Empty,
+    BoundaryOnly,
+    Samples,
+    MissingBoundary,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
@@ -268,18 +285,24 @@ pub fn accept(
 
     let mut state = subnet_state(subnet);
     let first = samples.first().map(|sample| sample.timestamp_nanos);
-    let boundary_gap = state
-        .cursor
-        .filter(|cursor| first != Some(*cursor))
-        .map(|expected| CollectionGap::BoundaryMissing {
+    let boundary_gap = state.cursor.zip(first).and_then(|(expected, earliest)| {
+        (start == expected && earliest > expected).then_some(CollectionGap::BoundaryMissing {
             expected,
-            earliest: first,
-        });
+            earliest: Some(earliest),
+        })
+    });
+    let kind = match (first, boundary_gap.is_some()) {
+        (None, _) => HistoryKind::Empty,
+        (_, true) => HistoryKind::MissingBoundary,
+        (Some(first), false) if state.cursor == Some(first) && samples.len() == 1 => {
+            HistoryKind::BoundaryOnly
+        }
+        _ => HistoryKind::Samples,
+    };
     if let Some(gap) = &boundary_gap {
         state.gap = Some(gap.clone());
         state.gaps_observed += 1;
     }
-    let mut added = false;
     for (index, (sample, &sample_hash)) in samples.iter().zip(&digests).enumerate() {
         if sample_at(subnet, sample.timestamp_nanos).is_some() {
             continue;
@@ -320,11 +343,14 @@ pub fn accept(
             conflicted: false,
         };
         SAMPLES.with_borrow_mut(|rows| rows.insert((subnet, sample.timestamp_nanos), V1(row)));
-        added = true;
     }
-    if added || samples.is_empty() {
-        evidence::put_blob(raw_hash, bytes.to_vec());
-    }
+    evidence::put_blob(raw_hash, bytes.to_vec());
+    state.last_success = Some(SuccessfulHistory {
+        observation,
+        collected_at: now,
+        raw_hash,
+        kind,
+    });
     state.cursor = samples
         .last()
         .map(|sample| sample.timestamp_nanos)
@@ -665,6 +691,45 @@ mod tests {
         assert_eq!(subnet_state(subnet).next_due, Some(8 * DAILY + 2 * RETRY));
         assert_eq!(subnet_state(subnet).cursor, Some(7 * DAILY));
         assert_eq!(subnet_state(other).last_status, Some(SourceStatus::Valid));
+    }
+
+    #[test]
+    fn empty_and_boundary_only_never_assert_a_lost_boundary() {
+        let subnet = Principal::from_slice(&[203, 2]);
+        let existing = candid::encode_one(vec![day(1, vec![node(1, 10)])]).unwrap();
+        let empty = candid::encode_one(NodeMetricsHistoryResult::new()).unwrap();
+        let later = candid::encode_one(vec![day(3, vec![node(1, 11)])]).unwrap();
+        for (id, start, bytes, kind, gaps) in [
+            (1, 0, &existing, HistoryKind::Samples, 0),
+            (2, DAILY, &empty, HistoryKind::Empty, 0),
+            (3, DAILY, &existing, HistoryKind::BoundaryOnly, 0),
+            (4, DAILY, &later, HistoryKind::MissingBoundary, 1),
+        ] {
+            assert_eq!(
+                accept(subnet, start, bytes, id, 4 * DAILY),
+                SourceStatus::Valid
+            );
+            let row = subnet_state(subnet);
+            let success = row.last_success.unwrap();
+            assert_eq!(
+                (success.kind, success.observation, row.gaps_observed),
+                (kind, id, gaps)
+            );
+            assert_eq!(&evidence::blob(success.raw_hash).unwrap(), bytes);
+            assert_eq!(row.cursor, Some(if id == 4 { 3 * DAILY } else { DAILY }));
+        }
+        failed(
+            subnet,
+            3 * DAILY,
+            &SourceStatus::Interrupted,
+            5,
+            5 * DAILY,
+            2,
+        );
+        let row = subnet_state(subnet);
+        assert_eq!(row.last_status, Some(SourceStatus::Interrupted));
+        assert_eq!(row.last_success.unwrap().observation, 4);
+        assert_eq!(row.gaps_observed, 1);
     }
 
     #[test]

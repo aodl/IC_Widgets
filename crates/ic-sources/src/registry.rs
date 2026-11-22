@@ -20,6 +20,7 @@ pub use wire::ic_registry_transport::pb::v1 as transport;
 
 pub const MAX_CHUNKS: usize = 4;
 pub const MAX_RECORD_BYTES: usize = 6 * 1024 * 1024;
+pub const MAX_STAGED_MUTATIONS: u32 = 8192;
 pub const MISSING_KEY: &str = "network_nexus_m0_missing_key";
 
 #[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
@@ -93,6 +94,16 @@ pub fn decode_projection_changes(
     through: Option<u64>,
 ) -> Result<Page, String> {
     decode_page(bytes, after, true, through)
+}
+
+/// Unvalidated delivered range for failure diagnostics only.
+pub fn changes_range_hint(bytes: &[u8]) -> Option<(u64, u64)> {
+    let page = HighCapacityRegistryGetChangesSinceResponse::decode(bytes).ok()?;
+    let versions = page
+        .deltas
+        .iter()
+        .flat_map(|delta| delta.values.iter().map(|value| value.version));
+    versions.clone().min().zip(versions.max())
 }
 
 fn decode_page(
@@ -217,7 +228,7 @@ fn decode_page(
             let Some(key) = RecordKey::parse(key)? else {
                 continue;
             };
-            if projected.len() >= 8192 {
+            if projected.len() >= MAX_STAGED_MUTATIONS as usize {
                 return Err("Registry page exceeds retained staging budget".into());
             }
             let content = match value.content.as_ref().expect("validated page content") {

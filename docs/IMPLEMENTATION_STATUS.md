@@ -22,3 +22,11 @@ Anonymous direct Registry development reads verified original pagination and ato
 - [Job budgets, recovery and authorized verification plan](OPERATIONS.md)
 - [Source pins](SOURCES.md)
 - [Legacy parity](PARITY.md)
+
+## M1 review corrections
+
+The reviewed head was `b983938f7ce50e2b8b3210dc0ef0f7e3db23f5b2`. The collector now separates durable, absolute-expiry verification from recurring production windows. PocketIC held a real cross-subnet callback outstanding, crossed the absolute expiry and the next 24-hour window, and upgraded twice. The expired ledger kept its original call count and reservations until explicit reauthorization.
+
+Metrics retain successful raw replies and classify empty, boundary-only, populated and missing-boundary responses. Registry recovery reports typed failures and required local limits, preserves staged work and gates deterministic adapter failures on an explicit recovery revision.
+
+`./scripts/test-m0.sh` passed 13 unit and eight PocketIC tests, the original M0 Wasm upgrades, the production build, the pinned upstream hashes and M0 Candid compatibility. `didc check canisters/reviewer/reviewer.did .local/m1-reviewed.did` also passed against the reviewed M1 interface. Formatting and both host and Wasm Clippy checks passed.

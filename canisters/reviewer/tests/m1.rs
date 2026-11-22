@@ -4,9 +4,11 @@ use candid::{Principal, encode_args, encode_one};
 use nexus_ic_sources::projection::{Details, RecordKey};
 use nexus_reviewer::{
     Assignment, COLLECTION_LIMITS, CollectionStatus, EvidenceManifest, Limits, RecordAt,
-    RegistryStatus, SourceObservation, SourceStatus, Sources, Stop,
+    RegistryLimit, RegistryLimits, RegistryRecovery, RegistryStatus, SourceObservation,
+    SourceStatus, Sources, Stop,
 };
 use pocket_ic::{PocketIc, PocketIcBuilder};
+use std::time::Duration;
 use support::{advance, call, enabled, wasm};
 
 fn collection(pic: &PocketIc, reviewer: Principal) -> CollectionStatus {
@@ -37,6 +39,119 @@ fn configure(pic: &PocketIc, reviewer: Principal, limits: Option<Limits>) {
         encode_one(limits).unwrap(),
     )
     .unwrap();
+}
+
+#[test]
+#[ignore = "run through scripts/test-m0.sh to build Wasm and start PocketIC"]
+fn verification_expiry_fences_delayed_callbacks_and_survives_upgrade() {
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+    let topology = pic.topology();
+    let app = topology.get_app_subnets()[0];
+    let slow = wasm(".local/slow-source-fixture.wasm");
+    let fixture = pic.create_canister_on_subnet(None, None, topology.get_nns().unwrap());
+    let delay_target = pic.create_canister_on_subnet(None, None, app);
+    pic.install_canister(delay_target, slow.clone(), encode_args(()).unwrap(), None);
+    pic.install_canister(fixture, slow, encode_args(()).unwrap(), None);
+    call::<()>(
+        &pic,
+        fixture,
+        "set_delay_target",
+        encode_one(delay_target).unwrap(),
+    );
+    let reviewer = pic.create_canister_on_subnet(None, None, app);
+    let binary = wasm(".local/reviewer-fixture.wasm");
+    pic.install_canister(
+        reviewer,
+        binary.clone(),
+        encode_one(Some(Sources {
+            registry: fixture,
+            governance: fixture,
+        }))
+        .unwrap(),
+        None,
+    );
+    let authorize = |offset: u64, limits| {
+        let expiry = pic.get_time().as_nanos_since_unix_epoch() + offset * 1_000_000_000;
+        call::<Result<(), String>>(
+            &pic,
+            reviewer,
+            "authorize_verification",
+            encode_args((expiry, limits)).unwrap(),
+        )
+    };
+    assert!(
+        authorize(
+            120,
+            Limits {
+                duration_secs: 60,
+                ..COLLECTION_LIMITS
+            }
+        )
+        .is_err()
+    );
+    authorize(30, COLLECTION_LIMITS).unwrap();
+    for _ in 0..6 {
+        advance(&pic);
+        if matches!(
+            collection(&pic, reviewer).in_flight,
+            Some(nexus_reviewer::Work::GovernanceList { .. })
+        ) {
+            break;
+        }
+    }
+    let running = collection(&pic, reviewer);
+    assert!(matches!(
+        running.in_flight,
+        Some(nexus_reviewer::Work::GovernanceList { .. })
+    ));
+    let admitted = running.usage.unwrap();
+
+    pic.advance_time(Duration::from_secs(35));
+    assert!(!collection(&pic, reviewer).enabled);
+    pic.upgrade_canister(reviewer, binary.clone(), encode_args(()).unwrap(), None)
+        .unwrap();
+    for _ in 0..30 {
+        pic.tick();
+    }
+    pic.advance_time(Duration::from_secs(86_401));
+    for _ in 0..5 {
+        advance(&pic);
+    }
+    pic.upgrade_canister(reviewer, binary, encode_args(()).unwrap(), None)
+        .unwrap();
+    for _ in 0..5 {
+        advance(&pic);
+    }
+    let finished = collection(&pic, reviewer);
+    assert!(!finished.enabled);
+    assert_eq!(
+        finished.verification_expires_at,
+        running.verification_expires_at
+    );
+    assert!(finished.in_flight.is_none());
+    let final_usage = finished.usage.unwrap();
+    assert_eq!(final_usage.stop, Some(Stop::Deadline));
+    assert_eq!(final_usage.calls, admitted.calls);
+    assert_eq!(final_usage.cycles_reserved, admitted.cycles_reserved);
+    assert_eq!(final_usage.started_at, admitted.started_at);
+    assert_eq!(finished.last_observation, running.last_observation + 1);
+
+    authorize(
+        30,
+        Limits {
+            cycle_ceiling: 1,
+            ..COLLECTION_LIMITS
+        },
+    )
+    .unwrap();
+    advance(&pic);
+    let exhausted = collection(&pic, reviewer);
+    assert!(!exhausted.enabled);
+    assert_eq!(exhausted.usage.unwrap().stop, Some(Stop::CycleCeiling));
+    assert_eq!(exhausted.usage.unwrap().calls, 0);
 }
 
 fn projected_node(index: u16) -> Principal {
@@ -120,8 +235,34 @@ fn fixed_registry_target_and_atomic_history_survive_upgrade() {
     );
     assert_eq!(registry(&pic, reviewer).published, None);
     configure(&pic, reviewer, None);
+    let retry =
+        || call::<Result<(), String>>(&pic, reviewer, "retry_registry", encode_args(()).unwrap());
+    let set_limits = |limits| {
+        call::<Result<(), String>>(
+            &pic,
+            reviewer,
+            "configure_registry_limits",
+            encode_one(limits).unwrap(),
+        )
+        .unwrap()
+    };
+    set_limits(RegistryLimits {
+        staged_mutations: 2,
+        ..RegistryLimits::MAX
+    });
     let before_cycles = pic.cycle_balance(reviewer);
     configure(&pic, reviewer, Some(COLLECTION_LIMITS));
+    let over_limit = until_registry(&pic, reviewer, |s| s.block.is_some());
+    let block = over_limit.block.unwrap();
+    assert_eq!(block.cursor, 0);
+    assert_eq!(block.version_range, Some((1, 4)));
+    assert!(matches!(block.recovery, RegistryRecovery::IncreaseLimit {
+        limit: RegistryLimit::StagedMutations, required
+    } if required > 2));
+    assert!(retry().is_err());
+    assert!(registry(&pic, reviewer).published.is_none());
+    set_limits(RegistryLimits::MAX);
+    retry().unwrap();
     let staged = until_registry(&pic, reviewer, |s| s.blocked.is_some());
     assert_eq!(staged.bootstrap_target, Some(3));
     assert_eq!(staged.observed_head, Some(5));
@@ -140,6 +281,16 @@ fn fixed_registry_target_and_atomic_history_survive_upgrade() {
     )
     .unwrap();
     assert!(matches!(bad.status, SourceStatus::Integrity(_)));
+    let failure = staged.block.as_ref().unwrap();
+    assert_eq!(failure.recovery, RegistryRecovery::RepairSource);
+    assert!(
+        failure
+            .record_key
+            .as_ref()
+            .unwrap()
+            .starts_with("data_center_record_")
+    );
+    assert_eq!(failure.observation, bad.id);
     let record = |version, key| {
         call::<Result<RecordAt, String>>(
             &pic,
@@ -246,6 +397,14 @@ fn fixed_registry_target_and_atomic_history_survive_upgrade() {
     let malformed = until_registry(&pic, reviewer, |s| s.blocked.is_some());
     assert_eq!(malformed.published, Some(5));
     assert!(malformed.blocked.unwrap().contains("node_record_"));
+    let block = malformed.block.unwrap();
+    assert_eq!(block.version_range, Some((6, 6)));
+    assert_eq!(block.recovery, RegistryRecovery::UpgradeAdapter);
+    assert!(retry().is_err());
+    for _ in 0..6 {
+        advance(&pic);
+    }
+    assert_eq!(registry(&pic, reviewer).published, Some(5));
     assert!(record(6, RecordKey::Node(projected_node(1201))).is_err());
 }
 

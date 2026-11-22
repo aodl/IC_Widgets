@@ -20,6 +20,8 @@ use crate::{
     store::{Memory, V1, memory},
 };
 
+// Bump only when an adapter change can replay a previously incompatible stage.
+const RECOVERY_REVISION: u32 = 1;
 const RECORDS_PER_SLICE: usize = 64;
 const REFRESH: u64 = 5 * 60 * SECOND;
 
@@ -46,6 +48,62 @@ pub struct RegistryStatus {
     pub wire_bytes: u64,
     pub retained_mutations: u64,
     pub retained_value_bytes: u64,
+    pub block: Option<RegistryBlock>,
+    pub limits: Option<RegistryLimits>,
+}
+
+#[derive(Clone, Copy, CandidType, Deserialize)]
+pub struct RegistryLimits {
+    pub page_mutations: u32,
+    pub staged_mutations: u32,
+    pub record_chunks: u32,
+    pub record_bytes: u32,
+}
+
+impl RegistryLimits {
+    pub const MAX: Self = Self {
+        page_mutations: projection::MAX_PAGE_MUTATIONS,
+        staged_mutations: registry::MAX_STAGED_MUTATIONS,
+        record_chunks: projection::MAX_CHUNKS as u32,
+        record_bytes: projection::MAX_RECORD_BYTES as u32,
+    };
+
+    fn get(self, limit: RegistryLimit) -> u32 {
+        match limit {
+            RegistryLimit::PageMutations => self.page_mutations,
+            RegistryLimit::StagedMutations => self.staged_mutations,
+            RegistryLimit::RecordChunks => self.record_chunks,
+            RegistryLimit::RecordBytes => self.record_bytes,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, CandidType, Deserialize, PartialEq, Eq)]
+pub enum RegistryLimit {
+    PageMutations,
+    StagedMutations,
+    RecordChunks,
+    RecordBytes,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
+pub enum RegistryRecovery {
+    RetryTransient,
+    RepairSource,
+    IncreaseLimit { limit: RegistryLimit, required: u32 },
+    UpgradeAdapter,
+}
+
+#[derive(Clone, CandidType, Deserialize)]
+pub struct RegistryBlock {
+    pub request: Work,
+    pub observation: u64,
+    pub cursor: u64,
+    pub version_range: Option<(u64, u64)>,
+    pub record_key: Option<String>,
+    pub reason: String,
+    pub recovery: RegistryRecovery,
+    pub adapter_revision: u32,
 }
 
 #[derive(Clone, CandidType, Deserialize)]
@@ -169,10 +227,26 @@ pub fn accept(work: &Work, bytes: &[u8], observation: u64, now: u64) -> SourceSt
     let result = match work {
         Work::RegistryHead => accept_head(&mut state, bytes, now),
         Work::RegistryChanges(after) => accept_page(&mut state, bytes, *after, observation, now),
-        Work::RegistryChunk(hash) => accept_chunk(&state, bytes, *hash, observation),
+        Work::RegistryChunk(hash) => accept_chunk(&mut state, bytes, *hash, observation),
         _ => unreachable!("Registry producer received another source's task"),
     };
     if let Err(error) = result {
+        if state.block.is_none() {
+            let recovery = match (&error, work) {
+                (SourceStatus::Integrity(_), _) => RegistryRecovery::RepairSource,
+                _ => RegistryRecovery::UpgradeAdapter,
+            };
+            block(
+                &mut state,
+                work,
+                observation,
+                &format!("{error:?}"),
+                recovery,
+                Some(bytes),
+            );
+        }
+        state.last_observation = Some(observation);
+        save(state);
         return error;
     }
     state.last_observation = Some(observation);
@@ -180,6 +254,47 @@ pub fn accept(work: &Work, bytes: &[u8], observation: u64, now: u64) -> SourceSt
     state.attempts = 0;
     save(state);
     SourceStatus::Valid
+}
+
+fn block(
+    state: &mut RegistryStatus,
+    request: &Work,
+    observation: u64,
+    reason: &str,
+    recovery: RegistryRecovery,
+    response: Option<&[u8]>,
+) {
+    let record = state
+        .staging
+        .as_ref()
+        .and_then(|stage| pending(stage.applied));
+    let version_range = record
+        .as_ref()
+        .map(|row| (row.mutation.version, row.mutation.version))
+        .or_else(|| match request {
+            Work::RegistryChanges(_) => response.and_then(registry::changes_range_hint),
+            _ => None,
+        });
+    let reason = short(reason);
+    state.blocked = Some(reason.clone());
+    state.block = Some(RegistryBlock {
+        request: request.clone(),
+        observation,
+        cursor: state.ingested_through,
+        version_range,
+        record_key: record.map(|row| row.mutation.key.name()),
+        reason,
+        recovery,
+        adapter_revision: RECOVERY_REVISION,
+    });
+}
+
+fn limit_recovery(
+    limits: RegistryLimits,
+    limit: RegistryLimit,
+    required: u32,
+) -> Option<RegistryRecovery> {
+    (required > limits.get(limit)).then_some(RegistryRecovery::IncreaseLimit { limit, required })
 }
 
 fn accept_head(state: &mut RegistryStatus, bytes: &[u8], now: u64) -> Result<(), SourceStatus> {
@@ -222,6 +337,39 @@ fn accept_page(
         return Err(SourceStatus::Integrity(
             "Registry page head regressed".into(),
         ));
+    }
+    let limits = state.limits.unwrap_or(RegistryLimits::MAX);
+    let excess = limit_recovery(limits, RegistryLimit::PageMutations, page.raw_mutations)
+        .or_else(|| {
+            limit_recovery(
+                limits,
+                RegistryLimit::StagedMutations,
+                page.projected.len() as u32,
+            )
+        })
+        .or_else(|| {
+            page.projected
+                .iter()
+                .find_map(|mutation| match &mutation.value {
+                    Content::Chunks(hashes) => {
+                        limit_recovery(limits, RegistryLimit::RecordChunks, hashes.len() as u32)
+                    }
+                    Content::Value(bytes) => {
+                        limit_recovery(limits, RegistryLimit::RecordBytes, bytes.len() as u32)
+                    }
+                    Content::Deleted => None,
+                })
+        });
+    if let Some(recovery) = excess {
+        block(
+            state,
+            &Work::RegistryChanges(after),
+            observation,
+            "Registry page exceeds a configured projection limit",
+            recovery,
+            Some(bytes),
+        );
+        return Err(SourceStatus::Oversized);
     }
     state.observed_head = Some(page.span.observed_head);
     let end = if state.published.is_none() {
@@ -268,7 +416,7 @@ fn accept_page(
 }
 
 fn accept_chunk(
-    state: &RegistryStatus,
+    state: &mut RegistryStatus,
     bytes: &[u8],
     hash: Hash,
     observation: u64,
@@ -288,7 +436,25 @@ fn accept_chunk(
     }
     let chunk =
         registry::chunk_bytes(bytes, hash).map_err(|err| SourceStatus::Integrity(short(&err)))?;
-    if pending.chunk_bytes as usize + chunk.len() > projection::MAX_RECORD_BYTES {
+    let required = pending.chunk_bytes + chunk.len() as u32;
+    let recovery = if required as usize > projection::MAX_RECORD_BYTES {
+        Some(RegistryRecovery::UpgradeAdapter)
+    } else {
+        limit_recovery(
+            state.limits.unwrap_or(RegistryLimits::MAX),
+            RegistryLimit::RecordBytes,
+            required,
+        )
+    };
+    if let Some(recovery) = recovery {
+        block(
+            state,
+            &Work::RegistryChunk(hash),
+            observation,
+            "Registry record exceeds reconstructed byte limit",
+            recovery,
+            None,
+        );
         return Err(SourceStatus::Oversized);
     }
     pending.chunk_bytes += chunk.len() as u32;
@@ -322,7 +488,16 @@ pub fn apply_slice(now: u64) {
                 stage.applied += 1;
             }
             Err(error) => {
-                state.blocked = Some(short(&error));
+                state.staging = Some(stage.clone());
+                let cursor = state.ingested_through;
+                block(
+                    &mut state,
+                    &Work::RegistryChanges(cursor),
+                    stage.observation,
+                    &error,
+                    RegistryRecovery::UpgradeAdapter,
+                    None,
+                );
                 break;
             }
         }
@@ -418,22 +593,39 @@ fn apply(row: Pending, stage: &Staging) -> Result<(bool, u64), String> {
     Ok((true, bytes_len))
 }
 
-pub fn failed(error: &SourceStatus, observation: u64, now: u64, attempts: u8) {
+pub fn failed(work: &Work, error: &SourceStatus, observation: u64, now: u64, attempts: u8) {
     let mut state = status();
+    if state.block.is_some() {
+        return;
+    }
     state.last_observation = Some(observation);
-    state.attempts += 1;
-    if matches!(
+    state.attempts = state.attempts.saturating_add(1);
+    let transient = matches!(
         error,
         SourceStatus::Interrupted
             | SourceStatus::Rejected {
                 retryable: true,
                 ..
             }
-    ) && state.attempts < attempts
-    {
+    );
+    if transient && state.attempts < attempts {
         state.next_due = now.saturating_add((5 * SECOND) << (state.attempts - 1));
     } else {
-        state.blocked = Some(short(&format!("{error:?}")));
+        let recovery = if transient {
+            RegistryRecovery::RetryTransient
+        } else if matches!(error, SourceStatus::Oversized | SourceStatus::Malformed(_)) {
+            RegistryRecovery::UpgradeAdapter
+        } else {
+            RegistryRecovery::RepairSource
+        };
+        block(
+            &mut state,
+            work,
+            observation,
+            &format!("{error:?}"),
+            recovery,
+            None,
+        );
     }
     save(state);
 }
@@ -505,10 +697,54 @@ fn registry_status() -> Result<RegistryStatus, String> {
 }
 
 #[ic_cdk::update]
+fn configure_registry_limits(limits: RegistryLimits) -> Result<(), String> {
+    require_controller()?;
+    if [
+        RegistryLimit::PageMutations,
+        RegistryLimit::StagedMutations,
+        RegistryLimit::RecordChunks,
+        RegistryLimit::RecordBytes,
+    ]
+    .into_iter()
+    .any(|limit| limits.get(limit) == 0 || limits.get(limit) > RegistryLimits::MAX.get(limit))
+    {
+        return Err("Registry limits exceed supported operational bounds".into());
+    }
+    let mut state = status();
+    if state.staging.is_some() {
+        let old = state.limits.unwrap_or(RegistryLimits::MAX);
+        if limits.record_bytes < old.record_bytes || limits.record_chunks < old.record_chunks {
+            return Err("cannot reduce record limits while a Registry page is staged".into());
+        }
+    }
+    state.limits = Some(limits);
+    save(state);
+    Ok(())
+}
+
+#[ic_cdk::update]
 fn retry_registry() -> Result<(), String> {
     require_controller()?;
     let mut state = status();
+    if let Some(block) = &state.block {
+        match block.recovery {
+            RegistryRecovery::UpgradeAdapter if block.adapter_revision >= RECOVERY_REVISION => {
+                return Err(
+                    "Registry recovery requires a compatible adapter or protocol upgrade".into(),
+                );
+            }
+            RegistryRecovery::IncreaseLimit { limit, required }
+                if state.limits.unwrap_or(RegistryLimits::MAX).get(limit) < required =>
+            {
+                return Err(format!(
+                    "raise {limit:?} to at least {required} before retrying"
+                ));
+            }
+            _ => {}
+        }
+    }
     state.blocked = None;
+    state.block = None;
     state.next_due = 0;
     state.attempts = 0;
     save(state);

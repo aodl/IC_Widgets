@@ -26,6 +26,7 @@ type CollectionGap = variant {
 type CollectionStatus = record {
   storage_page_ceiling : nat64;
   allocated_pages : nat64;
+  verification_expires_at : opt nat64;
   enabled : bool;
   last_observation : nat64;
   usage : opt Usage;
@@ -83,6 +84,7 @@ type EvidenceManifest = record {
   schema_version : nat16;
   observations : vec SourceObservation;
 };
+type HistoryKind = variant { Empty; MissingBoundary; Samples; BoundaryOnly };
 type Key = variant {
   Operator : principal;
   Node : principal;
@@ -309,6 +311,34 @@ type RecordSummary = variant {
     registered_owner : text;
   };
 };
+type RegistryBlock = record {
+  cursor : nat64;
+  request : Work;
+  adapter_revision : nat32;
+  record_key : opt text;
+  observation : nat64;
+  recovery : RegistryRecovery;
+  version_range : opt record { nat64; nat64 };
+  reason : text;
+};
+type RegistryLimit = variant {
+  RecordBytes;
+  RecordChunks;
+  StagedMutations;
+  PageMutations;
+};
+type RegistryLimits = record {
+  staged_mutations : nat32;
+  record_bytes : nat32;
+  record_chunks : nat32;
+  page_mutations : nat32;
+};
+type RegistryRecovery = variant {
+  RepairSource;
+  UpgradeAdapter;
+  IncreaseLimit : record { limit : RegistryLimit; required : nat32 };
+  RetryTransient;
+};
 type RegistryStatus = record {
   next_due : nat64;
   processed_mutations : nat64;
@@ -323,7 +353,9 @@ type RegistryStatus = record {
   wire_bytes : nat64;
   last_observation : opt nat64;
   retained_mutations : nat64;
+  block : opt RegistryBlock;
   observed_head : opt nat64;
+  limits : opt RegistryLimits;
   superseded_mutations : nat64;
 };
 type ReplyPage = record { bytes : blob; next_offset : opt nat32 };
@@ -416,9 +448,16 @@ type SubnetCollection = record {
   cursor : opt nat64;
   last_status : opt SourceStatus;
   last_success_at : opt nat64;
+  last_success : opt SuccessfulHistory;
   last_observation : opt nat64;
   eligible : bool;
   history_retry_start : opt nat64;
+};
+type SuccessfulHistory = record {
+  kind : HistoryKind;
+  observation : nat64;
+  raw_hash : blob;
+  collected_at : nat64;
 };
 type Usage = record {
   cycles_reserved : nat;
@@ -450,10 +489,12 @@ type Work = variant {
   RegistryHead;
 };
 service : (opt Sources) -> {
+  authorize_verification : (nat64, Limits) -> (Result);
   capture_proposal : (nat64) -> (Result);
   collection_status : () -> (Result_1);
   configure_collection : (opt Limits) -> (Result);
   configure_collection_storage : (opt nat64) -> (Result);
+  configure_registry_limits : (RegistryLimits) -> (Result);
   discovery_status : () -> (Result_2);
   evidence_bytes : (blob, nat32) -> (Result_3);
   evidence_manifest : (opt nat64, vec nat64) -> (Result_4);

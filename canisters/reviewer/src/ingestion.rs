@@ -113,6 +113,7 @@ struct Scheduler {
     lease: Option<Lease>,
     source_turn: Option<u8>,
     storage_page_ceiling: Option<u64>,
+    verification_expires_at: Option<u64>,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -123,6 +124,7 @@ pub struct CollectionStatus {
     pub usage: Option<Usage>,
     pub allocated_pages: u64,
     pub storage_page_ceiling: u64,
+    pub verification_expires_at: Option<u64>,
 }
 
 thread_local! {
@@ -153,7 +155,7 @@ pub fn restore() {
         save(state.clone());
     }
     if state.limits.is_some() {
-        schedule(state.generation, SECOND);
+        next_tick(state, SECOND);
     }
 }
 
@@ -162,34 +164,70 @@ fn configure_collection(limits: Option<Limits>) -> Result<(), String> {
     require_controller()?;
     let mut state = load();
     if let Some(limits) = limits {
-        limits.validate(COLLECTION_LIMITS)?;
-        if state.limits.is_some() || state.lease.is_some() || store::config().active_job.is_some() {
-            return Err("pause active work and let its outstanding call drain first".into());
-        }
-        state.usage = Some(Usage::new(limits, time(), canister_cycle_balance()));
-        state.source_turn = Some(0);
-        state.limits = Some(limits);
+        return authorize(state, limits, None);
+    }
+    state.limits = None;
+    if state.lease.is_none() {
         state.generation += 1;
-        schedule(state.generation, SECOND);
-    } else {
-        state.limits = None;
-        if state.lease.is_none() {
-            state.generation += 1;
-        }
     }
     save(state);
     Ok(())
 }
 
 #[ic_cdk::update]
+fn authorize_verification(expires_at: u64, limits: Limits) -> Result<(), String> {
+    require_controller()?;
+    authorize(load(), limits, Some(expires_at))
+}
+
+fn authorize(mut state: Scheduler, limits: Limits, expires_at: Option<u64>) -> Result<(), String> {
+    limits.validate(COLLECTION_LIMITS)?;
+    let now = time();
+    if expires_at.is_some_and(|end| {
+        end <= now || end > now.saturating_add(u64::from(limits.duration_secs) * SECOND)
+    }) {
+        return Err(
+            "verification expiry must be in the future and within the duration limit".into(),
+        );
+    }
+    stop_expired(&mut state, now);
+    if state.limits.is_some() || state.lease.is_some() || store::config().active_job.is_some() {
+        return Err("pause active work and let its outstanding call drain first".into());
+    }
+    state.usage = Some(Usage::new(limits, now, canister_cycle_balance()));
+    state.source_turn = Some(0);
+    state.limits = Some(limits);
+    state.verification_expires_at = expires_at;
+    next_tick(state, SECOND);
+    Ok(())
+}
+
+fn stop_expired(state: &mut Scheduler, now: u64) {
+    if state.verification_expires_at.is_some_and(|end| now >= end) {
+        state.limits = None;
+        if let Some(usage) = &mut state.usage {
+            // Keep an earlier terminal exhaustion reason.
+            if matches!(
+                usage.stop,
+                None | Some(Stop::CycleBalance | Stop::StorageLimit)
+            ) {
+                usage.stop = Some(Stop::Deadline);
+            }
+        }
+    }
+}
+
+#[ic_cdk::update]
 fn collection_status() -> Result<CollectionStatus, String> {
     require_controller()?;
-    let state = load();
+    let mut state = load();
+    stop_expired(&mut state, time());
     Ok(CollectionStatus {
         enabled: state.limits.is_some(),
         in_flight: state.lease.map(|lease| lease.work),
         last_observation: state.observation,
         usage: state.usage,
+        verification_expires_at: state.verification_expires_at,
         allocated_pages: stable_size(),
         storage_page_ceiling: state.storage_page_ceiling.unwrap_or(STORAGE_PAGES),
     })
@@ -279,12 +317,14 @@ async fn tick(generation: u64) {
         next_tick(state, SECOND);
         return;
     }
+    let now = time();
+    stop_expired(&mut state, now);
     let Some(limits) = state.limits else {
+        save(state);
         return;
     };
     let mut usage = state.usage.expect("enabled collection budget");
-    let now = time();
-    if now >= usage.started_at.saturating_add(DAY) {
+    if state.verification_expires_at.is_none() && now >= usage.started_at.saturating_add(DAY) {
         usage = Usage::new(limits, now, canister_cycle_balance());
     }
     let Some(task) = next_task(&mut state, now) else {
@@ -307,6 +347,11 @@ async fn tick(generation: u64) {
     if let Err(stop) = admitted {
         usage.stop = Some(stop);
         state.usage = Some(usage);
+        if state.verification_expires_at.is_some()
+            && !matches!(stop, Stop::CycleBalance | Stop::StorageLimit)
+        {
+            state.limits = None;
+        }
         let delay = match stop {
             Stop::CycleBalance | Stop::StorageLimit => 300 * SECOND,
             _ => usage
@@ -409,7 +454,7 @@ fn failed(work: &Work, error: &SourceStatus, id: u64, now: u64, attempts: u8) {
         Work::NodeMetrics { subnet, start } => {
             metrics_archive::failed(*subnet, *start, error, id, now, attempts)
         }
-        _ => registry_sync::failed(error, id, now, attempts),
+        _ => registry_sync::failed(work, error, id, now, attempts),
     }
 }
 
@@ -489,7 +534,12 @@ fn account_instructions(state: &mut Scheduler) {
 
 fn next_tick(mut state: Scheduler, delay: u64) {
     state.generation += 1;
+    let now = time();
+    stop_expired(&mut state, now);
     if state.limits.is_some() {
+        let delay = state
+            .verification_expires_at
+            .map_or(delay, |end| delay.min(end.saturating_sub(now)));
         schedule(state.generation, delay);
     }
     save(state);

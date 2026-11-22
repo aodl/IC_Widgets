@@ -61,3 +61,5 @@ Legacy code cross-checks include `IC_Subnet_Analysis/SubnetMembership.cs` for ac
 ## M1 evidence coverage
 
 M1 supplies historical Registry joins and inventory classification, full Governance payloads and lifecycle evidence, and a subnet-scoped blockmaking archive. Explicitly unavailable legacy telemetry remains in the parity ledger. The next milestone uses these inputs to implement the versioned membership simulations and resolve node scopes. The performance widget needs only the resolved scope and evidence manifest. It has no independent proposal collector or selection logic.
+
+Governance discovery initially scans up to five pages. The selected-proposal workflow can request older IDs directly and use their full individual captures. Historical conflict-search completeness remains a separate capability.
