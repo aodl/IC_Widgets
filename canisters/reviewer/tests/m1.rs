@@ -205,6 +205,20 @@ fn fixed_registry_target_and_atomic_history_survive_upgrade() {
         Assignment::Replica(_)
     ));
 
+    let mut provider_bytes = [24; 29];
+    provider_bytes[..2].copy_from_slice(&1u16.to_be_bytes());
+    provider_bytes[28] = 2;
+    let provider = Principal::from_slice(&provider_bytes);
+    let operators = call::<Result<nexus_reviewer::ProviderPage, String>>(
+        &pic,
+        reviewer,
+        "registry_provider",
+        encode_args((3u64, provider, None::<String>)).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(operators.operators.len(), 1);
+    assert_eq!(operators.operators[0].1.mutation_version, 1);
+
     let finished = until_registry(&pic, reviewer, |s| s.published == Some(5));
     let usage = collection(&pic, reviewer).usage.unwrap();
     println!(
@@ -420,4 +434,262 @@ fn governance_archive_keeps_wire_content_and_distinct_lifecycle() {
     )
     .unwrap();
     assert_eq!(discovered.high_watermark, Some(101));
+}
+
+#[test]
+#[ignore = "run through scripts/test-m0.sh to build Wasm and start PocketIC"]
+fn native_metrics_producer_resumes_per_subnet_and_preserves_overlap() {
+    use nexus_ic_sources::management::{NodeMetricsHistoryArgs, NodeMetricsHistoryResult};
+    use nexus_ic_sources::registry::wire::registry::subnet::v1::SubnetRecord;
+    use nexus_reviewer::{MetricPage, MetricRows, MetricsRosterStatus, SubnetCollection};
+    use pocket_ic::{SubnetBlockmakers, TickConfigs};
+    use prost::Message;
+
+    // Public Registry records exported by PocketIC's state-machine test harness.
+    #[derive(Message)]
+    struct LocalRegistry {
+        #[prost(message, repeated, tag = "1")]
+        records: Vec<LocalRecord>,
+    }
+    #[derive(Message)]
+    struct LocalRecord {
+        #[prost(string, tag = "1")]
+        key: String,
+        #[prost(uint64, tag = "2")]
+        version: u64,
+        #[prost(message, optional, tag = "3")]
+        value: Option<LocalBytes>,
+    }
+    #[derive(Message)]
+    struct LocalBytes {
+        #[prost(bytes = "vec", tag = "1")]
+        value: Vec<u8>,
+    }
+    use std::time::Duration;
+
+    assert!(enabled());
+    let state_dir =
+        support::root().join(format!(".local/tmp/metrics-state-{}", std::process::id()));
+    std::fs::create_dir_all(&state_dir).unwrap();
+    let pic = PocketIcBuilder::new()
+        .with_state_dir(state_dir.clone())
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+    let topology = pic.topology();
+    let app = topology.get_app_subnets()[0];
+    let nns = topology.get_nns().unwrap();
+    let fixture = pic.create_canister_on_subnet(None, None, nns);
+    let reviewer = pic.create_canister_on_subnet(None, None, app);
+    let missing = Principal::from_slice(&[80, 80, 2]);
+    let unsupported = Principal::from_slice(&[90, 90, 2]);
+    let registry = std::fs::read(state_dir.join("registry.proto")).unwrap();
+    let records = LocalRegistry::decode(registry.as_slice()).unwrap().records;
+    let members = |subnet| {
+        let key = format!("subnet_record_{subnet}");
+        let entry = records
+            .iter()
+            .filter(|row| row.key == key)
+            .max_by_key(|row| row.version)
+            .unwrap();
+        SubnetRecord::decode(entry.value.as_ref().unwrap().value.as_slice())
+            .unwrap()
+            .membership
+            .into_iter()
+            .map(|bytes| Principal::from_slice(&bytes))
+            .collect::<Vec<_>>()
+    };
+    let app_nodes = members(app);
+    let builder = app_nodes[0];
+    let delayed = app_nodes[1];
+    let remote_builder = members(nns)[0];
+    let binary = wasm(".local/reviewer-fixture.wasm");
+    pic.install_canister(
+        fixture,
+        wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
+        encode_args(()).unwrap(),
+        None,
+    );
+    pic.install_canister(
+        reviewer,
+        binary.clone(),
+        encode_one(Some(Sources {
+            registry: fixture,
+            governance: fixture,
+        }))
+        .unwrap(),
+        None,
+    );
+    call::<()>(
+        &pic,
+        fixture,
+        "set_metrics_subnets",
+        encode_one(vec![(app, 1i32), (nns, 2), (missing, 1), (unsupported, 5)]).unwrap(),
+    );
+    let add_blockmakers = || {
+        pic.tick_with_configs(TickConfigs {
+            blockmakers: Some(vec![
+                SubnetBlockmakers {
+                    subnet: app,
+                    blockmaker: builder,
+                    failed_blockmakers: vec![delayed],
+                },
+                SubnetBlockmakers {
+                    subnet: nns,
+                    blockmaker: remote_builder,
+                    failed_blockmakers: vec![],
+                },
+            ]),
+        });
+    };
+    for _ in 0..3 {
+        add_blockmakers();
+        pic.advance_time(Duration::from_secs(86_400));
+    }
+    add_blockmakers();
+
+    let cfg_storage = |ceiling| {
+        call::<Result<(), String>>(
+            &pic,
+            reviewer,
+            "configure_collection_storage",
+            encode_one::<Option<u64>>(ceiling).unwrap(),
+        )
+        .unwrap()
+    };
+    cfg_storage(Some(1));
+    configure(&pic, reviewer, Some(COLLECTION_LIMITS));
+    for _ in 0..4 {
+        advance(&pic);
+    }
+    assert_eq!(
+        collection(&pic, reviewer).usage.unwrap().stop,
+        Some(Stop::StorageLimit)
+    );
+    assert_eq!(collection(&pic, reviewer).last_observation, 0);
+    configure(&pic, reviewer, None);
+    cfg_storage(None);
+    let cycles_before = pic.cycle_balance(reviewer);
+    configure(&pic, reviewer, Some(COLLECTION_LIMITS));
+
+    let status = |subnet| {
+        call::<Result<SubnetCollection, String>>(
+            &pic,
+            reviewer,
+            "metrics_status",
+            encode_one(subnet).unwrap(),
+        )
+        .unwrap()
+    };
+    let until = |subnet, predicate: &dyn Fn(&SubnetCollection) -> bool| {
+        for _ in 0..180 {
+            advance(&pic);
+            let current = status(subnet);
+            if predicate(&current) {
+                return current;
+            }
+        }
+        panic!(
+            "metrics did not reach expected state for {subnet}: {:?}",
+            status(subnet).last_status
+        );
+    };
+    let first = until(app, &|state| state.last_success_at.is_some());
+    until(nns, &|state| state.last_success_at.is_some());
+    until(missing, &|state| state.last_status.is_some());
+    assert!(matches!(
+        status(missing).last_status,
+        Some(SourceStatus::Rejected { .. })
+    ));
+    assert_eq!(status(missing).cursor, None);
+    let roster = call::<Result<MetricsRosterStatus, String>>(
+        &pic,
+        reviewer,
+        "metrics_roster",
+        encode_args(()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(roster.registry_version, Some(1));
+    assert_eq!(roster.eligible_count, 3);
+    assert_eq!(roster.unsupported, vec![unsupported]);
+    assert!(status(unsupported).last_observation.is_none());
+
+    let bootstrap_cycles = cycles_before - pic.cycle_balance(reviewer);
+    let cursor = first
+        .cursor
+        .expect("native PocketIC history has completed samples");
+    let window = |subnet| {
+        call::<Result<MetricPage, String>>(
+            &pic,
+            reviewer,
+            "metric_samples",
+            encode_args((subnet, 0u64, u64::MAX, None::<u64>)).unwrap(),
+        )
+        .unwrap()
+    };
+    let failed_page = window(missing);
+    assert!(failed_page.rows.is_empty());
+    assert!(matches!(
+        failed_page.collection.last_status,
+        Some(SourceStatus::Rejected { .. })
+    ));
+    let initial = window(app);
+    let first_count = initial.rows.len();
+    let last_sample = initial.rows.last().unwrap().clone();
+    assert!(last_sample.node_rows > 0);
+    let data = call::<Result<MetricRows, String>>(
+        &pic,
+        reviewer,
+        "metric_sample_rows",
+        encode_args((app, cursor, None::<Principal>)).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(data.rows.len(), last_sample.node_rows as usize);
+    assert!(
+        data.rows
+            .iter()
+            .any(|row| row.node_id == builder || row.node_id == delayed)
+    );
+    let raw = call::<Result<nexus_reviewer::ReplyPage, String>>(
+        &pic,
+        reviewer,
+        "evidence_bytes",
+        encode_args((last_sample.raw_response_hash, 0u32)).unwrap(),
+    )
+    .unwrap();
+    let restored: NodeMetricsHistoryResult = candid::decode_one(&raw.bytes).unwrap();
+    assert_eq!(restored.last().unwrap().timestamp_nanos, cursor);
+
+    pic.upgrade_canister(reviewer, binary, encode_args(()).unwrap(), None)
+        .unwrap();
+    pic.advance_time(Duration::from_secs(86_400 + 60));
+    add_blockmakers();
+    let next = until(app, &|state| {
+        state.last_observation > first.last_observation
+    });
+    let observation = call::<Result<SourceObservation, String>>(
+        &pic,
+        reviewer,
+        "source_observation",
+        encode_one(next.last_observation.unwrap()).unwrap(),
+    )
+    .unwrap();
+    let args: NodeMetricsHistoryArgs = candid::decode_one(&observation.argument).unwrap();
+    assert_eq!(args.start_at_timestamp_nanos, cursor);
+    let rows = window(app).rows;
+    assert!(rows.len() > first_count);
+    let overlap = rows
+        .iter()
+        .find(|sample| sample.timestamp_nanos == cursor)
+        .unwrap();
+    assert_eq!(overlap.observation, last_sample.observation);
+    assert_eq!(overlap.sample_hash, last_sample.sample_hash);
+    println!(
+        "metrics native fixture: {} local samples before upgrade, {} after, {} remote after, last response {} bytes, {} cycles for initial collector and polling",
+        first_count,
+        rows.len(),
+        window(nns).rows.len(),
+        observation.raw_bytes.unwrap(),
+        bootstrap_cycles,
+    );
 }

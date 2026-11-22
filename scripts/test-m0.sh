@@ -38,6 +38,7 @@ fi
 cargo test --locked --workspace -- "${capture[@]}"
 cargo test --locked -p nexus-reviewer --test m0 -- --ignored "${capture[@]}"
 cargo test --locked -p nexus-reviewer --test m1 -- --ignored "${capture[@]}"
-candid-extractor target/wasm32-unknown-unknown/release/nexus_reviewer.wasm > .local/reviewer.did
+candid-extractor target/wasm32-unknown-unknown/release/nexus_reviewer.wasm |
+    sed 's/[[:blank:]]*$//' > .local/reviewer.did
 diff -u canisters/reviewer/reviewer.did .local/reviewer.did
 didc check .local/reviewer.did canisters/reviewer/m0.did

@@ -22,6 +22,7 @@ use prost::Message;
 
 thread_local! {
     pub static MODE: Cell<u8> = const { Cell::new(0) };
+    static METRICS_SUBNETS: std::cell::RefCell<Vec<(Principal, i32)>> = const { std::cell::RefCell::new(vec![]) };
 }
 
 #[ic_cdk::update]
@@ -40,6 +41,7 @@ pub fn head() -> u64 {
     match MODE.get() {
         2 => 3,
         4 => 6,
+        5 => 1,
         _ => 5,
     }
 }
@@ -59,7 +61,51 @@ pub fn chunks() -> Vec<Vec<u8>> {
     dc().chunks(8).map(<[u8]>::to_vec).collect()
 }
 
+#[ic_cdk::update]
+fn set_metrics_subnets(subnets: Vec<(Principal, i32)>) {
+    METRICS_SUBNETS.set(subnets);
+    MODE.set(5);
+}
+
+fn metrics_changes(after: u64) -> HighCapacityRegistryGetChangesSinceResponse {
+    let mut deltas = vec![];
+    if after == 0 {
+        METRICS_SUBNETS.with_borrow(|subnets| {
+            let make = |key: String, bytes| HighCapacityRegistryDelta {
+                key: key.into_bytes(),
+                values: vec![HighCapacityRegistryValue {
+                    version: 1,
+                    timestamp_nanoseconds: 1,
+                    content: Some(Content::Value(bytes)),
+                }],
+            };
+            let roster = SubnetListRecord {
+                subnets: subnets
+                    .iter()
+                    .map(|(id, _)| id.as_slice().to_vec())
+                    .collect(),
+            };
+            deltas.push(make("subnet_list".into(), roster.encode_to_vec()));
+            for (id, kind) in subnets {
+                let record = SubnetRecord {
+                    subnet_type: *kind,
+                    ..Default::default()
+                };
+                deltas.push(make(format!("subnet_record_{id}"), record.encode_to_vec()));
+            }
+        });
+    }
+    HighCapacityRegistryGetChangesSinceResponse {
+        error: None,
+        version: 1,
+        deltas,
+    }
+}
+
 pub fn changes(after: u64) -> HighCapacityRegistryGetChangesSinceResponse {
+    if MODE.get() == 5 {
+        return metrics_changes(after);
+    }
     let node = |index: u16| id(21, index);
     let subnet = |index: u16| id(22, index);
     let operator = id(23, 1);

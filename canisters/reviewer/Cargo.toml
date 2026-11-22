@@ -20,4 +20,5 @@ nexus-domain.workspace = true
 nexus-ic-sources.workspace = true
 
 [dev-dependencies]
+prost.workspace = true
 pocket-ic.workspace = true

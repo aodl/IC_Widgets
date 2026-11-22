@@ -452,6 +452,10 @@ fn discovery_status() -> Result<DiscoveryStatus, String> {
 #[ic_cdk::update]
 fn proposal_archive(id: u64, observation: Option<u64>) -> Result<ProposalCapture, String> {
     require_controller()?;
+    archived_proposal(id, observation)
+}
+
+pub fn archived_proposal(id: u64, observation: Option<u64>) -> Result<ProposalCapture, String> {
     let observation = observation
         .or_else(|| index(id).last_capture)
         .ok_or("no archived capture")?;
@@ -480,9 +484,19 @@ fn proposal_history(id: u64, after: Option<u64>) -> Result<CapturePage, String> 
 
 #[ic_cdk::update]
 fn proposal_action(id: u64, observation: Option<u64>) -> Result<MembershipAction, String> {
-    let capture = proposal_archive(id, observation)?;
+    require_controller()?;
+    archived_action(id, observation)
+}
+
+pub fn archived_action(id: u64, observation: Option<u64>) -> Result<MembershipAction, String> {
+    let capture = archived_proposal(id, observation)?;
     if capture.action_status != ActionStatus::Membership {
         return Err("no decoded membership action in this capture".into());
+    }
+    let source =
+        evidence::observation(capture.observation).ok_or("capture source observation missing")?;
+    if source.status != SourceStatus::Valid {
+        return Err("capture unavailable for membership analysis".into());
     }
     let raw = evidence::blob(capture.raw_hash).ok_or("captured proposal bytes missing")?;
     let proposal: Option<governance::ProposalInfo> = decode_candid(&raw)?;

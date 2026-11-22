@@ -1,26 +1,24 @@
 # Implementation status
 
-## M0 local implementation
+## M1 evidence foundation
 
-M0 builds a production Wasm probe and a fixture Wasm. The production backend reads canonical system-canister principals. Each bounded probe persists its queue and raw evidence in stable memory and offers controller-only replicated reads for inspection. The committed Candid interface describes that API.
+The feature branch `codex/m1-evidence-foundation` builds on reviewed M0 commit `6a6330c181d6697649da3779d1eb11a6cb729ac0`. It adds one stable production scheduler and three source workers to the existing backend canister. Controller policy enables autonomous collection. Frontend widgets and the membership engine are M2 and later work.
 
-| Deliverable | State |
+| Checkpoint | Implementation and evidence |
 |---|---|
-| Input inventory, archive separation and local Git bootstrap | Complete |
-| Architecture, legacy feature checklist and source-to-feature mapping | Complete |
-| Pinned Rust workspace, dfx config, source manifest and local development scripts | Complete |
-| Governance, Registry, management adapters and stable probe receipts | Implemented |
-| Release artifact identity | Verified by public certified module hashes |
-| Live application-canister call path and cost measurements | Awaiting authorized funded application canister |
+| A — Hardening | Cycle, call, byte, retry, slice and deadline admission. Typed stops. Old-M0 Wasm upgrade from queued and outstanding work. CI with required Candid compatibility and source hashes. |
+| B — Registry | Fixed bootstrap target, complete-page publication, sparse historical reads, verified chunk assembly, topology views and resumable partial stage. A 24-subnet, 1,200-node fixture and three anonymous Registry samples informed verification. |
+| C — Governance | Full individual capture, separate lifecycle observations, bounded discovery and autonomous refresh. Tested listed omission, unsupported and malformed actions, unavailable replies and deduplication. |
+| D — Metrics | Registry-rostered daily fetch, inclusive overlap, immutable raw evidence, conflict and gap markers, per-subnet failure handling and recovery. PocketIC returned populated native histories from the calling and remote subnets. |
 
-The frontend currently reserves the future verified client and widget boundary. No dashboard was in the M0 implementation scope. The review engine crate marks the pure analysis boundary, while scenario evaluation is scheduled for M2 after the source projection.
+## Live gate
 
-## Test evidence
+Anonymous direct Registry development reads verified original pagination and atomic rewrite ordering. They supplied bootstrap size samples. The application-canister tests used PocketIC. No mainnet canister was installed or upgraded, no mainnet cycles were transferred, and no controllers were changed. The deployed application route, observed cost and freshness, and native source behavior over a live fleet await explicit authorization.
 
-`./scripts/test-m0.sh` passed 8 unit tests and 3 PocketIC integration tests, built both Wasm configurations, verified the upstream artifact hashes and matched the generated Candid interface. `cargo fmt --all --check` and `didc check canisters/reviewer/reviewer.did` passed. See [M0 capability matrix and measurements](M0.md#capabilities-observed). Local PocketIC tests exercised released Governance code, released Registry code on an empty Registry, a nonempty synthetic Registry join and chunk exchange, native cross-subnet management calls, replicated query limits and a queued-job upgrade. Mainnet module metadata was read anonymously through the IC protocol. No mainnet Wasm was installed or controllers changed.
+## References
 
-## Next milestone
-
-Run the same probe in an owner-designated funded application canister under an authorized controller identity and budget. Then build M1's single coherent Registry projection with a fixed bootstrap target, atomic complete-version publication, versioned history and resumable jobs. Add a durable proposal archive and metrics collection backed by the measured source limits. M2 will consume those pinned inputs for the three membership actions and both execution orders.
-
-The owner input for live verification is an assigned canister ID, an existing authorized deployer identity name, install or upgrade authorization, and the cycle budget. The [M0 live runbook](M0.md#authorized-live-verification) includes the commands and required evidence.
+- [M1 acceptance report](M1_REPORT.md)
+- [Evidence contracts, storage format and sizing](EVIDENCE.md)
+- [Job budgets, recovery and authorized verification plan](OPERATIONS.md)
+- [Source pins](SOURCES.md)
+- [Legacy parity](PARITY.md)

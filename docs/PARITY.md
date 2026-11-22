@@ -57,3 +57,7 @@ The CreateSubnet deferral is the principal deliberate omission from the legacy m
 | IP location, uptime, alert names and beneficial ownership | Evidence gap | Explicitly unavailable |
 
 Legacy code cross-checks include `IC_Subnet_Analysis/SubnetMembership.cs` for action selection and grouping (lines 175–184 and 499–608), reverse-engineered before-state (634–643), and health classification (1056). `ProposalVisualiser/Pages/SubnetMembership.cshtml` includes map rendering, node alerts and Markdown export. `TrustWorthyNodeMetrics/Program.cs` reads local JSON for the CSV workflow. Line references are to the retained archive and may differ from previous versions.
+
+## M1 evidence coverage
+
+M1 supplies historical Registry joins and inventory classification, full Governance payloads and lifecycle evidence, and a subnet-scoped blockmaking archive. Explicitly unavailable legacy telemetry remains in the parity ledger. The next milestone uses these inputs to implement the versioned membership simulations and resolve node scopes. The performance widget needs only the resolved scope and evidence manifest. It has no independent proposal collector or selection logic.

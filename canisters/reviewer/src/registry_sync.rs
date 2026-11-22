@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    ops::Bound::{Excluded, Unbounded},
+    ops::Bound::{Excluded, Included, Unbounded},
 };
 
 use candid::{CandidType, Principal};
@@ -92,6 +92,7 @@ pub enum RecordAt {
 struct StoredRecord {
     evidence: RecordEvidence,
     subnet: Option<SubnetMembership>,
+    provider: Option<Principal>,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -371,9 +372,12 @@ fn apply(row: Pending, stage: &Staging) -> Result<(bool, u64), String> {
                 .map_err(|err| format!("{} at {}: {err}", mutation.key.name(), mutation.version))
         })
         .transpose()?;
-    let subnet = match details {
-        Some(Details::Subnet { members, kind, .. }) => Some(SubnetMembership { members, kind }),
-        _ => None,
+    let (subnet, provider) = match details {
+        Some(Details::Subnet { members, kind, .. }) => {
+            (Some(SubnetMembership { members, kind }), None)
+        }
+        Some(Details::Operator { provider, .. }) => (None, provider),
+        _ => (None, None),
     };
     let hash = bytes.as_deref().map(sha256);
     let key = mutation.key.name();
@@ -406,6 +410,7 @@ fn apply(row: Pending, stage: &Staging) -> Result<(bool, u64), String> {
             V1(StoredRecord {
                 evidence: record,
                 subnet,
+                provider,
             }),
         )
     });
@@ -557,9 +562,73 @@ fn registry_keys(version: u64, after: Option<String>) -> Result<KeyPage, String>
     Ok(out)
 }
 
+#[derive(CandidType, Deserialize)]
+pub struct ProviderPage {
+    pub operators: Vec<(Principal, RecordEvidence)>,
+    pub next: Option<String>,
+}
+
+#[ic_cdk::update]
+fn registry_provider(
+    version: u64,
+    provider: Principal,
+    after: Option<String>,
+) -> Result<ProviderPage, String> {
+    require_controller()?;
+    require_version(version)?;
+    const PREFIX: &str = "node_operator_record_";
+    if after
+        .as_ref()
+        .is_some_and(|key| key.len() > 300 || !key.starts_with(PREFIX))
+    {
+        return Err("invalid provider lookup cursor".into());
+    }
+    let lower = after.map_or_else(|| Included(PREFIX.into()), Excluded);
+    let scanned: Vec<_> = KEYS.with_borrow(|keys| {
+        keys.range((lower, Unbounded))
+            .take_while(|entry| entry.key().starts_with(PREFIX))
+            .take(65)
+            .map(|entry| entry.key().clone())
+            .collect()
+    });
+    let next = (scanned.len() > 64).then(|| scanned[63].clone());
+    let mut operators = vec![];
+    for name in scanned.into_iter().take(64) {
+        let Some(RecordKey::Operator(operator)) = RecordKey::parse(name.as_bytes())? else {
+            continue;
+        };
+        let Some(row) = entry(name, version) else {
+            continue;
+        };
+        let Some(hash) = row.evidence.value_hash else {
+            continue;
+        };
+        // Older projection envelopes omit the index. Recover the registered
+        // provider from the preserved value when the index is unavailable.
+        let registered = match row.provider {
+            Some(provider) => Some(provider),
+            None => {
+                let bytes = evidence::blob(hash).ok_or("operator evidence unavailable")?;
+                match projection::details(&RecordKey::Operator(operator), &bytes)? {
+                    Details::Operator { provider, .. } => provider,
+                    _ => unreachable!("operator decoder"),
+                }
+            }
+        };
+        if registered == Some(provider) {
+            operators.push((operator, row.evidence));
+        }
+    }
+    Ok(ProviderPage { operators, next })
+}
+
 #[ic_cdk::update]
 fn registry_assignment(version: u64, node: Principal) -> Result<Assignment, String> {
     require_controller()?;
+    assignment_at(version, node)
+}
+
+pub fn assignment_at(version: u64, node: Principal) -> Result<Assignment, String> {
     require_version(version)?;
     if !matches!(
         read(version, &RecordKey::Node(node))?,

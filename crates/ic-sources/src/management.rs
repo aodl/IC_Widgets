@@ -1,5 +1,6 @@
 pub use ic_management_canister_types::{
-    NodeMetricsHistoryArgs, NodeMetricsHistoryResult, SubnetInfoArgs, SubnetInfoResult,
+    NodeMetrics, NodeMetricsHistoryArgs, NodeMetricsHistoryRecord, NodeMetricsHistoryResult,
+    SubnetInfoArgs, SubnetInfoResult,
 };
 
 use crate::decode_candid;
@@ -21,7 +22,6 @@ pub fn decode_metrics(bytes: &[u8], start: u64) -> Result<NodeMetricsHistoryResu
 mod tests {
     use super::*;
     use candid::{Principal, encode_one};
-    use ic_management_canister_types::{NodeMetrics, NodeMetricsHistoryRecord};
 
     #[test]
     fn sparse_history_and_inclusive_start_remain_distinct_from_missing_reply() {

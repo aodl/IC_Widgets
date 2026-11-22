@@ -18,6 +18,56 @@ Deployment and cycle transfer require explicit approval for a funded application
 
 ## Production collection budget
 
-`configure_collection` takes an explicit controller policy or pauses collection with `null`. One durable lease owns the production dispatcher. The probe and collector cannot dispatch concurrently. A controller can pause while a call drains. Each 24-hour operating window independently enforces its cycle, raw input, call and slice allowances. The deadline applies to admissions. An already admitted callback can finish after the deadline. A new budget window keeps all source progress and staged data.
+`configure_collection` takes an explicit controller policy or pauses collection with `null`. One durable lease owns the production dispatcher. A superseded replica callback can still arrive after recovery. Its reservation remains charged and the generation fence prevents a second commit. The probe and collector cannot dispatch concurrently. A controller can pause while a call drains. Each 24-hour operating window independently enforces its cycle, raw input, call and slice allowances. The deadline applies to admissions. An already admitted callback can finish after the deadline. A new budget window keeps all source progress and staged data.
 
-The production stable allocation ceiling is approximately 2 GiB with a 64 MiB headroom allowance. The scheduler checks allocated stable pages before each slice. Existing evidence remains readable when admission is paused, and ongoing IC storage charges still apply. The collector stores complete sources within their supported limits and holds work on deterministic failures. Registry pages are capped at 40,000 incoming mutations and 8,192 retained staging rows. Large selected records are capped at 16 verified chunks and 16 MiB reconstructed. These are local operational limits. Registry pages can contain more unrelated data than the projection needs.
+The production stable allocation ceiling is approximately 2 GiB with a 64 MiB headroom allowance. The scheduler checks allocated stable pages before each slice. A controller can lower the ceiling for a planned run, and `collection_status` reports the effective ceiling. Existing evidence remains readable when admission is paused, and ongoing IC storage charges still apply. The collector stores complete sources within their supported limits and holds work on deterministic failures. Registry pages are capped at 40,000 incoming mutations and 8,192 retained staging rows. Large selected records are capped at 16 verified chunks and 16 MiB reconstructed. These are local operational limits. Registry pages can contain more unrelated data than the projection needs.
+
+## Live verification plan
+
+Before authorizing a deployment, record the assigned canister ID and application subnet. Read its current module hash and controller set through certified IC metadata. Confirm the recovery controller and the allowed installer identity by name. Record the production Wasm SHA-256, selected public membership proposal, and two conventional replica subnet IDs. Use install only for an empty assigned canister. For an existing M0 canister use upgrade and verify its schema and evidence before and after. A preserved canister snapshot or owner-approved backup can supplement an upgrade plan.
+
+Build the production Wasm without the fixture feature and record its hash. The preflight below is read-only. Execute the install or upgrade commands only within the owner's explicit scope.
+
+```bash
+cargo build --locked --release --target wasm32-unknown-unknown -p nexus-reviewer
+mkdir -p .local
+gzip -n -c target/wasm32-unknown-unknown/release/nexus_reviewer.wasm > .local/reviewer-mainnet.wasm.gz
+sha256sum target/wasm32-unknown-unknown/release/nexus_reviewer.wasm .local/reviewer-mainnet.wasm.gz
+dfx canister info --network ic --identity "$NEXUS_DEPLOYER" "$NEXUS_CANISTER"
+```
+
+Once authorized, use the reviewed mode against the assigned target. An M0 upgrade uses empty Candid arguments. An empty install uses `(null)` for production source defaults.
+
+```bash
+dfx canister install --network ic --identity "$NEXUS_DEPLOYER" \
+  --mode "$NEXUS_APPROVED_MODE" --argument "$NEXUS_APPROVED_ARGS" \
+  --wasm .local/reviewer-mainnet.wasm.gz "$NEXUS_CANISTER"
+dfx canister call --network ic --identity "$NEXUS_DEPLOYER" --update \
+  --candid canisters/reviewer/reviewer.did "$NEXUS_CANISTER" start_probe_with_limits \
+  --argument-file "$NEXUS_APPROVED_PROBE_ARGS"
+```
+
+The approved argument file contains a `ProbeRequest` and explicit `Limits` in Candid. A candidate small run uses 20 calls, two attempts per item, 24 MiB raw bytes, 20 slices and 10 minutes. Replace the named placeholders with the approved values before using the following template.
+
+```candid
+(
+  record {
+    proposal_id = opt (NEXUS_PROPOSAL : nat64);
+    registry_subnet = opt principal "NEXUS_REGISTRY_SUBNET";
+    remote_subnet = opt principal "NEXUS_REMOTE_SUBNET";
+    metrics_start_nanos = 0 : nat64;
+  },
+  record {
+    cycle_ceiling = NEXUS_APPROVED_CYCLES : nat;
+    calls = 20 : nat32;
+    attempts = 2 : nat8;
+    raw_bytes = 25_165_824 : nat64;
+    slices = 20 : nat32;
+    duration_secs = 600 : nat32;
+  },
+)
+```
+
+The owner sets the cycle ceiling after accounting for `cost_call` reservations and authorizes any balance top-up separately. Scope the calls to the agreed proposal and subnets. Prefer the local diagnostic canister on a conventional application subnet. Record each receipt's source argument, time, SHA-256, wire byte count and cycle snapshots. Record actual source module hashes and subnet context around the test.
+
+Confirm populated same- and cross-subnet history and inclusive overlap, Governance full payloads and lifecycle, and two nonempty Registry pages with the delivered cursor. Check for a live chunked selected-family mutation within an approved window and record availability. Compare native results and budgets with the local matrix. Pause any authorized production collection when its agreed window ends. Verify stable pointers and export required evidence before cleanup. The M0 baseline receipts require an approved upgrade rather than replacement. No deployed application canister has been used for these probes.

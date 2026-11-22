@@ -3,6 +3,7 @@ mod diagnostics;
 mod evidence;
 mod governance_archive;
 mod ingestion;
+mod metrics_archive;
 mod model;
 mod probe;
 mod registry_sync;
@@ -19,8 +20,14 @@ pub use governance_archive::{
     ActionStatus, CapturePage, DiscoveryStatus, ProposalCapture, ProposalStatus,
 };
 pub use ingestion::{COLLECTION_LIMITS, CollectionStatus, Work};
+pub use metrics_archive::{
+    CollectionGap, MetricConflict, MetricConflictPage, MetricPage, MetricRows, MetricSample,
+    MetricsRosterStatus, SubnetCollection,
+};
 pub use model::{Observation, ProbeRequest, Receipt, Sources};
-pub use registry_sync::{Assignment, KeyPage, RecordAt, RecordEvidence, RegistryStatus};
+pub use registry_sync::{
+    Assignment, KeyPage, ProviderPage, RecordAt, RecordEvidence, RegistryStatus,
+};
 
 #[ic_cdk::init]
 fn init(local_sources: Option<Sources>) {

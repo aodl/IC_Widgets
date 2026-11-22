@@ -7,13 +7,13 @@ use ic_cdk::{
 };
 use ic_stable_structures::StableCell;
 use nexus_domain::{Hash, sha256};
-use nexus_ic_sources::{DECODER_REVISION, MAX_RESPONSE_BYTES, governance, registry};
+use nexus_ic_sources::{DECODER_REVISION, MAX_RESPONSE_BYTES, governance, management, registry};
 use serde::Deserialize;
 
 use crate::{
     budget::{CALL_TIMEOUT, LEASE, Limits, SECOND, Stop, Usage},
     evidence::{self, EvidenceManifest, SourceObservation, SourceStatus},
-    governance_archive,
+    governance_archive, metrics_archive,
     model::Sources,
     registry_sync, require_controller,
     store::{self, Memory, V1, memory},
@@ -39,6 +39,7 @@ pub enum Work {
     RegistryChunk(Hash),
     GovernanceList { before: Option<u64>, limit: u32 },
     GovernanceProposal(u64),
+    NodeMetrics { subnet: Principal, start: u64 },
 }
 
 pub struct Request {
@@ -76,6 +77,17 @@ impl Work {
                     bytes: candid::encode_one(id).expect("proposal request"),
                 };
             }
+            Self::NodeMetrics { subnet, start } => {
+                return Request {
+                    source: Principal::management_canister(),
+                    method: "node_metrics_history",
+                    bytes: candid::encode_one(management::NodeMetricsHistoryArgs {
+                        subnet_id: *subnet,
+                        start_at_timestamp_nanos: *start,
+                    })
+                    .expect("metrics request"),
+                };
+            }
         };
         Request {
             source: sources.registry,
@@ -99,7 +111,8 @@ struct Scheduler {
     generation: u64,
     observation: u64,
     lease: Option<Lease>,
-    governance_turn: Option<bool>,
+    source_turn: Option<u8>,
+    storage_page_ceiling: Option<u64>,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -109,6 +122,7 @@ pub struct CollectionStatus {
     pub last_observation: u64,
     pub usage: Option<Usage>,
     pub allocated_pages: u64,
+    pub storage_page_ceiling: u64,
 }
 
 thread_local! {
@@ -153,6 +167,7 @@ fn configure_collection(limits: Option<Limits>) -> Result<(), String> {
             return Err("pause active work and let its outstanding call drain first".into());
         }
         state.usage = Some(Usage::new(limits, time(), canister_cycle_balance()));
+        state.source_turn = Some(0);
         state.limits = Some(limits);
         state.generation += 1;
         schedule(state.generation, SECOND);
@@ -176,6 +191,7 @@ fn collection_status() -> Result<CollectionStatus, String> {
         last_observation: state.observation,
         usage: state.usage,
         allocated_pages: stable_size(),
+        storage_page_ceiling: state.storage_page_ceiling.unwrap_or(STORAGE_PAGES),
     })
 }
 
@@ -209,6 +225,46 @@ fn evidence_manifest(version: Option<u64>, ids: Vec<u64>) -> Result<EvidenceMani
     evidence::manifest(version, ids)
 }
 
+#[ic_cdk::update]
+fn configure_collection_storage(ceiling_pages: Option<u64>) -> Result<(), String> {
+    require_controller()?;
+    if ceiling_pages.is_some_and(|pages| pages == 0 || pages > STORAGE_PAGES) {
+        return Err("storage ceiling outside supported operational bounds".into());
+    }
+    let mut state = load();
+    state.storage_page_ceiling = ceiling_pages;
+    save(state);
+    Ok(())
+}
+
+enum Task {
+    ApplyRegistry,
+    RefreshMetricsRoster,
+    Call(Work),
+}
+
+fn next_task(state: &mut Scheduler, now: u64) -> Option<Task> {
+    let turn = state.source_turn.unwrap_or(0);
+    for offset in 0..3 {
+        let slot = (turn + offset) % 3;
+        let task = match slot {
+            0 => match registry_sync::next(now) {
+                registry_sync::Next::Idle => None,
+                registry_sync::Next::Apply => Some(Task::ApplyRegistry),
+                registry_sync::Next::Call(work) => Some(Task::Call(work)),
+            },
+            1 => governance_archive::next(now).map(Task::Call),
+            2 if metrics_archive::roster_refresh_due(now) => Some(Task::RefreshMetricsRoster),
+            _ => metrics_archive::next(now).map(Task::Call),
+        };
+        if task.is_some() {
+            state.source_turn = Some((slot + 1) % 3);
+            return task;
+        }
+    }
+    None
+}
+
 fn schedule(generation: u64, delay: u64) -> ic_cdk_timers::TimerId {
     ic_cdk_timers::set_timer(Duration::from_nanos(delay), tick(generation))
 }
@@ -231,35 +287,19 @@ async fn tick(generation: u64) {
     if now >= usage.started_at.saturating_add(DAY) {
         usage = Usage::new(limits, now, canister_cycle_balance());
     }
-    let governance = || governance_archive::next(now).map(registry_sync::Next::Call);
-    let task = if state.governance_turn.unwrap_or(false) {
-        governance().unwrap_or_else(|| registry_sync::next(now))
-    } else {
-        match registry_sync::next(now) {
-            registry_sync::Next::Idle => governance().unwrap_or(registry_sync::Next::Idle),
-            task => task,
-        }
+    let Some(task) = next_task(&mut state, now) else {
+        state.usage = Some(usage);
+        next_tick(state, IDLE);
+        return;
     };
-    state.governance_turn = Some(!matches!(
-        &task,
-        registry_sync::Next::Call(Work::GovernanceList { .. } | Work::GovernanceProposal(_))
-    ));
-    let (work, request) = match task {
-        registry_sync::Next::Idle => {
-            state.usage = Some(usage);
-            next_tick(state, IDLE);
-            return;
-        }
-        registry_sync::Next::Apply => (None, None),
-        registry_sync::Next::Call(work) => {
-            let request = work.request(store::config().sources);
-            (Some(work), Some(request))
-        }
+    let request = match &task {
+        Task::Call(work) => Some(work.request(store::config().sources)),
+        _ => None,
     };
     let price = request
         .as_ref()
         .map(|r| cost_call(r.method.len() as u64, r.bytes.len() as u64));
-    let admitted = if stable_size() >= STORAGE_PAGES {
+    let admitted = if stable_size() >= state.storage_page_ceiling.unwrap_or(STORAGE_PAGES) {
         Err(Stop::StorageLimit)
     } else {
         usage.admit(now, canister_cycle_balance(), price)
@@ -280,11 +320,18 @@ async fn tick(generation: u64) {
     }
     usage.stop = None;
     state.usage = Some(usage);
-    let (Some(work), Some(request)) = (work, request) else {
-        registry_sync::apply_slice(now);
-        account_instructions(&mut state);
-        next_tick(state, SECOND);
-        return;
+    let (work, request) = match task {
+        Task::Call(work) => (work, request.expect("source request")),
+        local => {
+            match local {
+                Task::ApplyRegistry => registry_sync::apply_slice(now),
+                Task::RefreshMetricsRoster => metrics_archive::refresh_roster(now),
+                Task::Call(_) => unreachable!(),
+            }
+            account_instructions(&mut state);
+            next_tick(state, SECOND);
+            return;
+        }
     };
 
     state.generation += 1;
@@ -318,6 +365,9 @@ async fn tick(generation: u64) {
             let status = match lease.work {
                 Work::GovernanceList { .. } | Work::GovernanceProposal(_) => {
                     governance_archive::accept(&lease.work, &bytes, id, observed_at)
+                }
+                Work::NodeMetrics { subnet, start } => {
+                    metrics_archive::accept(subnet, start, &bytes, id, observed_at)
                 }
                 _ => registry_sync::accept(&lease.work, &bytes, id, observed_at),
             };
@@ -355,6 +405,9 @@ fn failed(work: &Work, error: &SourceStatus, id: u64, now: u64, attempts: u8) {
     match work {
         Work::GovernanceList { .. } | Work::GovernanceProposal(_) => {
             governance_archive::failed(work, error, id, now, attempts)
+        }
+        Work::NodeMetrics { subnet, start } => {
+            metrics_archive::failed(*subnet, *start, error, id, now, attempts)
         }
         _ => registry_sync::failed(error, id, now, attempts),
     }

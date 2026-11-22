@@ -18,7 +18,13 @@ type Assignment = variant {
   Conflict : record { replicas : vec principal; api_boundary : bool };
 };
 type CapturePage = record { next : opt nat64; rows : vec ProposalCapture };
+type CollectionGap = variant {
+  BoundaryMissing : record { expected : nat64; earliest : opt nat64 };
+  ShortenedHistory : record { requested : nat64; from : nat64 };
+  MissingDays : record { after : nat64; before : nat64 };
+};
 type CollectionStatus = record {
+  storage_page_ceiling : nat64;
   allocated_pages : nat64;
   enabled : bool;
   last_observation : nat64;
@@ -117,6 +123,54 @@ type MembershipAction = variant {
     subnet : principal;
   };
 };
+type MetricConflict = record {
+  conflicting_hash : blob;
+  raw_response_hash : blob;
+  previous_hash : blob;
+  observation : nat64;
+  observed_at : nat64;
+};
+type MetricConflictPage = record { next : opt blob; rows : vec MetricConflict };
+type MetricPage = record {
+  collection : SubnetCollection;
+  next : opt nat64;
+  rows : vec MetricSample;
+};
+type MetricRows = record {
+  sample : MetricSample;
+  next : opt principal;
+  rows : vec NodeMetrics;
+};
+type MetricSample = record {
+  node_rows : nat32;
+  timestamp_nanos : nat64;
+  preceding_gap : opt CollectionGap;
+  raw_response_hash : blob;
+  sample_hash : blob;
+  previous_sample : opt nat64;
+  subnet : principal;
+  observation : nat64;
+  decreased_counters : nat32;
+  collected_at : nat64;
+  conflicted : bool;
+};
+type MetricsRosterStatus = record {
+  registry_version : opt nat64;
+  error : opt text;
+  eligible_count : nat32;
+  unsupported : vec principal;
+};
+// # Node Metrics.
+//
+// See [`NodeMetricsHistoryRecord::node_metrics`].
+type NodeMetrics = record {
+  // Number of failed block proposals by this node.
+  num_block_failures_total : nat64;
+  // Node ID.
+  node_id : principal;
+  // Number of blocks proposed by this node.
+  num_blocks_proposed_total : nat64;
+};
 type Observation = variant {
   ProposalList : vec ListedProposal;
   RegistryChunks : record {
@@ -191,6 +245,10 @@ type ProposalStatus = record {
   last_capture : opt nat64;
   last_observation : opt nat64;
   capture_count : nat64;
+};
+type ProviderPage = record {
+  next : opt text;
+  operators : vec record { principal; RecordEvidence };
 };
 type Receipt = record {
   method : text;
@@ -271,22 +329,28 @@ type RegistryStatus = record {
 type ReplyPage = record { bytes : blob; next_offset : opt nat32 };
 type Result = variant { Ok; Err : text };
 type Result_1 = variant { Ok : CollectionStatus; Err : text };
-type Result_10 = variant { Ok : CapturePage; Err : text };
-type Result_11 = variant { Ok : ProposalStatus; Err : text };
-type Result_12 = variant { Ok : Assignment; Err : text };
-type Result_13 = variant { Ok : KeyPage; Err : text };
-type Result_14 = variant { Ok : RecordAt; Err : text };
-type Result_15 = variant { Ok : RegistryStatus; Err : text };
-type Result_16 = variant { Ok : SourceObservation; Err : text };
-type Result_17 = variant { Ok : nat64; Err : text };
+type Result_10 = variant { Ok : ProbeBudget; Err : text };
+type Result_11 = variant { Ok : Receipt; Err : text };
+type Result_12 = variant { Ok : Status; Err : text };
+type Result_13 = variant { Ok : MembershipAction; Err : text };
+type Result_14 = variant { Ok : ProposalCapture; Err : text };
+type Result_15 = variant { Ok : CapturePage; Err : text };
+type Result_16 = variant { Ok : ProposalStatus; Err : text };
+type Result_17 = variant { Ok : Assignment; Err : text };
+type Result_18 = variant { Ok : KeyPage; Err : text };
+type Result_19 = variant { Ok : ProviderPage; Err : text };
 type Result_2 = variant { Ok : DiscoveryStatus; Err : text };
+type Result_20 = variant { Ok : RecordAt; Err : text };
+type Result_21 = variant { Ok : RegistryStatus; Err : text };
+type Result_22 = variant { Ok : SourceObservation; Err : text };
+type Result_23 = variant { Ok : nat64; Err : text };
 type Result_3 = variant { Ok : ReplyPage; Err : text };
 type Result_4 = variant { Ok : EvidenceManifest; Err : text };
-type Result_5 = variant { Ok : ProbeBudget; Err : text };
-type Result_6 = variant { Ok : Receipt; Err : text };
-type Result_7 = variant { Ok : Status; Err : text };
-type Result_8 = variant { Ok : MembershipAction; Err : text };
-type Result_9 = variant { Ok : ProposalCapture; Err : text };
+type Result_5 = variant { Ok : MetricConflictPage; Err : text };
+type Result_6 = variant { Ok : MetricRows; Err : text };
+type Result_7 = variant { Ok : MetricPage; Err : text };
+type Result_8 = variant { Ok : MetricsRosterStatus; Err : text };
+type Result_9 = variant { Ok : SubnetCollection; Err : text };
 type SourceObservation = record {
   id : nat64;
   argument : blob;
@@ -344,6 +408,18 @@ type Stop = variant {
   RawByteLimit;
   CycleBalance;
 };
+type SubnetCollection = record {
+  next_due : opt nat64;
+  gap : opt CollectionGap;
+  failures : nat8;
+  gaps_observed : nat64;
+  cursor : opt nat64;
+  last_status : opt SourceStatus;
+  last_success_at : opt nat64;
+  last_observation : opt nat64;
+  eligible : bool;
+  history_retry_start : opt nat64;
+};
 type Usage = record {
   cycles_reserved : nat;
   observed_balance_decrease : nat;
@@ -370,29 +446,37 @@ type Work = variant {
   RegistryChanges : nat64;
   RegistryChunk : blob;
   GovernanceProposal : nat64;
+  NodeMetrics : record { start : nat64; subnet : principal };
   RegistryHead;
 };
 service : (opt Sources) -> {
   capture_proposal : (nat64) -> (Result);
   collection_status : () -> (Result_1);
   configure_collection : (opt Limits) -> (Result);
+  configure_collection_storage : (opt nat64) -> (Result);
   discovery_status : () -> (Result_2);
   evidence_bytes : (blob, nat32) -> (Result_3);
   evidence_manifest : (opt nat64, vec nat64) -> (Result_4);
-  probe_budget : (nat64) -> (Result_5);
-  probe_receipt : (nat64, nat32) -> (Result_6);
+  metric_conflicts : (principal, nat64, opt blob) -> (Result_5);
+  metric_sample_rows : (principal, nat64, opt principal) -> (Result_6);
+  metric_samples : (principal, nat64, nat64, opt nat64) -> (Result_7);
+  metrics_roster : () -> (Result_8);
+  metrics_status : (principal) -> (Result_9);
+  probe_budget : (nat64) -> (Result_10);
+  probe_receipt : (nat64, nat32) -> (Result_11);
   probe_reply : (nat64, nat32, nat32) -> (Result_3);
-  probe_status : (nat64) -> (Result_7);
-  proposal_action : (nat64, opt nat64) -> (Result_8);
-  proposal_archive : (nat64, opt nat64) -> (Result_9);
-  proposal_history : (nat64, opt nat64) -> (Result_10);
-  proposal_status : (nat64) -> (Result_11);
-  registry_assignment : (nat64, principal) -> (Result_12);
-  registry_keys : (nat64, opt text) -> (Result_13);
-  registry_record : (nat64, RecordKey) -> (Result_14);
-  registry_status : () -> (Result_15);
+  probe_status : (nat64) -> (Result_12);
+  proposal_action : (nat64, opt nat64) -> (Result_13);
+  proposal_archive : (nat64, opt nat64) -> (Result_14);
+  proposal_history : (nat64, opt nat64) -> (Result_15);
+  proposal_status : (nat64) -> (Result_16);
+  registry_assignment : (nat64, principal) -> (Result_17);
+  registry_keys : (nat64, opt text) -> (Result_18);
+  registry_provider : (nat64, principal, opt text) -> (Result_19);
+  registry_record : (nat64, RecordKey) -> (Result_20);
+  registry_status : () -> (Result_21);
   retry_registry : () -> (Result);
-  source_observation : (nat64) -> (Result_16);
-  start_probe : (ProbeRequest) -> (Result_17);
-  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_17);
+  source_observation : (nat64) -> (Result_22);
+  start_probe : (ProbeRequest) -> (Result_23);
+  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_23);
 }

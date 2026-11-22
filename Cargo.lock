@@ -1151,6 +1151,7 @@ dependencies = [
  "nexus-domain",
  "nexus-ic-sources",
  "pocket-ic",
+ "prost",
  "serde",
 ]
 

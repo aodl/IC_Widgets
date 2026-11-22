@@ -7,7 +7,7 @@ The application has one Rust backend and a planned certified asset canister. The
 | `crates/domain` | Source-independent identities, hashes and membership action contracts |
 | `crates/ic-sources` | Governance Candid, Registry protobuf and chunk Candid, management bindings |
 | `crates/review-engine` | Boundary for future pure, deterministic membership, policy and metrics rules |
-| `canisters/reviewer` | Probe API, source calls, bounded stable jobs and evidence export |
+| `canisters/reviewer` | Diagnostic probe, production scheduler, stable Registry and archive workers, and controller evidence API |
 | `tests/source-fixture` | Synthetic canister for controlled wire cases |
 | `web` | Planned verified client and scoped widgets |
 
@@ -21,6 +21,10 @@ A linked widget receives a resolved scope with the scenario, revision, baseline 
 
 ## Evidence and durability
 
-M0 reads Registry record joins at one captured version and journals complete-page diagnostics. M1 will build one versioned projection and publish only fully staged versions. The probe exports the original wire bytes using a small replicated, controller-only API. Report certification and browser-side proof verification enter with the report and UI milestones.
+The diagnostic probe keeps its original API and stable records. The production scheduler owns the single durable dispatch lease and rotates among three workers. Each bounded callback records a source observation with exact source, method, argument identity, time, hash and status. A content-addressed blob store holds selected Registry values and exact archived Governance and metrics replies. Upgrades restore logical work from stable records and fence the outstanding lease before retrying.
 
-M0 stable memory schema v1 assigns memory IDs 0 through 3 to config, jobs, receipts and raw replies respectively. Timer handles are transient. The durable queue records each attempt and generation before dispatch. After an upgrade, a new timer resumes the durable job and fences older callbacks. Future schemas must keep IDs compatible or introduce an explicit migration. Raw replies and metadata commit atomically with the queue transition.
+The Registry worker bootstraps to a fixed target and advances publication only after selected values in a contiguous page have been validated. Historical keys are sparse, ordered mutations. Governance discovery queues full individual captures and rechecks live lifecycle states. The metrics worker uses a completed Registry roster and keeps independent histories and inclusive cursors per subnet. The sources have separate clocks.
+
+The evidence API surrounds future analysis with an explicit Registry version and a manifest of observation IDs. Reserve the future review revision identifier as the digest of the canonical review result plus manifest and scenario plan. The resolved scope identifier additionally binds the ordered proposal IDs, revision and exact node set. The membership engine will establish those node sets, including all touched nodes and nodes in intermediate states. A downstream performance widget will consume the resolved node scope directly, including explicitly empty or unavailable scopes.
+
+Production reads are replicated and controller-only at this checkpoint. Canister report certification and browser proof verification are later deliverables. See [evidence contracts](EVIDENCE.md) and [operations](OPERATIONS.md) for the stable layout, API and recovery details.
