@@ -1152,6 +1152,7 @@ dependencies = [
  "ic-stable-structures",
  "nexus-domain",
  "nexus-ic-sources",
+ "nexus-review-engine",
  "pocket-ic",
  "prost",
  "serde",

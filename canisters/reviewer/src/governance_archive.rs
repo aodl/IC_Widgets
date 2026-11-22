@@ -137,7 +137,7 @@ fn save(state: State) {
     });
 }
 
-fn index(id: u64) -> ProposalStatus {
+pub fn index(id: u64) -> ProposalStatus {
     INDEX
         .with_borrow(|index| index.get(&id).map(|status| status.0))
         .unwrap_or_default()
@@ -417,6 +417,14 @@ pub fn failed(work: &Work, status: &SourceStatus, observation: u64, now: u64, at
 #[ic_cdk::update]
 fn capture_proposal(id: u64) -> Result<(), String> {
     require_controller()?;
+    enqueue_capture(id)
+}
+
+pub fn pending_capture(id: u64) -> bool {
+    index(id).next_lifecycle_check.is_some() || load().pending.iter().any(|target| target.id == id)
+}
+
+pub fn enqueue_capture(id: u64) -> Result<(), String> {
     if id == 0 {
         return Err("select a positive proposal ID".into());
     }
@@ -499,11 +507,24 @@ pub fn archived_action(id: u64, observation: Option<u64>) -> Result<MembershipAc
         return Err("capture unavailable for membership analysis".into());
     }
     let raw = evidence::blob(capture.raw_hash).ok_or("captured proposal bytes missing")?;
+    if source.raw_hash != Some(capture.raw_hash) || sha256(&raw) != capture.raw_hash {
+        return Err("archived proposal reply disagrees with its observation".into());
+    }
     let proposal: Option<governance::ProposalInfo> = decode_candid(&raw)?;
     let action = proposal
         .as_ref()
         .and_then(|p| p.executable())
         .ok_or("captured action missing")?;
+    if proposal
+        .as_ref()
+        .and_then(|row| row.id.as_ref())
+        .map(|id| id.id)
+        != Some(id)
+        || capture.payload_hash != Some(sha256(&action.payload))
+        || capture.function != Some(action.nns_function)
+    {
+        return Err("archived proposal payload identity changed".into());
+    }
     let decoded = governance::membership(action)?.ok_or("unsupported membership action")?;
     if candid::encode_one(&decoded).expect("encoded action").len() > 256 * 1024 {
         return Err("typed action exceeds response budget; inspect captured wire bytes".into());

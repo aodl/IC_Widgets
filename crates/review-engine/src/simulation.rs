@@ -7,7 +7,7 @@ use serde::Deserialize;
 use crate::{
     ConcentrationRule, Dimension, MembershipAction, MembershipState, Proposal, Record, RegistryKey,
     ReviewInput, ReviewManifest, ScenarioSelection, ScopeState,
-    input::{requested_nodes, target},
+    input::{digest, requested_nodes, target},
     scope::make_scope,
     topology::{Metadata, MetadataIssue, metadata, summarize},
 };
@@ -195,8 +195,9 @@ pub fn analyze(input: &ReviewInput) -> Review {
         }
     }
 
+    let revision = digest(&(1u16, input.manifest.revision(), &scenarios, &findings));
     Review {
-        revision: input.manifest.revision(),
+        revision,
         manifest: input.manifest.clone(),
         scenarios,
         findings,
@@ -361,9 +362,15 @@ fn apply(
     let evidence = &proposal.evidence;
     if evidence.lifecycle_status == 4 || evidence.executed_at_seconds.is_some() {
         let safe = evidence
-            .executed_at_seconds
+            .proposed_at_seconds
+            .zip(evidence.executed_at_seconds)
             .zip(input.manifest.historical_head.as_ref())
-            .is_some_and(|(executed, head)| head.observed_at_nanos / 1_000_000_000 < executed);
+            .is_some_and(|((proposed, executed), head)| {
+                proposed > 0
+                    && proposed <= executed
+                    && head.observed_at_nanos / 1_000_000_000 < proposed
+                    && head.observed_at_nanos <= evidence.observed_at_nanos
+            });
         if !safe {
             report(HistoricalBaselineUnavailable, Error, vec![], vec![], vec![]);
             return (StepOutcome::Rejected, findings);

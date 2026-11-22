@@ -30,3 +30,11 @@ The reviewed head was `b983938f7ce50e2b8b3210dc0ef0f7e3db23f5b2`. The collector 
 Metrics retain successful raw replies and classify empty, boundary-only, populated and missing-boundary responses. Registry recovery reports typed failures and required local limits, preserves staged work and gates deterministic adapter failures on an explicit recovery revision.
 
 `./scripts/test-m0.sh` passed 13 unit and eight PocketIC tests, the original M0 Wasm upgrades, the production build, the pinned upstream hashes and M0 Candid compatibility. `didc check canisters/reviewer/reviewer.did .local/m1-reviewed.did` also passed against the reviewed M1 interface. Formatting and both host and Wasm Clippy checks passed.
+
+## M2 membership review
+
+M2 is developed on `codex/m2-membership-review` separately from PR #1. The pure engine validates scoped evidence, simulates functions 2, 13 and 31 with ordered membership, emits intermediate states for both proposal orders, and computes registered topology summaries. The bounded controller API waits for source evidence at a pinned Registry version, persists a review revision and serves it and its resolved scope across upgrades. The [M2 contract](M2.md) covers findings, evidence, scope, resource limits and the planned public-read contract.
+
+Executable record 18, unsupported actions and missing/malformed evidence have explicit outcomes. Executed proposals need independently supported earlier Registry evidence for hypothetical replay. The controller API currently reports that limitation, as it cannot establish an exact pre-execution version. The next slice is pinned metrics view aggregation, then certified reads and frontend proof verification before connecting the widgets. Mainnet source-capability verification remains gated.
+
+The local delivery checks passed 24 Rust tests and nine PocketIC tests, including original-M0 upgrade recovery, the nonrenewable verification run, and the durable membership API flow. Formatting, host and Wasm Clippy, production Wasm, pinned ICP source hashes, generated Candid and compatibility with M0 and corrected M1 also passed. The M1 correction branch passed both GitHub Actions runs for the draft PR head.

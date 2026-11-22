@@ -6,8 +6,8 @@ The application has one Rust backend and a planned certified asset canister. The
 |---|---|
 | `crates/domain` | Source-independent identities, hashes and membership action contracts |
 | `crates/ic-sources` | Governance Candid, Registry protobuf and chunk Candid, management bindings |
-| `crates/review-engine` | Boundary for future pure, deterministic membership, policy and metrics rules |
-| `canisters/reviewer` | Diagnostic probe, production scheduler, stable Registry and archive workers, and controller evidence API |
+| `crates/review-engine` | Deterministic membership simulation, validated review evidence, topology, scopes and blockmaking contracts |
+| `canisters/reviewer` | Diagnostic probe, production scheduler, stable source archives, and bounded controller review API |
 | `tests/source-fixture` | Synthetic canister for controlled wire cases |
 | `web` | Planned verified client and scoped widgets |
 
@@ -25,6 +25,6 @@ The diagnostic probe keeps its original API and stable records. The production s
 
 The Registry worker bootstraps to a fixed target and advances publication only after selected values in a contiguous page have been validated. Historical keys are sparse, ordered mutations. Governance discovery queues full individual captures and rechecks live lifecycle states. The metrics worker uses a completed Registry roster and keeps independent histories and inclusive cursors per subnet. The sources have separate clocks.
 
-The evidence API surrounds future analysis with an explicit Registry version and a manifest of observation IDs. Reserve the future review revision identifier as the digest of the canonical review result plus manifest and scenario plan. The resolved scope identifier additionally binds the ordered proposal IDs, revision and exact node set. The membership engine will establish those node sets, including all touched nodes and nodes in intermediate states. A downstream performance widget will consume the resolved node scope directly, including explicitly empty or unavailable scopes.
+The controller review API resolves one completed Registry version and the archived captures, then calls the pure review engine. The validated manifest binds the Registry and proposal evidence needed by that review. Stable revisions identify the result and expose bounded result bytes and resolved, narrowable node scopes. Any future blockmaking widget consumes those scopes through their revision and scenario identity. See [Membership review engine](M2.md).
 
 Production reads are replicated and controller-only at this checkpoint. Canister report certification and browser proof verification are later deliverables. See [evidence contracts](EVIDENCE.md) and [operations](OPERATIONS.md) for the stable layout, API and recovery details.

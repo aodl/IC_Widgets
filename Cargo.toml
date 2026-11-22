@@ -19,6 +19,7 @@ ic-stable-structures = "=0.7.2"
 ic-management-canister-types = "=0.8.0"
 pocket-ic = "=14.0.0"
 nexus-domain = { path = "crates/domain" }
+nexus-review-engine = { path = "crates/review-engine" }
 nexus-ic-sources = { path = "crates/ic-sources" }
 
 [profile.release]

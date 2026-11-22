@@ -7,6 +7,7 @@ mod metrics_archive;
 mod model;
 mod probe;
 mod registry_sync;
+mod reviews;
 mod store;
 
 use candid::Principal;
@@ -28,6 +29,10 @@ pub use model::{Observation, ProbeRequest, Receipt, Sources};
 pub use registry_sync::{
     Assignment, KeyPage, ProviderPage, RecordAt, RecordEvidence, RegistryBlock, RegistryLimit,
     RegistryLimits, RegistryRecovery, RegistryStatus,
+};
+pub use reviews::{
+    ReviewFailure, ReviewJob, ReviewJobState, ReviewRequest, ScopeCursor, ScopePage, ScopeRequest,
+    SelectedProposal,
 };
 
 #[ic_cdk::init]

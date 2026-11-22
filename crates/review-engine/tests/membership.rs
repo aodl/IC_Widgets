@@ -99,7 +99,7 @@ fn proposal(id: u64, action: MembershipAction) -> Capture {
         MembershipAction::Remove { .. } => 13,
         MembershipAction::Change { .. } => 31,
     };
-    Capture::Full(Proposal {
+    Capture::Full(Box::new(Proposal {
         evidence: ProposalEvidence {
             id,
             observation: 33 + id,
@@ -109,10 +109,11 @@ fn proposal(id: u64, action: MembershipAction) -> Capture {
             decoder: "fixture".into(),
             function,
             lifecycle_status: 1,
+            proposed_at_seconds: Some(99),
             executed_at_seconds: None,
         },
         action,
-    })
+    }))
 }
 
 fn add(nodes: &[u8]) -> Capture {
@@ -382,6 +383,27 @@ fn manifests_validate_dependencies_capture_kind_and_previous_registry_state() {
             .findings
             .iter()
             .any(|f| f.code == FindingCode::HistoricalBaselineUnavailable)
+    );
+    let late = HistoricalHead {
+        version: 10,
+        observation: 6,
+        observed_at_nanos: 99_500_000_000,
+        raw_hash: [4; 32],
+    };
+    let review = analyze(
+        &ReviewInput::build(
+            baseline(),
+            vec![request.clone()],
+            ScenarioSelection::A,
+            Policy::V1,
+            Some(late),
+            None,
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        scenario(&review, ScenarioId::A).steps[0].outcome,
+        StepOutcome::Rejected
     );
     let proof = HistoricalHead {
         version: 10,

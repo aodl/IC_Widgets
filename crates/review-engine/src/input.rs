@@ -144,6 +144,7 @@ pub struct ProposalEvidence {
     pub decoder: String,
     pub function: i32,
     pub lifecycle_status: i32,
+    pub proposed_at_seconds: Option<u64>,
     pub executed_at_seconds: Option<u64>,
 }
 
@@ -155,7 +156,7 @@ pub struct Proposal {
 
 #[derive(Clone, Debug, PartialEq, Eq, CandidType, Deserialize)]
 pub enum Capture {
-    Full(Proposal),
+    Full(Box<Proposal>),
     Missing(u64),
     Malformed {
         id: u64,
@@ -177,8 +178,8 @@ pub enum ScenarioSelection {
     BThenA,
 }
 
-/// A Registry head receipt from before the executed timestamp. This pins an
-/// earlier hypothetical baseline without assuming the exact pre-execution state.
+/// A Registry head receipt from before the proposal was submitted. This pins
+/// an earlier hypothetical baseline without assuming the exact pre-execution state.
 #[derive(Clone, Debug, PartialEq, Eq, CandidType, Deserialize)]
 pub struct HistoricalHead {
     pub version: u64,
@@ -368,7 +369,7 @@ impl ReviewInput {
 
 fn validate_capture(capture: Capture) -> Result<Proposal, ReviewError> {
     let proposal = match capture {
-        Capture::Full(proposal) => proposal,
+        Capture::Full(proposal) => *proposal,
         Capture::Missing(id) => return Err(ReviewError::MissingProposal(id)),
         Capture::Malformed { id, observation } => {
             return Err(ReviewError::MalformedPayload { id, observation });

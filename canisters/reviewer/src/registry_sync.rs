@@ -648,6 +648,15 @@ pub fn require_version(version: u64) -> Result<(), String> {
 }
 
 pub fn read(version: u64, key: &RecordKey) -> Result<RecordAt, String> {
+    let mut bytes_left = usize::MAX;
+    read_with_byte_budget(version, key, &mut bytes_left)
+}
+
+pub fn read_with_byte_budget(
+    version: u64,
+    key: &RecordKey,
+    bytes_left: &mut usize,
+) -> Result<RecordAt, String> {
     require_version(version)?;
     let name = key.name();
     if RecordKey::parse(name.as_bytes())?.is_none() {
@@ -660,6 +669,9 @@ pub fn read(version: u64, key: &RecordKey) -> Result<RecordAt, String> {
         return Ok(RecordAt::Deleted(evidence));
     };
     let bytes = evidence::blob(hash).ok_or("published Registry record missing content")?;
+    *bytes_left = bytes_left
+        .checked_sub(bytes.len())
+        .ok_or("Registry review byte budget exceeded")?;
     let details = projection::details(key, &bytes)?;
     Ok(RecordAt::Present { evidence, details })
 }

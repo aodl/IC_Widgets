@@ -133,7 +133,7 @@ fn list(request: ListRequest) -> ListResponse {
 
 #[ic_cdk::query]
 fn get_proposal_info(id: u64) -> Option<ProposalInfo> {
-    if proposal_fixture::ENABLED.get() && (94..=101).contains(&id) {
+    if proposal_fixture::ENABLED.get() && (92..=101).contains(&id) {
         Some(proposal_fixture::proposal(id, true, proposal(id, true)))
     } else {
         matches!(id, 101 | 100).then(|| proposal(id, true))
