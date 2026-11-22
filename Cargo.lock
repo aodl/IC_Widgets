@@ -1137,7 +1137,9 @@ dependencies = [
 name = "nexus-review-engine"
 version = "0.1.0"
 dependencies = [
+ "candid",
  "nexus-domain",
+ "serde",
 ]
 
 [[package]]
