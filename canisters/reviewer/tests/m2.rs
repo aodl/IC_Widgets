@@ -4,8 +4,9 @@ use candid::{Principal, decode_one, encode_args, encode_one};
 use nexus_domain::Hash;
 use nexus_review_engine::{NodeRole, Review, ScenarioId, ScenarioSelection};
 use nexus_reviewer::{
-    COLLECTION_LIMITS, Limits, ReplyPage, ReviewJob, ReviewJobState, ReviewRequest, ScopeCursor,
-    ScopePage, ScopeRequest, SelectedProposal, Sources,
+    COLLECTION_LIMITS, CompletedReview, Limits, PerformancePage, PerformanceRequest, ReplyPage,
+    ReviewJob, ReviewJobState, ReviewRequest, ScopeCursor, ScopePage, ScopeRequest,
+    SelectedProposal, Sources,
 };
 use pocket_ic::PocketIcBuilder;
 use support::{advance, call, enabled, wasm};
@@ -199,6 +200,55 @@ fn review_waits_resolves_and_serves_immutable_scopes_across_upgrade() {
         panic!("expected an empty resolved scope");
     };
     assert!(rows.is_empty());
+    let outsider = Principal::from_slice(&[77, 2]);
+    let public = |method, args| pic.update_call(reviewer, outsider, method, args).unwrap();
+    let before_reads = pic.cycle_balance(reviewer);
+    let listed: Vec<CompletedReview> =
+        decode_one(&public("list_completed_reviews", encode_args(()).unwrap())).unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].proposals, [93, 92]);
+    let fetched: Result<Review, String> = decode_one(&public(
+        "read_membership_review",
+        encode_one(revision).unwrap(),
+    ))
+    .unwrap();
+    assert_eq!(fetched.unwrap(), report);
+    let perf: Result<PerformancePage, String> = decode_one(&public(
+        "read_membership_performance",
+        encode_one(PerformanceRequest {
+            scope: ScopeRequest {
+                revision,
+                subnet,
+                scenario: ScenarioId::AThenB,
+                roles: None,
+                nodes: None,
+                cursor: None,
+            },
+            timestamp: None,
+        })
+        .unwrap(),
+    ))
+    .unwrap();
+    let perf = perf.unwrap();
+    assert!(matches!(perf.scope, ScopePage::Nodes { rows, .. } if rows.len() == 51));
+    assert!(perf.sample.is_none());
+    assert!(perf.rows.is_empty());
+    let read_cycles = before_reads - pic.cycle_balance(reviewer);
+    let denied: Result<Hash, String> = decode_one(&public(
+        "request_membership_review",
+        encode_one(&request).unwrap(),
+    ))
+    .unwrap();
+    assert!(matches!(denied, Err(error) if error.contains("controller")));
+    let denied: Result<ReviewJob, String> = decode_one(&public(
+        "advance_membership_review",
+        encode_one(key).unwrap(),
+    ))
+    .unwrap();
+    assert!(matches!(denied, Err(error) if error.contains("controller")));
+    println!(
+        "public catalogue, typed report and empty scoped archive read: {read_cycles} PocketIC cycles"
+    );
     println!(
         "membership fixture: {} report bytes, {} cycles including fixture ingestion, review and upgrade",
         contents.len(),

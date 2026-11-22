@@ -7,7 +7,10 @@ use std::{
 use candid::{CandidType, Principal};
 use ic_stable_structures::StableBTreeMap;
 use nexus_domain::{Hash, sha256};
-use nexus_ic_sources::projection::{Details, RecordKey};
+use nexus_ic_sources::{
+    management::NodeMetrics,
+    projection::{Details, RecordKey},
+};
 use nexus_review_engine::{
     Capture, Coordinates, DataCenter, Node, NodeRole, Operator, Policy, Proposal, ProposalEvidence,
     Record, RecordStamp, RegistryBaseline, RegistryKey, Review, ReviewError, ReviewInput,
@@ -17,11 +20,11 @@ use nexus_review_engine::{
 use serde::Deserialize;
 
 use crate::{
-    RecordAt, RecordEvidence, ReplyPage, SourceStatus,
+    MetricSample, RecordAt, RecordEvidence, ReplyPage, SourceStatus,
     budget::FLOOR,
     evidence,
     governance_archive::{self, ActionStatus},
-    registry_sync, require_controller,
+    metrics_archive, registry_sync, require_controller,
     store::{Memory, V1, memory},
 };
 
@@ -516,6 +519,61 @@ fn resolve_registry(
     Ok(registry)
 }
 
+#[derive(CandidType, Deserialize)]
+pub struct CompletedReview {
+    pub revision: Hash,
+    pub proposals: Vec<u64>,
+    pub registry_version: u64,
+    pub hypothetical_executed: Option<bool>,
+}
+
+/// Bounded replicated reads over completed reports. Generation remains controller-only.
+#[ic_cdk::update]
+fn list_completed_reviews() -> Vec<CompletedReview> {
+    let mut rows: Vec<_> = JOBS.with_borrow(|jobs| {
+        jobs.iter()
+            .take(JOB_LIMIT as usize)
+            .filter_map(|entry| {
+                let job = entry.value().0;
+                let ReviewJobState::Complete(revision) = job.state else {
+                    return None;
+                };
+                Some(CompletedReview {
+                    revision,
+                    proposals: job
+                        .request
+                        .proposals
+                        .iter()
+                        .map(|proposal| proposal.id)
+                        .collect(),
+                    registry_version: job.request.registry_version,
+                    hypothetical_executed: job.request.hypothetical_executed,
+                })
+            })
+            .collect()
+    });
+    rows.sort_unstable_by(|a, b| {
+        b.registry_version
+            .cmp(&a.registry_version)
+            .then(a.revision.cmp(&b.revision))
+    });
+    rows.dedup_by_key(|row| row.revision);
+    rows
+}
+
+#[ic_cdk::update]
+fn read_membership_review(revision: Hash) -> Result<Review, String> {
+    if ic_cdk::api::canister_cycle_balance() < FLOOR {
+        return Err("public reads temporarily unavailable due to low canister balance".into());
+    }
+    archived_review(revision)
+}
+
+fn archived_review(revision: Hash) -> Result<Review, String> {
+    candid::decode_one(&report_bytes(revision)?)
+        .map_err(|_| "archived report schema unavailable".into())
+}
+
 fn report_bytes(revision: Hash) -> Result<Vec<u8>, String> {
     REPORTS
         .with_borrow(|reports| reports.get(&revision))
@@ -556,6 +614,10 @@ pub struct ScopeCursor {
 #[ic_cdk::update]
 fn membership_review_scope(request: ScopeRequest) -> Result<ScopePage, String> {
     require_controller()?;
+    resolved_page(request)
+}
+
+fn resolved_page(request: ScopeRequest) -> Result<ScopePage, String> {
     if request
         .nodes
         .as_ref()
@@ -564,8 +626,7 @@ fn membership_review_scope(request: ScopeRequest) -> Result<ScopePage, String> {
     {
         return Err("scope filter exceeds supported limits".into());
     }
-    let review: Review = candid::decode_one(&report_bytes(request.revision)?)
-        .map_err(|_| "archived report schema unavailable")?;
+    let review = archived_review(request.revision)?;
     let mut scope = review.scope(request.scenario, request.subnet);
     if let Some(roles) = request.roles {
         scope = scope.narrow_roles(&roles.into_iter().collect());
@@ -606,4 +667,46 @@ fn membership_review_scope(request: ScopeRequest) -> Result<ScopePage, String> {
         rows,
         next,
     })
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct PerformanceRequest {
+    pub scope: ScopeRequest,
+    pub timestamp: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct PerformancePage {
+    pub scope: ScopePage,
+    pub sample: Option<MetricSample>,
+    pub last_success_at: Option<u64>,
+    pub rows: Vec<NodeMetrics>,
+}
+
+#[ic_cdk::update]
+fn read_membership_performance(request: PerformanceRequest) -> Result<PerformancePage, String> {
+    if ic_cdk::api::canister_cycle_balance() < FLOOR {
+        return Err("public reads temporarily unavailable due to low canister balance".into());
+    }
+    let continuation = request.scope.cursor.is_some();
+    let scope = resolved_page(request.scope)?;
+    let mut page = PerformancePage {
+        scope,
+        sample: None,
+        last_success_at: None,
+        rows: vec![],
+    };
+    if let ScopePage::Nodes { identity, rows, .. } = &page.scope
+        && !rows.is_empty()
+    {
+        if continuation && request.timestamp.is_none() {
+            return Ok(page);
+        }
+        let subnet = identity.target_subnet;
+        let nodes = rows.iter().map(|(id, _)| *id).collect();
+        (page.sample, page.rows) =
+            metrics_archive::scoped_sample(subnet, request.timestamp, &nodes)?;
+        page.last_success_at = metrics_archive::last_success_at(subnet);
+    }
+    Ok(page)
 }

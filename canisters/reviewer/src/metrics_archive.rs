@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     ops::Bound::{Excluded, Included},
 };
 
@@ -559,14 +559,7 @@ pub fn sample_rows(
     after: Option<Principal>,
 ) -> Result<MetricRows, String> {
     let sample = sample_at(subnet, timestamp).ok_or("metrics sample unavailable")?;
-    let bytes =
-        evidence::blob(sample.raw_response_hash).ok_or("metrics source bytes unavailable")?;
-    let mut samples = management::decode_metrics(&bytes, 0)?;
-    normalize(&mut samples)?;
-    let index = samples
-        .binary_search_by_key(&timestamp, |sample| sample.timestamp_nanos)
-        .map_err(|_| "sample missing from its source reply")?;
-    let sample_rows = &samples[index].node_metrics;
+    let sample_rows = archived_rows(&sample)?;
     let start = after.map_or(0, |cursor| {
         sample_rows.partition_point(|row| row.node_id <= cursor)
     });
@@ -576,6 +569,49 @@ pub fn sample_rows(
         rows: sample_rows[start..end].to_vec(),
         next: (end < sample_rows.len()).then(|| sample_rows[end - 1].node_id),
     })
+}
+
+fn archived_rows(sample: &MetricSample) -> Result<Vec<management::NodeMetrics>, String> {
+    let bytes =
+        evidence::blob(sample.raw_response_hash).ok_or("metrics source bytes unavailable")?;
+    let mut samples = management::decode_metrics(&bytes, 0)?;
+    normalize(&mut samples)?;
+    let index = samples
+        .binary_search_by_key(&sample.timestamp_nanos, |row| row.timestamp_nanos)
+        .map_err(|_| "sample missing from its source reply")?;
+    Ok(std::mem::take(&mut samples[index].node_metrics))
+}
+
+pub fn last_success_at(subnet: Principal) -> Option<u64> {
+    subnet_state(subnet).last_success_at
+}
+
+pub fn scoped_sample(
+    subnet: Principal,
+    timestamp: Option<u64>,
+    nodes: &BTreeSet<Principal>,
+) -> Result<(Option<MetricSample>, Vec<management::NodeMetrics>), String> {
+    if nodes.is_empty() {
+        return Ok((None, vec![]));
+    }
+    let sample = if let Some(timestamp) = timestamp {
+        Some(sample_at(subnet, timestamp).ok_or("requested metrics sample unavailable")?)
+    } else {
+        SAMPLES.with_borrow(|samples| {
+            samples
+                .range((subnet, 0)..=(subnet, u64::MAX))
+                .next_back()
+                .map(|entry| entry.value().0)
+        })
+    };
+    let rows = match &sample {
+        Some(sample) if !sample.conflicted => archived_rows(sample)?
+            .into_iter()
+            .filter(|row| nodes.contains(&row.node_id))
+            .collect(),
+        _ => vec![],
+    };
+    Ok((sample, rows))
 }
 
 #[derive(CandidType, Deserialize)]
@@ -603,6 +639,33 @@ mod tests {
             timestamp_nanos: day * DAILY,
             node_metrics: rows,
         }
+    }
+
+    #[test]
+    fn scoped_sample_keeps_only_observed_selected_nodes() {
+        let subnet = Principal::from_slice(&[204, 2]);
+        let first = candid::encode_one(vec![day(1, vec![node(1, 10), node(2, 4)])]).unwrap();
+        assert_eq!(accept(subnet, 0, &first, 1, 2 * DAILY), SourceStatus::Valid);
+        let selected = BTreeSet::from([node(1, 0).node_id, node(3, 0).node_id]);
+        let (sample, rows) = scoped_sample(subnet, None, &selected).unwrap();
+        assert_eq!(sample.unwrap().timestamp_nanos, DAILY);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].node_id, node(1, 0).node_id);
+        assert_eq!(rows[0].num_blocks_proposed_total, 10);
+        assert!(
+            scoped_sample(subnet, None, &BTreeSet::new())
+                .unwrap()
+                .0
+                .is_none()
+        );
+        let conflicting = candid::encode_one(vec![day(1, vec![node(1, 11)])]).unwrap();
+        assert!(matches!(
+            accept(subnet, DAILY, &conflicting, 2, 3 * DAILY),
+            SourceStatus::Integrity(_)
+        ));
+        let (sample, rows) = scoped_sample(subnet, Some(DAILY), &selected).unwrap();
+        assert!(sample.unwrap().conflicted);
+        assert!(rows.is_empty());
     }
 
     #[test]

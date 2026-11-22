@@ -13,6 +13,7 @@ mod store;
 use candid::Principal;
 use nexus_domain::{Hash, MembershipAction};
 pub use nexus_ic_sources::projection::RecordKey;
+use nexus_review_engine::Review;
 
 pub use budget::{Limits, Stop, Usage};
 pub use diagnostics::{ProbeBudget, ReplyPage, Status};
@@ -31,8 +32,8 @@ pub use registry_sync::{
     RegistryLimits, RegistryRecovery, RegistryStatus,
 };
 pub use reviews::{
-    ReviewFailure, ReviewJob, ReviewJobState, ReviewRequest, ScopeCursor, ScopePage, ScopeRequest,
-    SelectedProposal,
+    CompletedReview, PerformancePage, PerformanceRequest, ReviewFailure, ReviewJob, ReviewJobState,
+    ReviewRequest, ScopeCursor, ScopePage, ScopeRequest, SelectedProposal,
 };
 
 #[ic_cdk::init]
