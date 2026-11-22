@@ -1,6 +1,6 @@
 # Network Nexus architecture
 
-The application has one Rust backend and a planned certified asset canister. The backend reads NNS Governance, Registry and the management canister using typed, replicated inter-canister calls. The Azure VM is the build and test environment. The runtime source boundary comprises IC canisters and the IC protocol.
+The application has one Rust backend and a standard DFX asset canister. The backend reads NNS Governance, Registry and the management canister using typed, replicated inter-canister calls. The Azure VM is the build and test environment. The runtime source boundary comprises IC canisters and the IC protocol.
 
 | Path | Responsibility |
 |---|---|
@@ -9,7 +9,7 @@ The application has one Rust backend and a planned certified asset canister. The
 | `crates/review-engine` | Deterministic membership simulation, validated review evidence, topology, scopes and blockmaking contracts |
 | `canisters/reviewer` | Diagnostic probe, production scheduler, stable source archives, and bounded controller review API |
 | `tests/source-fixture` | Synthetic canister for controlled wire cases |
-| `web` | Planned verified client and scoped widgets |
+| `web` | Subnet Membership widget and scoped blockmaking panel using the IC agent |
 
 ## Review contract
 
@@ -27,4 +27,4 @@ The Registry worker bootstraps to a fixed target and advances publication only a
 
 The controller review API resolves one completed Registry version and the archived captures, then calls the pure review engine. The validated manifest binds the Registry and proposal evidence needed by that review. Stable revisions identify the result and expose bounded result bytes and resolved, narrowable node scopes. Any future blockmaking widget consumes those scopes through their revision and scenario identity. See [Membership review engine](M2.md).
 
-Production reads are replicated and controller-only at this checkpoint. Canister report certification and browser proof verification are later deliverables. See [evidence contracts](EVIDENCE.md) and [operations](OPERATIONS.md) for the stable layout, API and recovery details.
+The completed-report catalogue, report and scoped blockmaking methods are bounded public replicated reads. The standard IC agent verifies update-call certificates. Collection, review creation and administrative reads remain controller-only. See [frontend verification](../web/README.md). See [evidence contracts](EVIDENCE.md) and [operations](OPERATIONS.md) for the stable layout, API and recovery details.

@@ -38,3 +38,7 @@ M2 is developed on `codex/m2-membership-review` separately from PR #1. The pure 
 Executable record 18, unsupported actions and missing/malformed evidence have explicit outcomes. Executed captures may be evaluated hypothetically with an explicit controller opt-in and a pinned Registry version. The report labels that mode. Exact historical attribution remains deferred. The next slice is pinned metrics view aggregation, then certified reads and frontend proof verification before connecting the widgets. Mainnet source-capability verification remains gated.
 
 The local delivery checks passed 24 Rust tests and nine PocketIC tests, including original-M0 upgrade recovery, the nonrenewable verification run, and the durable membership API flow. Formatting, host and Wasm Clippy, production Wasm, pinned ICP source hashes, generated Candid and compatibility with M0 and corrected M1 also passed. The M1 correction branch passed both GitHub Actions runs for the draft PR head.
+
+## Subnet Membership widget
+
+The `codex/membership-widget` branch adds the standard asset canister and a browser UI for completed revisions. Visitors can search by one or two proposal IDs, select a baseline revision and scenario, inspect registered membership and findings, and request the latest archived blockmaking observations through the resolved subnet scope. The bounded public read endpoints use replicated updates and leave preparation and collection under controller control. See [frontend operations](../web/README.md).

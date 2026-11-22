@@ -7,6 +7,19 @@
       "candid": "canisters/reviewer/reviewer.did",
       "wasm": "target/wasm32-unknown-unknown/release/nexus_reviewer.wasm",
       "build": "cargo build --locked --release --target wasm32-unknown-unknown -p nexus-reviewer"
+    },
+    "frontend": {
+      "type": "assets",
+      "dependencies": [
+        "reviewer"
+      ],
+      "source": [
+        "web/dist"
+      ],
+      "build": [
+        "npm --prefix web ci",
+        "npm --prefix web run build"
+      ]
     }
   }
 }

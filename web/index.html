@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Subnet Membership | Network Nexus</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" type="module"></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="container"><strong>Network Nexus</strong></div>
+  </header>
+  <main class="container">
+    <h1>Subnet membership</h1>
+    <p id="local-notice" class="notice" hidden>Local replica. Reviews here may use fixture data.</p>
+    <section class="card" aria-labelledby="search-heading">
+      <h2 id="search-heading">Find a completed review</h2>
+      <form id="search">
+        <label>Proposal ID <input name="first" inputmode="numeric" pattern="[0-9]+" maxlength="20"></label>
+        <label>Second proposal ID <small>(optional)</small> <input name="second" inputmode="numeric" pattern="[0-9]+" maxlength="20"></label>
+        <button class="primary">Find reviews</button>
+        <button type="button" id="browse">Show all</button>
+      </form>
+      <p id="catalog-status" class="status" role="status"></p>
+      <ul id="catalog" class="results"></ul>
+    </section>
+    <p id="report-status" class="status" role="status"></p>
+    <div id="report"></div>
+  </main>
+</body>
+</html>

@@ -6,6 +6,7 @@ Network Nexus is an Internet Computer application for reviewing NNS Subnet Membe
 - [Architecture and evidence model](docs/ARCHITECTURE.md)
 - [Input inventory](docs/MATERIALS.md)
 - [Legacy parity and source mapping](docs/PARITY.md)
+- [Subnet Membership widget and local build](web/README.md)
 - [Pinned source manifest](docs/SOURCES.md)
 - [M1 evidence contracts](docs/EVIDENCE.md)
 - [Budget, recovery and deployment operations](docs/OPERATIONS.md)
@@ -18,4 +19,4 @@ cargo test --locked --workspace
 ./scripts/test-m0.sh
 ```
 
-The integration script builds and installs Wasm in a fresh PocketIC instance. The original archives and separate extracted materials are local references under the repository root. The frontend boundary is reserved at [web/](web/README.md).
+The integration script builds and installs Wasm in a fresh PocketIC instance. The original archives and separate extracted materials are local references under the repository root. The DFX asset canister serves the widget from [web/](web/README.md).
