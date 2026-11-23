@@ -1,13 +1,18 @@
 mod support;
 
 use candid::{Principal, encode_args, encode_one};
-use nexus_ic_sources::projection::{Details, RecordKey};
+use nexus_domain::sha256;
+use nexus_ic_sources::{
+    projection::{Details, RecordKey},
+    registry::{self, wire::registry::node_operator::v1::NodeOperatorRecord},
+};
 use nexus_reviewer::{
-    Assignment, COLLECTION_LIMITS, CollectionStatus, EvidenceManifest, Limits, RecordAt,
-    RegistryLimit, RegistryLimits, RegistryRecovery, RegistryStatus, SourceObservation,
-    SourceStatus, Sources, Stop,
+    Assignment, COLLECTION_LIMITS, CollectionStatus, EvidenceManifest, Limits, ProviderPage,
+    RecordAt, RegistryLimit, RegistryLimits, RegistryRecovery, RegistryStatus, ReplyPage,
+    SourceObservation, SourceStatus, Sources, Stop,
 };
 use pocket_ic::{PocketIc, PocketIcBuilder};
+use prost::Message;
 use std::time::Duration;
 use support::{advance, call, enabled, wasm};
 
@@ -182,6 +187,193 @@ fn until_registry(
         last.staging.map(|row| row.applied),
         last.blocked
     );
+}
+
+#[test]
+#[ignore = "run through scripts/test-m0.sh to build the two production Wasms"]
+fn historical_operator_conflict_recovers_from_deployed_checkpoint() {
+    assert!(enabled());
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+    let source = Sources::canonical();
+    let fixture = wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm");
+    for id in [source.registry, source.governance] {
+        pic.create_canister_with_id(None, None, id).unwrap();
+        pic.install_canister(id, fixture.clone(), encode_args(()).unwrap(), None);
+    }
+    let mode = |value| {
+        call::<()>(
+            &pic,
+            source.registry,
+            "set_registry_mode",
+            encode_one(value).unwrap(),
+        )
+    };
+    mode(7u8);
+
+    let reviewer = pic.create_canister_on_subnet(None, None, pic.topology().get_app_subnets()[0]);
+    pic.add_cycles(reviewer, 10_000_000_000_000);
+    let installed = wasm(&std::env::var("NEXUS_REGISTRY_BASELINE_WASM").unwrap());
+    pic.install_canister(
+        reviewer,
+        installed.clone(),
+        encode_one::<Option<Sources>>(None).unwrap(),
+        None,
+    );
+    assert_eq!(
+        pic.canister_status(reviewer, None).unwrap().module_hash,
+        Some(sha256(&installed).to_vec())
+    );
+
+    let observe = |id| {
+        call::<Result<SourceObservation, String>>(
+            &pic,
+            reviewer,
+            "source_observation",
+            encode_one(id).unwrap(),
+        )
+        .unwrap()
+    };
+    let record = |version, key| {
+        call::<Result<RecordAt, String>>(
+            &pic,
+            reviewer,
+            "registry_record",
+            encode_args((version, key)).unwrap(),
+        )
+    };
+    configure(&pic, reviewer, Some(COLLECTION_LIMITS));
+    let before = until_registry(&pic, reviewer, |status| {
+        status.ingested_through >= 4_270 || status.block.is_some()
+    });
+    configure(&pic, reviewer, None);
+    assert_eq!(before.ingested_through, 4_270);
+    assert_eq!(before.bootstrap_target, Some(65_958));
+    assert_eq!(before.published, None);
+    assert!(before.block.is_none());
+    assert!(before.staging.is_none());
+    let last_observation = before.last_observation.unwrap();
+    let observation = observe(last_observation);
+    let page_hash = |cursor| {
+        sha256(
+            &pic.query_call(
+                source.registry,
+                Principal::anonymous(),
+                "get_changes_since",
+                registry::changes_request(cursor),
+            )
+            .unwrap(),
+        )
+    };
+    assert_eq!(observation.raw_hash, Some(page_hash(4_000)));
+
+    let compatible = wasm(".local/reviewer-production.wasm.gz");
+    let expected_module = sha256(&compatible);
+    pic.upgrade_canister(reviewer, compatible, encode_args(()).unwrap(), None)
+        .unwrap();
+    assert_eq!(
+        pic.canister_status(reviewer, None).unwrap().module_hash,
+        Some(expected_module.to_vec())
+    );
+    assert!(!collection(&pic, reviewer).enabled);
+    assert_eq!(
+        encode_one(registry(&pic, reviewer)).unwrap(),
+        encode_one(before).unwrap()
+    );
+    assert_eq!(
+        encode_one(observe(last_observation)).unwrap(),
+        encode_one(observation).unwrap()
+    );
+    assert!(record(4_270u64, RecordKey::SubnetList).is_err());
+    configure(&pic, reviewer, Some(COLLECTION_LIMITS));
+    let complete = until_registry(&pic, reviewer, |status| {
+        status.published == Some(65_958) || status.block.is_some()
+    });
+    assert!(complete.blocked.is_none(), "{:?}", complete.blocked);
+    assert_eq!(complete.ingested_through, 65_958);
+
+    let identity = |kind, index| {
+        let mut bytes = [kind; 29];
+        bytes[..2].copy_from_slice(&[0, index]);
+        bytes[28] = 2;
+        Principal::from_slice(&bytes)
+    };
+    let operator = identity(23, 1);
+    let other_operator = identity(23, 2);
+    let provider = identity(24, 1);
+    let key = RecordKey::Operator(operator);
+    for (version, center) in [(48_020u64, "old-dc"), (65_852, "restored-dc")] {
+        assert!(
+            matches!(record(version, key.clone()).unwrap(), RecordAt::Present {
+            details: Details::Operator { provider: Some(found), data_center, .. }, ..
+        } if found == provider && data_center == center)
+        );
+    }
+    let original = NodeOperatorRecord {
+        node_operator_principal_id: other_operator.as_slice().to_vec(),
+        node_provider_principal_id: provider.as_slice().to_vec(),
+        dc_id: "unverified-dc".into(),
+        ..Default::default()
+    }
+    .encode_to_vec();
+    let hash = sha256(&original);
+    for version in [48_021u64, 65_851] {
+        let RecordAt::Opaque { evidence, reason } = record(version, key.clone()).unwrap() else {
+            panic!("operator identity conflict must be opaque");
+        };
+        assert_eq!(reason, "operator record principal disagrees with key");
+        assert_eq!(evidence.mutation_version, 48_021);
+        assert_eq!(evidence.source_time, Some(480_210));
+        assert_eq!(evidence.value_hash, Some(hash));
+        let source_page = observe(evidence.page);
+        assert_eq!(source_page.argument, registry::changes_request(47_270));
+        assert_eq!(source_page.raw_hash, Some(page_hash(47_270)));
+        assert_eq!(
+            source_page.decoder_revision,
+            nexus_ic_sources::projection::DECODER_REVISION
+        );
+    }
+    let retained = call::<Result<ReplyPage, String>>(
+        &pic,
+        reviewer,
+        "evidence_bytes",
+        encode_args((hash, 0u32)).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(retained.bytes, original);
+    assert_eq!(sha256(&retained.bytes), hash);
+    assert_eq!(retained.next_offset, None);
+    for (version, expected) in [
+        (48_021u64, vec![other_operator]),
+        (65_958, vec![operator, other_operator]),
+    ] {
+        let listed = call::<Result<ProviderPage, String>>(
+            &pic,
+            reviewer,
+            "registry_provider",
+            encode_args((version, provider, None::<String>)).unwrap(),
+        )
+        .unwrap();
+        let mut operators: Vec<_> = listed.operators.into_iter().map(|(id, _)| id).collect();
+        operators.sort_unstable();
+        assert_eq!(operators, expected);
+        assert_eq!(listed.next, None);
+    }
+
+    mode(8u8);
+    pic.advance_time(Duration::from_secs(360));
+    let corrupt = until_registry(&pic, reviewer, |status| status.block.is_some());
+    assert_eq!(corrupt.ingested_through, 65_958);
+    assert_eq!(corrupt.published, Some(65_958));
+    assert!(
+        corrupt
+            .blocked
+            .unwrap()
+            .contains("duplicate subnet in Registry roster")
+    );
+    assert!(record(65_959u64, RecordKey::SubnetList).is_err());
 }
 
 #[test]

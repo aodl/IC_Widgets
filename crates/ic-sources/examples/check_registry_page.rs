@@ -20,9 +20,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for mutation in &page.projected {
         match &mutation.value {
             Content::Value(value) => {
-                projection::details(&mutation.key, value).map_err(|err| {
+                let record = projection::decode_record(&mutation.key, value).map_err(|err| {
                     format!("{} at {}: {err}", mutation.key.name(), mutation.version)
                 })?;
+                if let projection::DecodedRecord::Opaque(reason) = record {
+                    println!(
+                        "opaque {} at {}: {reason}",
+                        mutation.key.name(),
+                        mutation.version
+                    );
+                }
                 inline_bytes += value.len();
             }
             Content::Chunks(_) => chunked += 1,

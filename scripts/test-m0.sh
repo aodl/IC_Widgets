@@ -28,7 +28,20 @@ if cmp -s .local/m0-wasm/reviewer.wasm .local/reviewer-fixture.wasm; then
     echo "M0 and current fixture Wasms are identical" >&2
     exit 1
 fi
+if [[ -z "${NEXUS_REGISTRY_BASELINE_WASM:-}" ]]; then
+    baseline=d645b0a57bee5204975c14b46216040f283e658a
+    mkdir -p .local/registry-baseline/source
+    git archive "$baseline" | tar -xf - -C .local/registry-baseline/source
+    (
+        export CARGO_TARGET_DIR="$PWD/.local/registry-baseline/target"
+        cd .local/registry-baseline/source
+        cargo build --locked --release --target wasm32-unknown-unknown -p nexus-reviewer
+    )
+    gzip -n -c .local/registry-baseline/target/wasm32-unknown-unknown/release/nexus_reviewer.wasm > .local/registry-baseline/reviewer.wasm.gz
+    export NEXUS_REGISTRY_BASELINE_WASM="$PWD/.local/registry-baseline/reviewer.wasm.gz"
+fi
 cargo build --locked --release --target wasm32-unknown-unknown -p nexus-reviewer
+gzip -n -c target/wasm32-unknown-unknown/release/nexus_reviewer.wasm > .local/reviewer-production.wasm.gz
 export NEXUS_M0_TEST=1
 ./scripts/fetch-nns-test-wasms.sh
 capture=()
