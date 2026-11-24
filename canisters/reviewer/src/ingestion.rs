@@ -518,7 +518,11 @@ fn row(
         observed_at,
         raw_hash,
         raw_bytes,
-        decoder_revision: DECODER_REVISION.into(),
+        decoder_revision: match lease.work {
+            Work::RegistryChanges(_) => nexus_ic_sources::projection::DECODER_REVISION,
+            _ => DECODER_REVISION,
+        }
+        .into(),
         status,
     }
 }

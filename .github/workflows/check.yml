@@ -34,3 +34,12 @@ jobs:
       - run: ./scripts/test-m0.sh
         env:
           NEXUS_TEST_VERBOSE: "0"
+      - name: Verify frontend bindings and bundle
+        env:
+          CANISTER_ID_REVIEWER: aaaaa-aa
+        run: |
+          didc bind --target js canisters/reviewer/reviewer.did > .local/reviewer.did.js
+          diff -u web/src/reviewer.did.js .local/reviewer.did.js
+          npm --prefix web ci
+          npm --prefix web test
+          npm --prefix web run build

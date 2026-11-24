@@ -7,7 +7,7 @@ use candid::{CandidType, Principal};
 use ic_stable_structures::{StableBTreeMap, StableCell, storable::Blob};
 use nexus_domain::{Hash, sha256};
 use nexus_ic_sources::{
-    projection::{self, Content, Details, Mutation, RecordKey},
+    projection::{self, Content, DecodedRecord, Details, Mutation, RecordKey},
     registry,
 };
 use serde::Deserialize;
@@ -21,7 +21,7 @@ use crate::{
 };
 
 // Bump only when an adapter change can replay a previously incompatible stage.
-const RECOVERY_REVISION: u32 = 1;
+const RECOVERY_REVISION: u32 = 2;
 const RECORDS_PER_SLICE: usize = 64;
 const REFRESH: u64 = 5 * 60 * SECOND;
 
@@ -545,15 +545,15 @@ fn apply(row: Pending, stage: &Staging) -> Result<(bool, u64), String> {
     let details = bytes
         .as_ref()
         .map(|bytes| {
-            projection::details(&mutation.key, bytes)
+            projection::decode_record(&mutation.key, bytes)
                 .map_err(|err| format!("{} at {}: {err}", mutation.key.name(), mutation.version))
         })
         .transpose()?;
     let (subnet, provider) = match details {
-        Some(Details::Subnet { members, kind, .. }) => {
+        Some(DecodedRecord::Present(Details::Subnet { members, kind, .. })) => {
             (Some(SubnetMembership { members, kind }), None)
         }
-        Some(Details::Operator { provider, .. }) => (None, provider),
+        Some(DecodedRecord::Present(Details::Operator { provider, .. })) => (None, provider),
         _ => (None, None),
     };
     let hash = bytes.as_deref().map(sha256);
@@ -672,8 +672,13 @@ pub fn read_with_byte_budget(
     *bytes_left = bytes_left
         .checked_sub(bytes.len())
         .ok_or("Registry review byte budget exceeded")?;
-    let details = projection::details(key, &bytes)?;
-    Ok(RecordAt::Present { evidence, details })
+    Ok(match projection::decode_record(key, &bytes)? {
+        DecodedRecord::Present(details) => RecordAt::Present { evidence, details },
+        DecodedRecord::Opaque(reason) => RecordAt::Opaque {
+            evidence,
+            reason: reason.into(),
+        },
+    })
 }
 
 fn entry(name: String, version: u64) -> Option<StoredRecord> {
@@ -859,8 +864,9 @@ fn registry_provider(
             Some(provider) => Some(provider),
             None => {
                 let bytes = evidence::blob(hash).ok_or("operator evidence unavailable")?;
-                match projection::details(&RecordKey::Operator(operator), &bytes)? {
-                    Details::Operator { provider, .. } => provider,
+                match projection::decode_record(&RecordKey::Operator(operator), &bytes)? {
+                    DecodedRecord::Present(Details::Operator { provider, .. }) => provider,
+                    DecodedRecord::Opaque(_) => continue,
                     _ => unreachable!("operator decoder"),
                 }
             }

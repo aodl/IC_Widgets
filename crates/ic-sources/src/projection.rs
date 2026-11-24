@@ -8,6 +8,7 @@ use crate::registry::{principal, wire::registry as pb};
 pub const MAX_CHUNKS: usize = 16;
 pub const MAX_RECORD_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_PAGE_MUTATIONS: u32 = 40_000;
+pub const DECODER_REVISION: &str = "m1.2-registry";
 
 #[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
 pub enum RecordKey {
@@ -179,7 +180,12 @@ pub enum Details {
     },
 }
 
-pub fn details(key: &RecordKey, value: &[u8]) -> Result<Details, String> {
+pub enum DecodedRecord {
+    Present(Details),
+    Opaque(&'static str),
+}
+
+pub fn decode_record(key: &RecordKey, value: &[u8]) -> Result<DecodedRecord, String> {
     let err = |err: prost::DecodeError| err.to_string();
     let principal_list = |members: &[Vec<u8>], max: usize| -> Result<Vec<Principal>, String> {
         if members.len() > max {
@@ -193,7 +199,7 @@ pub fn details(key: &RecordKey, value: &[u8]) -> Result<Details, String> {
         ip: record.ip_addr,
         port: record.port,
     };
-    Ok(match key {
+    Ok(DecodedRecord::Present(match key {
         RecordKey::SubnetList => {
             let record = pb::subnet::v1::SubnetListRecord::decode(value).map_err(err)?;
             let mut ids = principal_list(&record.subnets, 512)?;
@@ -233,13 +239,18 @@ pub fn details(key: &RecordKey, value: &[u8]) -> Result<Details, String> {
         }
         RecordKey::Operator(id) => {
             let record = pb::node_operator::v1::NodeOperatorRecord::decode(value).map_err(err)?;
+            let provider = optional_principal(&record.node_provider_principal_id)?;
             if optional_principal(&record.node_operator_principal_id)?
                 .is_some_and(|embedded| embedded != *id)
             {
-                return Err("operator record principal disagrees with key".into());
+                // Historical Registry updates (first observed at 48,021) can
+                // contain conflicting identities. Keep the value without joins.
+                return Ok(DecodedRecord::Opaque(
+                    "operator record principal disagrees with key",
+                ));
             }
             Details::Operator {
-                provider: optional_principal(&record.node_provider_principal_id)?,
+                provider,
                 data_center: record.dc_id,
                 allowance: record.node_allowance,
             }
@@ -293,5 +304,27 @@ pub fn details(key: &RecordKey, value: &[u8]) -> Result<Details, String> {
                 deployment_progress: record.deployment_progress,
             }
         }
-    })
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn malformed_membership_and_operator_principals_are_errors() {
+        let id = Principal::from_slice(&[1, 2]);
+        let oversized_principal = vec![1; 30];
+        let subnet = pb::subnet::v1::SubnetRecord {
+            membership: vec![oversized_principal.clone()],
+            ..Default::default()
+        };
+        let operator = pb::node_operator::v1::NodeOperatorRecord {
+            node_operator_principal_id: vec![2, 2],
+            node_provider_principal_id: oversized_principal,
+            ..Default::default()
+        };
+        assert!(decode_record(&RecordKey::Subnet(id), &subnet.encode_to_vec()).is_err());
+        assert!(decode_record(&RecordKey::Operator(id), &operator.encode_to_vec()).is_err());
+    }
 }

@@ -1,0 +1,10 @@
+[
+  {
+    "match": "**/*",
+    "security_policy": "standard",
+    "allow_raw_access": false,
+    "headers": {
+      "Content-Security-Policy": "default-src 'self'; connect-src 'self' https://icp-api.io; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+    }
+  }
+]

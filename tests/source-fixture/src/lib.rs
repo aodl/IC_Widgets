@@ -131,13 +131,40 @@ fn list(request: ListRequest) -> ListResponse {
     }
 }
 
-#[ic_cdk::query]
-fn get_proposal_info(id: u64) -> Option<ProposalInfo> {
-    if proposal_fixture::ENABLED.get() && (92..=101).contains(&id) {
+thread_local! {
+    static DEMO_PROPOSAL: std::cell::RefCell<Option<(u64, Vec<u8>)>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Replay one exact public reply on a local source canister for browser demonstrations.
+#[ic_cdk::update]
+fn set_demo_proposal(id: u64, reply: Vec<u8>) {
+    assert!(ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()));
+    assert!(reply.len() <= 64 * 1024, "demo reply limit");
+    let proposal: Option<ProposalInfo> =
+        nexus_ic_sources::decode_candid(&reply).expect("full proposal reply");
+    assert_eq!(proposal.and_then(|row| row.id).map(|row| row.id), Some(id));
+    DEMO_PROPOSAL.replace(Some((id, reply)));
+}
+
+#[ic_cdk::query(manual_reply = true)]
+fn get_proposal_info(id: u64) {
+    if DEMO_PROPOSAL.with_borrow(|capture| {
+        if let Some((expected, bytes)) = capture
+            && *expected == id
+        {
+            msg_reply(bytes);
+            return true;
+        }
+        false
+    }) {
+        return;
+    }
+    let reply = if proposal_fixture::ENABLED.get() && (91..=101).contains(&id) {
         Some(proposal_fixture::proposal(id, true, proposal(id, true)))
     } else {
         matches!(id, 101 | 100).then(|| proposal(id, true))
-    }
+    };
+    msg_reply(encode_one(reply).expect("fixture proposal reply"));
 }
 
 fn data_center() -> Vec<u8> {

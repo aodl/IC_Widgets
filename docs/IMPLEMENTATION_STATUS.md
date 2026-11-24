@@ -35,6 +35,18 @@ Metrics retain successful raw replies and classify empty, boundary-only, populat
 
 M2 is developed on `codex/m2-membership-review` separately from PR #1. The pure engine validates scoped evidence, simulates functions 2, 13 and 31 with ordered membership, emits intermediate states for both proposal orders, and computes registered topology summaries. The bounded controller API waits for source evidence at a pinned Registry version, persists a review revision and serves it and its resolved scope across upgrades. The [M2 contract](M2.md) covers findings, evidence, scope, resource limits and the planned public-read contract.
 
-Executable record 18, unsupported actions and missing/malformed evidence have explicit outcomes. Executed captures may be evaluated hypothetically with an explicit controller opt-in and a pinned Registry version. The report labels that mode. Exact historical attribution remains deferred. The next slice is pinned metrics view aggregation, then certified reads and frontend proof verification before connecting the widgets. Mainnet source-capability verification remains gated.
+Executable record 18, unsupported actions and missing/malformed evidence have explicit outcomes. Executed captures may be evaluated hypothetically with an explicit controller opt-in and a pinned Registry version. The report labels that mode. Exact historical attribution remains deferred. Mainnet source-capability verification remains gated.
 
 The local delivery checks passed 24 Rust tests and nine PocketIC tests, including original-M0 upgrade recovery, the nonrenewable verification run, and the durable membership API flow. Formatting, host and Wasm Clippy, production Wasm, pinned ICP source hashes, generated Candid and compatibility with M0 and corrected M1 also passed. The M1 correction branch passed both GitHub Actions runs for the draft PR head.
+
+## Subnet Membership widget
+
+The `codex/membership-widget` branch adds the standard asset canister and a browser UI for completed revisions. Visitors can search by one or two proposal IDs, select a baseline revision and scenario, inspect registered membership and findings, and request the latest archived blockmaking observations through the resolved subnet scope. The bounded public read endpoints use replicated updates and leave preparation and collection under controller control. See [frontend operations](../web/README.md).
+
+Performance pagination binds the archived sample timestamp, or its absence, to the review, scenario and subnet cursor. The first staging run uses the existing diagnostic with fresh one-shot limits. It verifies real proposal and Registry wire evidence and caller and remote metrics before any full Registry replay is considered. [Staging runbook](OPERATIONS.md#first-mainnet-verification) · [Current parity](PARITY.md)
+
+## Historical Registry operator compatibility
+
+The first live replay stopped on its approved call limit at cursor 4,270, with fixed target 65,958 still unpublished. Sampled historical replies contain well-formed operator records with embedded principals that conflict with their keys, first observed at 48,021. The adapter retains these versions as opaque, with the original key, bytes, hash and observation, and omits their unavailable provider and data-center relationships. Later valid replacements take effect at their own versions. Structural membership and roster errors still block publication.
+
+The production-Wasm PocketIC regression upgrades a paused collector at cursor 4,270, verifies its retained evidence and publishes only after the fixed target is complete. A local replay applied 16 isolated live pages, including the page spanning 47,500–48,500 and the last sample through 65,378. This sampling exercise left the target unpublished. The staging upgrade, funding and next replay window each require approval.

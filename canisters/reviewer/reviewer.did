@@ -32,6 +32,13 @@ type CollectionStatus = record {
   usage : opt Usage;
   in_flight : opt Work;
 };
+type CompletedReview = record {
+  hypothetical_executed : opt bool;
+  registry_version : nat64;
+  proposals : vec nat64;
+  revision : blob;
+};
+type ConcentrationRule = variant { GreaterThanOneThird; FaultBudgetPlusOne };
 type Details = variant {
   Operator : record {
     provider : opt principal;
@@ -71,6 +78,14 @@ type Details = variant {
     registered_region : text;
   };
 };
+type Dimension = variant {
+  Operator;
+  RegisteredContinent;
+  RegisteredCountry;
+  RegisteredOwner;
+  DataCenter;
+  Provider;
+};
 type DiscoveryStatus = record {
   next_discovery : nat64;
   in_progress : bool;
@@ -79,12 +94,78 @@ type DiscoveryStatus = record {
   queued : nat32;
   oldest_scanned : opt nat64;
 };
+type Distances = record {
+  known_nodes : nat32;
+  maximum_metres : opt nat32;
+  unknown_nodes : nat32;
+  total_pairs : nat64;
+  valid_pairs : nat64;
+  mean_metres : opt nat32;
+  minimum_metres : opt nat32;
+};
+type Distribution = record {
+  groups : vec record { Group; nat32 };
+  largest : opt nat32;
+  // Exact mean of known group sizes as (known members, groups).
+  mean_ratio : opt record { nat32; nat32 };
+  greater_than_one_third : opt Threshold;
+  smallest : opt nat32;
+  fault_budget_plus_one : opt Threshold;
+  unknown : nat32;
+};
 type Endpoint = record { ip : text; port : nat32 };
 type EvidenceManifest = record {
   manifest_id : blob;
   registry_version : opt nat64;
   schema_version : nat16;
   observations : vec SourceObservation;
+};
+type Finding = record {
+  subnets : vec principal;
+  code : FindingCode;
+  step : opt nat8;
+  nodes : vec principal;
+  proposal : opt nat64;
+  severity : Severity;
+  // References into the review manifest at the pinned baseline.
+  registry : vec RegistryKey;
+};
+type FindingCode = variant {
+  DuplicateInstruction;
+  ConcentrationIncreased : Dimension;
+  RemovalOutsideTarget;
+  UnavailableRegisteredCoordinates;
+  HistoricalBaselineUnavailable;
+  UnaffectedRemovalCandidate;
+  TerminalProposal : int32;
+  EmptyResultingSubnet;
+  MissingRegistryMetadata;
+  EarlierBaselineHypothesis;
+  ExecutedProposalHypothesis;
+  AlreadyInTarget;
+  AssignedElsewhere;
+  RewardTypeMismatch;
+  MissingNode;
+  PreviouslyUnassigned;
+  DeletedNode;
+  UnavailableNode;
+  MissingSevChipIdentity;
+  UnlistedTarget;
+  UnknownDimension : Dimension;
+  OverlappingInstructionsRemovalWins;
+  DuplicateResultingMembership;
+  InvalidTarget;
+  ApiBoundaryAssignment;
+  DifferentIntermediateStates;
+};
+type Group = variant { RegisteredLabel : text; Principal : principal };
+// A Registry head receipt from before the proposal was submitted. This pins
+// an earlier hypothetical baseline without assuming the exact pre-execution state.
+type HistoricalHead = record {
+  observed_at_nanos : nat64;
+  version : nat64;
+  observation : nat64;
+  raw_hash : blob;
 };
 type HistoryKind = variant { Empty; MissingBoundary; Samples; BoundaryOnly };
 type Key = variant {
@@ -126,6 +207,18 @@ type MembershipAction = variant {
     remove : vec principal;
     subnet : principal;
   };
+};
+type MembershipState = record {
+  distances : Distances;
+  // Registry order is preserved because it affects validation.
+  members : vec principal;
+  added : vec principal;
+  baseline_count : nat32;
+  retained : vec principal;
+  distributions : vec record { Dimension; Distribution };
+  member_count : nat32;
+  net_change : int64;
+  removed : vec principal;
 };
 type MetricConflict = record {
   conflicting_hash : blob;
@@ -236,6 +329,21 @@ type Observation = variant {
     minimum_rows : opt nat32;
   };
 };
+type PerformancePage = record {
+  sample : opt MetricSample;
+  rows : vec NodeMetrics;
+  last_success_at : opt nat64;
+  scope : ScopePage;
+};
+type PerformanceRequest = record {
+  scope : ScopeRequest;
+  timestamp : opt nat64;
+};
+type Policy = record {
+  warn_on_largest_share_increase : bool;
+  version : nat16;
+  concentration_rule : ConcentrationRule;
+};
 type Position = record { latitude : float32; longitude : float32 };
 type ProbeBudget = record { migrated_from_m0 : bool; usage : Usage };
 type ProbeRequest = record {
@@ -254,6 +362,18 @@ type ProposalCapture = record {
   raw_hash : blob;
   collected_at : nat64;
   payload_hash : opt blob;
+};
+type ProposalEvidence = record {
+  id : nat64;
+  function : int32;
+  proposed_at_seconds : opt nat64;
+  observed_at_nanos : nat64;
+  executed_at_seconds : opt nat64;
+  observation : nat64;
+  raw_hash : blob;
+  decoder : text;
+  lifecycle_status : int32;
+  payload_hash : blob;
 };
 type ProposalStatus = record {
   last_status : opt SourceStatus;
@@ -307,6 +427,19 @@ type RecordKey = variant {
   Subnet : principal;
   SubnetList;
   DataCenter : text;
+};
+type RecordReference = variant {
+  Present : RecordStamp;
+  MissingAtBaseline;
+  Deleted : RecordStamp;
+  Unavailable : record { stamp : opt RecordStamp; reason : text };
+};
+type RecordStamp = record {
+  value_hash : opt blob;
+  mutation_time : opt nat64;
+  page_observation : nat64;
+  chunk_observations : vec nat64;
+  mutation_version : nat64;
 };
 type RecordSummary = variant {
   Operator : record { dc : text; provider : principal };
@@ -392,15 +525,17 @@ type Result_15 = variant { Ok : MembershipAction; Err : text };
 type Result_16 = variant { Ok : ProposalCapture; Err : text };
 type Result_17 = variant { Ok : CapturePage; Err : text };
 type Result_18 = variant { Ok : ProposalStatus; Err : text };
-type Result_19 = variant { Ok : Assignment; Err : text };
+type Result_19 = variant { Ok : PerformancePage; Err : text };
 type Result_2 = variant { Ok : CollectionStatus; Err : text };
-type Result_20 = variant { Ok : KeyPage; Err : text };
-type Result_21 = variant { Ok : ProviderPage; Err : text };
-type Result_22 = variant { Ok : RecordAt; Err : text };
-type Result_23 = variant { Ok : RegistryStatus; Err : text };
-type Result_24 = variant { Ok : blob; Err : text };
-type Result_25 = variant { Ok : SourceObservation; Err : text };
-type Result_26 = variant { Ok : nat64; Err : text };
+type Result_20 = variant { Ok : Review; Err : text };
+type Result_21 = variant { Ok : Assignment; Err : text };
+type Result_22 = variant { Ok : KeyPage; Err : text };
+type Result_23 = variant { Ok : ProviderPage; Err : text };
+type Result_24 = variant { Ok : RecordAt; Err : text };
+type Result_25 = variant { Ok : RegistryStatus; Err : text };
+type Result_26 = variant { Ok : blob; Err : text };
+type Result_27 = variant { Ok : SourceObservation; Err : text };
+type Result_28 = variant { Ok : nat64; Err : text };
 type Result_3 = variant { Ok : DiscoveryStatus; Err : text };
 type Result_4 = variant { Ok : ReplyPage; Err : text };
 type Result_5 = variant { Ok : EvidenceManifest; Err : text };
@@ -408,6 +543,13 @@ type Result_6 = variant { Ok : ScopePage; Err : text };
 type Result_7 = variant { Ok : MetricConflictPage; Err : text };
 type Result_8 = variant { Ok : MetricRows; Err : text };
 type Result_9 = variant { Ok : MetricPage; Err : text };
+type Review = record {
+  hypothetical_executed : opt bool;
+  scenarios : vec Scenario;
+  findings : vec Finding;
+  revision : blob;
+  manifest : ReviewManifest;
+};
 type ReviewError = variant {
   InvalidCapture : nat64;
   InvalidRecordEvidence : RegistryKey;
@@ -447,12 +589,32 @@ type ReviewJobState = variant {
   Waiting : record { proposals : vec nat64; registry : bool };
   Pending;
 };
+type ReviewManifest = record {
+  metrics_revision : opt blob;
+  schema : nat16;
+  registry_version : nat64;
+  historical_head : opt HistoricalHead;
+  scenario : ScenarioSelection;
+  proposals : vec ProposalEvidence;
+  registry : vec record { RegistryKey; RecordReference };
+  input_hash : blob;
+  policy : Policy;
+  analysis_version : nat16;
+};
 type ReviewRequest = record {
   hypothetical_executed : opt bool;
   request_missing : bool;
   registry_version : nat64;
   scenario : ScenarioSelection;
   proposals : vec SelectedProposal;
+};
+type Scenario = record {
+  id : ScenarioId;
+  subnets : vec record { principal; SubnetReview };
+  completed : bool;
+  proposal_ids : vec nat64;
+  steps : vec Step;
+  findings : vec Finding;
 };
 type ScenarioId = variant { A; B; BThenA; AThenB };
 type ScenarioSelection = variant { A; B; All; BThenA; AThenB };
@@ -490,6 +652,7 @@ type ScopedNode = record {
   roles : vec NodeRole;
 };
 type SelectedProposal = record { id : nat64; observation : opt nat64 };
+type Severity = variant { Error; Note; Warning };
 type SourceObservation = record {
   id : nat64;
   argument : blob;
@@ -536,6 +699,18 @@ type Status = record {
   started_at_nanos : nat64;
   stop_reason : opt text;
 };
+type Step = record {
+  requested : MembershipAction;
+  findings : vec Finding;
+  proposal : nat64;
+  outcome : StepOutcome;
+};
+type StepOutcome = variant {
+  Skipped : record { failed_step : nat8 };
+  // Values that the Registry would write under the modeled membership checks.
+  Applied : record { writes : vec record { principal; vec principal } };
+  Rejected;
+};
 type StepParticipation = record {
   after : opt bool;
   requested_remove : bool;
@@ -567,11 +742,21 @@ type SubnetCollection = record {
   eligible : bool;
   history_retry_start : opt nat64;
 };
+type SubnetReview = record {
+  baseline : MembershipState;
+  // Aligned with scenario steps. A rejected or skipped step has no after-state.
+  after_steps : vec opt MembershipState;
+};
 type SuccessfulHistory = record {
   kind : HistoryKind;
   observation : nat64;
   raw_hash : blob;
   collected_at : nat64;
+};
+type Threshold = record {
+  nodes_required : nat32;
+  // Populated only with full coverage.
+  groups_to_reach : opt nat32;
 };
 type Usage = record {
   cycles_reserved : nat;
@@ -613,6 +798,8 @@ service : (opt Sources) -> {
   discovery_status : () -> (Result_3);
   evidence_bytes : (blob, nat32) -> (Result_4);
   evidence_manifest : (opt nat64, vec nat64) -> (Result_5);
+  // Bounded replicated reads over completed reports. Generation remains controller-only.
+  list_completed_reviews : () -> (vec CompletedReview);
   membership_review_page : (blob, nat32) -> (Result_4);
   membership_review_scope : (ScopeRequest) -> (Result_6);
   membership_review_status : (blob) -> (Result);
@@ -629,14 +816,16 @@ service : (opt Sources) -> {
   proposal_archive : (nat64, opt nat64) -> (Result_16);
   proposal_history : (nat64, opt nat64) -> (Result_17);
   proposal_status : (nat64) -> (Result_18);
-  registry_assignment : (nat64, principal) -> (Result_19);
-  registry_keys : (nat64, opt text) -> (Result_20);
-  registry_provider : (nat64, principal, opt text) -> (Result_21);
-  registry_record : (nat64, RecordKey) -> (Result_22);
-  registry_status : () -> (Result_23);
-  request_membership_review : (ReviewRequest) -> (Result_24);
+  read_membership_performance : (PerformanceRequest) -> (Result_19);
+  read_membership_review : (blob) -> (Result_20);
+  registry_assignment : (nat64, principal) -> (Result_21);
+  registry_keys : (nat64, opt text) -> (Result_22);
+  registry_provider : (nat64, principal, opt text) -> (Result_23);
+  registry_record : (nat64, RecordKey) -> (Result_24);
+  registry_status : () -> (Result_25);
+  request_membership_review : (ReviewRequest) -> (Result_26);
   retry_registry : () -> (Result_1);
-  source_observation : (nat64) -> (Result_25);
-  start_probe : (ProbeRequest) -> (Result_26);
-  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_26);
+  source_observation : (nat64) -> (Result_27);
+  start_probe : (ProbeRequest) -> (Result_28);
+  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_28);
 }

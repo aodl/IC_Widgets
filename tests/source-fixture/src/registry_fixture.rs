@@ -42,6 +42,8 @@ pub fn head() -> u64 {
         2 => 3,
         4 => 6,
         5 => 1,
+        7 => 65_958,
+        8 => 65_959,
         _ => 5,
     }
 }
@@ -103,8 +105,10 @@ fn metrics_changes(after: u64) -> HighCapacityRegistryGetChangesSinceResponse {
 }
 
 pub fn changes(after: u64) -> HighCapacityRegistryGetChangesSinceResponse {
-    if MODE.get() == 5 {
-        return metrics_changes(after);
+    match MODE.get() {
+        5 => return metrics_changes(after),
+        7 | 8 => return historical_operator_changes(after),
+        _ => {}
     }
     let node = |index: u16| id(21, index);
     let subnet = |index: u16| id(22, index);
@@ -147,9 +151,12 @@ pub fn changes(after: u64) -> HighCapacityRegistryGetChangesSinceResponse {
             ),
         ));
         for subnet_index in 0..24 {
-            let members = (subnet_index * 50..(subnet_index + 1) * 50)
-                .map(|index| node(index).as_slice().to_vec())
-                .collect();
+            let range = match (MODE.get(), subnet_index) {
+                (6, 0) => 0..70,
+                (6, 1) => 70..100,
+                _ => subnet_index * 50..(subnet_index + 1) * 50,
+            };
+            let members = range.map(|index| node(index).as_slice().to_vec()).collect();
             let record = SubnetRecord {
                 membership: members,
                 subnet_type: 1,
@@ -266,6 +273,76 @@ pub fn changes(after: u64) -> HighCapacityRegistryGetChangesSinceResponse {
     HighCapacityRegistryGetChangesSinceResponse {
         error: None,
         version,
+        deltas,
+    }
+}
+
+fn historical_operator_changes(after: u64) -> HighCapacityRegistryGetChangesSinceResponse {
+    let operator = id(23, 1);
+    let other_operator = id(23, 2);
+    let subnet = id(22, 1).as_slice().to_vec();
+    let value = |key: String, version, bytes| HighCapacityRegistryDelta {
+        key: key.into_bytes(),
+        values: vec![HighCapacityRegistryValue {
+            version,
+            timestamp_nanoseconds: version * 10,
+            content: Some(Content::Value(bytes)),
+        }],
+    };
+    let operator_record = |key: Principal, embedded: Principal, version, center: &str| {
+        value(
+            format!("node_operator_record_{key}"),
+            version,
+            NodeOperatorRecord {
+                node_operator_principal_id: embedded.as_slice().to_vec(),
+                node_provider_principal_id: id(24, 1).as_slice().to_vec(),
+                dc_id: center.into(),
+                ..Default::default()
+            }
+            .encode_to_vec(),
+        )
+    };
+    let roster = |version, subnets| {
+        value(
+            "subnet_list".into(),
+            version,
+            SubnetListRecord { subnets }.encode_to_vec(),
+        )
+    };
+    let end = [4_270, 48_021, 65_958, head()]
+        .into_iter()
+        .find(|&boundary| boundary > after)
+        .map_or(after, |boundary| boundary.min(after + 1_000));
+    // Supply every intervening version, as the real Registry does. Only these
+    // few selected records need to occupy the projection.
+    let mut deltas: Vec<_> = [
+        roster(1, vec![]),
+        operator_record(operator, operator, 4_270, "old-dc"),
+        operator_record(other_operator, other_operator, 4_270, "other-dc"),
+        roster(48_020, vec![]),
+        operator_record(operator, other_operator, 48_021, "unverified-dc"),
+        operator_record(operator, operator, 65_852, "restored-dc"),
+        roster(65_959, vec![subnet.clone(), subnet]),
+    ]
+    .into_iter()
+    .filter(|row| (after + 1..=end).contains(&row.values[0].version))
+    .collect();
+    if after < end {
+        deltas.push(HighCapacityRegistryDelta {
+            key: b"unrelated_family".to_vec(),
+            values: (after + 1..=end)
+                .rev()
+                .map(|version| HighCapacityRegistryValue {
+                    version,
+                    timestamp_nanoseconds: version * 10,
+                    content: Some(Content::Value(vec![1])),
+                })
+                .collect(),
+        });
+    }
+    HighCapacityRegistryGetChangesSinceResponse {
+        error: None,
+        version: head(),
         deltas,
     }
 }
