@@ -1,5 +1,23 @@
 # Implementation status
 
+## On-demand membership and performance
+
+The `codex/on-demand-membership` branch makes direct pinned reads the default widget workflow. A single bounded controller or delegated request resolves one or two proposal IDs and returns all applicable scenarios. It rechecks the proposal action and lifecycle before delivering the result. Required topology failures stop the review. The result distinguishes a listed subnet assignment, an API-boundary assignment, an absent node record and an assignment unknown outside listed subnets. Node Performance has its own management canister call and can accept the membership scope as a filter. No review is saved. [Architecture](ARCHITECTURE.md) · [Local use](../web/README.md)
+
+Cross-subnet PocketIC measurements below use the synthetic 24-subnet Registry, except for proposal 144942 and the native metrics read. Wall times include the local test client. Settled cycle changes are measured on the reviewer under PocketIC pricing. The largest batch reservation was about 336.8 billion cycles. The membership tests left stable allocation unchanged.
+
+| Case | Source calls | Source bytes | Candid reply bytes | Wall time | Reviewer instructions | Settled cycles |
+|---|---:|---:|---:|---:|---:|---:|
+| One add proposal | 138 | 47,569 | 51,401 | 4.13 s | 83.68 M | 887.37 M |
+| Add and remove, both orders | 140 | 48,117 | 105,232 | 1.79 s | 148.80 M | 968.69 M |
+| Multi-subnet removal | 236 | 55,270 | 90,468 | 3.29 s | 116.60 M | 1,456.04 M |
+| Proposal 144942 with a synthetic two-member target | 19 | 15,673 | 7,637 | 0.71 s | 33.34 M | 164.19 M |
+| Native remote blockmaking, standalone | 1 | 241 | 914 | 0.026 s | 0.58 M | 13.67 M |
+
+Chromium on the local asset canister verified denied access before delegation, both execution orders, a linked 51-node filter, clearing that filter, and an independent blockmaking request. The pair review and the blockmaking request each took about 3.2 seconds from the browser. Browser traffic remained on the local replica.
+
+The 144942 test replayed the archived 23 November Governance reply with SHA-256 `8c9845cc9bb67edc1c35f688b00170ccae0eb41f54e4abd8d90b00a1e5019ad3`. It verified the actual executable addition and removal against the fixture. Live Registry coverage, latency and pricing remain to be measured together. One separately approved verification could run one current open function-31 proposal on an owner-designated test canister with the reviewed artifact. Record the pinned version and evidence coverage, wall latency, calls, bytes, instructions and settled cycle delta. Use the on-demand limits and stop after that reply.
+
 ## M1 evidence foundation
 
 The feature branch `codex/m1-evidence-foundation` builds on reviewed M0 commit `6a6330c181d6697649da3779d1eb11a6cb729ac0`. It adds one stable production scheduler and three source workers to the existing backend canister. Controller policy enables autonomous collection. Frontend widgets and the membership engine are M2 and later work.

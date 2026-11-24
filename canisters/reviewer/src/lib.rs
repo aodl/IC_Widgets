@@ -5,8 +5,10 @@ mod governance_archive;
 mod ingestion;
 mod metrics_archive;
 mod model;
+mod on_demand;
 mod probe;
 mod registry_sync;
+mod review_records;
 mod reviews;
 mod store;
 
@@ -27,6 +29,10 @@ pub use metrics_archive::{
     MetricSample, MetricsRosterStatus, SubnetCollection, SuccessfulHistory,
 };
 pub use model::{Observation, ProbeRequest, Receipt, Sources};
+pub use on_demand::{
+    CandidateAssignment, LiveError, LivePerformance, LiveReceipt, LiveResponse, LiveReview,
+    LiveUsage,
+};
 pub use registry_sync::{
     Assignment, KeyPage, ProviderPage, RecordAt, RecordEvidence, RegistryBlock, RegistryLimit,
     RegistryLimits, RegistryRecovery, RegistryStatus,

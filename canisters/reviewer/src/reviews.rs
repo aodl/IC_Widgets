@@ -12,10 +12,9 @@ use nexus_ic_sources::{
     projection::{Details, RecordKey},
 };
 use nexus_review_engine::{
-    Capture, Coordinates, DataCenter, Node, NodeRole, Operator, Policy, Proposal, ProposalEvidence,
-    Record, RecordStamp, RegistryBaseline, RegistryKey, Review, ReviewError, ReviewInput,
-    ScenarioId, ScenarioSelection, ScopeIdentity, ScopeState, ScopeUnavailable, ScopedNode, Subnet,
-    analyze, data_center_key, relevant_nodes,
+    Capture, NodeRole, Policy, Proposal, ProposalEvidence, Record, RecordStamp, RegistryBaseline,
+    RegistryKey, Review, ReviewError, ReviewInput, ScenarioId, ScenarioSelection, ScopeIdentity,
+    ScopeState, ScopeUnavailable, ScopedNode, analyze, data_center_key, relevant_nodes,
 };
 use serde::Deserialize;
 
@@ -24,7 +23,7 @@ use crate::{
     budget::FLOOR,
     evidence,
     governance_archive::{self, ActionStatus},
-    metrics_archive, registry_sync, require_controller,
+    metrics_archive, registry_sync, require_controller, review_records,
     store::{Memory, V1, memory},
 };
 
@@ -391,10 +390,7 @@ fn resolve_registry(
     let roster = resolver.read(
         RecordKey::SubnetList,
         RegistryKey::Roster,
-        |details| match details {
-            Details::SubnetList(ids) => Some(ids),
-            _ => None,
-        },
+        review_records::roster,
     )?;
     let roster_ids = roster.value().ok_or(ReviewFailure::InvalidEvidence(
         ReviewError::UnavailableRecord(RegistryKey::Roster),
@@ -420,19 +416,7 @@ fn resolve_registry(
         let row = resolver.read(
             RecordKey::Subnet(subnet),
             RegistryKey::Subnet(subnet),
-            |details| match details {
-                Details::Subnet {
-                    members,
-                    kind,
-                    sev_enabled: Some(sev_enabled),
-                    ..
-                } => Some(Subnet {
-                    members,
-                    kind,
-                    sev_enabled,
-                }),
-                _ => None,
-            },
+            review_records::subnet,
         )?;
         registry.subnets.insert(subnet, row);
     }
@@ -443,30 +427,17 @@ fn resolve_registry(
     }
     let mut operators = BTreeSet::new();
     for id in nodes {
-        let node =
-            resolver.read(
-                RecordKey::Node(id),
-                RegistryKey::Node(id),
-                |details| match details {
-                    Details::Node {
-                        operator,
-                        reward_type,
-                        has_chip_id: Some(has_chip_id),
-                        ..
-                    } => Some(Node {
-                        operator,
-                        reward_type,
-                        has_chip_id,
-                    }),
-                    _ => None,
-                },
-            )?;
+        let node = resolver.read(
+            RecordKey::Node(id),
+            RegistryKey::Node(id),
+            review_records::node,
+        )?;
         operators.extend(node.value().and_then(|node| node.operator));
         registry.nodes.insert(id, node);
         let boundary = resolver.read(
             RecordKey::ApiBoundary(id),
             RegistryKey::ApiBoundary(id),
-            |details| matches!(details, Details::ApiBoundary { .. }).then_some(()),
+            review_records::boundary,
         )?;
         registry.boundaries.insert(id, boundary);
     }
@@ -475,17 +446,7 @@ fn resolve_registry(
         let operator = resolver.read(
             RecordKey::Operator(id),
             RegistryKey::Operator(id),
-            |details| match details {
-                Details::Operator {
-                    provider,
-                    data_center,
-                    ..
-                } => Some(Operator {
-                    provider,
-                    data_center,
-                }),
-                _ => None,
-            },
+            review_records::operator,
         )?;
         centers.extend(
             operator
@@ -498,21 +459,7 @@ fn resolve_registry(
         let dc = resolver.read(
             RecordKey::DataCenter(id.clone()),
             RegistryKey::DataCenter(id.clone()),
-            |details| match details {
-                Details::DataCenter {
-                    registered_region,
-                    registered_owner,
-                    gps,
-                    ..
-                } => Some(DataCenter {
-                    registered_region,
-                    registered_owner,
-                    coordinates: gps.and_then(|gps| {
-                        Coordinates::from_degrees(f64::from(gps.latitude), f64::from(gps.longitude))
-                    }),
-                }),
-                _ => None,
-            },
+            review_records::data_center,
         )?;
         registry.data_centers.insert(id, dc);
     }

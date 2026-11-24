@@ -39,7 +39,7 @@ pub enum FindingCode {
     OverlappingInstructionsRemovalWins,
     AlreadyInTarget,
     AssignedElsewhere,
-    PreviouslyUnassigned,
+    PreviouslyUnassigned, // Retained for decoding existing reports.
     ApiBoundaryAssignment,
     MissingNode,
     DeletedNode,
@@ -475,22 +475,6 @@ fn apply(
                     vec![node],
                     vec![id],
                     vec![RegistryKey::ApiBoundary(node)],
-                );
-            }
-            if !current_set.contains(&node)
-                && input.baseline.nodes[&node].value().is_some()
-                && matches!(
-                    input.baseline.boundaries[&node],
-                    Record::Missing | Record::Deleted(_)
-                )
-                && !state.values().any(|members| members.contains(&node))
-            {
-                report(
-                    PreviouslyUnassigned,
-                    Note,
-                    vec![node],
-                    vec![id],
-                    vec![RegistryKey::Node(node), RegistryKey::ApiBoundary(node)],
                 );
             }
         }

@@ -124,7 +124,7 @@ pub struct DataCenter {
 #[derive(Clone, Debug, PartialEq, Eq, CandidType, Deserialize)]
 pub struct RegistryBaseline {
     pub version: u64,
-    /// Certified by the local projection's publication invariant.
+    /// Verified coverage for the review's listed topology and required keys.
     pub complete: bool,
     pub roster: Record<Vec<Principal>>,
     pub subnets: BTreeMap<Principal, Record<Subnet>>,

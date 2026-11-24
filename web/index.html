@@ -15,18 +15,32 @@
     <h1>Subnet membership</h1>
     <p id="local-notice" class="notice" hidden>Local replica. Reviews here may use fixture data.</p>
     <section class="card" aria-labelledby="search-heading">
-      <h2 id="search-heading">Find a completed review</h2>
+      <h2 id="search-heading">Review a proposal</h2>
       <form id="search">
-        <label>Proposal ID <input name="first" inputmode="numeric" pattern="[0-9]+" maxlength="20"></label>
+        <label>Proposal ID <input name="first" inputmode="numeric" pattern="[0-9]+" maxlength="20" required></label>
         <label>Second proposal ID <small>(optional)</small> <input name="second" inputmode="numeric" pattern="[0-9]+" maxlength="20"></label>
-        <button class="primary">Find reviews</button>
-        <button type="button" id="browse">Show all</button>
+        <button class="primary">Review</button>
       </form>
-      <p id="catalog-status" class="status" role="status"></p>
-      <ul id="catalog" class="results"></ul>
+      <details>
+        <summary>Pilot access</summary>
+        <p>A controller can authorize this browser tab’s principal for source reads.</p>
+        <code id="browser-principal"></code>
+      </details>
+      <p id="report-status" class="status" role="status"></p>
     </section>
-    <p id="report-status" class="status" role="status"></p>
     <div id="report"></div>
+    <section class="card" id="performance" aria-labelledby="performance-heading">
+      <h2 id="performance-heading">Node performance</h2>
+      <form id="performance-form">
+        <label>Subnet principal <input name="subnet" required></label>
+        <label>Lookback days <input name="days" type="number" min="1" max="60" value="7" required></label>
+        <button class="primary">Read blockmaking samples</button>
+      </form>
+      <p id="performance-context" class="muted" hidden></p>
+      <button type="button" id="clear-performance-context" hidden>Clear node filter</button>
+      <p id="performance-status" class="status" role="status"></p>
+      <div id="performance-result"></div>
+    </section>
   </main>
 </body>
 </html>

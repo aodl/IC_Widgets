@@ -347,11 +347,63 @@ export const idlFactory = ({ IDL }) => {
     'Err' : IDL.Text,
   });
   const Result_11 = IDL.Variant({ 'Ok' : SubnetCollection, 'Err' : IDL.Text });
+  const LiveUsage = IDL.Record({
+    'balance_after' : IDL.Nat,
+    'calls' : IDL.Nat32,
+    'balance_before' : IDL.Nat,
+    'instructions' : IDL.Nat64,
+    'source_bytes' : IDL.Nat64,
+    'peak_batch_reservation' : IDL.Nat,
+    'started_at' : IDL.Nat64,
+    'finished_at' : IDL.Nat64,
+  });
+  const NodeMetricsHistoryRecord = IDL.Record({
+    'timestamp_nanos' : IDL.Nat64,
+    'node_metrics' : IDL.Vec(NodeMetrics),
+  });
+  const LivePerformance = IDL.Record({
+    'start_at_timestamp_nanos' : IDL.Nat64,
+    'samples' : IDL.Vec(NodeMetricsHistoryRecord),
+    'subnet' : IDL.Principal,
+  });
+  const LiveError = IDL.Variant({
+    'ProposalChanged' : IDL.Record({
+      'id' : IDL.Nat64,
+      'status' : IDL.Int32,
+      'observation' : IDL.Nat64,
+    }),
+    'InvalidEvidence' : ReviewError,
+    'Deadline' : IDL.Null,
+    'Source' : IDL.Record({ 'observation' : IDL.Nat64, 'reason' : IDL.Text }),
+    'CallLimit' : IDL.Null,
+    'SourceBytes' : IDL.Null,
+    'CycleBalance' : IDL.Null,
+    'ResultLimit' : IDL.Null,
+  });
+  const Result_12 = IDL.Variant({ 'Ok' : LivePerformance, 'Err' : LiveError });
+  const LiveReceipt = IDL.Record({
+    'id' : IDL.Nat64,
+    'reject' : IDL.Opt(IDL.Text),
+    'method' : IDL.Text,
+    'argument_hash' : IDL.Vec(IDL.Nat8),
+    'reply_bytes' : IDL.Nat64,
+    'source' : IDL.Principal,
+    'item' : IDL.Text,
+    'reply_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'observed_at' : IDL.Nat64,
+  });
+  const LiveResponse = IDL.Record({
+    'registry_version' : IDL.Opt(IDL.Nat64),
+    'usage' : LiveUsage,
+    'outcome' : Result_12,
+    'receipts' : IDL.Vec(LiveReceipt),
+  });
+  const Result_13 = IDL.Variant({ 'Ok' : LiveResponse, 'Err' : IDL.Text });
   const ProbeBudget = IDL.Record({
     'migrated_from_m0' : IDL.Bool,
     'usage' : Usage,
   });
-  const Result_12 = IDL.Variant({ 'Ok' : ProbeBudget, 'Err' : IDL.Text });
+  const Result_14 = IDL.Variant({ 'Ok' : ProbeBudget, 'Err' : IDL.Text });
   const ListedProposal = IDL.Record({
     'id' : IDL.Nat64,
     'function' : IDL.Opt(IDL.Int32),
@@ -486,7 +538,7 @@ export const idlFactory = ({ IDL }) => {
     'raw_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'cycles_before' : IDL.Nat,
   });
-  const Result_13 = IDL.Variant({ 'Ok' : Receipt, 'Err' : IDL.Text });
+  const Result_15 = IDL.Variant({ 'Ok' : Receipt, 'Err' : IDL.Text });
   const Status = IDL.Record({
     'caller_subnet' : IDL.Principal,
     'captured_registry_head' : IDL.Opt(IDL.Nat64),
@@ -502,8 +554,8 @@ export const idlFactory = ({ IDL }) => {
     'started_at_nanos' : IDL.Nat64,
     'stop_reason' : IDL.Opt(IDL.Text),
   });
-  const Result_14 = IDL.Variant({ 'Ok' : Status, 'Err' : IDL.Text });
-  const Result_15 = IDL.Variant({ 'Ok' : MembershipAction, 'Err' : IDL.Text });
+  const Result_16 = IDL.Variant({ 'Ok' : Status, 'Err' : IDL.Text });
+  const Result_17 = IDL.Variant({ 'Ok' : MembershipAction, 'Err' : IDL.Text });
   const ActionStatus = IDL.Variant({
     'MalformedPayload' : IDL.Text,
     'UnsupportedAction' : IDL.Null,
@@ -529,12 +581,12 @@ export const idlFactory = ({ IDL }) => {
     'collected_at' : IDL.Nat64,
     'payload_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
-  const Result_16 = IDL.Variant({ 'Ok' : ProposalCapture, 'Err' : IDL.Text });
+  const Result_18 = IDL.Variant({ 'Ok' : ProposalCapture, 'Err' : IDL.Text });
   const CapturePage = IDL.Record({
     'next' : IDL.Opt(IDL.Nat64),
     'rows' : IDL.Vec(ProposalCapture),
   });
-  const Result_17 = IDL.Variant({ 'Ok' : CapturePage, 'Err' : IDL.Text });
+  const Result_19 = IDL.Variant({ 'Ok' : CapturePage, 'Err' : IDL.Text });
   const ProposalStatus = IDL.Record({
     'last_status' : IDL.Opt(SourceStatus),
     'next_lifecycle_check' : IDL.Opt(IDL.Nat64),
@@ -542,7 +594,7 @@ export const idlFactory = ({ IDL }) => {
     'last_observation' : IDL.Opt(IDL.Nat64),
     'capture_count' : IDL.Nat64,
   });
-  const Result_18 = IDL.Variant({ 'Ok' : ProposalStatus, 'Err' : IDL.Text });
+  const Result_20 = IDL.Variant({ 'Ok' : ProposalStatus, 'Err' : IDL.Text });
   const PerformanceRequest = IDL.Record({
     'scope' : ScopeRequest,
     'timestamp' : IDL.Opt(IDL.Nat64),
@@ -553,7 +605,7 @@ export const idlFactory = ({ IDL }) => {
     'last_success_at' : IDL.Opt(IDL.Nat64),
     'scope' : ScopePage,
   });
-  const Result_19 = IDL.Variant({ 'Ok' : PerformancePage, 'Err' : IDL.Text });
+  const Result_21 = IDL.Variant({ 'Ok' : PerformancePage, 'Err' : IDL.Text });
   const Distances = IDL.Record({
     'known_nodes' : IDL.Nat32,
     'maximum_metres' : IDL.Opt(IDL.Nat32),
@@ -728,7 +780,7 @@ export const idlFactory = ({ IDL }) => {
     'revision' : IDL.Vec(IDL.Nat8),
     'manifest' : ReviewManifest,
   });
-  const Result_20 = IDL.Variant({ 'Ok' : Review, 'Err' : IDL.Text });
+  const Result_22 = IDL.Variant({ 'Ok' : Review, 'Err' : IDL.Text });
   const Assignment = IDL.Variant({
     'UnknownNode' : IDL.Null,
     'Replica' : IDL.Principal,
@@ -740,7 +792,7 @@ export const idlFactory = ({ IDL }) => {
       'api_boundary' : IDL.Bool,
     }),
   });
-  const Result_21 = IDL.Variant({ 'Ok' : Assignment, 'Err' : IDL.Text });
+  const Result_23 = IDL.Variant({ 'Ok' : Assignment, 'Err' : IDL.Text });
   const RecordKey = IDL.Variant({
     'Operator' : IDL.Principal,
     'Node' : IDL.Principal,
@@ -756,7 +808,7 @@ export const idlFactory = ({ IDL }) => {
     'keys' : IDL.Vec(RecordKey),
     'next' : IDL.Opt(IDL.Text),
   });
-  const Result_22 = IDL.Variant({ 'Ok' : KeyPage, 'Err' : IDL.Text });
+  const Result_24 = IDL.Variant({ 'Ok' : KeyPage, 'Err' : IDL.Text });
   const RecordEvidence = IDL.Record({
     'value_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'page' : IDL.Nat64,
@@ -768,7 +820,7 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Text),
     'operators' : IDL.Vec(IDL.Tuple(IDL.Principal, RecordEvidence)),
   });
-  const Result_23 = IDL.Variant({ 'Ok' : ProviderPage, 'Err' : IDL.Text });
+  const Result_25 = IDL.Variant({ 'Ok' : ProviderPage, 'Err' : IDL.Text });
   const Endpoint = IDL.Record({ 'ip' : IDL.Text, 'port' : IDL.Nat32 });
   const Position = IDL.Record({
     'latitude' : IDL.Float32,
@@ -825,7 +877,7 @@ export const idlFactory = ({ IDL }) => {
     'Opaque' : IDL.Record({ 'evidence' : RecordEvidence, 'reason' : IDL.Text }),
     'Deleted' : RecordEvidence,
   });
-  const Result_24 = IDL.Variant({ 'Ok' : RecordAt, 'Err' : IDL.Text });
+  const Result_26 = IDL.Variant({ 'Ok' : RecordAt, 'Err' : IDL.Text });
   const Staging = IDL.Record({
     'end' : IDL.Nat64,
     'count' : IDL.Nat32,
@@ -878,16 +930,41 @@ export const idlFactory = ({ IDL }) => {
     'limits' : IDL.Opt(RegistryLimits),
     'superseded_mutations' : IDL.Nat64,
   });
-  const Result_25 = IDL.Variant({ 'Ok' : RegistryStatus, 'Err' : IDL.Text });
-  const Result_26 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : IDL.Text });
-  const Result_27 = IDL.Variant({ 'Ok' : SourceObservation, 'Err' : IDL.Text });
+  const Result_27 = IDL.Variant({ 'Ok' : RegistryStatus, 'Err' : IDL.Text });
+  const Result_28 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : IDL.Text });
+  const CandidateAssignment = IDL.Variant({
+    'UnknownOutsideListedSubnets' : IDL.Null,
+    'NodeAbsent' : IDL.Null,
+    'ApiBoundary' : IDL.Null,
+    'ListedSubnet' : IDL.Principal,
+  });
+  const LiveScope = IDL.Record({
+    'subnet' : IDL.Principal,
+    'nodes' : IDL.Vec(IDL.Principal),
+    'scenario' : ScenarioId,
+  });
+  const LiveReview = IDL.Record({
+    'report' : Review,
+    'assignments' : IDL.Vec(IDL.Tuple(IDL.Principal, CandidateAssignment)),
+    'scopes' : IDL.Vec(LiveScope),
+    'listed_subnets' : IDL.Nat32,
+  });
+  const Result_29 = IDL.Variant({ 'Ok' : LiveReview, 'Err' : LiveError });
+  const LiveResponse_1 = IDL.Record({
+    'registry_version' : IDL.Opt(IDL.Nat64),
+    'usage' : LiveUsage,
+    'outcome' : Result_29,
+    'receipts' : IDL.Vec(LiveReceipt),
+  });
+  const Result_30 = IDL.Variant({ 'Ok' : LiveResponse_1, 'Err' : IDL.Text });
+  const Result_31 = IDL.Variant({ 'Ok' : SourceObservation, 'Err' : IDL.Text });
   const ProbeRequest = IDL.Record({
     'registry_subnet' : IDL.Opt(IDL.Principal),
     'metrics_start_nanos' : IDL.Nat64,
     'remote_subnet' : IDL.Opt(IDL.Principal),
     'proposal_id' : IDL.Opt(IDL.Nat64),
   });
-  const Result_28 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
+  const Result_32 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
   return IDL.Service({
     'advance_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'authorize_verification' : IDL.Func([IDL.Nat64, Limits], [Result_1], []),
@@ -932,52 +1009,59 @@ export const idlFactory = ({ IDL }) => {
       ),
     'metrics_roster' : IDL.Func([], [Result_10], []),
     'metrics_status' : IDL.Func([IDL.Principal], [Result_11], []),
-    'probe_budget' : IDL.Func([IDL.Nat64], [Result_12], []),
-    'probe_receipt' : IDL.Func([IDL.Nat64, IDL.Nat32], [Result_13], []),
+    'node_performance_on_demand' : IDL.Func(
+        [IDL.Principal, IDL.Nat64, IDL.Opt(IDL.Vec(IDL.Principal))],
+        [Result_13],
+        [],
+      ),
+    'probe_budget' : IDL.Func([IDL.Nat64], [Result_14], []),
+    'probe_receipt' : IDL.Func([IDL.Nat64, IDL.Nat32], [Result_15], []),
     'probe_reply' : IDL.Func([IDL.Nat64, IDL.Nat32, IDL.Nat32], [Result_4], []),
-    'probe_status' : IDL.Func([IDL.Nat64], [Result_14], []),
+    'probe_status' : IDL.Func([IDL.Nat64], [Result_16], []),
     'proposal_action' : IDL.Func(
-        [IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_15],
-        [],
-      ),
-    'proposal_archive' : IDL.Func(
-        [IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_16],
-        [],
-      ),
-    'proposal_history' : IDL.Func(
         [IDL.Nat64, IDL.Opt(IDL.Nat64)],
         [Result_17],
         [],
       ),
-    'proposal_status' : IDL.Func([IDL.Nat64], [Result_18], []),
-    'read_membership_performance' : IDL.Func(
-        [PerformanceRequest],
+    'proposal_archive' : IDL.Func(
+        [IDL.Nat64, IDL.Opt(IDL.Nat64)],
+        [Result_18],
+        [],
+      ),
+    'proposal_history' : IDL.Func(
+        [IDL.Nat64, IDL.Opt(IDL.Nat64)],
         [Result_19],
         [],
       ),
-    'read_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_20], []),
-    'registry_assignment' : IDL.Func(
-        [IDL.Nat64, IDL.Principal],
+    'proposal_status' : IDL.Func([IDL.Nat64], [Result_20], []),
+    'read_membership_performance' : IDL.Func(
+        [PerformanceRequest],
         [Result_21],
         [],
       ),
-    'registry_keys' : IDL.Func([IDL.Nat64, IDL.Opt(IDL.Text)], [Result_22], []),
-    'registry_provider' : IDL.Func(
-        [IDL.Nat64, IDL.Principal, IDL.Opt(IDL.Text)],
+    'read_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_22], []),
+    'registry_assignment' : IDL.Func(
+        [IDL.Nat64, IDL.Principal],
         [Result_23],
         [],
       ),
-    'registry_record' : IDL.Func([IDL.Nat64, RecordKey], [Result_24], []),
-    'registry_status' : IDL.Func([], [Result_25], []),
-    'request_membership_review' : IDL.Func([ReviewRequest], [Result_26], []),
+    'registry_keys' : IDL.Func([IDL.Nat64, IDL.Opt(IDL.Text)], [Result_24], []),
+    'registry_provider' : IDL.Func(
+        [IDL.Nat64, IDL.Principal, IDL.Opt(IDL.Text)],
+        [Result_25],
+        [],
+      ),
+    'registry_record' : IDL.Func([IDL.Nat64, RecordKey], [Result_26], []),
+    'registry_status' : IDL.Func([], [Result_27], []),
+    'request_membership_review' : IDL.Func([ReviewRequest], [Result_28], []),
     'retry_registry' : IDL.Func([], [Result_1], []),
-    'source_observation' : IDL.Func([IDL.Nat64], [Result_27], []),
-    'start_probe' : IDL.Func([ProbeRequest], [Result_28], []),
+    'review_on_demand' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_30], []),
+    'set_on_demand_caller' : IDL.Func([IDL.Opt(IDL.Principal)], [Result_1], []),
+    'source_observation' : IDL.Func([IDL.Nat64], [Result_31], []),
+    'start_probe' : IDL.Func([ProbeRequest], [Result_32], []),
     'start_probe_with_limits' : IDL.Func(
         [ProbeRequest, Limits],
-        [Result_28],
+        [Result_32],
         [],
       ),
   });

@@ -195,7 +195,9 @@ extern "C" fn latest() {
         msg_arg_data().is_empty(),
         "latest must receive empty protobuf"
     );
-    let version = if registry_fixture::MODE.get() == 0 {
+    let version = if let Some(version) = registry_fixture::direct_head() {
+        version
+    } else if registry_fixture::MODE.get() == 0 {
         5
     } else {
         registry_fixture::head()
@@ -257,6 +259,10 @@ extern "C" fn changes() {
 extern "C" fn value() {
     use high_capacity_registry_get_value_response::Content;
     let request = RegistryGetValueRequest::decode(msg_arg_data().as_slice()).unwrap();
+    if let Some(reply) = registry_fixture::direct_value(&request) {
+        msg_reply(reply.encode_to_vec());
+        return;
+    }
     let key = std::str::from_utf8(&request.key).unwrap();
     let at = request.version.unwrap();
     let mut reply = HighCapacityRegistryGetValueResponse {

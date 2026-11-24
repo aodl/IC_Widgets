@@ -28,7 +28,7 @@ const outcomes = { Applied: 'Simulated', Rejected: 'Rejected in simulation', Ski
 const findingLabels = {
   ExecutedProposalHypothesis: 'Executed proposal evaluated as a hypothesis at the selected baseline.',
   HistoricalBaselineUnavailable: 'Historical baseline unavailable. This execution was not reconstructed.',
-  UnaffectedRemovalCandidate: 'Removal candidate had no subnet membership in this step.',
+  UnaffectedRemovalCandidate: 'Removal candidate had no membership in the listed subnets in this step.',
   DifferentIntermediateStates: 'The two orders give different intermediate memberships.',
   MissingRegistryMetadata: 'Registry metadata is missing or unavailable.',
   UnknownDimension: 'Registered dimension unavailable',
@@ -70,7 +70,7 @@ function findingsList(findings) {
   return styled('ul', 'findings', rows);
 }
 
-export function reviewHeader(review) {
+export function reviewHeader(review, live) {
   const { manifest } = review;
   const ids = proposalIds(manifest.proposals.map(row => row.id));
   const hypothetical = option(review.hypothetical_executed);
@@ -83,9 +83,21 @@ export function reviewHeader(review) {
       'Hypothetical evaluation of an executed proposal. The selected Registry version is the simulation baseline. Actual historical execution remains unverified.') : null,
     executed && !hypothetical ? styled('p', 'notice warning',
       'Historical execution remains unavailable for this report.') : null,
-    table(['Proposal', 'Action', 'Archived status'], manifest.proposals.map(row => [
+    table(['Proposal', 'Action', 'Observed status', 'Observed at'], manifest.proposals.map(row => [
       `#${row.id}`, functions[row.function] ?? `Function ${row.function}`, lifecycle[row.lifecycle_status] ?? `Status ${row.lifecycle_status}`,
+      time(row.observed_at_nanos),
     ])),
+    styled('p', 'notice', `Assignment checks cover ${number(live.listed_subnets)} listed subnets and the candidates’ Registry API boundary records. An assignment outside the listed topology remains unverified.`),
+    live.assignments.length ? details('Candidate assignments at the baseline', table(
+      ['Node', 'Assignment evidence'], live.assignments.map(([node, assignment]) => [
+        el('code', principal(node)),
+        assignment.ListedSubnet ? el('code', principal(assignment.ListedSubnet)) : ({
+          ApiBoundary: 'API boundary node',
+          UnknownOutsideListedSubnets: 'No listed subnet or API boundary assignment found',
+          NodeAbsent: 'Node record absent at this version',
+        })[branch(assignment)],
+      ]),
+    )) : null,
     details('Review evidence',
       el('p', 'Revision ', el('code', hex(review.revision))),
       el('p', `Analysis v${manifest.analysis_version} · Policy v${manifest.policy.version}`),
@@ -103,7 +115,7 @@ export function reviewHeader(review) {
         return [
           el('span', words(name), ' ', keyValue === null ? '' : el('code', keyValue.toText?.() ?? keyValue)),
           el('span', words(status), stamp?.page_observation !== undefined
-            ? ` · mutation ${stamp.mutation_version} · page observation ${stamp.page_observation}` : ''),
+            ? ` · mutation ${stamp.mutation_version} · observation ${stamp.page_observation}` : ''),
         ];
       })))));
 }
@@ -167,28 +179,45 @@ export function renderScenario(review, scenario, subnet, stateIndex, container) 
   ].filter(Boolean));
 }
 
-export function renderPerformance(page, section) {
-  if ('Unavailable' in page.scope) {
-    section.replaceChildren(el('p', 'This review has no resolved scope for the selected subnet.'));
+export function sourceReceipts(result) {
+  const version = option(result.registry_version);
+  return details('Source receipts',
+    version === undefined ? null : el('p', `Pinned Registry version ${number(version)}`),
+    el('p', `${number(result.usage.calls)} source calls · ${number(result.usage.source_bytes)} reply bytes`),
+    table(['Observation', 'Source read', 'Observed at', 'Reply'], result.receipts.map(row => [
+      row.id, el('span', row.method, ' ', el('code', row.item), el('br'), el('code', principal(row.source))),
+      time(row.observed_at),
+      option(row.reply_hash) ? el('code', hex(option(row.reply_hash))) : option(row.reject) ?? 'Unavailable',
+    ])));
+}
+
+export function renderPerformance(history, filter, section) {
+  if (!history.samples.length) {
+    section.replaceChildren(el('p', 'No blockmaking samples are available for this period.'));
     return;
   }
-  const { rows } = page.scope.Nodes;
-  const stamp = option(page.sample);
-  const observed = new Map(page.rows.map(row => [principal(row.node_id), row]));
-  const summary = !rows.length ? 'The selected scope contains no nodes.'
-    : !stamp ? 'No archived blockmaking sample is available for this subnet.'
-    : stamp.conflicted ? 'Conflicting sample. Counters are unavailable.'
-    : `${observed.size} of ${rows.length} scoped nodes on this page have counter rows.`;
-  section.replaceChildren(...[
-    el('p', summary),
-    stamp ? el('p', `Sample ${time(stamp.timestamp_nanos)} · collected ${time(stamp.collected_at)} · observation ${stamp.observation}`) : null,
-    option(page.last_success_at) !== undefined ? styled('p', 'muted', `Last successful source collection ${time(option(page.last_success_at))}`) : null,
-    stamp && stamp.preceding_gap.length ? styled('p', 'notice warning', `Archive continuity gap · ${words(branch(stamp.preceding_gap[0]))}`) : null,
-    rows.length ? table(['Scoped node', 'Scope roles', 'Proposed blocks, cumulative', 'Blockmaking failures, cumulative'], rows.map(([id, node]) => {
-      const row = observed.get(principal(id));
-      const empty = stamp && !stamp.conflicted ? 'No row in sample' : 'Unavailable';
-      return [el('code', principal(id)), node.roles.map(role => words(branch(role))).join(', '),
-        row ? number(row.num_blocks_proposed_total) : empty, row ? number(row.num_block_failures_total) : empty];
-    })) : null,
-  ].filter(Boolean));
+  const select = el('select', history.samples.map((sample, index) => {
+    const item = el('option', time(sample.timestamp_nanos));
+    item.value = String(index);
+    return item;
+  }));
+  select.value = String(history.samples.length - 1);
+  const output = el('div');
+  function draw() {
+    const sample = history.samples[Number(select.value)];
+    const observed = new Map(sample.node_metrics.map(row => [principal(row.node_id), row]));
+    const nodes = filter ?? sample.node_metrics.map(row => row.node_id);
+    output.replaceChildren(
+      el('p', filter ? `${observed.size} of ${nodes.length} selected nodes have counter rows in this sample.`
+        : `${observed.size} counter rows in this sample. Unchanged rows can be omitted.`),
+      nodes.length ? table(['Node', 'Proposed blocks, cumulative', 'Blockmaking failures, cumulative'], nodes.map(id => {
+        const row = observed.get(principal(id));
+        return [el('code', principal(id)), row ? number(row.num_blocks_proposed_total) : 'No row in sample',
+          row ? number(row.num_block_failures_total) : 'No row in sample'];
+      })) : null,
+    );
+  }
+  select.addEventListener('change', draw);
+  section.replaceChildren(el('label', 'Sample time', select), output);
+  draw();
 }

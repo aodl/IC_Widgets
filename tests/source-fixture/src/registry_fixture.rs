@@ -1,12 +1,17 @@
 //! Larger projected Registry fixture. Mode 2 corrupts the first returned chunk.
-use std::cell::Cell;
+use std::{
+    cell::{Cell, RefCell},
+    collections::BTreeMap,
+};
 
 use candid::Principal;
 use nexus_domain::sha256;
 use nexus_ic_sources::registry::{
     transport::{
         HighCapacityRegistryDelta, HighCapacityRegistryGetChangesSinceResponse,
-        HighCapacityRegistryValue, LargeValueChunkKeys, high_capacity_registry_value::Content,
+        HighCapacityRegistryGetValueResponse, HighCapacityRegistryValue, LargeValueChunkKeys,
+        RegistryError, RegistryGetValueRequest, high_capacity_registry_get_value_response,
+        high_capacity_registry_value::Content, registry_error::Code,
     },
     wire::registry::{
         api_boundary_node::v1::ApiBoundaryNodeRecord,
@@ -23,6 +28,98 @@ use prost::Message;
 thread_local! {
     pub static MODE: Cell<u8> = const { Cell::new(0) };
     static METRICS_SUBNETS: std::cell::RefCell<Vec<(Principal, i32)>> = const { std::cell::RefCell::new(vec![]) };
+    static DIRECT: RefCell<Option<DirectRegistry>> = const { RefCell::new(None) };
+}
+
+struct DirectRegistry {
+    version: u64,
+    rows: BTreeMap<Vec<u8>, HighCapacityRegistryValue>,
+}
+
+#[ic_cdk::update]
+fn prepare_direct_registry() {
+    let version = head();
+    let mut rows = BTreeMap::new();
+    let deltas = changes(0).deltas.into_iter().chain(if version == 6 {
+        changes(5).deltas
+    } else {
+        vec![]
+    });
+    for delta in deltas {
+        if let Some(row) = delta
+            .values
+            .into_iter()
+            .filter(|row| row.version <= version)
+            .max_by_key(|row| row.version)
+        {
+            rows.insert(delta.key, row);
+        }
+    }
+    DIRECT.set(Some(DirectRegistry { version, rows }));
+}
+
+#[ic_cdk::update]
+fn set_direct_registry_record(key: String, bytes: Option<Vec<u8>>) {
+    DIRECT.with_borrow_mut(|direct| {
+        let direct = direct
+            .as_mut()
+            .expect("prepare the direct Registry fixture");
+        if let Some(bytes) = bytes {
+            direct.rows.insert(
+                key.into_bytes(),
+                HighCapacityRegistryValue {
+                    version: direct.version,
+                    content: Some(Content::Value(bytes)),
+                    timestamp_nanoseconds: direct.version * 10,
+                },
+            );
+        } else {
+            direct.rows.remove(key.as_bytes());
+        }
+    });
+}
+
+pub fn direct_head() -> Option<u64> {
+    DIRECT.with_borrow(|direct| direct.as_ref().map(|direct| direct.version))
+}
+
+pub fn direct_value(
+    request: &RegistryGetValueRequest,
+) -> Option<HighCapacityRegistryGetValueResponse> {
+    use high_capacity_registry_get_value_response::Content as ReplyContent;
+    DIRECT.with_borrow(|direct| {
+        let direct = direct.as_ref()?;
+        assert_eq!(
+            request.version,
+            Some(direct.version),
+            "pinned Registry version"
+        );
+        let value = direct.rows.get(&request.key).and_then(|row| {
+            let content = match row.content.as_ref()? {
+                Content::Value(bytes) => ReplyContent::Value(bytes.clone()),
+                Content::LargeValueChunkKeys(hashes) => {
+                    ReplyContent::LargeValueChunkKeys(hashes.clone())
+                }
+                Content::DeletionMarker(_) => return None,
+            };
+            Some(HighCapacityRegistryGetValueResponse {
+                version: row.version,
+                timestamp_nanoseconds: row.timestamp_nanoseconds,
+                content: Some(content),
+                error: None,
+            })
+        });
+        Some(
+            value.unwrap_or_else(|| HighCapacityRegistryGetValueResponse {
+                error: Some(RegistryError {
+                    code: Code::KeyNotPresent as i32,
+                    reason: "missing key".into(),
+                    key: request.key.clone(),
+                }),
+                ..Default::default()
+            }),
+        )
+    })
 }
 
 #[ic_cdk::update]
