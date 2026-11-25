@@ -162,13 +162,13 @@ try {
     const step = page.getByLabel('Membership state');
     await order.selectOption('AThenB');
     await step.selectOption('1');
-    await page.getByText(/50 → 51 members/).waitFor();
+    await page.locator('.review-summary').getByText(/50 → 51 members/).waitFor();
     await page.getByRole('button', { name: 'Export review', exact: true }).click();
     await page.getByLabel('VOTE', { exact: true }).fill('Order A assessment');
     const a = await page.getByLabel('Generated Markdown', { exact: true }).inputValue();
     await order.selectOption('BThenA');
     await step.selectOption('1');
-    await page.getByText(/50 → 49 members/).waitFor();
+    await page.locator('.review-summary').getByText(/50 → 49 members/).waitFor();
     const b = await page.getByLabel('Generated Markdown', { exact: true }).inputValue();
     assert.match(b, /Proposal #92 then Proposal #93/);
     assert.match(a, /Proposal #93 then Proposal #92/);

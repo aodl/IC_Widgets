@@ -1,8 +1,10 @@
 # Network Nexus widgets
 
-Enter one or two NNS proposal IDs in Subnet Membership. The reviewer returns requested changes, before/after memberships, the pinned Registry version and source receipts. Both execution orders use the same evidence. A targeted preview checks the selected target memberships and proposal-candidate records. An untargeted removal checks every listed subnet. The scope label reports how many listed subnets were checked.
+Enter one or two NNS proposal IDs and select **Review**. The browser starts membership and continues through the bounded detail pages and replicated comparisons. The map and findings use the pinned Registry snapshot. **Coverage** opens Evidence, including the observations and calculation input. A targeted preview checks the selected target memberships and proposal-candidate records. An untargeted removal checks every listed subnet. The scope notice reports how many listed subnets were checked.
 
-Node Performance can read blockmaking samples for a subnet directly. **Use this scope in Node Performance** fills the subnet and limits the rows to the selected membership scenario. Clearing the filter restores that subnet's independent view. Sample times and sparse source rows are visible.
+Performance can read blockmaking samples for an independent subnet or follow the selected review with a named node filter. Changing the linked review scope clears its previous performance result. Sample times and sparse source rows are visible.
+
+See [map-first acceptance](../docs/map-first-review/README.md) for the browser setup and the uncoached review worksheet.
 
 ## Local proof of concept
 
