@@ -809,11 +809,11 @@ fn voting_detail_replays_the_66013_registry() {
         let raw = pic
             .update_call(reviewer, caller, "compare_membership_details", args)
             .unwrap();
-        assert_eq!(summary.input_hash, expected);
-        assert_eq!(summary.analysis_version, ANALYSIS_VERSION);
         let summary = decode_one::<Result<LiveMembershipComparison, String>>(&raw)
             .unwrap()
             .unwrap();
+        assert_eq!(summary.input_hash, expected);
+        assert_eq!(summary.analysis_version, ANALYSIS_VERSION);
         println!(
             "comparison: 0 source calls, 0 source bytes, {} Candid bytes, {} ms wall, {} instructions, {} settled cycles",
             raw.len(),
