@@ -320,7 +320,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       retry);
     retry.hidden = !['partial', 'unavailable'].includes(next?.status);
     if (!renderedMap || renderedMap.calculation !== next?.calculation) {
-      map.update(model, selection?.ids);
+      map.update(model, selection?.ids, 'The map needs a resolved membership state.');
       renderedMap = { calculation: next?.calculation };
     }
     if (!selection || next?.calculation !== renderedInspector) renderInspector();

@@ -73,6 +73,7 @@ export function saveFile(name, content, type) {
 export function reviewMap(inspect) {
   const roles = new Set(Object.keys(palette));
   let model;
+  let emptyMessage;
   let selected = new Set();
   let mode = 'Changes';
   let focusLabel = 'World';
@@ -207,9 +208,9 @@ export function reviewMap(inspect) {
       const focused = document.activeElement?.dataset.marker;
       pins.replaceChildren(...buttons);
       if (focused) buttons.find(button => button.dataset.marker === focused)?.focus({ preventScroll: true });
-      caption.textContent = model?.members?.length
+      caption.textContent = model
         ? mode + ' · ' + population.length + (mode === 'Changes' ? ' distinct nodes · ' : ' members · ') + coverage
-        : 'Registered locations appear here as evidence becomes available.';
+        : emptyMessage ?? 'Registered locations appear here as evidence becomes available.';
     } else {
       ctx.fillStyle = 'rgba(255,255,255,.96)';
       ctx.fillRect(12, 12, W - 24, 76);
@@ -345,11 +346,13 @@ export function reviewMap(inspect) {
   return {
     section,
     exportButton,
-    update(next, ids = []) {
+    update(next, ids = [], reason) {
       model = next;
+      emptyMessage = reason;
       selected = new Set(ids);
       exportButton.disabled = !model?.calculation;
       focus.disabled = !model?.members?.some(node => node.role !== 'Retained' && node.point);
+      unmapped.hidden = !model;
       redrawUnmapped();
       draw();
     },

@@ -117,6 +117,7 @@ search.addEventListener('submit', event => {
       const live = result(response);
       if ('Err' in live.outcome) {
         status('Simulation unavailable. ' + liveError(live.outcome.Err), false, true);
+        map.update(undefined, [], 'The map needs supported membership evidence for this review.');
         reportContainer.append(styled('section', 'card', el('h3', 'Evidence'), sourceReceipts(live)));
         return;
       }
@@ -131,6 +132,7 @@ search.addEventListener('submit', event => {
       current.start();
     } catch (error) {
       if (!active()) return;
+      map.update(undefined, [], 'The map needs supported membership evidence for this review.');
       if (/authorized principal/.test(error.message)) {
         access.open = true;
         status('Pilot authorization required. Share the browser principal in Pilot access, then select Review again.', false, true);

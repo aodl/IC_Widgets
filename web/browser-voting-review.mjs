@@ -59,8 +59,9 @@ try {
   await page.getByText('Changes · 41 distinct nodes · 41/41 mapped', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Provider distribution unchanged' }).waitFor();
   await page.getByText(/Registered replacement · Zurich → Stockholm/).waitFor();
-  await page.getByRole('button', { name: 'Last zh2 member leaves' }).waitFor();
-  await page.getByText(/Zurich 2 → 1, Switzerland 3 → 2/).waitFor();
+  const departure = await page.getByRole('button', { name: 'Last zh2 member leaves' }).locator('..').textContent();
+  assert.match(departure, /Zurich 2 → 1/);
+  assert.match(departure, /Switzerland 3 → 2/);
   assert.ok(await map.getByRole('button', { name: /Removed 1/ }).count());
   assert.ok(await map.getByRole('button', { name: /Added 1/ }).count());
 
