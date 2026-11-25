@@ -147,7 +147,8 @@ export function reviewMap(inspect) {
     const buttons = [];
     for (const cluster of markers) {
       const counts = Object.keys(palette).map(role => [role, cluster.nodes.filter(node => node.role === role).length]).filter(([, count]) => count);
-      const site = [...new Set(cluster.nodes.map(node => node.dc).filter(Boolean))].join(', ');
+      const sites = [...new Set(cluster.nodes.map(node => node.dc).filter(Boolean))];
+      const site = sites.join(', ');
       const label = counts.map(([role, count]) => role + ' ' + count).join(', ') + ' · ' + site;
       const changes = counts.filter(([role]) => role !== 'Retained');
       const emphasized = cluster.nodes.some(node => selected.has(node.id));
@@ -184,12 +185,12 @@ export function reviewMap(inspect) {
         if (changes.length) {
           ctx.textAlign = x < W - 95 ? 'left' : 'right';
           ctx.fillStyle = '#132637';
-          ctx.fillText([...new Set(cluster.nodes.filter(node => node.role !== 'Retained').map(node => node.dc))].join(', '),
+          ctx.fillText(sites.length > 3 ? sites.length + ' registered data centers' : site,
             x + (x < W - 95 ? 21 : -21), y + 5, 100);
         }
       } else {
         const marker = action(cluster.nodes.length, () => inspect(cluster.nodes.map(node => node.id),
-          site.includes(',') ? 'Location cluster' : site || 'Map location'));
+          sites.length > 1 ? 'Location cluster' : site || 'Map location'));
         marker.className = 'map-pin' + (changes.length ? ' changed-pin' : '');
         marker.title = label;
         marker.dataset.marker = identity;
