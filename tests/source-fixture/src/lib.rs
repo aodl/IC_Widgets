@@ -160,6 +160,75 @@ fn load_voting_reference() {
     );
 }
 
+/// Variations of the recorded reference for local browser acceptance tests.
+#[ic_cdk::update]
+fn set_voting_review_fixture(mode: u8) {
+    if mode == 5 {
+        assert!(ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()));
+        VOTING_REGISTRY.set(None);
+        DEMO_PROPOSAL.set(None);
+        return;
+    }
+    load_voting_reference();
+    match mode {
+        0 => {}
+        1..=3 => VOTING_REGISTRY.with_borrow_mut(|state| {
+            use high_capacity_registry_get_value_response::Content;
+            let registry = state.as_mut().unwrap();
+            let sh1 = b"data_center_record_sh1".as_slice();
+            if mode == 2 {
+                let reply = registry.replies.get_mut(sh1).unwrap();
+                let mut outer =
+                    HighCapacityRegistryGetValueResponse::decode(reply.as_slice()).unwrap();
+                outer.content = None;
+                outer.error = Some(RegistryError {
+                    code: registry_error::Code::MalformedMessage as i32,
+                    reason: "Local fixture withheld optional data-center evidence".into(),
+                    key: sh1.to_vec(),
+                });
+                *reply = outer.encode_to_vec();
+            } else if mode == 1 {
+                let reply = registry.replies.get_mut(sh1).unwrap();
+                let mut outer =
+                    HighCapacityRegistryGetValueResponse::decode(reply.as_slice()).unwrap();
+                let Some(Content::Value(bytes)) = outer.content.as_mut() else {
+                    panic!()
+                };
+                let mut center = DataCenterRecord::decode(bytes.as_slice()).unwrap();
+                center.gps = None;
+                *bytes = center.encode_to_vec();
+                *reply = outer.encode_to_vec();
+            } else {
+                let reply = registry
+                    .replies
+                    .iter_mut()
+                    .find(|(key, _)| key.starts_with(b"subnet_record_tdb26-"))
+                    .unwrap()
+                    .1;
+                let mut outer =
+                    HighCapacityRegistryGetValueResponse::decode(reply.as_slice()).unwrap();
+                let Some(Content::Value(bytes)) = outer.content.as_mut() else {
+                    panic!()
+                };
+                let mut subnet = SubnetRecord::decode(bytes.as_slice()).unwrap();
+                subnet.membership.push(subnet.membership[0].clone());
+                *bytes = subnet.encode_to_vec();
+                *reply = outer.encode_to_vec();
+            }
+        }),
+        4 => {
+            let mut captured: Option<ProposalInfo> =
+                candid::decode_one(include_bytes!("../data/144954/governance.didbin")).unwrap();
+            let proposal = captured.as_mut().unwrap();
+            proposal.status = 4;
+            proposal.executed_timestamp_seconds = proposal.proposal_timestamp_seconds + 60;
+            proposal.decided_timestamp_seconds = Some(proposal.executed_timestamp_seconds);
+            set_demo_proposal(144_954, encode_one(captured).unwrap());
+        }
+        _ => panic!("unknown reference fixture"),
+    }
+}
+
 /// Replay one exact public reply on a local source canister for browser demonstrations.
 #[ic_cdk::update]
 fn set_demo_proposal(id: u64, reply: Vec<u8>) {

@@ -31,7 +31,11 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } =
     model.scenario + ' · ' + model.stateLabel + ' · Registry version ' + model.version,
     model.membership,
     '## Findings and evidence limits',
-    [...model.consequences, ...model.notes].map(note => '- ' + escape(note)).join('\n'),
+    [...(model.findings?.length ? model.findings.map(finding => finding.title + '. ' + finding.explanation +
+      (finding.metrics.length ? ' ' + finding.metrics.map(metric => metric.name + ' ' + metric.value + ' ' + metric.before + ' → ' + metric.after +
+        (metric.coefficient.every(value => value !== undefined) && metric.coefficient[0] !== metric.coefficient[1]
+          ? ' (coefficient ' + metric.coefficient.join(' → ') + ')' : '')).join(' · ') + '.' : '')) : model.consequences),
+    ...model.notes].map(note => '- ' + escape(note)).join('\n'),
   ];
   for (const table of [...model.tables.filter(table => !table.title.endsWith(' nodes')),
     ...model.dimensions.map(row => ({ ...row.table, note: row.note })),
@@ -45,7 +49,7 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } =
     }
     blocks.push(markdownTable(table));
   }
-  blocks.push('## Map', 'Red markers show removed nodes, green shows added nodes, blue shows retained nodes. Markers are grouped at registered data-center coordinates. Nodes without usable coordinates are listed separately in the interface.', map,
+  blocks.push('## Map', 'Plus marks identify additions, minus marks identify removals, and neutral counts include retained nodes. A PNG may show a focused viewport or role filter. The review tables cover the full selected scenario and step. Nodes without usable registered coordinates are listed separately in the interface.', map,
     '## Sources', '- NNS Governance `get_proposal_info`, observations listed above.\n- NNS Registry `get_value` at version ' + model.version
     + '.\n- Natural Earth public-domain land outline.\n- ' + eligibility,
     ...model.payloads.map(value => '`' + value + '`'),
@@ -53,7 +57,7 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } =
   if (model.previewRevision) blocks.push('Membership preview revision `' + model.previewRevision + '`.');
   if (model.calculation) blocks.push(
     'Calculation input SHA-256 `' + model.calculation.inputHash + '` · analysis v' + model.calculation.analysis_version + '.',
-    calculationNote + ' The exact Candid input is available under Advanced detailed source evidence.',
+    calculationNote + ' The exact Candid input is available in Evidence under Method and exact inputs.',
   );
   return blocks.join('\n\n') + '\n';
 }
