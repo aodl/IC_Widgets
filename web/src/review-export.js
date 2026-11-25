@@ -62,4 +62,3 @@ export function markdownEditor(model, draft, exportMap) {
     }), action('Download Markdown', () => saveFile('proposal-' + model.ids.join('-') + '-' + model.version + '-review.md', raw.value, 'text/markdown;charset=utf-8'))),
     status, disclose('Review preview', preview), disclose('Generated Markdown source', raw));
 }
-
