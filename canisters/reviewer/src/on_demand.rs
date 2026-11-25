@@ -156,16 +156,21 @@ fn set_on_demand_caller(caller: Option<Principal>) -> Result<(), String> {
     Ok(())
 }
 
+fn require_on_demand_caller() -> Result<(), String> {
+    let caller = msg_caller();
+    if caller == Principal::anonymous()
+        || (!is_controller(&caller) && DELEGATE.get() != Some(caller))
+    {
+        return Err("on-demand access requires an authorized principal".into());
+    }
+    Ok(())
+}
+
 struct RequestGuard(u64);
 
 impl RequestGuard {
     fn acquire() -> Result<Self, String> {
-        let caller = msg_caller();
-        if caller == Principal::anonymous()
-            || (!is_controller(&caller) && DELEGATE.get() != Some(caller))
-        {
-            return Err("on-demand access requires an authorized principal".into());
-        }
+        require_on_demand_caller()?;
         let now = time();
         if BUSY_UNTIL.get() > now {
             return Err("another on-demand request is running".into());

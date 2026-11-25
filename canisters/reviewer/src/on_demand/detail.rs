@@ -2,18 +2,23 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use candid::{CandidType, Principal};
-use ic_cdk::api::performance_counter;
+use ic_cdk::api::{canister_liquid_cycle_balance, msg_arg_data, performance_counter};
+use nexus_domain::{Hash, sha256};
 use nexus_ic_sources::projection::RecordKey;
 use nexus_review_engine::{
-    DataCenter, MembershipComparison, Node, Operator, Record, TopologyEvidence, compare_membership,
-    data_center_key,
+    ANALYSIS_VERSION, DataCenter, MembershipComparison, Node, Operator, Record, TopologyEvidence,
+    compare_membership, data_center_key,
 };
 use serde::Deserialize;
 
-use super::{LiveError, LiveResponse, NODE_LIMIT, Request, RequestGuard, registry::Resolver};
-use crate::{Sources, review_records, store};
+use super::{
+    LiveError, LiveResponse, NODE_LIMIT, Request, RequestGuard, registry::Resolver,
+    require_on_demand_caller,
+};
+use crate::{Sources, budget::FLOOR, review_records, store};
 
 const PAGE_LIMIT: usize = 24;
+const COMPARISON_INPUT_BYTES: usize = 256 * 1024;
 
 #[derive(CandidType, Deserialize)]
 pub enum DetailKeys {
@@ -31,6 +36,9 @@ pub enum DetailRecords {
 
 #[derive(CandidType, Deserialize)]
 pub struct DetailComparisonInput {
+    pub registry_version: u64,
+    pub subnet: Principal,
+    pub preview_revision: Hash,
     pub before: Vec<Principal>,
     pub after: Vec<Principal>,
     pub kind: i32,
@@ -42,6 +50,9 @@ pub struct DetailComparisonInput {
 #[derive(CandidType, Deserialize)]
 pub struct LiveMembershipComparison {
     pub comparison: MembershipComparison,
+    /// Hash of the exact Candid argument bytes received by this update.
+    pub input_hash: Hash,
+    pub analysis_version: u16,
     pub instructions: u64,
 }
 
@@ -118,19 +129,43 @@ async fn read(
     }
 }
 
-/// Pure calculation. The result describes supplied evidence only. The initial
-/// scoped preview remains the authority for scenario and assignment checks.
-#[ic_cdk::query]
+fn comparison_ingress() -> Result<(), String> {
+    require_on_demand_caller()?;
+    if msg_arg_data().len() > COMPARISON_INPUT_BYTES {
+        return Err("comparison input exceeds 256 KiB".into());
+    }
+    Ok(())
+}
+
+fn version_matches<T>(record: &Record<T>, registry_version: u64) -> bool {
+    let stamp = match record {
+        Record::Present { stamp, .. } | Record::Deleted(stamp) => Some(stamp),
+        Record::Unavailable { stamp, .. } => stamp.as_ref(),
+        Record::Missing => None,
+    };
+    stamp.is_none_or(|stamp| (1..=registry_version).contains(&stamp.mutation_version))
+}
+
+/// Replicated calculation over caller-supplied evidence. The scoped preview
+/// and source receipts provide the scenario and Registry observations.
+#[ic_cdk::update(guard = "comparison_ingress")]
 fn compare_membership_details(
     input: DetailComparisonInput,
 ) -> Result<LiveMembershipComparison, String> {
+    let _guard = RequestGuard::acquire()?;
+    if canister_liquid_cycle_balance() < FLOOR {
+        return Err("insufficient liquid cycles for comparison".into());
+    }
     let DetailComparisonInput {
+        registry_version,
+        subnet,
         before,
         after,
         kind,
         nodes,
         operators,
         data_centers,
+        ..
     } = input;
     if before.len() > NODE_LIMIT
         || after.len() > NODE_LIMIT
@@ -142,6 +177,20 @@ fn compare_membership_details(
     {
         return Err("comparison supports up to 128 distinct members per state".into());
     }
+    if registry_version == 0
+        || subnet.as_slice().is_empty()
+        || nodes
+            .values()
+            .any(|row| !version_matches(row, registry_version))
+        || operators
+            .values()
+            .any(|row| !version_matches(row, registry_version))
+        || data_centers
+            .values()
+            .any(|row| !version_matches(row, registry_version))
+    {
+        return Err("comparison evidence is inconsistent with the pinned Registry version".into());
+    }
     let evidence = TopologyEvidence {
         nodes: &nodes,
         operators: &operators,
@@ -150,6 +199,8 @@ fn compare_membership_details(
     let comparison = compare_membership(&evidence, &before, &after, kind);
     Ok(LiveMembershipComparison {
         comparison,
+        input_hash: sha256(&msg_arg_data()),
+        analysis_version: ANALYSIS_VERSION,
         instructions: performance_counter(0),
     })
 }

@@ -1,4 +1,4 @@
-import { eligibility, geographyNote, proposalUrl, thresholdNote } from './detail-model.js';
+import { calculationNote, eligibility, geographyNote, proposalUrl, thresholdNote } from './detail-model.js';
 
 function escape(text) {
   return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -49,6 +49,11 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } =
     '## Sources', '- NNS Governance `get_proposal_info`, observations listed above.\n- NNS Registry `get_value` at version ' + model.version
     + '.\n- Natural Earth public-domain land outline.\n- ' + eligibility,
     ...model.payloads.map(value => '`' + value + '`'),
+  );
+  if (model.previewRevision) blocks.push('Membership preview revision `' + model.previewRevision + '`.');
+  if (model.calculation) blocks.push(
+    'Calculation input SHA-256 `' + model.calculation.inputHash + '` · analysis v' + model.calculation.analysis_version + '.',
+    calculationNote + ' The exact Candid input is available under Advanced detailed source evidence.',
   );
   return blocks.join('\n\n') + '\n';
 }

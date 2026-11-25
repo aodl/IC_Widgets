@@ -1,5 +1,5 @@
-import { liveError, result } from './client.js';
-import { geographyNote, reviewModel, thresholdNote } from './detail-model.js';
+import { compareMembership, liveError, result } from './client.js';
+import { calculationNote, geographyNote, reviewModel, thresholdNote } from './detail-model.js';
 import { reviewMap } from './review-map.js';
 import { reviewMarkdown } from './review-markdown.js';
 import { branch, el, option, principal, sourceReceipts, styled, table } from './view.js';
@@ -29,8 +29,8 @@ function disclose(label, ...children) {
   return el('details', el('summary', label), ...children);
 }
 
-function saveText(name, content) {
-  const url = URL.createObjectURL(new Blob([content], { type: 'text/markdown;charset=utf-8' }));
+function saveFile(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = el('a');
   anchor.href = url;
   anchor.download = name;
@@ -92,7 +92,7 @@ function markdownEditor(model, draft) {
           status.textContent = 'Select and copy the generated Markdown from the field.';
         }
       }
-    }), button('Download Markdown', () => saveText('proposal-' + model.ids.join('-') + '-review.md', raw.value))),
+    }), button('Download Markdown', () => saveFile('proposal-' + model.ids.join('-') + '-review.md', raw.value, 'text/markdown;charset=utf-8'))),
     status, disclose('Review preview', preview), disclose('Generated Markdown source', raw));
 }
 
@@ -180,14 +180,22 @@ export function mountMembershipDetails(actor, live, localReplica) {
   }
 
   async function calculate(client, context) {
-    const { evidence, before, state, rules } = context;
-    const calculated = result(await client.compare_membership_details({
+    if (active(context)) status.textContent = 'Waiting for the replicated comparison…';
+    const { before, state, rules, scenario, subnet } = context;
+    const evidence = {
+      Nodes: new Map(context.evidence.Nodes),
+      Operators: new Map(context.evidence.Operators),
+      DataCenters: new Map(context.evidence.DataCenters),
+    };
+    const calculated = await compareMembership(client, {
+      registry_version: version,
+      preview_revision: live.outcome.Ok.report.revision,
+      subnet: scenario.subnets.find(([id]) => principal(id) === subnet)[0],
       before: before.members, after: state.members, kind: rules.kind,
       nodes: [...evidence.Nodes.values()], operators: [...evidence.Operators.values()],
       data_centers: [...evidence.DataCenters.values()],
-    }));
-    context.comparison = calculated.comparison;
-    context.instructions = calculated.instructions;
+    });
+    context.calculation = { ...calculated, evidence };
   }
 
   async function start() {
@@ -239,20 +247,28 @@ export function mountMembershipDetails(actor, live, localReplica) {
 
   function refresh() {
     refreshStatus();
-    advanced.hidden = !selected?.receipts.length;
+    const calculation = selected?.calculation;
+    advanced.hidden = !selected?.receipts.length && !calculation;
     advanced.replaceChildren(el('summary', 'Advanced detailed source evidence'),
-      selected?.instructions ? el('p', 'Pure comparison: ' + selected.instructions + ' instructions; no Registry reads.') : null,
+      calculation ? el('div',
+        el('p', 'Replicated comparison · analysis v' + calculation.analysis_version + ' · ' + calculation.instructions + ' instructions'),
+        el('p', 'Calculation input SHA-256 ', el('code', calculation.inputHash)),
+        el('p', calculationNote),
+        button('Download calculation input (Candid)', () => saveFile(
+          'calculation-' + calculation.inputHash + '.didbin', calculation.bytes, 'application/octet-stream')),
+      ) : null,
       ...((selected?.receipts ?? []).map(([type, response]) => disclose(type + ' page', sourceReceipts(response)))));
     if (!selected) {
       output.replaceChildren(el('p', 'The selected scenario has no membership state to analyse.'));
       return;
     }
-    const { scenario, subnet, state, rules, comparison, evidence, failures } = selected;
-    const model = reviewModel(live, scenario, subnet, state, rules, comparison, evidence, failures);
+    const { scenario, subnet, state, rules, failures } = selected;
+    const model = reviewModel(live, scenario, subnet, state, rules, calculation?.comparison, calculation?.evidence ?? emptyEvidence(), failures);
+    if (calculation) model.calculation = calculation;
     if (localReplica) {
       model.notes.unshift('Local replica review. Observation times reflect the local reads; check the original source manifest when using captured evidence.');
     }
-    showComparison(output, model, draft, selected.done || model.members.some(node => node.point));
+    showComparison(output, model, draft, Boolean(calculation) && (selected.done || model.members.some(node => node.point)));
   }
 
   return { section, select(scenario, subnet, index, label) {

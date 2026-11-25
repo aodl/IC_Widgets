@@ -1,5 +1,6 @@
 // Run with Node after deploying fixture/reviewer/frontend to an isolated local DFX project.
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -50,15 +51,31 @@ try {
   const concentration = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Decentralisation and concentration', exact: true }) }).last();
   const row = concentration.getByRole('row').filter({ hasText: 'Registered data-center owner' });
   assert.match(await row.textContent(), /13 \/ 14 nodes → 12 \/ 14 nodes/);
+  const operator = concentration.getByRole('row').filter({ hasText: 'Node operator' });
+  assert.match(await operator.textContent(), /13 \/ 14 nodes → 12 \/ 14 nodes/);
+  const ownerCells = await row.getByRole('cell').allTextContents();
   await page.getByText('10.33 → 9.83', { exact: true }).first().waitFor();
   await page.getByText('3.2655 → 3.2078', { exact: true }).first().waitFor();
   await page.getByText(/The last member registered at zh2 leaves this subnet/).first().waitFor();
+  await page.getByText('Registered placement changes from zh2 to sh1.', { exact: true }).first().waitFor();
   await page.screenshot({ path: resolve(output, '144954-desktop.png'), fullPage: true });
+  await page.getByText('Advanced detailed source evidence', { exact: true }).click();
+  const inputPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download calculation input (Candid)' }).click();
+  const inputDownload = await inputPromise;
+  const inputPath = resolve(output, '144954-calculation.didbin');
+  await inputDownload.saveAs(inputPath);
+  const inputHash = createHash('sha256').update(await readFile(inputPath)).digest('hex');
+  assert.equal(inputDownload.suggestedFilename(), 'calculation-' + inputHash + '.didbin');
+  await page.getByText(inputHash, { exact: true }).waitFor();
+  await page.getByText('Advanced detailed source evidence', { exact: true }).click();
 
   const map = page.locator('.map-section');
   await map.scrollIntoViewIfNeeded();
   assert.ok(await map.locator('.map-pin').count() > 5);
   const changed = map.getByRole('button', { name: /Removed 1/ }).first();
+  await map.getByRole('button', { name: /Added 1.*sh1/ }).waitFor();
+  await map.getByRole('button', { name: /Retained [1-9]/ }).first().waitFor();
   await changed.focus();
   await page.keyboard.press('Enter');
   await map.getByText(/tg4ec-/).first().waitFor();
@@ -70,7 +87,9 @@ try {
   await map.getByLabel('Retained', { exact: true }).check();
   const mapPromise = page.waitForEvent('download');
   await map.getByRole('button', { name: 'Export map PNG' }).click();
-  await (await mapPromise).saveAs(resolve(output, '144954-map.png'));
+  const pngDownload = await mapPromise;
+  assert.match(pngDownload.suggestedFilename(), /144954.*66013/);
+  await pngDownload.saveAs(resolve(output, '144954-map.png'));
   const png = await readFile(resolve(output, '144954-map.png'));
   assert.equal(png.subarray(1, 4).toString(), 'PNG');
   assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 620]);
@@ -80,6 +99,9 @@ try {
   await page.getByLabel('VOTE', { exact: true }).fill('?');
   await page.getByLabel('TLDR', { exact: true }).fill(
     'Registry 66,013 supports the registered zh2 → sh1 swap in tdb26 (40 → 40 members). Data-center and registered-owner concentration rise, while assignments outside the checked subnet remain unverified. Original Governance capture: Open, 25 November 2026 at 13:08:13.589 UTC.');
+  if (process.env.VOTING_REVIEW_MAP_URL) {
+    await page.getByLabel('Uploaded map image URL (optional)', { exact: true }).fill(process.env.VOTING_REVIEW_MAP_URL);
+  }
   await page.getByText('Review preview', { exact: true }).click();
   await page.getByRole('heading', { name: 'Proposal #144954 Review' }).waitFor();
   const mdPromise = page.waitForEvent('download');
@@ -88,6 +110,8 @@ try {
   const md = await readFile(resolve(output, '144954-review.md'), 'utf8');
   assert.match(md, /\*\*VOTE\*\*: \?/);
   assert.match(md, /13 \/ 14 nodes → 12 \/ 14 nodes/);
+  assert.ok(md.includes(ownerCells.join(' | ')));
+  assert.ok(md.includes(inputHash));
   assert.match(md, /Everyware/);
   assert.match(md, /Reproduced with node operator as sixth dimension/);
   assert.match(md, /Local replica review/);
@@ -107,8 +131,11 @@ try {
   const phase = page.getByLabel('Membership state', { exact: true });
   await phase.selectOption('0');
   await page.getByText('40 → 40 members (0 added, 0 removed, 40 retained)', { exact: true }).first().waitFor();
+  assert.equal(await page.getByRole('heading', { name: 'World map', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('heading', { name: 'Decentralisation and concentration', exact: true }).count(), 0);
   await phase.selectOption('1');
   await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).first().waitFor();
+  await map.getByRole('button', { name: /Added 1.*sh1/ }).waitFor();
   await page.setViewportSize({ width: 400, height: 830 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   await page.screenshot({ path: resolve(output, '144954-mobile.png'), fullPage: true });
@@ -125,6 +152,7 @@ try {
   assert.deepEqual(errors, []);
   assert.ok([...hosts].every(host => host.endsWith('localhost') || host === '127.0.0.1'));
   console.log(JSON.stringify({ previewMs, detailMs, mapBytes: png.length, markdownBytes: Buffer.byteLength(md),
+    inputHash,
     desktopWidth: 1360, mobileWidth: 400, keyboard: true, localRequestsOnly: true, independentPerformance: true }, null, 2));
 } finally {
   await browser.close();

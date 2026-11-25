@@ -579,7 +579,7 @@ fn membership_preview_finishes_while_data_center_metadata_is_delayed() {
 fn voting_detail_replays_the_66013_registry() {
     use std::collections::BTreeMap;
 
-    use nexus_review_engine::{Dimension, Group, Record};
+    use nexus_review_engine::{ANALYSIS_VERSION, Dimension, Group, Record};
     use nexus_reviewer::{
         DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison,
     };
@@ -738,10 +738,11 @@ fn voting_detail_replays_the_66013_registry() {
         data_centers.extend(batch.iter().cloned().zip(records));
     }
     assert!(matches!(nodes[&after.removed[0]], Record::Present { .. }));
-    let compare = |data_centers| {
-        let wall = Instant::now();
-        let balance = pic.cycle_balance(reviewer);
-        let args = encode_one(DetailComparisonInput {
+    let args_for = |registry_version, data_centers| {
+        encode_one(DetailComparisonInput {
+            registry_version,
+            subnet,
+            preview_revision: preview.report.revision,
             before: before.members.clone(),
             after: after.members.clone(),
             kind: subnet_rules.kind,
@@ -749,10 +750,67 @@ fn voting_detail_replays_the_66013_registry() {
             operators: operators.clone(),
             data_centers,
         })
-        .unwrap();
+        .unwrap()
+    };
+    let caller = id(90, 2);
+    let full_args = args_for(66_013, data_centers);
+    for unapproved in [Principal::anonymous(), caller] {
+        let rejected = pic
+            .update_call(
+                reviewer,
+                unapproved,
+                "compare_membership_details",
+                full_args.clone(),
+            )
+            .unwrap_err();
+        assert!(format!("{rejected:?}").contains("requires an authorized principal"));
+    }
+    assert!(
+        pic.query_call(
+            reviewer,
+            controller,
+            "compare_membership_details",
+            full_args.clone()
+        )
+        .is_err()
+    );
+    call::<Result<(), String>>(
+        &pic,
+        reviewer,
+        controller,
+        "set_on_demand_caller",
+        encode_one(Some(caller)).unwrap(),
+    )
+    .unwrap();
+    let mut too_large = full_args.clone();
+    too_large.resize(256 * 1024 + 1, 0);
+    let rejected = pic
+        .update_call(reviewer, caller, "compare_membership_details", too_large)
+        .unwrap_err();
+    assert!(format!("{rejected:?}").contains("exceeds 256 KiB"));
+    let wrong_version: Result<LiveMembershipComparison, String> = call(
+        &pic,
+        reviewer,
+        caller,
+        "compare_membership_details",
+        args_for(1, BTreeMap::new()),
+    );
+    assert!(
+        wrong_version
+            .err()
+            .unwrap()
+            .contains("pinned Registry version")
+    );
+
+    let compare = |args: Vec<u8>| {
+        let wall = Instant::now();
+        let balance = pic.cycle_balance(reviewer);
+        let expected = sha256(&args);
         let raw = pic
-            .query_call(reviewer, controller, "compare_membership_details", args)
+            .update_call(reviewer, caller, "compare_membership_details", args)
             .unwrap();
+        assert_eq!(summary.input_hash, expected);
+        assert_eq!(summary.analysis_version, ANALYSIS_VERSION);
         let summary = decode_one::<Result<LiveMembershipComparison, String>>(&raw)
             .unwrap()
             .unwrap();
@@ -763,9 +821,11 @@ fn voting_detail_replays_the_66013_registry() {
             summary.instructions,
             balance - pic.cycle_balance(reviewer)
         );
-        summary.comparison
+        summary
     };
-    let full = compare(data_centers);
+    let full = compare(full_args);
+    let full_hash = full.input_hash;
+    let full = full.comparison;
     for (dimension, counts, largest, coefficients) in [
         (Dimension::RegisteredContinent, [6, 6], [17, 17], [1, 1]),
         (Dimension::RegisteredCountry, [24, 24], [3, 3], [5, 5]),
@@ -852,7 +912,9 @@ fn voting_detail_replays_the_66013_registry() {
         assert_eq!(row.mean_metres, Some(mean));
         assert_eq!(row.maximum_metres, Some(19_461_421));
     }
-    let partial = compare(BTreeMap::new());
+    let partial = compare(args_for(66_013, BTreeMap::new()));
+    assert_ne!(full_hash, partial.input_hash);
+    let partial = partial.comparison;
     assert_eq!(partial.selected.distances.valid_pairs, 0);
     assert_eq!(
         partial.selected.distributions[&Dimension::RegisteredCountry].unknown,

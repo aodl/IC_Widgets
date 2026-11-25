@@ -54,9 +54,12 @@ type DataCenter = record {
 type DetailComparisonInput = record {
   after : vec principal;
   kind : int32;
+  registry_version : nat64;
+  subnet : principal;
   before : vec principal;
   nodes : vec record { principal; Record };
   operators : vec record { principal; Record_1 };
+  preview_revision : blob;
   data_centers : vec record { text; Record_2 };
 };
 type DetailKeys = variant {
@@ -241,6 +244,9 @@ type LiveError = variant {
 type LiveMembershipComparison = record {
   comparison : MembershipComparison;
   instructions : nat64;
+  // Hash of the exact Candid argument bytes received by this update.
+  input_hash : blob;
+  analysis_version : nat16;
 };
 type LivePerformance = record {
   start_at_timestamp_nanos : nat64;
@@ -955,9 +961,9 @@ service : (opt Sources) -> {
   authorize_verification : (nat64, Limits) -> (Result_1);
   capture_proposal : (nat64) -> (Result_1);
   collection_status : () -> (Result_2);
-  // Pure calculation. The result describes supplied evidence only. The initial
-  // scoped preview remains the authority for scenario and assignment checks.
-  compare_membership_details : (DetailComparisonInput) -> (Result_3) query;
+  // Replicated calculation over caller-supplied evidence. The scoped preview
+  // and source receipts provide the scenario and Registry observations.
+  compare_membership_details : (DetailComparisonInput) -> (Result_3);
   configure_collection : (opt Limits) -> (Result_1);
   configure_collection_storage : (opt nat64) -> (Result_1);
   configure_registry_limits : (RegistryLimits) -> (Result_1);

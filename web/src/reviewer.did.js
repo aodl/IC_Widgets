@@ -202,9 +202,12 @@ export const idlFactory = ({ IDL }) => {
   const DetailComparisonInput = IDL.Record({
     'after' : IDL.Vec(IDL.Principal),
     'kind' : IDL.Int32,
+    'registry_version' : IDL.Nat64,
+    'subnet' : IDL.Principal,
     'before' : IDL.Vec(IDL.Principal),
     'nodes' : IDL.Vec(IDL.Tuple(IDL.Principal, Record)),
     'operators' : IDL.Vec(IDL.Tuple(IDL.Principal, Record_1)),
+    'preview_revision' : IDL.Vec(IDL.Nat8),
     'data_centers' : IDL.Vec(IDL.Tuple(IDL.Text, Record_2)),
   });
   const Distances = IDL.Record({
@@ -261,6 +264,8 @@ export const idlFactory = ({ IDL }) => {
   const LiveMembershipComparison = IDL.Record({
     'comparison' : MembershipComparison,
     'instructions' : IDL.Nat64,
+    'input_hash' : IDL.Vec(IDL.Nat8),
+    'analysis_version' : IDL.Nat16,
   });
   const Result_3 = IDL.Variant({
     'Ok' : LiveMembershipComparison,
@@ -1075,7 +1080,7 @@ export const idlFactory = ({ IDL }) => {
     'compare_membership_details' : IDL.Func(
         [DetailComparisonInput],
         [Result_3],
-        ['query'],
+        [],
       ),
     'configure_collection' : IDL.Func([IDL.Opt(Limits)], [Result_1], []),
     'configure_collection_storage' : IDL.Func(

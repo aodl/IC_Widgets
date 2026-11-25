@@ -14,6 +14,7 @@ const names = {
   RegisteredArea: 'Registered area (locality label)',
 };
 export const eligibility = 'Registration and hardware fields describe Registry entries. They provide no health, uptime, hardware attestation, or proof of decommissioning.';
+export const calculationNote = 'The reviewer canister calculated the result in a replicated update over the submitted Candid input. The digest identifies those exact bytes. Registry and Governance observations provide the separate source evidence.';
 export const thresholdNote = 'The Nakamoto coefficient counts the fewest groups that together exceed one third of the subnet. The separate f + 1 column uses f = floor((members − 1)/3). A coefficient requires complete coverage for that dimension. Registered ownership labels do not establish common control.';
 export const geographyNote = 'Distances use great-circle distances between registered data-center coordinates, weighted by node pairs. Pairs at the same coordinate count as zero. Missing coordinates are excluded and coverage is shown. Registered locations do not establish physical location or network latency.';
 const lifecycle = { 1: 'Open', 2: 'Rejected', 3: 'Adopted', 4: 'Executed', 5: 'Failed' };
@@ -53,7 +54,9 @@ export function memberEvidence(evidence, id, role) {
   const dc = operator?.data_center.toLowerCase() || undefined;
   const dcRecord = evidence.DataCenters.get(dc)?.[1];
   const center = value(dcRecord);
-  const point = option(center?.coordinates ?? []);
+  const coordinates = option(center?.coordinates ?? []);
+  const point = coordinates && Math.abs(coordinates.latitude_e7) <= 900_000_000
+    && Math.abs(coordinates.longitude_e7) <= 1_800_000_000 ? coordinates : undefined;
   const reward = option(node?.reward_type ?? []);
   const missing = [
     !node && 'node record ' + recordStatus(nodeRecord).toLowerCase(),
@@ -220,6 +223,9 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
       if (known && newShare > oldShare) consequences.push(row.label + ' largest share rises from ' + share(option(row.before.largest), comparison.baseline.member_count) + ' to ' + share(option(row.after.largest), selected.member_count) + '.');
     });
     const dc = dimensions.find(row => row.key === 'DataCenter');
+    if (selected.removed.length === 1 && selected.added.length === 1 && members[0].dc && members[1].dc && members[0].dc !== members[1].dc) {
+      consequences.unshift('Registered placement changes from ' + members[0].dc + ' to ' + members[1].dc + '.');
+    }
     if (!dc.before.unknown && !dc.after.unknown) {
       for (const row of dc.changes.filter(row => row.was > 0 && row.now === 0)) {
         consequences.push('The last member registered at ' + row.label + ' leaves this subnet in the selected state. This is scoped to the subnet.');
@@ -244,6 +250,7 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
       ],
     });
     if (dimensions.some(row => row.before.unknown || row.after.unknown)) notes.push('Some group assignments are unknown. Known counts and shares can understate concentrations.');
+    if (db.unknown_nodes || da.unknown_nodes) notes.push('Geographic distances describe the mapped pairs only. Coordinates are missing for some members.');
     const text = option(live.outcome.Ok.proposal_text ?? [])?.find(p => String(p.id) === ids[0]);
     const claimsMatchScope = ids.length === 1 && selected.added.length + selected.removed.length > 0
       && scenario.steps[0].requested.Change?.subnet.toText() === subnet;
@@ -259,7 +266,7 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
   if (!comparison) notes.push('Detailed Registry calculations have not loaded.');
   if (rules) notes.push('Subnet type ' + (kinds[rules.kind] ?? rules.kind) + '. SEV ' + (rules.sev_enabled ? 'enabled; registered chip identity required by the modeled check.' : 'disabled at the pinned baseline.'));
   notes.push(eligibility);
-  if (failures.length) notes.push('Detailed source pages unavailable (' + failures.length + '). Affected fields remain unknown.');
+  if (failures.length) notes.push('Detailed analysis encountered ' + failures.length + ' errors. Figures reflect the last accepted calculation and its evidence coverage.');
   for (const role of ['Added', 'Removed', 'Retained']) tables.push({
     title: role + ' nodes',
     headers: ['Node', 'Data center', 'Registered owner', 'Registered region', 'Provider', 'Operator', 'Reward type', 'SEV chip ID', 'Evidence gaps'],
@@ -269,7 +276,7 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
   return {
     ids, subnet, subnetLink: link(subnet, registryUrl('subnet', subnet)), version, membership,
     scenario: scenarioLabel(scenario.id), notes, dimensions, consequences, members, tables, claim,
-    stateLabel: state.label,
+    stateLabel: state.label, previewRevision: hex(report.revision),
     payloads: proposals.filter(p => ids.includes(String(p.id))).map(p => '#' + p.id + ' SHA-256 ' + hex(p.payload_hash)),
   };
 }
