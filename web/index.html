@@ -23,10 +23,11 @@
       </form>
       <details>
         <summary>Pilot access</summary>
-        <p>A controller can authorize this browser tab’s principal for source reads.</p>
+        <p>Share this principal with the pilot operator. Keep this tab open after authorization. Reloading creates a new principal.</p>
         <code id="browser-principal"></code>
       </details>
       <p id="report-status" class="status" role="status"></p>
+      <progress id="review-progress" aria-label="Review in progress" hidden></progress>
     </section>
     <div id="report"></div>
     <section class="card" id="performance" aria-labelledby="performance-heading">

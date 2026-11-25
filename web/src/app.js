@@ -5,6 +5,7 @@ import { branch, el, principal, renderScenario, reviewHeader, scenarioLabel, sou
 const search = document.querySelector('#search');
 const submit = search.querySelector('button');
 const reportStatus = document.querySelector('#report-status');
+const reviewProgress = document.querySelector('#review-progress');
 const reportContainer = document.querySelector('#report');
 document.querySelector('#local-notice').hidden = !LOCAL_REPLICA;
 document.querySelector('#browser-principal').textContent = identity.getPrincipal().toText();
@@ -38,10 +39,13 @@ search.addEventListener('submit', async event => {
   event.preventDefault();
   if (submit.disabled) return;
   submit.disabled = true;
+  submit.textContent = 'Reviewing…';
+  reviewProgress.hidden = false;
+  reportContainer.setAttribute('aria-busy', 'true');
   reportContainer.replaceChildren();
   try {
     const ids = idsForSearch();
-    showStatus('Reading Governance and pinned Registry evidence…');
+    showStatus('Reading Governance and pinned Registry evidence. A targeted review can take about 30 seconds.');
     const live = result(await (await actor()).review_on_demand(ids));
     if ('Err' in live.outcome) {
       showStatus(liveError(live.outcome.Err), true);
@@ -54,6 +58,9 @@ search.addEventListener('submit', async event => {
     showStatus(error.message, true);
   } finally {
     submit.disabled = false;
+    submit.textContent = 'Review';
+    reviewProgress.hidden = true;
+    reportContainer.setAttribute('aria-busy', 'false');
   }
 });
 
