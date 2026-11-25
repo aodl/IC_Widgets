@@ -73,15 +73,24 @@ function markdownEditor(model, draft) {
   return styled('section', 'detail-section', el('h3', 'Review Markdown'),
     styled('div', 'markdown-fields', el('label', 'VOTE', vote), el('label', 'TLDR', tldr),
       el('label', 'Uploaded map image URL (optional)', mapImage)),
-    styled('div', 'actions', button('Copy Markdown', async () => {
+    styled('div', 'actions', button('Copy Markdown', async event => {
+      const copyButton = event.currentTarget;
       try {
         await navigator.clipboard.writeText(raw.value);
         status.textContent = 'Review Markdown copied.';
       } catch {
-        raw.closest('details').open = true;
+        const source = raw.closest('details');
+        const wasOpen = source.open;
+        source.open = true;
         raw.focus();
         raw.select();
-        status.textContent = 'Select and copy the generated Markdown from the field.';
+        if (document.execCommand('copy')) {
+          source.open = wasOpen;
+          copyButton.focus();
+          status.textContent = 'Review Markdown copied.';
+        } else {
+          status.textContent = 'Select and copy the generated Markdown from the field.';
+        }
       }
     }), button('Download Markdown', () => saveText('proposal-' + model.ids.join('-') + '-review.md', raw.value))),
     status, disclose('Review preview', preview), disclose('Generated Markdown source', raw));
@@ -117,7 +126,7 @@ function showComparison(container, model, draft, comparisonReady) {
 
 // Request-local browser state indexed by the selected comparison. It is discarded
 // on a new preview, and no stale response may update another scenario.
-export function mountMembershipDetails(actor, live) {
+export function mountMembershipDetails(actor, live, localReplica) {
   const section = styled('section', 'card', el('h2', 'Detailed consequences'));
   const status = styled('p', 'status');
   status.setAttribute('role', 'status');
@@ -240,6 +249,9 @@ export function mountMembershipDetails(actor, live) {
     }
     const { scenario, subnet, state, rules, comparison, evidence, failures } = selected;
     const model = reviewModel(live, scenario, subnet, state, rules, comparison, evidence, failures);
+    if (localReplica) {
+      model.notes.unshift('Local replica review. Observation times reflect the local reads; check the original source manifest when using captured evidence.');
+    }
     showComparison(output, model, draft, selected.done || model.members.some(node => node.point));
   }
 

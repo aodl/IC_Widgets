@@ -79,7 +79,7 @@ try {
 
   await page.getByLabel('VOTE', { exact: true }).fill('?');
   await page.getByLabel('TLDR', { exact: true }).fill(
-    'Registry 66,013 supports the registered zh2 → sh1 swap in tdb26 (40 → 40 members). Data-center and registered-owner concentration rise, while assignments outside the checked subnet remain unverified.');
+    'Registry 66,013 supports the registered zh2 → sh1 swap in tdb26 (40 → 40 members). Data-center and registered-owner concentration rise, while assignments outside the checked subnet remain unverified. Original Governance capture: Open, 25 November 2026 at 13:08:13.589 UTC.');
   await page.getByText('Review preview', { exact: true }).click();
   await page.getByRole('heading', { name: 'Proposal #144954 Review' }).waitFor();
   const mdPromise = page.waitForEvent('download');
@@ -90,10 +90,19 @@ try {
   assert.match(md, /13 \/ 14 nodes → 12 \/ 14 nodes/);
   assert.match(md, /Everyware/);
   assert.match(md, /Reproduced with node operator as sixth dimension/);
+  assert.match(md, /Local replica review/);
   assert.match(md, /Assignments outside the checked subnets remain unverified/);
   await page.getByRole('button', { name: 'Copy Markdown' }).click();
   await page.getByText('Review Markdown copied.').waitFor();
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), md);
+  await page.evaluate(() => {
+    const input = document.createElement('textarea');
+    input.id = 'clipboard-check';
+    document.body.append(input);
+    input.focus();
+  });
+  await page.keyboard.press('Control+V');
+  assert.equal(await page.locator('#clipboard-check').inputValue(), md);
+  await page.locator('#clipboard-check').evaluate(node => node.remove());
 
   const phase = page.getByLabel('Membership state', { exact: true });
   await phase.selectOption('0');

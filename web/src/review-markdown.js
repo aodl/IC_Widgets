@@ -1,9 +1,5 @@
 import { eligibility, geographyNote, proposalUrl, thresholdNote } from './detail-model.js';
 
-export function cellLabel(cell) {
-  return cell && typeof cell === 'object' ? cell.label : String(cell);
-}
-
 function escape(text) {
   return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     .replace(/[\\`*_{}\[\]|]/g, '\\$&').replace(/\r?\n/g, ' ');

@@ -135,9 +135,11 @@ export function reviewMap(model) {
         ctx.textAlign = 'center';
         ctx.fillText(String(cluster.nodes.length), x, y + 5);
         if (main !== 'Retained') {
+          const changed = visible.filter(role => role !== 'Retained').map(role => role + ' · ' +
+            [...new Set(cluster.nodes.filter(node => node.role === role).map(node => node.dc))].join(', ')).join(' / ');
           ctx.textAlign = x < W - 70 ? 'left' : 'right';
           ctx.fillStyle = '#132637';
-          ctx.fillText(site, x + (x < W - 70 ? 20 : -20), y - 13, 125);
+          ctx.fillText(changed, x + (x < W - 70 ? 20 : -20), y - 13, 180);
         }
       } else {
         const marker = action(cluster.nodes.length, () => identify(cluster));

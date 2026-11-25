@@ -82,7 +82,7 @@ function renderReport(live) {
   const [subnetLabel, subnetSelect] = selectControl('Subnet', []);
   const [stateLabel, stateSelect] = selectControl('Membership state', []);
   const overview = el('div');
-  const detail = mountMembershipDetails(actor, live);
+  const detail = mountMembershipDetails(actor, live, LOCAL_REPLICA);
   const link = el('button', 'Use this scope in Node Performance');
   link.type = 'button';
   let scenario;
