@@ -1,4 +1,5 @@
 import { connect, identity, liveError, result } from './client.js';
+import { mountMembershipDetails } from './membership-details.js';
 import { mountPerformance } from './performance.js';
 import { branch, el, principal, renderScenario, reviewHeader, scenarioLabel, sourceReceipts, styled } from './view.js';
 
@@ -81,6 +82,7 @@ function renderReport(live) {
   const [subnetLabel, subnetSelect] = selectControl('Subnet', []);
   const [stateLabel, stateSelect] = selectControl('Membership state', []);
   const overview = el('div');
+  const detail = mountMembershipDetails(actor, live);
   const link = el('button', 'Use this scope in Node Performance');
   link.type = 'button';
   let scenario;
@@ -113,7 +115,11 @@ function renderReport(live) {
     updateStateOptions();
   }
 
-  function draw() { renderScenario(report, scenario, subnetSelect.value, Number(stateSelect.value), overview); }
+  function draw() {
+    const index = Number(stateSelect.value);
+    renderScenario(report, scenario, subnetSelect.value, index, overview);
+    detail.select(scenario, subnetSelect.value, index, stateSelect.selectedOptions[0]?.text ?? '');
+  }
 
   scenarioSelect.addEventListener('change', updateScenario);
   subnetSelect.addEventListener('change', updateStateOptions);
@@ -124,6 +130,7 @@ function renderReport(live) {
     styled('section', 'card', el('h2', 'Membership'),
       styled('div', 'controls', scenarioLabelControl, subnetLabel, stateLabel), overview, link,
       sourceReceipts(live)),
+    detail.section,
   );
   updateScenario();
 }

@@ -540,3 +540,285 @@ fn membership_preview_finishes_while_data_center_metadata_is_delayed() {
     );
     assert!(!pic.await_call(delayed).unwrap().is_empty());
 }
+
+#[test]
+#[ignore = "run through scripts/test-m0.sh to build Wasms and start PocketIC"]
+fn voting_detail_replays_the_66013_registry() {
+    use std::collections::BTreeMap;
+
+    use nexus_review_engine::{Dimension, Group, Record};
+    use nexus_reviewer::{
+        DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison,
+    };
+
+    assert!(enabled());
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+    let controller = id(90, 1);
+    let fixture =
+        pic.create_canister_on_subnet(Some(controller), None, pic.topology().get_nns().unwrap());
+    let reviewer =
+        pic.create_canister_on_subnet(Some(controller), None, pic.topology().get_app_subnets()[0]);
+    pic.install_canister(
+        fixture,
+        wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
+        encode_args(()).unwrap(),
+        Some(controller),
+    );
+    pic.install_canister(
+        reviewer,
+        wasm(".local/reviewer-fixture.wasm"),
+        encode_one(Some(Sources {
+            registry: fixture,
+            governance: fixture,
+        }))
+        .unwrap(),
+        Some(controller),
+    );
+    call::<()>(
+        &pic,
+        fixture,
+        controller,
+        "load_voting_reference",
+        encode_args(()).unwrap(),
+    );
+    let response = review(&pic, reviewer, controller, &[144_954]);
+    assert_eq!(response.registry_version, Some(66_013));
+    assert_eq!(response.usage.calls, 9);
+    let preview = response.outcome.unwrap();
+    assert_eq!(
+        (preview.listed_subnets, preview.total_listed_subnets),
+        (1, Some(96))
+    );
+    assert!(preview.report.scenarios[0].completed);
+    let (&subnet, states) = preview.report.scenarios[0]
+        .subnets
+        .first_key_value()
+        .unwrap();
+    let before = &states.baseline;
+    let after = states.after_steps[0].as_ref().unwrap();
+    assert_eq!(
+        (
+            before.member_count,
+            after.member_count,
+            after.retained.len()
+        ),
+        (40, 40, 39)
+    );
+    assert_eq!(
+        after.added[0].to_text(),
+        "kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe"
+    );
+    assert_eq!(
+        after.removed[0].to_text(),
+        "tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe"
+    );
+    assert!(preview.assignments.contains(&(
+        after.added[0],
+        CandidateAssignment::UnknownOutsideListedSubnets
+    )));
+    assert!(
+        preview.proposal_text.unwrap()[0]
+            .summary
+            .contains("Decommissioning of DC zh2")
+    );
+    let subnet_rules = preview
+        .subnet_rules
+        .unwrap()
+        .into_iter()
+        .find(|row| row.subnet == subnet)
+        .unwrap();
+    let read = |keys, label| {
+        let wall = Instant::now();
+        let balance = pic.cycle_balance(reviewer);
+        let raw = pic
+            .update_call(
+                reviewer,
+                controller,
+                "membership_detail_page",
+                encode_args((66_013u64, keys)).unwrap(),
+            )
+            .unwrap();
+        let response = decode_one::<Result<LiveResponse<DetailRecords>, String>>(&raw)
+            .unwrap()
+            .unwrap();
+        println!(
+            "detail {label}: {} calls, {} source bytes, {} Candid bytes, {} ms wall, {} instructions, {} settled cycles, {} peak batch reservation",
+            response.usage.calls,
+            response.usage.source_bytes,
+            raw.len(),
+            wall.elapsed().as_millis(),
+            response.usage.instructions,
+            balance - pic.cycle_balance(reviewer),
+            response.usage.peak_batch_reservation,
+        );
+        assert_eq!(response.registry_version, Some(66_013));
+        assert_eq!(response.usage.calls as usize, response.receipts.len());
+        assert!(response.receipts.iter().all(|r| r.method == "get_value"));
+        response.outcome.unwrap()
+    };
+    let node_ids: Vec<_> = before
+        .members
+        .iter()
+        .chain(&after.members)
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let mut nodes = BTreeMap::new();
+    for batch in node_ids.chunks(24) {
+        let DetailRecords::Nodes(records) = read(DetailKeys::Nodes(batch.to_vec()), "nodes") else {
+            panic!()
+        };
+        nodes.extend(batch.iter().copied().zip(records));
+    }
+    let operator_ids: Vec<_> = nodes
+        .values()
+        .filter_map(|row| row.value()?.operator)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let mut operators = BTreeMap::new();
+    for batch in operator_ids.chunks(24) {
+        let DetailRecords::Operators(records) =
+            read(DetailKeys::Operators(batch.to_vec()), "operators")
+        else {
+            panic!()
+        };
+        operators.extend(batch.iter().copied().zip(records));
+    }
+    let dc_ids: Vec<_> = operators
+        .values()
+        .filter_map(|row| nexus_review_engine::data_center_key(&row.value()?.data_center))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let mut data_centers = BTreeMap::new();
+    for batch in dc_ids.chunks(24) {
+        let DetailRecords::DataCenters(records) =
+            read(DetailKeys::DataCenters(batch.to_vec()), "data centers")
+        else {
+            panic!()
+        };
+        data_centers.extend(batch.iter().cloned().zip(records));
+    }
+    assert!(matches!(nodes[&after.removed[0]], Record::Present { .. }));
+    let compare = |data_centers| {
+        let wall = Instant::now();
+        let balance = pic.cycle_balance(reviewer);
+        let args = encode_one(DetailComparisonInput {
+            before: before.members.clone(),
+            after: after.members.clone(),
+            kind: subnet_rules.kind,
+            nodes: nodes.clone(),
+            operators: operators.clone(),
+            data_centers,
+        })
+        .unwrap();
+        let raw = pic
+            .query_call(reviewer, controller, "compare_membership_details", args)
+            .unwrap();
+        let summary = decode_one::<Result<LiveMembershipComparison, String>>(&raw)
+            .unwrap()
+            .unwrap();
+        println!(
+            "comparison: 0 source calls, 0 source bytes, {} Candid bytes, {} ms wall, {} instructions, {} settled cycles",
+            raw.len(),
+            wall.elapsed().as_millis(),
+            summary.instructions,
+            balance - pic.cycle_balance(reviewer)
+        );
+        summary.comparison
+    };
+    let full = compare(data_centers);
+    let group = |dimension, label: &str| {
+        let key = Group::RegisteredLabel(label.into());
+        (
+            full.baseline.distributions[&dimension]
+                .groups
+                .get(&key)
+                .copied()
+                .unwrap_or(0),
+            full.selected.distributions[&dimension]
+                .groups
+                .get(&key)
+                .copied()
+                .unwrap_or(0),
+        )
+    };
+    assert_eq!(group(Dimension::DataCenter, "zh2"), (1, 0));
+    assert_eq!(group(Dimension::DataCenter, "sh1"), (2, 3));
+    assert_eq!(group(Dimension::RegisteredOwner, "Everyware"), (1, 0));
+    assert_eq!(group(Dimension::RegisteredOwner, "Digital Realty"), (2, 3));
+    for dimension in [Dimension::DataCenter, Dimension::RegisteredOwner] {
+        let scores = [&full.baseline, &full.selected].map(|state| {
+            state.distributions[&dimension]
+                .greater_than_one_third
+                .as_ref()
+                .unwrap()
+                .groups_to_reach
+        });
+        assert_eq!(scores, [Some(13), Some(12)]);
+    }
+    for (dimension, after) in &full.selected.distributions {
+        let before = &full.baseline.distributions[dimension];
+        println!(
+            "{dimension:?}: groups {} -> {}, largest {:?} -> {:?}, >1/3 {:?} -> {:?}, unknown {} -> {}",
+            before.groups.len(),
+            after.groups.len(),
+            before.largest,
+            after.largest,
+            before.greater_than_one_third,
+            after.greater_than_one_third,
+            before.unknown,
+            after.unknown
+        );
+    }
+    println!(
+        "distance: {:?} -> {:?}",
+        full.baseline.distances, full.selected.distances
+    );
+    assert_eq!(full.baseline.distances.total_pairs, 780);
+    assert_eq!(full.selected.distances.total_pairs, 780);
+    let partial = compare(BTreeMap::new());
+    assert_eq!(partial.selected.distances.valid_pairs, 0);
+    assert_eq!(
+        partial.selected.distributions[&Dimension::RegisteredCountry].unknown,
+        40
+    );
+    assert!(
+        partial.selected.distributions[&Dimension::RegisteredOwner]
+            .greater_than_one_third
+            .as_ref()
+            .unwrap()
+            .groups_to_reach
+            .is_none()
+    );
+    assert_eq!(
+        partial.selected.distributions[&Dimension::DataCenter],
+        full.selected.distributions[&Dimension::DataCenter]
+    );
+    assert_eq!(
+        partial.selected.distributions[&Dimension::Provider],
+        full.selected.distributions[&Dimension::Provider]
+    );
+
+    let malformed: Result<LiveResponse<DetailRecords>, String> = call(
+        &pic,
+        reviewer,
+        controller,
+        "membership_detail_page",
+        encode_args((66_013u64, DetailKeys::Nodes(vec![after.added[0]; 25]))).unwrap(),
+    );
+    assert!(malformed.is_err());
+    let denied: Result<LiveResponse<DetailRecords>, String> = call(
+        &pic,
+        reviewer,
+        Principal::anonymous(),
+        "membership_detail_page",
+        encode_args((66_013u64, DetailKeys::Nodes(after.added.clone()))).unwrap(),
+    );
+    assert!(denied.is_err());
+}

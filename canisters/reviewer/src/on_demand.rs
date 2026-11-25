@@ -1,7 +1,10 @@
 //! Bounded, request-local source reads. No archive or collector participates.
+mod detail;
 mod registry;
 
 use std::{cell::Cell, collections::BTreeSet};
+
+pub use detail::{DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison};
 
 use candid::{CandidType, Principal, encode_one};
 use futures_util::future::join_all;
@@ -108,6 +111,23 @@ pub struct LiveReview {
     pub total_listed_subnets: Option<u32>,
     pub assignments: Vec<(Principal, CandidateAssignment)>,
     pub scopes: Vec<LiveScope>,
+    pub proposal_text: Option<Vec<ProposalText>>,
+    pub subnet_rules: Option<Vec<SubnetRules>>,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct SubnetRules {
+    pub subnet: Principal,
+    pub kind: i32,
+    pub sev_enabled: bool,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct ProposalText {
+    pub id: u64,
+    pub title: Option<String>,
+    pub summary: String,
+    pub truncated: bool,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -209,7 +229,7 @@ async fn review(
     let initial = proposals(request, sources.governance, ids).await?;
     let instructions = initial
         .iter()
-        .map(|proposal| {
+        .map(|(proposal, _)| {
             let (adds, removes) = requested_nodes(&proposal.action);
             adds.len() + removes.len()
         })
@@ -217,7 +237,12 @@ async fn review(
     if instructions > 2 * NODE_LIMIT {
         return Err(LiveError::CallLimit);
     }
-    let (baseline, assignments) = registry::resolve(request, sources.registry, &initial).await?;
+    let initial_proposals: Vec<_> = initial
+        .iter()
+        .map(|(proposal, _)| proposal.clone())
+        .collect();
+    let (baseline, assignments) =
+        registry::resolve(request, sources.registry, &initial_proposals).await?;
     let roster = baseline.roster.value().expect("resolved roster");
     let listed_subnets = roster
         .iter()
@@ -227,7 +252,7 @@ async fn review(
 
     // A status or action can change while Registry reads are in flight.
     let current = proposals(request, sources.governance, ids).await?;
-    for (before, after) in initial.iter().zip(&current) {
+    for ((before, _), (after, _)) in initial.iter().zip(&current) {
         let before = &before.evidence;
         let after = &after.evidence;
         if before.lifecycle_status != after.lifecycle_status
@@ -243,6 +268,18 @@ async fn review(
             });
         }
     }
+    let subnet_rules = baseline
+        .subnets
+        .iter()
+        .filter_map(|(&subnet, record)| {
+            record.value().map(|row| SubnetRules {
+                subnet,
+                kind: row.kind,
+                sev_enabled: row.sev_enabled,
+            })
+        })
+        .collect();
+    let (current, proposal_text): (Vec<_>, Vec<_>) = current.into_iter().unzip();
     let input = ReviewInput::build_membership(
         baseline,
         current
@@ -270,6 +307,8 @@ async fn review(
         total_listed_subnets,
         assignments,
         scopes,
+        proposal_text: Some(proposal_text),
+        subnet_rules: Some(subnet_rules),
     })
 }
 
@@ -277,7 +316,7 @@ async fn proposals(
     request: &mut Request,
     source: Principal,
     ids: &[u64],
-) -> Result<Vec<Proposal>, LiveError> {
+) -> Result<Vec<(Proposal, ProposalText)>, LiveError> {
     let replies = request
         .read(
             source,
@@ -316,7 +355,7 @@ async fn proposals(
                     })
                 })?
                 .ok_or_else(unsupported)?;
-            Ok(Proposal {
+            let proposal = Proposal {
                 evidence: ProposalEvidence {
                     id,
                     observation: reply.id,
@@ -332,7 +371,28 @@ async fn proposals(
                         .then_some(info.executed_timestamp_seconds),
                 },
                 action,
-            })
+            };
+            let text = info.proposal.expect("executable proposal");
+            fn cap(mut text: String, limit: usize) -> String {
+                if text.len() > limit {
+                    let end = (0..=limit)
+                        .rev()
+                        .find(|&index| text.is_char_boundary(index))
+                        .expect("start of string");
+                    text.truncate(end);
+                }
+                text
+            }
+            let truncated = text.summary.len() > 30_000;
+            Ok((
+                proposal,
+                ProposalText {
+                    id,
+                    title: text.title.map(|title| cap(title, 1024)),
+                    summary: cap(text.summary, 30_000),
+                    truncated,
+                },
+            ))
         })
         .collect()
 }

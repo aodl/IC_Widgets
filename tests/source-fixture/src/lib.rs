@@ -134,6 +134,30 @@ fn list(request: ListRequest) -> ListResponse {
 
 thread_local! {
     static DEMO_PROPOSAL: std::cell::RefCell<Option<(u64, Vec<u8>)>> = const { std::cell::RefCell::new(None) };
+    static VOTING_REGISTRY: std::cell::RefCell<Option<VotingRegistry>> = const { std::cell::RefCell::new(None) };
+}
+
+struct VotingRegistry {
+    version: u64,
+    replies: std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
+}
+
+#[ic_cdk::update]
+fn load_voting_reference() {
+    assert!(ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()));
+    let (version, rows): (u64, Vec<(String, Vec<u8>)>) =
+        candid::decode_args(include_bytes!("../data/144954/registry.didbin")).unwrap();
+    VOTING_REGISTRY.set(Some(VotingRegistry {
+        version,
+        replies: rows
+            .into_iter()
+            .map(|(key, reply)| (key.into_bytes(), reply))
+            .collect(),
+    }));
+    set_demo_proposal(
+        144_954,
+        include_bytes!("../data/144954/governance.didbin").to_vec(),
+    );
 }
 
 /// Replay one exact public reply on a local source canister for browser demonstrations.
@@ -196,7 +220,9 @@ extern "C" fn latest() {
         msg_arg_data().is_empty(),
         "latest must receive empty protobuf"
     );
-    let version = if let Some(version) = registry_fixture::direct_head() {
+    let captured =
+        VOTING_REGISTRY.with_borrow(|registry| registry.as_ref().map(|fixture| fixture.version));
+    let version = if let Some(version) = captured.or_else(registry_fixture::direct_head) {
         version
     } else if registry_fixture::MODE.get() == 0 {
         5
@@ -293,6 +319,25 @@ fn decode_value_request(bytes: Vec<u8>) -> RegistryGetValueRequest {
 
 fn reply_value(request: RegistryGetValueRequest) {
     use high_capacity_registry_get_value_response::Content;
+    if VOTING_REGISTRY.with_borrow(|registry| {
+        let Some(registry) = registry else {
+            return false;
+        };
+        assert_eq!(
+            request.version,
+            Some(registry.version),
+            "pinned reference version"
+        );
+        msg_reply(
+            registry
+                .replies
+                .get(&request.key)
+                .expect("uncaptured Registry key"),
+        );
+        true
+    }) {
+        return;
+    }
     if let Some(reply) = registry_fixture::direct_value(&request) {
         msg_reply(reply.encode_to_vec());
         return;
