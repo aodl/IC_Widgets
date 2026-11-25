@@ -5,7 +5,7 @@ use candid::{CandidType, Principal};
 use ic_cdk::api::performance_counter;
 use nexus_ic_sources::projection::RecordKey;
 use nexus_review_engine::{
-    DataCenter, MembershipComparison, Node, Operator, Record, RegistryBaseline, compare_membership,
+    DataCenter, MembershipComparison, Node, Operator, Record, TopologyEvidence, compare_membership,
     data_center_key,
 };
 use serde::Deserialize;
@@ -142,15 +142,10 @@ fn compare_membership_details(
     {
         return Err("comparison supports up to 128 distinct members per state".into());
     }
-    let evidence = RegistryBaseline {
-        version: 0,
-        complete: false,
-        roster: Record::Missing,
-        subnets: BTreeMap::new(),
-        nodes,
-        operators,
-        data_centers,
-        boundaries: BTreeMap::new(),
+    let evidence = TopologyEvidence {
+        nodes: &nodes,
+        operators: &operators,
+        data_centers: &data_centers,
     };
     let comparison = compare_membership(&evidence, &before, &after, kind);
     Ok(LiveMembershipComparison {

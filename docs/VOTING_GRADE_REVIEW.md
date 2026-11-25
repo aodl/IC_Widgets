@@ -39,7 +39,19 @@ The self-contained map uses Natural Earth 1:110 million land geometry at tag `v5
 
 The selected step replaces `tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe` with `kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe` in `tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe`. The baseline and hypothetical state each have 40 members, with 39 retained. At the pinned snapshot, the last `zh2` member leaves this subnet under the simulation. The count at `sh1` rises from 2 to 3. Registered owner labels show Everyware going from 1 to 0 and Digital Realty going from 2 to 3. Data-center and registered-owner Nakamoto coefficients each fall from 13 to 12 at a 14-node threshold. These are findings about the target subnet and its registrations. The decommissioning and health statements are the proposer’s. [Proposal 144954](https://dashboard.internetcomputer.org/proposal/144954).
 
-The DRE statement’s per-dimension values are shown alongside the independently calculated values. The proposer’s aggregate arithmetic and log2 scores remain quoted claims because the proposal’s exact feature set, normalization and input snapshot are unavailable. Registered owners and area labels are Registry strings. Country codes are normalized using the pinned ISO list. These definitions are displayed with the comparison.
+| Registered dimension | Known groups | Largest group | Strict one-third Nakamoto coefficient |
+| --- | --- | --- | --- |
+| Continent | 6 → 6 | 17 → 17 | 1 → 1 |
+| Country | 24 → 24 | 3 → 3 | 5 → 5 |
+| Data center | 39 → 38 | 2 → 3 | 13 → 12 |
+| Data-center owner | 39 → 38 | 2 → 3 | 13 → 12 |
+| Node provider | 38 → 38 | 3 → 3 | 12 → 12 |
+| Node operator | 39 → 38 | 2 → 3 | 13 → 12 |
+| Area (third component of registered region) | 31 → 31 | 3 → 3 | 6 → 6 |
+
+There are usable GPS coordinates for all 40 members in each state. All 780 pairs contribute to each calculation. The shortest distance stays at 0 km, the mean moves from 7,367.029 km to 7,361.847 km, and the longest stays at 19,461.421 km. Switzerland changes from 3 members to 2, and Sweden from 2 to 3. The provider is the same for both nodes. The operator changes to one already represented by 2 members. Both changed nodes have registered reward type 1.1 and no registered chip ID. These fields describe registration, with eligibility checked separately by the simulator.
+
+The five printed DRE dimension values match the independent Registry grouping at a 14-node threshold. Using the five printed dimensions plus node operator independently reproduces the published mean (10.33 → 9.83) and mean log₂ (3.2655 → 3.2078) to the published precision. Node operator is an inferred sixth dimension. The proposal does not identify its exact full input and normalization. Registered owners and area labels are Registry strings. Country codes are normalized using the pinned ISO list.
 
 ## Reproduction and proposed deployment
 

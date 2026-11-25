@@ -40,7 +40,7 @@ try {
   await page.getByRole('button', { name: 'Review', exact: true }).click();
   await page.getByRole('heading', { name: 'Proposal #144954', exact: true }).waitFor({ timeout: 120000 });
   const previewMs = Date.now() - started;
-  await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).waitFor();
+  await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).first().waitFor();
   await page.getByText(/Checked 1 of 96 listed subnet memberships/).waitFor();
   await page.getByRole('button', { name: 'Load detailed analysis' }).focus();
   started = Date.now();
@@ -50,6 +50,8 @@ try {
   const concentration = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Decentralisation and concentration', exact: true }) }).last();
   const row = concentration.getByRole('row').filter({ hasText: 'Registered data-center owner' });
   assert.match(await row.textContent(), /13 \/ 14 nodes → 12 \/ 14 nodes/);
+  await page.getByText('10.33 → 9.83', { exact: true }).first().waitFor();
+  await page.getByText('3.2655 → 3.2078', { exact: true }).first().waitFor();
   await page.getByText(/The last member registered at zh2 leaves this subnet/).first().waitFor();
   await page.screenshot({ path: resolve(output, '144954-desktop.png'), fullPage: true });
 
@@ -86,7 +88,8 @@ try {
   const md = await readFile(resolve(output, '144954-review.md'), 'utf8');
   assert.match(md, /\*\*VOTE\*\*: \?/);
   assert.match(md, /13 \/ 14 nodes → 12 \/ 14 nodes/);
-  assert.match(md, /Named|Everyware/);
+  assert.match(md, /Everyware/);
+  assert.match(md, /Reproduced with node operator as sixth dimension/);
   assert.match(md, /Assignments outside the checked subnets remain unverified/);
   await page.getByRole('button', { name: 'Copy Markdown' }).click();
   await page.getByText('Review Markdown copied.').waitFor();
@@ -94,9 +97,9 @@ try {
 
   const phase = page.getByLabel('Membership state', { exact: true });
   await phase.selectOption('0');
-  await page.getByText('40 → 40 members (0 added, 0 removed, 40 retained)', { exact: true }).waitFor();
+  await page.getByText('40 → 40 members (0 added, 0 removed, 40 retained)', { exact: true }).first().waitFor();
   await phase.selectOption('1');
-  await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).waitFor();
+  await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).first().waitFor();
   await page.setViewportSize({ width: 400, height: 830 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   await page.screenshot({ path: resolve(output, '144954-mobile.png'), fullPage: true });

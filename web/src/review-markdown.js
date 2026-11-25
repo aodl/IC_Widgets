@@ -45,7 +45,7 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } =
     if (table.title === 'Geographic distances') blocks.push(geographyNote);
     if (table.note) blocks.push(escape(table.note));
     if (table.title === 'Proposer claims and independent calculation') {
-      blocks.push('Claimed figures come from the Governance summary. The comparison uses observed Registry groups and the greater-than-one-third threshold. The locality, owner and country labels may differ from the proposer’s source. The proposer’s combined score and health claims are not verified here.');
+      blocks.push('Claimed figures come from the Governance summary. The comparison uses Registry groups and the greater-than-one-third threshold. Where shown, the aggregate tests the five published dimensions plus node operator. A numerical match leaves the proposer’s exact inputs and health claims unverified.');
     }
     blocks.push(markdownTable(table));
   }

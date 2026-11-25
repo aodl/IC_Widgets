@@ -100,8 +100,26 @@ pub struct MembershipComparison {
     pub registered_area_after: Distribution,
 }
 
+/// Only the metadata used for descriptive grouping. Assignment coverage and
+/// proposal eligibility are evaluated by the separate simulation contract.
+pub struct TopologyEvidence<'a> {
+    pub nodes: &'a BTreeMap<Principal, Record<crate::Node>>,
+    pub operators: &'a BTreeMap<Principal, Record<crate::Operator>>,
+    pub data_centers: &'a BTreeMap<String, Record<crate::DataCenter>>,
+}
+
+impl<'a> From<&'a RegistryBaseline> for TopologyEvidence<'a> {
+    fn from(baseline: &'a RegistryBaseline) -> Self {
+        Self {
+            nodes: &baseline.nodes,
+            operators: &baseline.operators,
+            data_centers: &baseline.data_centers,
+        }
+    }
+}
+
 pub fn compare_membership(
-    evidence: &RegistryBaseline,
+    evidence: &TopologyEvidence<'_>,
     before: &[Principal],
     after: &[Principal],
     kind: i32,
@@ -154,7 +172,7 @@ const DIMENSIONS: [Dimension; 6] = [
     Dimension::RegisteredContinent,
 ];
 
-pub(crate) fn metadata(registry: &RegistryBaseline, id: Principal) -> Metadata {
+pub(crate) fn metadata(registry: &TopologyEvidence<'_>, id: Principal) -> Metadata {
     use Dimension::*;
     let mut result = Metadata::default();
     let Some(node) = registry.nodes.get(&id).and_then(Record::value) else {

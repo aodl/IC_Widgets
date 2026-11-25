@@ -90,7 +90,7 @@ function markdownEditor(model, draft) {
 function describeClaims(claim) {
   return disclose('Proposer statement for #' + claim.id,
     claim.title ? el('p', el('strong', claim.title)) : null,
-    el('p', 'The statement comes from the observed Governance proposal. Health, decommissioning and aggregate scores remain proposer claims. The comparison uses Registry labels and the stated one-third threshold.'),
+    el('p', 'The statement comes from the observed Governance proposal. Health and decommissioning remain proposer claims. The comparison uses Registry labels and the one-third threshold. Where shown, the aggregate tests node operator as the sixth dimension.'),
     claim.truncated ? el('p', 'The statement excerpt is truncated.') : null,
     styled('pre', 'claim-text', claim.summary));
 }

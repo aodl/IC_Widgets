@@ -484,6 +484,9 @@ fn on_demand_previews_resolve_pinned_membership_and_bound_evidence() {
 #[test]
 #[ignore = "run through scripts/test-m0.sh to build Wasms and start PocketIC"]
 fn membership_preview_finishes_while_data_center_metadata_is_delayed() {
+    use nexus_review_engine::Record;
+    use nexus_reviewer::{DetailKeys, DetailRecords};
+
     assert!(enabled());
     let pic = PocketIcBuilder::new()
         .with_nns_subnet()
@@ -539,6 +542,36 @@ fn membership_preview_finishes_while_data_center_metadata_is_delayed() {
         "metadata request finished early: {metadata_status:?}"
     );
     assert!(!pic.await_call(delayed).unwrap().is_empty());
+
+    let detail = pic
+        .submit_call(
+            reviewer,
+            controller,
+            "membership_detail_page",
+            encode_args((
+                5u64,
+                DetailKeys::DataCenters(vec!["delayed-missing".into()]),
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+    for _ in 0..3 {
+        pic.tick();
+    }
+    assert!(pic.ingress_status(detail.clone()).is_none());
+    let raw = pic.await_call(detail).unwrap();
+    let reply = decode_one::<Result<LiveResponse<DetailRecords>, String>>(&raw)
+        .unwrap()
+        .unwrap();
+    assert_eq!(reply.registry_version, Some(5));
+    assert_eq!(reply.usage.calls, 1);
+    let DetailRecords::DataCenters(rows) = reply.outcome.unwrap() else {
+        panic!()
+    };
+    assert!(matches!(
+        rows[0],
+        Record::Missing | Record::Unavailable { .. }
+    ));
 }
 
 #[test]
@@ -733,6 +766,34 @@ fn voting_detail_replays_the_66013_registry() {
         summary.comparison
     };
     let full = compare(data_centers);
+    for (dimension, counts, largest, coefficients) in [
+        (Dimension::RegisteredContinent, [6, 6], [17, 17], [1, 1]),
+        (Dimension::RegisteredCountry, [24, 24], [3, 3], [5, 5]),
+        (Dimension::DataCenter, [39, 38], [2, 3], [13, 12]),
+        (Dimension::RegisteredOwner, [39, 38], [2, 3], [13, 12]),
+        (Dimension::Provider, [38, 38], [3, 3], [12, 12]),
+        (Dimension::Operator, [39, 38], [2, 3], [13, 12]),
+    ] {
+        for (index, state) in [&full.baseline, &full.selected].into_iter().enumerate() {
+            let row = &state.distributions[&dimension];
+            assert_eq!(row.groups.len(), counts[index]);
+            assert_eq!(row.largest, Some(largest[index]));
+            assert_eq!(row.unknown, 0);
+            let threshold = row.greater_than_one_third.as_ref().unwrap();
+            assert_eq!(threshold.nodes_required, 14);
+            assert_eq!(threshold.groups_to_reach, Some(coefficients[index]));
+        }
+    }
+    for area in [&full.registered_area_before, &full.registered_area_after] {
+        assert_eq!(area.groups.len(), 31);
+        assert_eq!(
+            area.greater_than_one_third
+                .as_ref()
+                .unwrap()
+                .groups_to_reach,
+            Some(6)
+        );
+    }
     let group = |dimension, label: &str| {
         let key = Group::RegisteredLabel(label.into());
         (
@@ -782,6 +843,15 @@ fn voting_detail_replays_the_66013_registry() {
     );
     assert_eq!(full.baseline.distances.total_pairs, 780);
     assert_eq!(full.selected.distances.total_pairs, 780);
+    for (row, mean) in [
+        (&full.baseline.distances, 7_367_029),
+        (&full.selected.distances, 7_361_847),
+    ] {
+        assert_eq!((row.valid_pairs, row.known_nodes), (780, 40));
+        assert_eq!(row.minimum_metres, Some(0));
+        assert_eq!(row.mean_metres, Some(mean));
+        assert_eq!(row.maximum_metres, Some(19_461_421));
+    }
     let partial = compare(BTreeMap::new());
     assert_eq!(partial.selected.distances.valid_pairs, 0);
     assert_eq!(

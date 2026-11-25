@@ -87,7 +87,7 @@ function proposalClaimRows(text, dimensions) {
     country: 'RegisteredCountry', continent: 'RegisteredContinent', area: 'RegisteredArea',
     city: 'RegisteredArea', node_operator: 'Operator',
   };
-  return found.map(([, name, claimedBefore, claimedAfter]) => {
+  const rows = found.map(([, name, claimedBefore, claimedAfter]) => {
     const row = dimensions.find(row => row.key === claims[name]);
     const a = coefficient(row.before);
     const b = coefficient(row.after);
@@ -96,6 +96,26 @@ function proposalClaimRows(text, dimensions) {
         : 'Differs under this grouping';
     return [name, formatPair(claimedBefore, claimedAfter), formatPair(a ?? unknown, b ?? unknown), result];
   });
+  const fields = ['node_provider', 'data_center', 'data_center_owner', 'area', 'country'];
+  const fitsPublishedDimensions = found.length === fields.length && fields.every(key => found.some(([, name]) => name === key));
+  if (fitsPublishedDimensions) {
+    const features = [...fields.map(key => claims[key]), 'Operator'].map(key => dimensions.find(row => row.key === key));
+    const scores = ['before', 'after'].map(side => features.map(row => coefficient(row[side])));
+    const aggregate = (pattern, label, decimals, transform) => {
+      const claim = text.summary.match(pattern);
+      if (!claim) return;
+      const computed = scores.map(side => side.every(value => value > 0)
+        ? (side.reduce((sum, value) => sum + transform(value), 0) / side.length).toFixed(decimals) : unknown);
+      const [a, b] = computed;
+      const status = a === unknown || b === unknown ? 'Coverage insufficient'
+        : Number(a) === Number(claim[1]) && Number(b) === Number(claim[2])
+          ? 'Reproduced with node operator as sixth dimension' : 'Differs with node operator as sixth dimension';
+      rows.push([label, formatPair(claim[1], claim[2]), formatPair(a, b), status]);
+    };
+    aggregate(/Mean Nakamoto comparison:\*?\*?\s*(\d+\.\d+)\s*->\s*(\d+\.\d+)/i, 'Mean coefficient', 2, value => value);
+    aggregate(/average log2[^\n]*?\bfrom\s+(\d+\.\d+)\s+to\s+(\d+\.\d+)/i, 'Mean log₂ coefficient', 4, Math.log2);
+  }
+  return rows;
 }
 
 function dimension(key, before, after, beforeCount, afterCount) {
@@ -150,12 +170,15 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
     'Hypothetical membership; execution validity remains unverified. Assignments outside the checked subnets remain unverified.',
     'Membership evidence checked ' + checked + ' of ' + scope + ' listed subnets.',
   ];
+  const candidates = new Set();
   const steps = scenario.steps.map(step => {
     const action = branch(step.requested);
     const request = step.requested[action];
+    const adds = (request.add ?? (action === 'Add' ? request.nodes : [])).map(principal);
+    const removes = (request.remove ?? (action === 'Remove' ? request.nodes : [])).map(principal);
+    for (const id of [...adds, ...removes]) candidates.add(id);
     return [link('#' + step.proposal, proposalUrl(step.proposal)), words(action), words(branch(step.outcome)),
-      (request.add ?? (action === 'Add' ? request.nodes : [])).map(principal).join(', ') || '—',
-      (request.remove ?? (action === 'Remove' ? request.nodes : [])).map(principal).join(', ') || '—'];
+      adds.join(', ') || '—', removes.join(', ') || '—'];
   });
   const finding = row => [
     words(branch(row.severity)), words(branch(row.code)), option(row.proposal)?.toString() ?? '—',
@@ -169,7 +192,7 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
       ]) },
     { title: 'Requested changes', headers: ['Proposal', 'Action', 'Simulation', 'Requested additions', 'Requested removals'], rows: steps },
     { title: 'Simulation findings', headers: ['Severity', 'Finding', 'Proposal', 'Nodes', 'Subnets'], rows: relevant.map(finding) },
-    { title: 'Candidate assignments at baseline', headers: ['Node', 'Evidence'], rows: assignments.map(([node, item]) => [
+    { title: 'Candidate assignments at baseline', headers: ['Node', 'Evidence'], rows: assignments.filter(([node]) => candidates.has(principal(node))).map(([node, item]) => [
       nodeLink(principal(node)), item.ListedSubnet ? link(principal(item.ListedSubnet), registryUrl('subnet', principal(item.ListedSubnet))) : ({
         ApiBoundary: 'API boundary assignment', NodeAbsent: 'Node registration absent',
         UnknownOutsideListedSubnets: 'Assignment outside checked records unverified',
