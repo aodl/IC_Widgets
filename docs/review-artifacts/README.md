@@ -16,7 +16,7 @@ The browser artifacts show proposal 144954 on `tdb26`, with scenario **A indepen
 Verify the downloaded calculation input against the SHA-256 in the Markdown. To inspect its typed fields, run this command from the repository root:
 
 ```bash
-didc decode --defs canisters/reviewer/reviewer.did --method compare_membership_details \
+didc decode --defs canisters/reviewer/reviewer.did --types '(DetailComparisonInput)' \
   "$(xxd -p -c 256 docs/review-artifacts/144954/calculation.didbin | tr -d '\n')"
 ```
 
