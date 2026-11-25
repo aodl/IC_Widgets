@@ -138,13 +138,15 @@ try {
     assert.equal(count('membership_detail_page'), 0);
   });
 
-  await test('Executed proposal retains the historical before-state qualification', 4, async (page, send) => {
+  await test('Executed proposal shows its outcome and blocks an unsupported historical comparison', 4, async (page, send, count) => {
     await send(144954);
     await page.getByText(/Executed observed/).waitFor();
     await page.getByText(/actual historical before-state is unavailable/).waitFor();
-    await page.getByText(/Analysis loaded/).waitFor({ timeout: 120000 });
+    await page.getByText('Simulation unavailable', { exact: true }).waitFor();
+    assert.equal(await page.getByText(/40 → 40 members/).count(), 0);
+    assert.equal(count('membership_detail_page'), 0);
     await page.getByRole('button', { name: 'Export review', exact: true }).click();
-    assert.match(await page.getByLabel('Generated Markdown', { exact: true }).inputValue(), /historical/i);
+    assert.equal(await page.getByLabel('Generated Markdown', { exact: true }).count(), 0);
   });
 
   await test('Both proposal orders and intermediate states share source evidence', 5, async (page, send, count) => {

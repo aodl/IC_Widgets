@@ -301,7 +301,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     replace(membership,
       el('strong', model ? model.membership : 'Simulation unavailable'),
       removed && added && placement.length === 2 ? el('span', 'Registered replacement · ' + location(removed) + ' → ' + location(added)) : null,
-      historical ? styled('p', 'notice warning', 'Governance observed execution. The selected baseline supports a hypothetical comparison. The actual historical before-state is unavailable here.') : null,
+      historical ? styled('p', 'notice warning', 'Governance observed execution. The actual historical before-state is unavailable here.' +
+        (next?.state && next.index ? ' This comparison uses the selected Registry snapshot.' : '')) : null,
       blocking.length ? styled('ul', 'notice warning', blocking.map(row => el('li',
         'Blocking simulation finding · ' + words(branch(row.code)) + (option(row.proposal) ? ' · #' + option(row.proposal) : '')))) : null);
     const orders = report.findings.some(row => 'DifferentIntermediateStates' in row.code);
