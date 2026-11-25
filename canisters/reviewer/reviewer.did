@@ -17,6 +17,12 @@ type Assignment = variant {
   Incomplete : text;
   Conflict : record { replicas : vec principal; api_boundary : bool };
 };
+type CandidateAssignment = variant {
+  UnknownOutsideListedSubnets;
+  NodeAbsent;
+  ApiBoundary;
+  ListedSubnet : principal;
+};
 type CapturePage = record { next : opt nat64; rows : vec ProposalCapture };
 type CollectionGap = variant {
   BoundaryMissing : record { expected : nat64; earliest : opt nat64 };
@@ -198,6 +204,68 @@ type ListedProposal = record {
   function : opt int32;
   listed_payload_bytes : opt nat32;
 };
+type LiveError = variant {
+  ProposalChanged : record { id : nat64; status : int32; observation : nat64 };
+  InvalidEvidence : ReviewError;
+  Deadline;
+  Source : record { observation : nat64; reason : text };
+  CallLimit;
+  SourceBytes;
+  CycleBalance;
+  ResultLimit;
+};
+type LivePerformance = record {
+  start_at_timestamp_nanos : nat64;
+  samples : vec NodeMetricsHistoryRecord;
+  subnet : principal;
+};
+type LiveReceipt = record {
+  id : nat64;
+  reject : opt text;
+  method : text;
+  argument_hash : blob;
+  reply_bytes : nat64;
+  source : principal;
+  item : text;
+  reply_hash : opt blob;
+  observed_at : nat64;
+};
+type LiveResponse = record {
+  registry_version : opt nat64;
+  usage : LiveUsage;
+  outcome : Result_12;
+  receipts : vec LiveReceipt;
+};
+type LiveResponse_1 = record {
+  registry_version : opt nat64;
+  usage : LiveUsage;
+  outcome : Result_29;
+  receipts : vec LiveReceipt;
+};
+type LiveReview = record {
+  report : Review;
+  assignments : vec record { principal; CandidateAssignment };
+  // Present for membership previews. The Registry roster may be larger than the checked set.
+  total_listed_subnets : opt nat32;
+  scopes : vec LiveScope;
+  // Listed subnet memberships actually checked.
+  listed_subnets : nat32;
+};
+type LiveScope = record {
+  subnet : principal;
+  nodes : vec principal;
+  scenario : ScenarioId;
+};
+type LiveUsage = record {
+  balance_after : nat;
+  calls : nat32;
+  balance_before : nat;
+  instructions : nat64;
+  source_bytes : nat64;
+  peak_batch_reservation : nat;
+  started_at : nat64;
+  finished_at : nat64;
+};
 // Source order and duplicates are preserved for review.
 type MembershipAction = variant {
   Add : record { subnet : principal; nodes : vec principal };
@@ -267,6 +335,15 @@ type NodeMetrics = record {
   node_id : principal;
   // Number of blocks proposed by this node.
   num_blocks_proposed_total : nat64;
+};
+// # Node Metrics History Record.
+//
+// A record in [`NodeMetricsHistoryResult`].
+type NodeMetricsHistoryRecord = record {
+  // Timestamp of the record.
+  timestamp_nanos : nat64;
+  // Metrics of the nodes.
+  node_metrics : vec NodeMetrics;
 };
 type NodeRole = variant {
   FinalMember;
@@ -518,25 +595,29 @@ type Result = variant { Ok : ReviewJob; Err : text };
 type Result_1 = variant { Ok; Err : text };
 type Result_10 = variant { Ok : MetricsRosterStatus; Err : text };
 type Result_11 = variant { Ok : SubnetCollection; Err : text };
-type Result_12 = variant { Ok : ProbeBudget; Err : text };
-type Result_13 = variant { Ok : Receipt; Err : text };
-type Result_14 = variant { Ok : Status; Err : text };
-type Result_15 = variant { Ok : MembershipAction; Err : text };
-type Result_16 = variant { Ok : ProposalCapture; Err : text };
-type Result_17 = variant { Ok : CapturePage; Err : text };
-type Result_18 = variant { Ok : ProposalStatus; Err : text };
-type Result_19 = variant { Ok : PerformancePage; Err : text };
+type Result_12 = variant { Ok : LivePerformance; Err : LiveError };
+type Result_13 = variant { Ok : LiveResponse; Err : text };
+type Result_14 = variant { Ok : ProbeBudget; Err : text };
+type Result_15 = variant { Ok : Receipt; Err : text };
+type Result_16 = variant { Ok : Status; Err : text };
+type Result_17 = variant { Ok : MembershipAction; Err : text };
+type Result_18 = variant { Ok : ProposalCapture; Err : text };
+type Result_19 = variant { Ok : CapturePage; Err : text };
 type Result_2 = variant { Ok : CollectionStatus; Err : text };
-type Result_20 = variant { Ok : Review; Err : text };
-type Result_21 = variant { Ok : Assignment; Err : text };
-type Result_22 = variant { Ok : KeyPage; Err : text };
-type Result_23 = variant { Ok : ProviderPage; Err : text };
-type Result_24 = variant { Ok : RecordAt; Err : text };
-type Result_25 = variant { Ok : RegistryStatus; Err : text };
-type Result_26 = variant { Ok : blob; Err : text };
-type Result_27 = variant { Ok : SourceObservation; Err : text };
-type Result_28 = variant { Ok : nat64; Err : text };
+type Result_20 = variant { Ok : ProposalStatus; Err : text };
+type Result_21 = variant { Ok : PerformancePage; Err : text };
+type Result_22 = variant { Ok : Review; Err : text };
+type Result_23 = variant { Ok : Assignment; Err : text };
+type Result_24 = variant { Ok : KeyPage; Err : text };
+type Result_25 = variant { Ok : ProviderPage; Err : text };
+type Result_26 = variant { Ok : RecordAt; Err : text };
+type Result_27 = variant { Ok : RegistryStatus; Err : text };
+type Result_28 = variant { Ok : blob; Err : text };
+type Result_29 = variant { Ok : LiveReview; Err : LiveError };
 type Result_3 = variant { Ok : DiscoveryStatus; Err : text };
+type Result_30 = variant { Ok : LiveResponse_1; Err : text };
+type Result_31 = variant { Ok : SourceObservation; Err : text };
+type Result_32 = variant { Ok : nat64; Err : text };
 type Result_4 = variant { Ok : ReplyPage; Err : text };
 type Result_5 = variant { Ok : EvidenceManifest; Err : text };
 type Result_6 = variant { Ok : ScopePage; Err : text };
@@ -808,24 +889,31 @@ service : (opt Sources) -> {
   metric_samples : (principal, nat64, nat64, opt nat64) -> (Result_9);
   metrics_roster : () -> (Result_10);
   metrics_status : (principal) -> (Result_11);
-  probe_budget : (nat64) -> (Result_12);
-  probe_receipt : (nat64, nat32) -> (Result_13);
+  node_performance_on_demand : (principal, nat64, opt vec principal) -> (
+      Result_13,
+    );
+  probe_budget : (nat64) -> (Result_14);
+  probe_receipt : (nat64, nat32) -> (Result_15);
   probe_reply : (nat64, nat32, nat32) -> (Result_4);
-  probe_status : (nat64) -> (Result_14);
-  proposal_action : (nat64, opt nat64) -> (Result_15);
-  proposal_archive : (nat64, opt nat64) -> (Result_16);
-  proposal_history : (nat64, opt nat64) -> (Result_17);
-  proposal_status : (nat64) -> (Result_18);
-  read_membership_performance : (PerformanceRequest) -> (Result_19);
-  read_membership_review : (blob) -> (Result_20);
-  registry_assignment : (nat64, principal) -> (Result_21);
-  registry_keys : (nat64, opt text) -> (Result_22);
-  registry_provider : (nat64, principal, opt text) -> (Result_23);
-  registry_record : (nat64, RecordKey) -> (Result_24);
-  registry_status : () -> (Result_25);
-  request_membership_review : (ReviewRequest) -> (Result_26);
+  probe_status : (nat64) -> (Result_16);
+  proposal_action : (nat64, opt nat64) -> (Result_17);
+  proposal_archive : (nat64, opt nat64) -> (Result_18);
+  proposal_history : (nat64, opt nat64) -> (Result_19);
+  proposal_status : (nat64) -> (Result_20);
+  read_membership_performance : (PerformanceRequest) -> (Result_21);
+  read_membership_review : (blob) -> (Result_22);
+  registry_assignment : (nat64, principal) -> (Result_23);
+  registry_keys : (nat64, opt text) -> (Result_24);
+  registry_provider : (nat64, principal, opt text) -> (Result_25);
+  registry_record : (nat64, RecordKey) -> (Result_26);
+  registry_status : () -> (Result_27);
+  request_membership_review : (ReviewRequest) -> (Result_28);
   retry_registry : () -> (Result_1);
-  source_observation : (nat64) -> (Result_27);
-  start_probe : (ProbeRequest) -> (Result_28);
-  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_28);
+  review_on_demand : (vec nat64) -> (Result_30);
+  // One optional browser principal for a local or explicitly approved pilot.
+  // The principal is cleared on upgrade and receives no controller permissions.
+  set_on_demand_caller : (opt principal) -> (Result_1);
+  source_observation : (nat64) -> (Result_31);
+  start_probe : (ProbeRequest) -> (Result_32);
+  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_32);
 }

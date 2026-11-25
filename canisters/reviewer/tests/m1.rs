@@ -899,6 +899,66 @@ fn native_metrics_producer_resumes_per_subnet_and_preserves_overlap() {
     }
     add_blockmakers();
 
+    // Read the native remote source before any archive or collector is enabled.
+    let viewer = Principal::from_slice(&[86, 2]);
+    call::<Result<(), String>>(
+        &pic,
+        reviewer,
+        "set_on_demand_caller",
+        encode_one(Some(viewer)).unwrap(),
+    )
+    .unwrap();
+    let start = pic
+        .get_time()
+        .as_nanos_since_unix_epoch()
+        .saturating_sub(4 * 86_400_000_000_000);
+    let read = |nodes: Option<Vec<Principal>>| {
+        let wall = std::time::Instant::now();
+        let balance = pic.cycle_balance(reviewer);
+        let raw = pic
+            .update_call(
+                reviewer,
+                viewer,
+                "node_performance_on_demand",
+                encode_args((nns, start, nodes)).unwrap(),
+            )
+            .unwrap();
+        let live = candid::decode_one::<
+            Result<nexus_reviewer::LiveResponse<nexus_reviewer::LivePerformance>, String>,
+        >(&raw)
+        .unwrap()
+        .unwrap();
+        println!(
+            "on-demand performance: {} calls, {} source bytes, {} Candid bytes, {} ms wall, {} instructions, {} settled cycles",
+            live.usage.calls,
+            live.usage.source_bytes,
+            raw.len(),
+            wall.elapsed().as_millis(),
+            live.usage.instructions,
+            balance - pic.cycle_balance(reviewer),
+        );
+        assert_eq!(live.registry_version, None);
+        assert_eq!(live.usage.calls, 1);
+        assert_eq!(live.receipts[0].method, "node_metrics_history");
+        live.outcome.unwrap()
+    };
+    let direct = read(None);
+    assert!(
+        direct
+            .samples
+            .iter()
+            .flat_map(|row| &row.node_metrics)
+            .any(|row| row.node_id == remote_builder)
+    );
+    let narrowed = read(Some(vec![]));
+    assert!(!narrowed.samples.is_empty());
+    assert!(
+        narrowed
+            .samples
+            .iter()
+            .all(|row| row.node_metrics.is_empty())
+    );
+
     let cfg_storage = |ceiling| {
         call::<Result<(), String>>(
             &pic,

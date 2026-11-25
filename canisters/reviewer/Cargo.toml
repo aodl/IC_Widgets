@@ -12,6 +12,7 @@ local-fixtures = []
 
 [dependencies]
 candid.workspace = true
+futures-util = "=0.3.34"
 serde.workspace = true
 ic-cdk.workspace = true
 ic-cdk-timers.workspace = true

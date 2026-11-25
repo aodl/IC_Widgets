@@ -39,7 +39,7 @@ pub enum FindingCode {
     OverlappingInstructionsRemovalWins,
     AlreadyInTarget,
     AssignedElsewhere,
-    PreviouslyUnassigned,
+    PreviouslyUnassigned, // Retained for decoding existing reports.
     ApiBoundaryAssignment,
     MissingNode,
     DeletedNode,
@@ -136,28 +136,28 @@ pub fn analyze(input: &ReviewInput) -> Review {
     ];
     let mut original = Memberships::new();
     for id in input.baseline.roster.value().expect("validated roster") {
-        original.insert(
-            *id,
-            input.baseline.subnets[id]
-                .value()
-                .expect("validated subnet")
-                .members
-                .clone(),
-        );
+        if let Some(record) = input.baseline.subnets.get(id) {
+            original.insert(
+                *id,
+                record.value().expect("validated subnet").members.clone(),
+            );
+        }
     }
-    let metadata = input
-        .baseline
-        .nodes
-        .keys()
-        .map(|id| (*id, metadata(&input.baseline, *id)))
-        .collect();
+    let metadata = (!input.membership_only).then(|| {
+        input
+            .baseline
+            .nodes
+            .keys()
+            .map(|id| (*id, metadata(&input.baseline, *id)))
+            .collect()
+    });
     let scenarios: Vec<_> = available
         .iter()
         .filter(|(id, order)| {
             order.iter().all(|i| *i < input.proposals.len())
                 && selected(input.manifest.scenario, *id)
         })
-        .map(|(id, order)| run(input, &original, &metadata, *id, order))
+        .map(|(id, order)| run(input, &original, metadata.as_ref(), *id, order))
         .collect();
 
     let mut findings = vec![];
@@ -221,7 +221,7 @@ fn selected(selection: ScenarioSelection, id: ScenarioId) -> bool {
 fn run(
     input: &ReviewInput,
     original: &Memberships,
-    metadata: &BTreeMap<Principal, Metadata>,
+    metadata: Option<&BTreeMap<Principal, Metadata>>,
     id: ScenarioId,
     order: &[usize],
 ) -> Scenario {
@@ -260,30 +260,34 @@ fn run(
         }
     }
     let mut findings = vec![];
-    for node in mentioned {
-        for issue in &metadata[&node].issues {
-            let (code, key) = match issue {
-                MetadataIssue::MissingRecord(key) => (FindingCode::MissingRegistryMetadata, key),
-                MetadataIssue::UnknownDimension(dimension, key) => {
-                    (FindingCode::UnknownDimension(*dimension), key)
-                }
-                MetadataIssue::InvalidCoordinates(key) => {
-                    (FindingCode::UnavailableRegisteredCoordinates, key)
-                }
-            };
-            findings.push(Finding {
-                code,
-                severity: Severity::Warning,
-                step: None,
-                proposal: None,
-                nodes: vec![node],
-                subnets: subnets
-                    .iter()
-                    .filter(|(_, s)| s.baseline.members.contains(&node))
-                    .map(|(id, _)| *id)
-                    .collect(),
-                registry: vec![key.clone()],
-            });
+    if let Some(metadata) = metadata {
+        for node in mentioned {
+            for issue in &metadata[&node].issues {
+                let (code, key) = match issue {
+                    MetadataIssue::MissingRecord(key) => {
+                        (FindingCode::MissingRegistryMetadata, key)
+                    }
+                    MetadataIssue::UnknownDimension(dimension, key) => {
+                        (FindingCode::UnknownDimension(*dimension), key)
+                    }
+                    MetadataIssue::InvalidCoordinates(key) => {
+                        (FindingCode::UnavailableRegisteredCoordinates, key)
+                    }
+                };
+                findings.push(Finding {
+                    code,
+                    severity: Severity::Warning,
+                    step: None,
+                    proposal: None,
+                    nodes: vec![node],
+                    subnets: subnets
+                        .iter()
+                        .filter(|(_, s)| s.baseline.members.contains(&node))
+                        .map(|(id, _)| *id)
+                        .collect(),
+                    registry: vec![key.clone()],
+                });
+            }
         }
     }
     let mut state = original.clone();
@@ -477,22 +481,6 @@ fn apply(
                     vec![RegistryKey::ApiBoundary(node)],
                 );
             }
-            if !current_set.contains(&node)
-                && input.baseline.nodes[&node].value().is_some()
-                && matches!(
-                    input.baseline.boundaries[&node],
-                    Record::Missing | Record::Deleted(_)
-                )
-                && !state.values().any(|members| members.contains(&node))
-            {
-                report(
-                    PreviouslyUnassigned,
-                    Note,
-                    vec![node],
-                    vec![id],
-                    vec![RegistryKey::Node(node), RegistryKey::ApiBoundary(node)],
-                );
-            }
         }
         let mut result: Vec<_> = add
             .iter()
@@ -571,7 +559,11 @@ fn apply(
                 );
             }
             let key = RegistryKey::Node(node_id);
-            let node = match &input.baseline.nodes[&node_id] {
+            let Some(record) = input.baseline.nodes.get(&node_id) else {
+                debug_assert!(input.membership_only, "full review validates every member");
+                continue;
+            };
+            let node = match record {
                 Record::Present { value, .. } => value,
                 record => {
                     let code = match record {

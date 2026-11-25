@@ -227,17 +227,18 @@ pub(crate) fn summarize(
     baseline: &[Principal],
     members: &[Principal],
     kind: i32,
-    metadata: &BTreeMap<Principal, Metadata>,
+    metadata: Option<&BTreeMap<Principal, Metadata>>,
 ) -> MembershipState {
     let original: BTreeSet<_> = baseline.iter().copied().collect();
     let current: BTreeSet<_> = members.iter().copied().collect();
-    let mut distributions = DIMENSIONS
+    let mut distributions = metadata
         .into_iter()
+        .flat_map(|_| DIMENSIONS)
         .map(|d| (d, BTreeMap::new()))
         .collect::<BTreeMap<_, _>>();
     let mut locations = BTreeMap::new();
     for id in members {
-        if let Some(node) = metadata.get(id) {
+        if let Some(node) = metadata.and_then(|rows| rows.get(id)) {
             for (dimension, key) in &node.groups {
                 *distributions
                     .get_mut(dimension)

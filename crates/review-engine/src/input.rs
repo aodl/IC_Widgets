@@ -124,7 +124,7 @@ pub struct DataCenter {
 #[derive(Clone, Debug, PartialEq, Eq, CandidType, Deserialize)]
 pub struct RegistryBaseline {
     pub version: u64,
-    /// Certified by the local projection's publication invariant.
+    /// Verified coverage for the review's listed topology and required keys.
     pub complete: bool,
     pub roster: Record<Vec<Principal>>,
     pub subnets: BTreeMap<Principal, Record<Subnet>>,
@@ -236,6 +236,16 @@ pub struct ReviewInput {
     pub(crate) proposals: Vec<Proposal>,
     pub(crate) manifest: ReviewManifest,
     pub(crate) hypothetical_executed: bool,
+    pub(crate) membership_only: bool,
+}
+
+enum ReviewMode {
+    Membership,
+    Full {
+        historical_head: Option<HistoricalHead>,
+        metrics_revision: Option<Hash>,
+        hypothetical_executed: bool,
+    },
 }
 
 pub(crate) fn digest<T: CandidType>(value: &T) -> Hash {
@@ -244,7 +254,7 @@ pub(crate) fn digest<T: CandidType>(value: &T) -> Hash {
 
 impl ReviewInput {
     pub fn build(
-        mut baseline: RegistryBaseline,
+        baseline: RegistryBaseline,
         captures: Vec<Capture>,
         scenario: ScenarioSelection,
         policy: Policy,
@@ -252,7 +262,51 @@ impl ReviewInput {
         metrics_revision: Option<Hash>,
         hypothetical_executed: bool,
     ) -> Result<Self, ReviewError> {
-        if !baseline.complete {
+        Self::build_with(
+            baseline,
+            captures,
+            scenario,
+            policy,
+            ReviewMode::Full {
+                historical_head,
+                metrics_revision,
+                hypothetical_executed,
+            },
+        )
+    }
+
+    /// A prospective preview checks targeted subnet memberships and the records of
+    /// proposal candidates. Untargeted removals require every listed membership.
+    pub fn build_membership(
+        baseline: RegistryBaseline,
+        captures: Vec<Capture>,
+    ) -> Result<Self, ReviewError> {
+        Self::build_with(
+            baseline,
+            captures,
+            ScenarioSelection::All,
+            Policy::V1,
+            ReviewMode::Membership,
+        )
+    }
+
+    fn build_with(
+        mut baseline: RegistryBaseline,
+        captures: Vec<Capture>,
+        scenario: ScenarioSelection,
+        policy: Policy,
+        mode: ReviewMode,
+    ) -> Result<Self, ReviewError> {
+        let membership_only = matches!(mode, ReviewMode::Membership);
+        let (historical_head, metrics_revision, hypothetical_executed) = match mode {
+            ReviewMode::Membership => (None, None, false),
+            ReviewMode::Full {
+                historical_head,
+                metrics_revision,
+                hypothetical_executed,
+            } => (historical_head, metrics_revision, hypothetical_executed),
+        };
+        if !membership_only && !baseline.complete {
             return Err(ReviewError::IncompleteBaseline(baseline.version));
         }
         if captures.is_empty()
@@ -279,21 +333,25 @@ impl ReviewInput {
             return Err(ReviewError::InvalidSelection);
         }
         let actions: Vec<_> = proposals.iter().map(|proposal| &proposal.action).collect();
-        let relevant = relevant_nodes(&baseline, &actions)?;
-        let requested_subnets = actions
-            .iter()
-            .filter_map(|action| target(action))
-            .collect::<BTreeSet<_>>();
-        let roster: BTreeSet<_> = baseline
-            .roster
-            .value()
-            .expect("validated roster")
-            .iter()
-            .copied()
-            .collect();
-        baseline
-            .subnets
-            .retain(|id, _| roster.contains(id) || requested_subnets.contains(id));
+        let roster = listed_subnets(&baseline.roster)?;
+        let subnets = if membership_only {
+            preview_subnets(&roster, &actions)
+        } else {
+            roster
+                .iter()
+                .copied()
+                .chain(actions.iter().filter_map(|action| target(action)))
+                .collect()
+        };
+        let relevant = if membership_only {
+            // Normalize a preview to explicitly partial coverage, even if every subnet is checked.
+            baseline.complete = false;
+            validate_memberships(&baseline, subnets.intersection(&roster).copied(), |_, _| {})?;
+            candidate_nodes(&actions)
+        } else {
+            relevant_nodes(&baseline, &actions)?
+        };
+        baseline.subnets.retain(|id, _| subnets.contains(id));
         baseline.nodes.retain(|id, _| relevant.contains(id));
         baseline.boundaries.retain(|id, _| relevant.contains(id));
 
@@ -301,7 +359,7 @@ impl ReviewInput {
         let mut bind =
             |key, reference| bind_reference(&mut references, baseline.version, key, reference);
         bind(RegistryKey::Roster, baseline.roster.reference())?;
-        for id in roster.union(&requested_subnets).copied() {
+        for id in subnets {
             let key = RegistryKey::Subnet(id);
             bind(
                 key.clone(),
@@ -312,14 +370,20 @@ impl ReviewInput {
         for id in relevant {
             let key = RegistryKey::Node(id);
             let row = resolved(&baseline.nodes, &id, key.clone())?;
+            if membership_only && matches!(row, Record::Unavailable { .. }) {
+                return Err(ReviewError::UnavailableRecord(key));
+            }
             bind(key, row.reference())?;
-            operators.extend(row.value().and_then(|node| node.operator));
+            if !membership_only {
+                operators.extend(row.value().and_then(|node| node.operator));
+            }
 
             let key = RegistryKey::ApiBoundary(id);
-            bind(
-                key.clone(),
-                resolved(&baseline.boundaries, &id, key)?.reference(),
-            )?;
+            let row = resolved(&baseline.boundaries, &id, key.clone())?;
+            if membership_only && matches!(row, Record::Unavailable { .. }) {
+                return Err(ReviewError::UnavailableRecord(key));
+            }
+            bind(key, row.reference())?;
         }
         baseline.operators.retain(|id, _| operators.contains(id));
         let mut centers = BTreeSet::new();
@@ -362,6 +426,7 @@ impl ReviewInput {
             proposals,
             manifest,
             hypothetical_executed,
+            membership_only,
         })
     }
 
@@ -453,45 +518,85 @@ pub fn requested_nodes(action: &MembershipAction) -> (&[Principal], &[Principal]
     }
 }
 
-/// Resolves the join footprint without collecting every node's metadata.
-pub fn relevant_nodes(
-    baseline: &RegistryBaseline,
-    actions: &[&MembershipAction],
-) -> Result<BTreeSet<Principal>, ReviewError> {
-    let roster = baseline
-        .roster
+pub fn listed_subnets(roster: &Record<Vec<Principal>>) -> Result<BTreeSet<Principal>, ReviewError> {
+    let roster = roster
         .value()
+        .filter(|ids| !ids.is_empty())
         .ok_or(ReviewError::UnavailableRecord(RegistryKey::Roster))?;
     let roster_set: BTreeSet<_> = roster.iter().copied().collect();
     if roster_set.len() != roster.len() {
         return Err(ReviewError::InvalidTopology);
     }
-    let mut mentioned = BTreeSet::new();
-    let mut removals = BTreeSet::<Principal>::new();
-    let mut targets = BTreeSet::new();
+    Ok(roster_set)
+}
+
+pub fn preview_subnets(
+    roster: &BTreeSet<Principal>,
+    actions: &[&MembershipAction],
+) -> BTreeSet<Principal> {
+    let mut subnets = BTreeSet::new();
     for action in actions {
-        let (adds, drops) = requested_nodes(action);
-        mentioned.extend(adds);
-        mentioned.extend(drops);
-        if let Some(id) = target(action) {
-            targets.insert(id);
-        } else {
-            removals.extend(drops);
+        match target(action) {
+            Some(id) => {
+                subnets.insert(id);
+            }
+            None => subnets.extend(roster),
         }
     }
+    subnets
+}
+
+pub fn candidate_nodes(actions: &[&MembershipAction]) -> BTreeSet<Principal> {
+    actions
+        .iter()
+        .flat_map(|action| {
+            let (adds, removes) = requested_nodes(action);
+            adds.iter().chain(removes).copied()
+        })
+        .collect()
+}
+
+fn validate_memberships(
+    baseline: &RegistryBaseline,
+    subnets: impl Iterator<Item = Principal>,
+    mut visit: impl FnMut(Principal, &[Principal]),
+) -> Result<(), ReviewError> {
     let mut assigned = BTreeSet::new();
-    for id in roster {
+    for id in subnets {
         let row = baseline
             .subnets
-            .get(id)
+            .get(&id)
             .and_then(Record::value)
-            .ok_or(ReviewError::UnavailableRecord(RegistryKey::Subnet(*id)))?;
+            .ok_or(ReviewError::UnavailableRecord(RegistryKey::Subnet(id)))?;
         if row.members.iter().any(|node| !assigned.insert(*node)) {
             return Err(ReviewError::InvalidTopology);
         }
-        if targets.contains(id) || row.members.iter().any(|node| removals.contains(node)) {
-            mentioned.extend(row.members.iter().copied());
-        }
+        visit(id, &row.members);
     }
+    Ok(())
+}
+
+/// Resolves the join footprint for a full topology review.
+pub fn relevant_nodes(
+    baseline: &RegistryBaseline,
+    actions: &[&MembershipAction],
+) -> Result<BTreeSet<Principal>, ReviewError> {
+    let roster = listed_subnets(&baseline.roster)?;
+    let mut mentioned = candidate_nodes(actions);
+    let targets: BTreeSet<_> = actions.iter().filter_map(|action| target(action)).collect();
+    let removals: BTreeSet<_> = actions
+        .iter()
+        .filter_map(|action| match action {
+            MembershipAction::Remove { nodes } => Some(nodes),
+            _ => None,
+        })
+        .flatten()
+        .copied()
+        .collect();
+    validate_memberships(baseline, roster.into_iter(), |id, members| {
+        if targets.contains(&id) || members.iter().any(|node| removals.contains(node)) {
+            mentioned.extend(members);
+        }
+    })?;
     Ok(mentioned)
 }

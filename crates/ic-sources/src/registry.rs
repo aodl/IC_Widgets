@@ -56,8 +56,12 @@ pub fn changes_request(version: u64) -> Vec<u8> {
 }
 
 pub fn value_request(key: &Key, version: u64) -> Vec<u8> {
+    value_request_for_name(&key.registry_name(), version)
+}
+
+pub fn value_request_for_name(key: &str, version: u64) -> Vec<u8> {
     RegistryGetValueRequest {
-        key: key.registry_name().into_bytes(),
+        key: key.as_bytes().to_vec(),
         version: Some(version),
     }
     .encode_to_vec()
@@ -190,7 +194,11 @@ fn decode_page(
                         return Err("invalid Registry chunk reference".into());
                     }
                     if hashes.chunk_content_sha256s.len() <= MAX_CHUNKS {
-                        let candidate = (delta.key.clone(), version, chunk_hashes(hashes)?);
+                        let candidate = (
+                            delta.key.clone(),
+                            version,
+                            chunk_hashes(hashes, MAX_CHUNKS)?,
+                        );
                         if chunk_example
                             .as_ref()
                             .is_none_or(|previous| &candidate < previous)
@@ -264,9 +272,9 @@ fn decode_page(
     })
 }
 
-fn chunk_hashes(keys: &transport::LargeValueChunkKeys) -> Result<Vec<Hash>, String> {
-    if keys.chunk_content_sha256s.is_empty() || keys.chunk_content_sha256s.len() > MAX_CHUNKS {
-        return Err("Registry record exceeds the probe chunk-count budget".into());
+fn chunk_hashes(keys: &transport::LargeValueChunkKeys, limit: usize) -> Result<Vec<Hash>, String> {
+    if keys.chunk_content_sha256s.is_empty() || keys.chunk_content_sha256s.len() > limit {
+        return Err("Registry record exceeds the chunk-count budget".into());
     }
     keys.chunk_content_sha256s
         .iter()
@@ -290,13 +298,30 @@ pub enum ValueContent {
 }
 
 pub fn decode_value(bytes: &[u8], key: &Key, requested: u64) -> Result<Option<Record>, String> {
+    decode_named_value(bytes, &key.registry_name(), requested, MAX_CHUNKS)
+}
+
+pub fn decode_value_for_name(
+    bytes: &[u8],
+    key: &str,
+    requested: u64,
+) -> Result<Option<Record>, String> {
+    decode_named_value(bytes, key, requested, projection::MAX_CHUNKS)
+}
+
+fn decode_named_value(
+    bytes: &[u8],
+    key: &str,
+    requested: u64,
+    chunk_limit: usize,
+) -> Result<Option<Record>, String> {
     use high_capacity_registry_get_value_response::Content;
 
     let response =
         HighCapacityRegistryGetValueResponse::decode(bytes).map_err(|err| err.to_string())?;
     if let Some(error) = response.error {
         if error.code == transport::registry_error::Code::KeyNotPresent as i32
-            && error.key == key.registry_name().as_bytes()
+            && error.key == key.as_bytes()
         {
             return Ok(None);
         }
@@ -310,7 +335,9 @@ pub fn decode_value(bytes: &[u8], key: &Key, requested: u64) -> Result<Option<Re
     }
     let content = match response.content.ok_or("missing Registry record content")? {
         Content::Value(bytes) => ValueContent::Inline(bytes),
-        Content::LargeValueChunkKeys(keys) => ValueContent::Chunked(chunk_hashes(&keys)?),
+        Content::LargeValueChunkKeys(keys) => {
+            ValueContent::Chunked(chunk_hashes(&keys, chunk_limit)?)
+        }
     };
     Ok(Some(Record {
         version: response.version,

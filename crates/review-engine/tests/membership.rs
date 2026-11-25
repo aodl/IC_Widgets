@@ -164,6 +164,44 @@ fn scenario(review: &Review, id: ScenarioId) -> &Scenario {
 }
 
 #[test]
+fn scoped_baseline_supports_targeted_preview_only() {
+    let mut scoped = baseline();
+    scoped.complete = false;
+    scoped.subnets.retain(|subnet, _| *subnet == id(50));
+    scoped.nodes.retain(|node, _| [id(2), id(3)].contains(node));
+    scoped
+        .boundaries
+        .retain(|node, _| scoped.nodes.contains_key(node));
+    scoped.operators.clear();
+    scoped.data_centers.clear();
+
+    let replacement = vec![change(&[3], &[2])];
+    let preview = ReviewInput::build_membership(scoped.clone(), replacement.clone()).unwrap();
+    let review = analyze(&preview);
+    let view = &scenario(&review, ScenarioId::A).subnets[&id(50)];
+    assert_eq!(
+        view.after_steps[0].as_ref().unwrap().members,
+        [id(3), id(1)]
+    );
+    assert!(matches!(
+        ReviewInput::build(
+            scoped.clone(),
+            replacement,
+            ScenarioSelection::All,
+            Policy::V1,
+            None,
+            None,
+            false
+        ),
+        Err(ReviewError::IncompleteBaseline(10))
+    ));
+    assert!(matches!(
+        ReviewInput::build_membership(scoped, vec![remove(&[2])]),
+        Err(ReviewError::UnavailableRecord(RegistryKey::Subnet(subnet))) if subnet == id(51)
+    ));
+}
+
+#[test]
 fn exact_change_and_registered_topology() {
     let review = run(baseline(), vec![change(&[3], &[2])]);
     let scenario = scenario(&review, ScenarioId::A);

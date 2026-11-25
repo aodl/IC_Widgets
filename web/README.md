@@ -1,39 +1,29 @@
-# Subnet Membership widget
+# Network Nexus widgets
 
-The widget reads the reviewer through generated Candid bindings and the standard IC agent. The DFX `frontend` asset canister serves a static bundle. The browser renders the selected revision, its proposal evidence, scenario steps, registered distributions and scoped blockmaking page.
+Enter one or two NNS proposal IDs in Subnet Membership. The reviewer returns requested changes, before/after memberships, the pinned Registry version and source receipts. Both execution orders use the same evidence. A targeted preview checks the selected target memberships and proposal-candidate records. An untargeted removal checks every listed subnet. The scope label reports how many listed subnets were checked.
 
-## Local use
+Node Performance can read blockmaking samples for a subnet directly. **Use this scope in Node Performance** fills the subnet and limits the rows to the selected membership scenario. Clearing the filter restores that subnet's independent view. Sample times and sparse source rows are visible.
 
-Use the `codex_local` identity throughout the local workflow. Deploy the backend and assets on a local network. From the repository root:
+## Local proof of concept
+
+The same reviewer and frontend asset canisters serve the widgets. Use `DFX_IDENTITY=codex_local` on a local network. To use local source fixtures, build the reviewer with `--features local-fixtures` and configure its init argument with the fixture's Governance and Registry principals. Compile the existing `nexus-source-fixture` Wasm into a local test deployment only. Call the fixture's `set_registry_mode(1)`, `prepare_direct_registry()` and `enable_proposal_fixture()`. Try replacement `90`, the pair `93` and `92`, or multi-subnet removal `91`. These fixtures serve direct versioned Registry reads and individual Governance replies.
+
+Open **Pilot access** in the frontend and copy the displayed browser principal. The local controller authorizes one browser tab at a time:
 
 ```bash
 export DFX_IDENTITY=codex_local
-dfx start --background
-dfx deploy --network local
+dfx canister call --network local reviewer set_on_demand_caller '(opt principal "BROWSER_PRINCIPAL")'
 ```
 
-The asset build reads `CANISTER_ID_REVIEWER` and `DFX_NETWORK` from DFX. For a standalone bundle build or binding check:
+The browser identity lives in memory and changes on reload. Pass `(null)` to revoke the delegation. A controller can also call the endpoints directly. Access expires on reviewer upgrade. The delegate can start on-demand reads and has no controller permissions.
+
+The standard IC agent verifies replicated update responses. A local frontend fetches the local replica root key. A non-local build uses the IC trust root. Use these commands to verify the asset build and generated interface:
 
 ```bash
 didc bind --target js canisters/reviewer/reviewer.did > web/src/reviewer.did.js
 npm --prefix web ci
+npm --prefix web test
 CANISTER_ID_REVIEWER="$(dfx canister id --network local reviewer)" DFX_NETWORK=local npm --prefix web run build
 ```
 
-The catalogue initially lists completed reports. Review creation stays in the controller workflow described in [M2](../docs/M2.md). For a local fixture demo, deploy the reviewer with the `local-fixtures` build and the existing synthetic source canister. Registry mode 1 and the proposal fixture support an addition/removal pair, proposals 93 and 92 at fixture version 5. `set_demo_proposal` on the fixture canister optionally replays one exact public `get_proposal_info` wire reply. Such a capture retains its reply hash while the UI identifies the local replica. Registry lookup still resolves against the configured fixture, so a real proposal can show an unavailable target at that local baseline.
-
-## Replicated reads
-
-The first release uses read-only-in-effect Candid update methods for the catalogue, report and scoped performance. The standard agent verifies subnet-consensus certificates for these responses. Production retains the IC trust root. Local builds fetch the local root key. Asset HTTP certification comes from the standard asset canister. [IC response certification](https://docs.internetcomputer.org/guides/frontends/certification/)
-
-This trades query latency for a simpler verification path. An initial visit costs one update for the catalogue, one on opening a report, and one per requested performance page. Searching the loaded catalogue and switching among scenarios use the loaded report with no additional network calls. Heavy reads stop at the 50-billion-cycle safety floor. Reads are bounded by the existing 64-job and 1 MiB report limits, and the performance endpoint decodes at most one archived source reply per request and returns at most 64 scoped nodes. The endpoints perform no collection, review generation or writes. Review creation and archive administration require a controller. IC guidance estimates updates at roughly two to four seconds and queries around 200 ms. Actual live read cost and latency still need an authorized run. [IC client latency and verification](https://docs.internetcomputer.org/guides/canister-calls/calling-from-clients/)
-
-The performance panel shows the latest archived management sample and per-node cumulative proposed blocks and blockmaking failures. A sparse omission remains “No row in sample”. The panel identifies conflicted samples and archive continuity gaps. A paginated result uses the selected sample timestamp and the resolved scope cursor. Historical membership and a sample's observation time are independent. Per-window derivation and reliability scoring are deferred.
-
-Mainnet deployment and live replication checks remain separately authorized. The initial workflow uses completed reports prepared by a controller.
-
-## Local demonstration
-
-Chromium exercised the asset canister on a local DFX replica. The catalogue included a replay of the complete anonymous NNS Governance reply for proposal 144942, with SHA-256 `bc49576421514963ec5df31417d8ea62c7a9cfde9e1d25bf21c7aae37599f573`. The fixture Registry deliberately lacks its actual target, so the report shows the requested changes and an unavailable topology. The separate 93/92 fixture has a 50-member baseline and preserves intermediate counts of 51 and 49 in the two orders. Both orders end with 50 members. Its performance panel returns the 51 relevant nodes and reports that its fixture subnet has no archived sample.
-
-One local run took about 2.7 seconds for the catalogue, 3.0 seconds for the pair report and 3.3 seconds for the performance page. Under concurrent VM builds and tests those times increased to about 15, 6 and 5 seconds. A separate PocketIC measurement used about 99 million cycles in total for those three replicated reads with a 72 KiB report and an empty sample archive. Reads that decode a populated source reply and mainnet pricing can differ. The measured footprint supports the simpler update path for initial low traffic.
+`./scripts/test-m0.sh` builds the fixtures and runs the cross-subnet PocketIC tests, including the on-demand review and native blockmaking cases. Set `NEXUS_REAL_PROPOSAL_REPLY` to an existing public Candid reply for a one-addition, one-removal Governance proposal to also replay its exact payload against a synthetic local Registry. This tests the real proposal decoder and analysis path while keeping Registry verification local.
