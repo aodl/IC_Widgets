@@ -37,13 +37,14 @@ fn provider() -> Principal {
     Principal::from_slice(&[55, 2])
 }
 
+#[derive(CandidType)]
+struct Change {
+    subnet_id: Principal,
+    node_ids_add: Vec<Principal>,
+    node_ids_remove: Vec<Principal>,
+}
+
 fn proposal(id: u64, full: bool) -> ProposalInfo {
-    #[derive(CandidType)]
-    struct Change {
-        subnet_id: Principal,
-        node_ids_add: Vec<Principal>,
-        node_ids_remove: Vec<Principal>,
-    }
     let mut payload = encode_one(Change {
         subnet_id: subnet(),
         node_ids_add: (0..37)
@@ -159,7 +160,7 @@ fn get_proposal_info(id: u64) {
     }) {
         return;
     }
-    let reply = if proposal_fixture::ENABLED.get() && (91..=101).contains(&id) {
+    let reply = if proposal_fixture::ENABLED.get() && (90..=101).contains(&id) {
         Some(proposal_fixture::proposal(id, true, proposal(id, true)))
     } else {
         matches!(id, 101 | 100).then(|| proposal(id, true))
@@ -255,10 +256,43 @@ extern "C" fn changes() {
     );
 }
 
-#[unsafe(export_name = "canister_query get_value")]
-extern "C" fn value() {
+#[cfg(not(feature = "slow-governance"))]
+#[ic_cdk::query(
+    name = "get_value",
+    manual_reply = true,
+    decode_with = "decode_value_request",
+    hidden = true
+)]
+fn value(request: RegistryGetValueRequest) {
+    reply_value(request);
+}
+
+#[cfg(feature = "slow-governance")]
+#[ic_cdk::update(
+    name = "get_value",
+    manual_reply = true,
+    decode_with = "decode_value_request",
+    hidden = true
+)]
+async fn value(request: RegistryGetValueRequest) {
+    if request.key.starts_with(b"data_center_record_")
+        && let Some(target) = DELAY_TARGET.get()
+    {
+        for _ in 0..64 {
+            ic_cdk::call::Call::bounded_wait(target, "delay_round")
+                .await
+                .expect("fixture round");
+        }
+    }
+    reply_value(request);
+}
+
+fn decode_value_request(bytes: Vec<u8>) -> RegistryGetValueRequest {
+    RegistryGetValueRequest::decode(bytes.as_slice()).unwrap()
+}
+
+fn reply_value(request: RegistryGetValueRequest) {
     use high_capacity_registry_get_value_response::Content;
-    let request = RegistryGetValueRequest::decode(msg_arg_data().as_slice()).unwrap();
     if let Some(reply) = registry_fixture::direct_value(&request) {
         msg_reply(reply.encode_to_vec());
         return;

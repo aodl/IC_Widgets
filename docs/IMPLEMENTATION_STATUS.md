@@ -2,9 +2,53 @@
 
 ## On-demand membership and performance
 
-The `codex/on-demand-membership` branch makes direct pinned reads the default widget workflow. A single bounded controller or delegated request resolves one or two proposal IDs and returns all applicable scenarios. It rechecks the proposal action and lifecycle before delivering the result. Required topology failures stop the review. The result distinguishes a listed subnet assignment, an API-boundary assignment, an absent node record and an assignment unknown outside listed subnets. Node Performance has its own management canister call and can accept the membership scope as a filter. No review is saved. [Architecture](ARCHITECTURE.md) · [Local use](../web/README.md)
+Membership now resolves the target subnets and proposal-candidate records at a pinned Registry version. An untargeted removal still resolves every listed subnet membership. The result identifies the checked and total listed subnet counts and distinguishes known assignments from unknown assignments. The same simulation calculates both execution orders and retains the final Governance recheck. Node Performance can use the preview's scope as a filter. [Architecture](ARCHITECTURE.md) · [Local use](../web/README.md)
 
-Cross-subnet PocketIC measurements below use the synthetic 24-subnet Registry, except for proposal 144942 and the native metrics read. Wall times include the local test client. Settled cycle changes are measured on the reviewer under PocketIC pricing. The largest batch reservation was about 336.8 billion cycles. The membership tests left stable allocation unchanged.
+### First mainnet run
+
+Proposal 144954 pinned Registry version 66,005. The request ended at `Deadline` after 119.822 seconds on-canister, 237 source calls, 71,065 reply bytes, 263.54 million reviewer instructions and a settled decrease of 4.254 billion cycles. Governance replied 2.363 seconds after the start. The final eight data-center reads expired, before the Governance recheck. The retained excerpt gives exact method totals and the final batch, without the intermediate receipt timestamps. The stage split uses the earlier 95-subnet roster observation, the 40 members implied by the proposer's table plus one addition, and the table's ordered data-center names. Times allocate the remaining observed time proportionally across reconstructed batches.
+
+| Stage | Calls | Sequential batches | Approx. elapsed |
+|---|---:|---:|---:|
+| Governance and Registry head | 2 | 2 | 6 s |
+| Subnet roster and memberships | ~96 | ~13 | 45 s |
+| Node and API-boundary records | ~82 | ~12 | 41 s |
+| Operator records | ~41 | ~6 | 21 s |
+| Data-center records | ~16 | ~2 | 7 s |
+| Registry chunks | 0 | 0 | 0 s |
+
+The executable Governance payload, Registry pin and target memberships support the membership calculation. The roster confirms targets and bounds assignment coverage. Other listed memberships and candidate node and API-boundary records strengthen checks for assignments, existence and eligibility. In the old request, retained-node records also supported validation of resulting members. Operator and data-center reads supplied provider, concentration and geography data. The scoped preview leaves retained-node eligibility and assignments outside checked subnets unverified.
+
+### Revised local preview measurements
+
+Cross-subnet PocketIC with a synthetic 24-subnet roster and automatic rounds. The replacement read one 50-member subnet and two candidates. The pair included an untargeted removal and evaluated both orders against the same 24-subnet footprint.
+
+| Case | Calls | Batches | Reply bytes | Wall time | Instructions | Settled cycles |
+|---|---:|---:|---:|---:|---:|---:|
+| Targeted replacement | 9 | 7 | 3,315 | 1.46 s | 17.88 M | 82.48 M |
+| Pair with untargeted removal | 34 | 9 | 39,897 | 1.57 s | 104.71 M | 344.15 M |
+| Untargeted removal across two affected subnets | 32 | 9 | 39,357 | 1.48 s | 58.67 M | 284.72 M |
+
+Replacement measurements from a temporary instrumented Wasm. Stage latency comes from replica timestamps. Read-stage instructions cover dispatch and receipt processing. Decoding between stages and final response measurement contribute to the request total. Stage cycle deltas are sampled during the request and charges can settle in a later stage.
+
+| Stage | Calls | Reply bytes | Replica time | Instructions | Sampled cycle delta |
+|---|---:|---:|---:|---:|---:|
+| Initial Governance | 1 | 349 | 120 ms | 97,403 | 5.73 M |
+| Registry head | 1 | 2 | 118 ms | 57,225 | 5.94 M |
+| Subnet roster | 1 | 751 | 113 ms | 147,143 | 6.11 M |
+| Target membership | 1 | 1,570 | 116 ms | 269,724 | 7.31 M |
+| Candidate node records | 2 | 94 | 122 ms | 144,661 | 11.52 M |
+| Candidate API boundaries | 2 | 200 | 149 ms | 151,578 | 11.17 M |
+| Governance recheck | 1 | 349 | 117 ms | 103,937 | 5.90 M |
+| Analysis and scope assembly | 0 | 0 | Same round | 10,252,215 | Charged at settlement |
+
+The previews issued zero operator, data-center and chunk calls in this fixture. Chunk reads remain supported for required records. A replay of the archived Governance reply for proposal 144942 produced its exact swap in nine calls against a synthetic Registry. In local Chromium the replacement returned in 4.00 seconds and the pair in 2.06 seconds, including the browser agent. The browser also verified both execution orders and the linked and standalone Node Performance views.
+
+The temporary 12-call experiment used the same call counts. It reduced the 24-subnet reads from three batches to two and raised their peak reservation from 336.82 billion to 505.23 billion cycles. The two broad requests had mixed end-to-end latency results. The targeted replacement already fit each stage in one batch. At the observed mainnet reservation, 12 comparable calls would require about 1.32 trillion cycles reserved plus the existing 50-billion liquid margin. The implementation keeps eight calls per batch and the 120-second deadline.
+
+### Previous local measurements
+
+The initial on-demand implementation used the broader topology path. Cross-subnet PocketIC measurements below use the synthetic 24-subnet Registry, except for proposal 144942 and the native metrics read. Wall times include the local test client. Settled cycle changes are measured on the reviewer under PocketIC pricing. The largest batch reservation was about 336.8 billion cycles. The membership tests left stable allocation unchanged.
 
 | Case | Source calls | Source bytes | Candid reply bytes | Wall time | Reviewer instructions | Settled cycles |
 |---|---:|---:|---:|---:|---:|---:|
@@ -16,7 +60,7 @@ Cross-subnet PocketIC measurements below use the synthetic 24-subnet Registry, e
 
 Chromium on the local asset canister verified denied access before delegation, both execution orders, a linked 51-node filter, clearing that filter, and an independent blockmaking request. The pair review and the blockmaking request each took about 3.2 seconds from the browser. Browser traffic remained on the local replica.
 
-The 144942 test replayed the archived 23 November Governance reply with SHA-256 `8c9845cc9bb67edc1c35f688b00170ccae0eb41f54e4abd8d90b00a1e5019ad3`. It verified the actual executable addition and removal against the fixture. Live Registry coverage, latency and pricing remain to be measured together. One separately approved verification could run one current open function-31 proposal on an owner-designated test canister with the reviewed artifact. Record the pinned version and evidence coverage, wall latency, calls, bytes, instructions and settled cycle delta. Use the on-demand limits and stop after that reply.
+The 144942 test replayed the archived 23 November Governance reply with SHA-256 `8c9845cc9bb67edc1c35f688b00170ccae0eb41f54e4abd8d90b00a1e5019ad3`. It verified the actual executable addition and removal against the fixture. The revised preview awaits a separately authorized mainnet measurement.
 
 ## M1 evidence foundation
 

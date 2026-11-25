@@ -1,12 +1,12 @@
 # Network Nexus widgets
 
-Enter one or two NNS proposal IDs in Subnet Membership. The reviewer returns a transient simulation, the pinned Registry version and source receipts. Both execution orders use the same evidence. The scope label identifies when assignment evidence covers listed subnets only.
+Enter one or two NNS proposal IDs in Subnet Membership. The reviewer returns requested changes, before/after memberships, the pinned Registry version and source receipts. Both execution orders use the same evidence. A targeted preview checks the selected target memberships and proposal-candidate records. An untargeted removal checks every listed subnet. The scope label reports how many listed subnets were checked.
 
 Node Performance can read blockmaking samples for a subnet directly. **Use this scope in Node Performance** fills the subnet and limits the rows to the selected membership scenario. Clearing the filter restores that subnet's independent view. Sample times and sparse source rows are visible.
 
 ## Local proof of concept
 
-The same reviewer and frontend asset canisters serve the widgets. Use `DFX_IDENTITY=codex_local` on a local network. To use local source fixtures, build the reviewer with `--features local-fixtures` and configure its init argument with the fixture's Governance and Registry principals. Compile the existing `nexus-source-fixture` Wasm into a local test deployment only. Call the fixture's `set_registry_mode(1)`, `prepare_direct_registry()` and `enable_proposal_fixture()`. Try proposal `93`, the pair `93` and `92`, or multi-subnet removal `91`. These fixtures serve direct versioned Registry reads and individual Governance replies.
+The same reviewer and frontend asset canisters serve the widgets. Use `DFX_IDENTITY=codex_local` on a local network. To use local source fixtures, build the reviewer with `--features local-fixtures` and configure its init argument with the fixture's Governance and Registry principals. Compile the existing `nexus-source-fixture` Wasm into a local test deployment only. Call the fixture's `set_registry_mode(1)`, `prepare_direct_registry()` and `enable_proposal_fixture()`. Try replacement `90`, the pair `93` and `92`, or multi-subnet removal `91`. These fixtures serve direct versioned Registry reads and individual Governance replies.
 
 Open **Pilot access** in the frontend and copy the displayed browser principal. The local controller authorizes one browser tab at a time:
 

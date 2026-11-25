@@ -10,10 +10,13 @@ use nexus_domain::{MembershipAction, sha256};
 use nexus_ic_sources::{
     decode_candid,
     governance::{self, ProposalInfo},
-    registry::wire::registry::{
-        api_boundary_node::v1::ApiBoundaryNodeRecord,
-        node::v1::NodeRecord,
-        subnet::v1::{SubnetListRecord, SubnetRecord},
+    registry::{
+        value_request_for_name,
+        wire::registry::{
+            api_boundary_node::v1::ApiBoundaryNodeRecord,
+            node::v1::NodeRecord,
+            subnet::v1::{SubnetListRecord, SubnetRecord},
+        },
     },
 };
 use nexus_review_engine::{FindingCode, RegistryKey, ReviewError, ScenarioId, StepOutcome};
@@ -92,7 +95,7 @@ fn review(
 
 #[test]
 #[ignore = "run through scripts/test-m0.sh to build Wasms and start PocketIC"]
-fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
+fn on_demand_previews_resolve_pinned_membership_and_bound_evidence() {
     assert!(enabled());
     let pic = PocketIcBuilder::new()
         .with_nns_subnet()
@@ -161,8 +164,10 @@ fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
 
     let single = review(&pic, reviewer, browser, &[93]);
     assert_eq!(single.registry_version, Some(5));
+    assert_eq!(single.usage.calls, 7);
     let row = single.outcome.unwrap();
-    assert_eq!(row.listed_subnets, 24);
+    assert_eq!(row.listed_subnets, 1);
+    assert_eq!(row.total_listed_subnets, Some(24));
     assert_eq!(
         row.assignments,
         vec![(
@@ -178,10 +183,25 @@ fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
             .iter()
             .any(|row| row.code == FindingCode::PreviouslyUnassigned)
     );
-    assert!(row.report.manifest.registry.iter().any(|(key, row)|
-        matches!(key, RegistryKey::DataCenter(_)) &&
-        matches!(row, nexus_review_engine::RecordReference::Present(stamp) if stamp.chunk_observations.len() > 4)
-    ));
+    assert!(
+        row.report.scenarios[0].subnets[&id(22, 0)]
+            .baseline
+            .distributions
+            .is_empty()
+    );
+    assert!(
+        !row.report
+            .manifest
+            .registry
+            .keys()
+            .any(|key| matches!(key, RegistryKey::Operator(_) | RegistryKey::DataCenter(_)))
+    );
+    assert!(
+        !row.report
+            .manifest
+            .registry
+            .contains_key(&RegistryKey::Node(id(21, 2)))
+    );
 
     let pair = review(&pic, reviewer, browser, &[93, 92]);
     assert_eq!(pair.registry_version, Some(5));
@@ -208,8 +228,12 @@ fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
             .count(),
         4
     );
-    assert_eq!(pair.usage.calls, single.usage.calls + 2);
+    assert_eq!(pair.usage.calls, 34);
     let pair = pair.outcome.unwrap();
+    assert_eq!(
+        (pair.listed_subnets, pair.total_listed_subnets),
+        (24, Some(24))
+    );
     assert_eq!(pair.report.scenarios.len(), 4);
     let counts = |scenario| {
         let row = pair
@@ -236,6 +260,38 @@ fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
     };
     assert!(writes.values().all(|members| members.len() == 49));
 
+    set(
+        format!("subnet_record_{}", id(22, 2)),
+        Some(
+            SubnetRecord {
+                membership: vec![id(21, 1201).as_slice().to_vec()],
+                subnet_type: 1,
+                ..Default::default()
+            }
+            .encode_to_vec(),
+        ),
+    );
+    let scoped = review(&pic, reviewer, browser, &[93]).outcome.unwrap();
+    assert!(scoped.report.scenarios[0].completed);
+    assert_eq!(
+        scoped.assignments[0].1,
+        CandidateAssignment::UnknownOutsideListedSubnets
+    );
+    let broad = review(&pic, reviewer, browser, &[93, 92]).outcome.unwrap();
+    assert!(
+        broad
+            .assignments
+            .contains(&(id(21, 1201), CandidateAssignment::ListedSubnet(id(22, 2))))
+    );
+    assert!(!broad.report.scenarios[0].completed);
+    assert!(
+        broad.report.scenarios[0].steps[0]
+            .findings
+            .iter()
+            .any(|finding| finding.code == FindingCode::AssignedElsewhere
+                && finding.nodes == [id(21, 1201)])
+    );
+
     assert!(matches!(
         review(&pic, reviewer, browser, &[999_999]).outcome,
         Err(LiveError::InvalidEvidence(ReviewError::MissingProposal(
@@ -243,8 +299,19 @@ fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
         )))
     ));
     set(format!("subnet_record_{}", id(22, 2)), None);
-    assert!(matches!(review(&pic, reviewer, browser, &[93]).outcome,
+    assert!(
+        review(&pic, reviewer, browser, &[93])
+            .outcome
+            .unwrap()
+            .report
+            .scenarios[0]
+            .completed
+    );
+    assert!(matches!(review(&pic, reviewer, browser, &[91]).outcome,
         Err(LiveError::InvalidEvidence(ReviewError::UnavailableRecord(RegistryKey::Subnet(id)))) if id == self::id(22, 2)));
+    set(format!("subnet_record_{}", id(22, 0)), None);
+    assert!(matches!(review(&pic, reviewer, browser, &[93]).outcome,
+        Err(LiveError::InvalidEvidence(ReviewError::UnavailableRecord(RegistryKey::Subnet(id)))) if id == self::id(22, 0)));
     fixture_call("prepare_direct_registry", encode_args(()).unwrap());
     set(
         format!("api_boundary_node_{}", id(21, 1)),
@@ -260,6 +327,22 @@ fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
         Err(LiveError::InvalidEvidence(ReviewError::InvalidTopology))
     ));
     fixture_call("prepare_direct_registry", encode_args(()).unwrap());
+    set(format!("node_record_{}", id(21, 1201)), None);
+    let absent = review(&pic, reviewer, browser, &[93]).outcome.unwrap();
+    assert_eq!(
+        absent.assignments,
+        [(id(21, 1201), CandidateAssignment::NodeAbsent)]
+    );
+    assert_eq!(
+        absent.report.scenarios[0].steps[0].outcome,
+        StepOutcome::Rejected
+    );
+    assert!(
+        absent.report.scenarios[0].steps[0]
+            .findings
+            .iter()
+            .any(|finding| finding.code == FindingCode::MissingNode)
+    );
     set(format!("node_record_{}", id(21, 1201)), Some(vec![0xff]));
     assert!(matches!(review(&pic, reviewer, browser, &[93]).outcome,
         Err(LiveError::InvalidEvidence(ReviewError::UnavailableRecord(RegistryKey::Node(id)))) if id == self::id(21, 1201)));
@@ -268,20 +351,17 @@ fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
         format!("node_operator_record_{}", id(23, 1)),
         Some(vec![0xff]),
     );
-    let missing_metadata = review(&pic, reviewer, browser, &[93]).outcome.unwrap();
-    assert!(missing_metadata.report.scenarios[0].completed);
-    assert!(
-        missing_metadata
-            .report
-            .manifest
-            .registry
-            .iter()
-            .any(|(key, evidence)| matches!(key, RegistryKey::Operator(_))
-                && matches!(
-                    evidence,
-                    nexus_review_engine::RecordReference::Unavailable { .. }
-                ))
-    );
+    set("data_center_record_example".into(), None);
+    let missing_metadata = review(&pic, reviewer, browser, &[90]);
+    assert_eq!(missing_metadata.usage.calls, 9);
+    let preview = missing_metadata.outcome.unwrap();
+    let replacement = &preview.report.scenarios[0];
+    assert!(replacement.completed);
+    let subnet = &replacement.subnets[&id(22, 0)];
+    let after = subnet.after_steps[0].as_ref().unwrap();
+    assert_eq!((subnet.baseline.member_count, after.member_count), (50, 50));
+    assert_eq!(after.added, [id(21, 1201)]);
+    assert_eq!(after.removed, [id(21, 1)]);
     fixture_call("prepare_direct_registry", encode_args(()).unwrap());
 
     let in_progress = pic
@@ -399,4 +479,64 @@ fn on_demand_reviews_resolve_pinned_topology_and_bound_evidence() {
         assert_eq!(state.added, *add);
         assert_eq!(state.removed, *remove);
     }
+}
+
+#[test]
+#[ignore = "run through scripts/test-m0.sh to build Wasms and start PocketIC"]
+fn membership_preview_finishes_while_data_center_metadata_is_delayed() {
+    assert!(enabled());
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+    let topology = pic.topology();
+    let controller = id(90, 1);
+    let fixture = pic.create_canister_on_subnet(None, None, topology.get_nns().unwrap());
+    let round_trip = pic.create_canister_on_subnet(None, None, topology.get_app_subnets()[0]);
+    let reviewer =
+        pic.create_canister_on_subnet(Some(controller), None, topology.get_app_subnets()[0]);
+    let slow_fixture = wasm(".local/slow-source-fixture.wasm");
+    pic.install_canister(
+        fixture,
+        slow_fixture.clone(),
+        encode_args(()).unwrap(),
+        None,
+    );
+    pic.install_canister(round_trip, slow_fixture, encode_args(()).unwrap(), None);
+    pic.install_canister(
+        reviewer,
+        wasm(".local/reviewer-fixture.wasm"),
+        encode_one(Some(Sources {
+            registry: fixture,
+            governance: fixture,
+        }))
+        .unwrap(),
+        Some(controller),
+    );
+    for (method, args) in [
+        ("set_delay_target", encode_one(round_trip).unwrap()),
+        ("set_registry_mode", encode_one(1u8).unwrap()),
+        ("prepare_direct_registry", encode_args(()).unwrap()),
+        ("enable_proposal_fixture", encode_args(()).unwrap()),
+    ] {
+        support::call::<()>(&pic, fixture, method, args);
+    }
+    let delayed = pic
+        .submit_call(
+            fixture,
+            Principal::anonymous(),
+            "get_value",
+            value_request_for_name("data_center_record_example", 5),
+        )
+        .unwrap();
+    pic.tick();
+    let response = review(&pic, reviewer, controller, &[90]);
+    assert_eq!(response.usage.calls, 9);
+    assert!(response.outcome.unwrap().report.scenarios[0].completed);
+    let metadata_status = pic.ingress_status(delayed.clone());
+    assert!(
+        metadata_status.is_none(),
+        "metadata request finished early: {metadata_status:?}"
+    );
+    assert!(!pic.await_call(delayed).unwrap().is_empty());
 }

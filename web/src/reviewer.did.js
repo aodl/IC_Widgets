@@ -946,6 +946,7 @@ export const idlFactory = ({ IDL }) => {
   const LiveReview = IDL.Record({
     'report' : Review,
     'assignments' : IDL.Vec(IDL.Tuple(IDL.Principal, CandidateAssignment)),
+    'total_listed_subnets' : IDL.Opt(IDL.Nat32),
     'scopes' : IDL.Vec(LiveScope),
     'listed_subnets' : IDL.Nat32,
   });

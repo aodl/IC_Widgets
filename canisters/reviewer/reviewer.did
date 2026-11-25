@@ -245,7 +245,10 @@ type LiveResponse_1 = record {
 type LiveReview = record {
   report : Review;
   assignments : vec record { principal; CandidateAssignment };
+  // Present for membership previews. The Registry roster may be larger than the checked set.
+  total_listed_subnets : opt nat32;
   scopes : vec LiveScope;
+  // Listed subnet memberships actually checked.
   listed_subnets : nat32;
 };
 type LiveScope = record {

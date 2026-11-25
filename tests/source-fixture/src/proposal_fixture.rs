@@ -44,6 +44,15 @@ pub fn proposal(id: u64, full: bool, mut base: ProposalInfo) -> ProposalInfo {
     base.id = Some(ProposalId { id });
     proposal.title = Some(format!("Synthetic proposal {id}"));
     proposal.action = match id {
+        90 => Some(Action::ExecuteNnsFunction(ExecuteNnsFunction {
+            nns_function: 31,
+            payload: encode_one(crate::Change {
+                subnet_id: crate::registry_fixture::id(22, 0),
+                node_ids_add: vec![crate::registry_fixture::id(21, 1201)],
+                node_ids_remove: vec![crate::registry_fixture::id(21, 1)],
+            })
+            .unwrap(),
+        })),
         91 => Some(Action::ExecuteNnsFunction(ExecuteNnsFunction {
             nns_function: 13,
             payload: encode_one(Remove {

@@ -19,8 +19,8 @@ use nexus_ic_sources::{
     management::{NodeMetricsHistoryArgs, NodeMetricsHistoryResult, decode_metrics},
 };
 use nexus_review_engine::{
-    Capture, Policy, Proposal, ProposalEvidence, Review, ReviewError, ReviewInput, ScenarioId,
-    ScenarioSelection, ScopeState, analyze, requested_nodes,
+    Capture, Proposal, ProposalEvidence, Review, ReviewError, ReviewInput, ScenarioId, ScopeState,
+    analyze, requested_nodes,
 };
 use serde::Deserialize;
 
@@ -102,7 +102,10 @@ pub enum CandidateAssignment {
 #[derive(CandidType, Deserialize)]
 pub struct LiveReview {
     pub report: Review,
+    /// Listed subnet memberships actually checked.
     pub listed_subnets: u32,
+    /// Present for membership previews. The Registry roster may be larger than the checked set.
+    pub total_listed_subnets: Option<u32>,
     pub assignments: Vec<(Principal, CandidateAssignment)>,
     pub scopes: Vec<LiveScope>,
 }
@@ -215,7 +218,12 @@ async fn review(
         return Err(LiveError::CallLimit);
     }
     let (baseline, assignments) = registry::resolve(request, sources.registry, &initial).await?;
-    let listed_subnets = baseline.roster.value().expect("resolved roster").len() as u32;
+    let roster = baseline.roster.value().expect("resolved roster");
+    let listed_subnets = roster
+        .iter()
+        .filter(|id| baseline.subnets.contains_key(id))
+        .count() as u32;
+    let total_listed_subnets = Some(roster.len() as u32);
 
     // A status or action can change while Registry reads are in flight.
     let current = proposals(request, sources.governance, ids).await?;
@@ -235,17 +243,12 @@ async fn review(
             });
         }
     }
-    let input = ReviewInput::build(
+    let input = ReviewInput::build_membership(
         baseline,
         current
             .into_iter()
             .map(|p| Capture::Full(Box::new(p)))
             .collect(),
-        ScenarioSelection::All,
-        Policy::V1,
-        None,
-        None,
-        false,
     )
     .map_err(LiveError::InvalidEvidence)?;
     let report = analyze(&input);
@@ -264,6 +267,7 @@ async fn review(
     Ok(LiveReview {
         report,
         listed_subnets,
+        total_listed_subnets,
         assignments,
         scopes,
     })

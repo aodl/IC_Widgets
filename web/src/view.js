@@ -43,10 +43,12 @@ function details(label, ...content) {
   return el('details', el('summary', label), ...content);
 }
 
-function principalList(label, values) {
-  return details(`${label} (${number(values.length)})`, values.length
+function principalList(label, values, open = false) {
+  const list = details(`${label} (${number(values.length)})`, values.length
     ? styled('ul', 'principals', values.map(id => el('li', el('code', principal(id)))))
     : el('p', 'None'));
+  list.open = open;
+  return list;
 }
 
 function table(headers, rows) {
@@ -75,10 +77,13 @@ export function reviewHeader(review, live) {
   const ids = proposalIds(manifest.proposals.map(row => row.id));
   const hypothetical = option(review.hypothetical_executed);
   const executed = manifest.proposals.some(row => row.lifecycle_status === 4 || row.executed_at_seconds.length);
+  const total = option(live.total_listed_subnets ?? []);
+  const scoped = total !== undefined && live.listed_subnets < total;
   return styled('section', 'card',
     el('h2', `Proposal ${ids}`),
     el('p', 'Registry baseline ', el('strong', number(manifest.registry_version))),
-    manifest.proposals.every(row => [1, 3].includes(row.lifecycle_status)) ? el('p', 'Prospective simulation') : null,
+    manifest.proposals.every(row => [1, 3].includes(row.lifecycle_status))
+      ? el('p', scoped ? 'Scoped membership preview' : 'Prospective membership preview') : null,
     executed && hypothetical ? styled('p', 'notice warning',
       'Hypothetical evaluation of an executed proposal. The selected Registry version is the simulation baseline. Actual historical execution remains unverified.') : null,
     executed && !hypothetical ? styled('p', 'notice warning',
@@ -87,13 +92,15 @@ export function reviewHeader(review, live) {
       `#${row.id}`, functions[row.function] ?? `Function ${row.function}`, lifecycle[row.lifecycle_status] ?? `Status ${row.lifecycle_status}`,
       time(row.observed_at_nanos),
     ])),
-    styled('p', 'notice', `Assignment checks cover ${number(live.listed_subnets)} listed subnets and the candidates’ Registry API boundary records. An assignment outside the listed topology remains unverified.`),
+    styled('p', 'notice', total === undefined
+      ? `Assignment checks cover ${number(live.listed_subnets)} listed subnets and the candidates’ Registry API boundary records.`
+      : `Checked ${number(live.listed_subnets)} of ${number(total)} listed subnet memberships. Node, hardware and API boundary checks cover the proposal candidates. Assignments outside the checked subnets remain unverified. The result shows hypothetical membership changes. Full proposal validity remains unverified.`),
     live.assignments.length ? details('Candidate assignments at the baseline', table(
       ['Node', 'Assignment evidence'], live.assignments.map(([node, assignment]) => [
         el('code', principal(node)),
         assignment.ListedSubnet ? el('code', principal(assignment.ListedSubnet)) : ({
           ApiBoundary: 'API boundary node',
-          UnknownOutsideListedSubnets: 'No listed subnet or API boundary assignment found',
+          UnknownOutsideListedSubnets: 'No assignment found in the checked Registry records',
           NodeAbsent: 'Node record absent at this version',
         })[branch(assignment)],
       ]),
@@ -120,20 +127,6 @@ export function reviewHeader(review, live) {
       })))));
 }
 
-function distributionPanel(state) {
-  const dimensions = { Operator: 'Node operator', Provider: 'Node provider', DataCenter: 'Data center', RegisteredOwner: 'Registered data-center owner', RegisteredCountry: 'Registered country', RegisteredContinent: 'Registered continent' };
-  return styled('div', 'grid', state.distributions.map(([kind, row]) => {
-    const title = dimensions[branch(kind)];
-    return styled('div', 'stat', el('h4', title),
-      el('p', `${number(row.groups.length)} ${row.groups.length === 1 ? 'group' : 'groups'} · ${number(row.unknown)} unknown`),
-      row.groups.length ? details('Group counts',
-        table([title, 'Nodes'], row.groups.map(([group, count]) => [
-          'Principal' in group ? el('code', principal(group.Principal)) : group.RegisteredLabel,
-          number(count),
-        ]))) : null);
-  }));
-}
-
 export function renderScenario(review, scenario, subnet, stateIndex, container) {
   const view = scenario.subnets.find(([id]) => principal(id) === subnet)?.[1];
   const states = view ? [view.baseline, ...view.after_steps.map(option)] : [];
@@ -151,12 +144,13 @@ export function renderScenario(review, scenario, subnet, stateIndex, container) 
     const state = states[index + 1];
     const operation = branch(step.requested);
     const requested = step.requested[operation];
+    const additions = requested.add ?? (operation === 'Add' ? requested.nodes : []);
+    const removals = requested.remove ?? (operation === 'Remove' ? requested.nodes : []);
     return el('li', el('strong', `#${step.proposal} · ${outcomes[outcome]}`),
       state ? ` · ${number(state.member_count)} members after step` : '',
-      details('Requested changes',
-        requested.subnet ? el('p', 'Target subnet ', el('code', principal(requested.subnet))) : null,
-        principalList('Requested additions', requested.add ?? (operation === 'Add' ? requested.nodes : [])),
-        principalList('Requested removals', requested.remove ?? (operation === 'Remove' ? requested.nodes : []))),
+      requested.subnet ? el('p', 'Target subnet ', el('code', principal(requested.subnet))) : null,
+      principalList('Requested additions', additions, additions.length === 1),
+      principalList('Requested removals', removals, removals.length === 1),
       step.findings.length ? findingsList(step.findings) : null);
   }));
   timeline.className = 'steps';
@@ -173,8 +167,6 @@ export function renderScenario(review, scenario, subnet, stateIndex, container) 
     final ? principalList('Removed members', final.removed) : null,
     final ? principalList('Final membership', final.members) : null,
     selected && stateIndex > 0 && stateIndex !== states.length - 1 ? principalList('Selected intermediate membership', selected.members) : null,
-    selected ? el('h3', 'Registered distributions for selected state') : null,
-    selected ? distributionPanel(selected) : null,
     view && !selected ? styled('p', 'notice warning', 'Membership after that step is unavailable.') : null,
   ].filter(Boolean));
 }

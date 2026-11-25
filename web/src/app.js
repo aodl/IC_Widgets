@@ -72,7 +72,7 @@ function renderReport(live) {
   const [scenarioLabelControl, scenarioSelect] = selectControl('Scenario',
     report.scenarios.map(scenario => [branch(scenario.id), scenarioLabel(scenario.id)]));
   const [subnetLabel, subnetSelect] = selectControl('Subnet', []);
-  const [stateLabel, stateSelect] = selectControl('Registered state', []);
+  const [stateLabel, stateSelect] = selectControl('Membership state', []);
   const overview = el('div');
   const link = el('button', 'Use this scope in Node Performance');
   link.type = 'button';
@@ -114,7 +114,7 @@ function renderReport(live) {
   link.addEventListener('click', () => linkPerformance(scope, report.manifest.registry_version));
   reportContainer.replaceChildren(
     reviewHeader(report, live.outcome.Ok),
-    styled('section', 'card', el('h2', 'Membership and topology'),
+    styled('section', 'card', el('h2', 'Membership'),
       styled('div', 'controls', scenarioLabelControl, subnetLabel, stateLabel), overview, link,
       sourceReceipts(live)),
   );

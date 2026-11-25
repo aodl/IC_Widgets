@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use candid::{Principal, encode_one};
-use nexus_domain::{Hash, MembershipAction, sha256};
+use nexus_domain::{Hash, sha256};
 use nexus_ic_sources::{
     projection::{DecodedRecord, Details, RecordKey, decode_record},
     registry::{
@@ -10,8 +10,8 @@ use nexus_ic_sources::{
     },
 };
 use nexus_review_engine::{
-    Proposal, Record, RecordStamp, RegistryBaseline, RegistryKey, ReviewError, data_center_key,
-    relevant_nodes, requested_nodes,
+    Proposal, Record, RecordStamp, RegistryBaseline, RegistryKey, ReviewError, candidate_nodes,
+    listed_subnets, preview_subnets,
 };
 
 use super::{CandidateAssignment, LiveError, NODE_LIMIT, Request, bounded_reason, source_error};
@@ -44,18 +44,9 @@ pub(super) async fn resolve(
         .await?
         .pop()
         .expect("one roster");
-    let listed = roster
-        .value()
-        .filter(|ids| !ids.is_empty())
-        .ok_or_else(|| unavailable(RegistryKey::Roster))?;
-    let mut subnets: BTreeSet<_> = listed.iter().copied().collect();
-    for row in proposals {
-        if let MembershipAction::Add { subnet, .. } | MembershipAction::Change { subnet, .. } =
-            row.action
-        {
-            subnets.insert(subnet);
-        }
-    }
+    let listed = listed_subnets(&roster).map_err(LiveError::InvalidEvidence)?;
+    let actions: Vec<_> = proposals.iter().map(|row| &row.action).collect();
+    let subnets = preview_subnets(&listed, &actions);
     let subnet_rows = resolver
         .read(
             subnets.iter().copied().map(RecordKey::Subnet).collect(),
@@ -64,7 +55,7 @@ pub(super) async fn resolve(
         .await?;
     let mut baseline = RegistryBaseline {
         version,
-        complete: true,
+        complete: false,
         roster,
         subnets: subnets.into_iter().zip(subnet_rows).collect(),
         nodes: BTreeMap::new(),
@@ -72,8 +63,7 @@ pub(super) async fn resolve(
         operators: BTreeMap::new(),
         data_centers: BTreeMap::new(),
     };
-    let actions: Vec<_> = proposals.iter().map(|row| &row.action).collect();
-    let nodes = relevant_nodes(&baseline, &actions).map_err(LiveError::InvalidEvidence)?;
+    let nodes = candidate_nodes(&actions);
     if nodes.len() > NODE_LIMIT {
         return Err(LiveError::CallLimit);
     }
@@ -91,58 +81,28 @@ pub(super) async fn resolve(
         .await?;
     baseline.nodes = nodes.iter().copied().zip(node_rows).collect();
     baseline.boundaries = nodes.into_iter().zip(boundary_rows).collect();
-    let assignments = assignments(&baseline, &actions)?;
-
-    let operators: BTreeSet<_> = baseline
-        .nodes
-        .values()
-        .filter_map(|node| node.value()?.operator)
-        .collect();
-    let operator_rows = resolver
-        .read(
-            operators.iter().copied().map(RecordKey::Operator).collect(),
-            review_records::operator,
-        )
-        .await?;
-    baseline.operators = operators.into_iter().zip(operator_rows).collect();
-    let centers: BTreeSet<_> = baseline
-        .operators
-        .values()
-        .filter_map(|row| data_center_key(&row.value()?.data_center))
-        .collect();
-    let center_rows = resolver
-        .read(
-            centers.iter().cloned().map(RecordKey::DataCenter).collect(),
-            review_records::data_center,
-        )
-        .await?;
-    baseline.data_centers = centers.into_iter().zip(center_rows).collect();
+    let assignments = assignments(&baseline, &listed)?;
     Ok((baseline, assignments))
 }
 
 fn assignments(
     baseline: &RegistryBaseline,
-    actions: &[&MembershipAction],
+    listed: &BTreeSet<Principal>,
 ) -> Result<Vec<(Principal, CandidateAssignment)>, LiveError> {
-    let mut listed = BTreeMap::new();
-    for subnet in baseline.roster.value().expect("validated roster") {
-        for node in &baseline.subnets[subnet]
+    let mut known = BTreeMap::new();
+    for (&id, record) in &baseline.subnets {
+        if !listed.contains(&id) {
+            continue;
+        }
+        let subnet = record
             .value()
-            .expect("validated subnet")
-            .members
-        {
-            if baseline.nodes.contains_key(node) {
-                listed.insert(*node, *subnet);
+            .ok_or_else(|| unavailable(RegistryKey::Subnet(id)))?;
+        for node in &subnet.members {
+            if baseline.nodes.contains_key(node) && known.insert(*node, id).is_some() {
+                return Err(LiveError::InvalidEvidence(ReviewError::InvalidTopology));
             }
         }
     }
-    let candidates: BTreeSet<_> = actions
-        .iter()
-        .flat_map(|action| {
-            let (add, remove) = requested_nodes(action);
-            add.iter().chain(remove).copied()
-        })
-        .collect();
     let mut assignments = vec![];
     for (&node, record) in &baseline.nodes {
         let boundary = &baseline.boundaries[&node];
@@ -152,16 +112,14 @@ fn assignments(
         if matches!(boundary, Record::Unavailable { .. }) {
             return Err(unavailable(RegistryKey::ApiBoundary(node)));
         }
-        let assignment = match (record.value(), listed.get(&node), boundary.value()) {
+        let assignment = match (record.value(), known.get(&node), boundary.value()) {
             (None, None, None) => CandidateAssignment::NodeAbsent,
             (Some(_), Some(subnet), None) => CandidateAssignment::ListedSubnet(*subnet),
             (Some(_), None, Some(())) => CandidateAssignment::ApiBoundary,
             (Some(_), None, None) => CandidateAssignment::UnknownOutsideListedSubnets,
             _ => return Err(LiveError::InvalidEvidence(ReviewError::InvalidTopology)),
         };
-        if candidates.contains(&node) {
-            assignments.push((node, assignment));
-        }
+        assignments.push((node, assignment));
     }
     Ok(assignments)
 }
