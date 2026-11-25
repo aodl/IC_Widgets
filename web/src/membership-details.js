@@ -38,7 +38,7 @@ function saveFile(name, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function markdownEditor(model, draft) {
+function markdownEditor(model, draft, context) {
   const vote = el('input');
   vote.value = draft.vote ?? '?';
   const tldr = el('textarea');
@@ -46,7 +46,9 @@ function markdownEditor(model, draft) {
   tldr.value = draft.tldr ?? '';
   const mapImage = el('input');
   mapImage.type = 'url';
-  mapImage.value = draft.mapImage ?? '';
+  const inputHash = model.calculation?.inputHash;
+  mapImage.disabled = !inputHash;
+  mapImage.value = inputHash && context.mapImage?.inputHash === inputHash ? context.mapImage.url : '';
   const previewVote = el('p');
   const previewTldr = el('p');
   const raw = el('textarea');
@@ -56,8 +58,9 @@ function markdownEditor(model, draft) {
   const status = styled('p', 'status');
   status.setAttribute('role', 'status');
   function update() {
-    Object.assign(draft, { vote: vote.value, tldr: tldr.value, mapImage: mapImage.value });
-    raw.value = reviewMarkdown(model, draft);
+    Object.assign(draft, { vote: vote.value, tldr: tldr.value });
+    if (inputHash) context.mapImage = { inputHash, url: mapImage.value };
+    raw.value = reviewMarkdown(model, { ...draft, mapImage: mapImage.value });
     previewVote.replaceChildren(el('strong', 'VOTE'), ' ' + (vote.value.trim() || '?'));
     previewTldr.replaceChildren(el('strong', 'TLDR'), ' ' + tldr.value.trim());
   }
@@ -104,7 +107,7 @@ function describeClaims(claim) {
     styled('pre', 'claim-text', claim.summary));
 }
 
-function showComparison(container, model, draft, comparisonReady) {
+function showComparison(container, model, draft, context, comparisonReady) {
   const comparison = model.tables.find(row => row.title === 'Decentralisation and concentration');
   const distances = model.tables.find(row => row.title === 'Geographic distances');
   const claims = model.tables.find(row => row.title === 'Proposer claims and independent calculation');
@@ -120,7 +123,7 @@ function showComparison(container, model, draft, comparisonReady) {
     comparisonReady ? reviewMap(model) : null,
     disclose('Member records and registration', model.notes.filter(note => note.startsWith('Subnet type ')).map(note => el('p', note)),
       ...model.tables.filter(row => row.title.endsWith(' nodes')).map(row => disclose(row.title + ' (' + row.rows.length + ')', renderTable(row)))),
-    markdownEditor(model, draft),
+    markdownEditor(model, draft, context),
   );
 }
 
@@ -268,7 +271,7 @@ export function mountMembershipDetails(actor, live, localReplica) {
     if (localReplica) {
       model.notes.unshift('Local replica review. Observation times reflect the local reads; check the original source manifest when using captured evidence.');
     }
-    showComparison(output, model, draft, Boolean(calculation) && (selected.done || model.members.some(node => node.point)));
+    showComparison(output, model, draft, selected, Boolean(calculation) && (selected.done || model.members.some(node => node.point)));
   }
 
   return { section, select(scenario, subnet, index, label) {

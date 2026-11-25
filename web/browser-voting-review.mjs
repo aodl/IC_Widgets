@@ -133,9 +133,15 @@ try {
   await page.getByText('40 → 40 members (0 added, 0 removed, 40 retained)', { exact: true }).first().waitFor();
   assert.equal(await page.getByRole('heading', { name: 'World map', exact: true }).count(), 0);
   assert.equal(await page.getByRole('heading', { name: 'Decentralisation and concentration', exact: true }).count(), 0);
+  const markdownInput = page.getByLabel('Generated Markdown', { exact: true });
+  assert.ok(!(await markdownInput.inputValue()).includes(inputHash));
+  if (process.env.VOTING_REVIEW_MAP_URL) {
+    assert.ok(!(await markdownInput.inputValue()).includes(process.env.VOTING_REVIEW_MAP_URL));
+  }
   await phase.selectOption('1');
   await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).first().waitFor();
   await map.getByRole('button', { name: /Added 1.*sh1/ }).waitFor();
+  assert.equal(await markdownInput.inputValue(), md);
   await page.setViewportSize({ width: 400, height: 830 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   await page.screenshot({ path: resolve(output, '144954-mobile.png'), fullPage: true });
