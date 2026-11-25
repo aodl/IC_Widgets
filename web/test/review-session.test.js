@@ -34,7 +34,7 @@ test('a shared-slot request settles before the latest eligible request is sent',
   assert.deepEqual(calls, ['accepted', 'latest']);
 });
 
-function fixture({ firstPage, reject = () => false } = {}) {
+function fixture({ firstPage, comparison, reject = () => false } = {}) {
   const recorded = [];
   const render = [];
   const a = id('node-a');
@@ -67,6 +67,7 @@ function fixture({ firstPage, reject = () => false } = {}) {
     contexts: [one, two], active: () => true, call: (active, run) => serialize(active, () => run(client)),
     compare: async (_, input) => {
       recorded.push({ kind: 'comparison', values: input.after });
+      await comparison?.();
       return { inputHash: input.after.length + '-' + input.data_centers.length, comparison: {} };
     },
     updated: ctx => render.push(ctx.key), phase() {},
@@ -123,6 +124,19 @@ test('stop waits for the accepted page and schedules no follow-up calls', async 
   hold.resolve();
   await session.settled();
   assert.deepEqual(recorded.map(row => row.kind), ['Nodes']);
+});
+
+test('stop leaves an accepted comparison out of the stopped workspace', async () => {
+  const hold = deferred();
+  const began = deferred();
+  const { session, recorded, one } = fixture({ comparison: () => { began.resolve(); return hold.promise; } });
+  session.select(one);
+  await began.promise;
+  session.stop();
+  hold.resolve();
+  await session.settled();
+  assert.equal(one.calculation, undefined);
+  assert.deepEqual(recorded.map(row => row.kind), ['Nodes', 'Operators', 'comparison']);
 });
 
 test('shortened principals remain distinct when both ends collide', () => {

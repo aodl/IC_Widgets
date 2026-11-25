@@ -278,7 +278,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
         const value = metric.value.length > 34 ? shortIds([metric.value]).get(metric.value) : metric.value;
         const [before, after] = metric.coefficient;
         return el('li', metric.name + ' ' + value + ' · ' + metric.before + ' → ' + metric.after,
-          before !== undefined && after !== undefined && before !== after ? ' · coefficient ' + before + ' → ' + after : '');
+          finding.kind !== 'last-member' && before !== undefined && after !== undefined && before !== after
+            ? ' · coefficient ' + before + ' → ' + after : '');
       })) : null);
   }
 

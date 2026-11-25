@@ -111,7 +111,7 @@ export function createReviewSession({ live, contexts, active, call, updated, pha
     if (selected === context) phase('Checking the replicated comparison');
     const relevant = () => valid() && (selected === context || !pending(selected));
     const calculation = await call(relevant, client => compare(client, input, relevant));
-    if (!calculation || !active()) return false;
+    if (!calculation || !valid()) return false;
     context.calculation = { ...calculation, evidence };
     context.failures = readFailures(evidence);
     publish(context);

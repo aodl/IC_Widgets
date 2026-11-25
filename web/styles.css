@@ -219,3 +219,9 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   .review-controls { gap: .3rem .5rem; }
   .review-summary { font-size: .91rem; }
 }
+
+@media (max-width: 22rem) {
+  .masthead-row strong { white-space: normal; }
+  .masthead-row > .actions { flex-wrap: wrap; justify-content: flex-end; }
+  .masthead summary { white-space: normal; }
+}

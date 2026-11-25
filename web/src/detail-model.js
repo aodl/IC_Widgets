@@ -219,6 +219,12 @@ function reviewFindings(dimensions, members, beforeCount, afterCount) {
         }
       }
     }
+    const wider = increased ? [] : dimensions.filter(row =>
+      ['RegisteredArea', 'RegisteredCountry'].includes(row.key) && !row.before.unknown && !row.after.unknown)
+      .flatMap(row => row.changes.filter(group => group.now > 0 && groupMembers(prior, row.key, group.label).length)
+        .map(group => (row.key === 'RegisteredCountry' && /^[A-Z]{2}$/.test(group.label)
+          ? new Intl.DisplayNames(['en'], { type: 'region' }).of(group.label) : group.label) +
+          ' ' + formatPair(group.was, group.now)));
     matched.add(sites.key + '/' + change.label);
     shifts.push({
       kind: increased ? 'concentration' : 'last-member',
@@ -226,7 +232,8 @@ function reviewFindings(dimensions, members, beforeCount, afterCount) {
       explanation: increased ? 'Share of the selected subnet rises from ' +
         share(change.was, beforeCount) + ' to ' + share(change.now, afterCount) +
         ' (+' + Number(metrics[0].points.toFixed(2)) + ' percentage points).'
-        : 'This applies to the named data center in this subnet at the pinned snapshot.',
+        : 'This applies to the named data center in this subnet at the pinned snapshot.' +
+          (wider.length ? ' Wider membership remains (' + wider.join(', ') + ').' : ''),
       ids: (increased ? next : prior).map(node => node.id), metrics,
     });
   }

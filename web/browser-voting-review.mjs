@@ -60,13 +60,20 @@ try {
   await page.getByRole('button', { name: 'Provider distribution unchanged' }).waitFor();
   await page.getByText(/Registered replacement · Zurich → Stockholm/).waitFor();
   await page.getByRole('button', { name: 'Last zh2 member leaves' }).waitFor();
+  await page.getByText(/Zurich 2 → 1, Switzerland 3 → 2/).waitFor();
   assert.ok(await map.getByRole('button', { name: /Removed 1/ }).count());
   assert.ok(await map.getByRole('button', { name: /Added 1/ }).count());
 
   const positions = {};
   for (const [width, height] of [[1366, 900], [1024, 900], [390, 844], [320, 700]]) {
     await page.setViewportSize({width, height});
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+    const overflow = await page.evaluate(() => {
+      if (document.documentElement.scrollWidth <= window.innerWidth) return [];
+      return [document.documentElement.scrollWidth, ...[...document.querySelectorAll('body *')]
+        .filter(node => node.getBoundingClientRect().right > window.innerWidth + 1)
+        .slice(0, 12).map(node => `${node.tagName}.${node.className} ${node.getBoundingClientRect().right}`)];
+    });
+    assert.deepEqual(overflow, [], `Page content overflows at ${width}px`);
     positions[width] = Math.round((await map.locator('canvas').boundingBox()).y);
     if (width === 1366 || width === 390) {
       await page.screenshot({ path: resolve(output, '144954-' + (width === 1366 ? 'desktop' : 'mobile') + '.png'), fullPage: true });
@@ -102,6 +109,10 @@ try {
   assert.match(await owner.textContent(), /39 → 38/);
   await inspector.getByRole('button', {name:'Close details'}).click();
   await page.getByRole('button', { name: 'Coverage', exact: true }).click();
+  const sourceUsage = await page.locator('.review-pane p').filter({
+    hasText: /source calls ·.* reply bytes|ms source stage ·.* instructions/,
+  }).allTextContents();
+  assert.equal(sourceUsage.length, 14);
   await page.getByText('Registry references', { exact: true }).click();
   await page.getByText('Confirmed absent at baseline', { exact: true }).first().waitFor();
   await page.getByText('Method and exact inputs', { exact: true }).click();
@@ -121,13 +132,15 @@ try {
   await pngFile.saveAs(resolve(output, '144954-map.png'));
   const png = await readFile(resolve(output, '144954-map.png'));
   assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 620]);
+  const example = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download Markdown' }).click();
+  await (await example).saveAs(resolve(output, '144954-review.md'));
   await page.getByLabel('VOTE', { exact: true }).fill('Example assessment');
   await page.getByLabel('TLDR', { exact: true }).fill('Review concentration and assignment coverage.');
   await page.getByLabel('Uploaded map image URL (optional)', { exact: true }).fill('https://example.test/144954.png');
   const mdDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download Markdown' }).click();
-  await (await mdDownload).saveAs(resolve(output, '144954-review.md'));
-  const md = await readFile(resolve(output, '144954-review.md'), 'utf8');
+  const md = await readFile(await (await mdDownload).path(), 'utf8');
   assert.ok(md.includes(hash) && md.includes('40 → 40 members') && md.includes('13 / 14 nodes → 12 / 14 nodes'));
   assert.match(md, /Assignments outside the checked subnets remain unverified/);
   await page.getByRole('button', { name: 'Copy Markdown' }).click();
@@ -164,7 +177,8 @@ try {
   assert.deepEqual(errors, []);
   assert.ok([...hosts].every(host => host.endsWith('localhost') || host === '127.0.0.1'));
   console.log(JSON.stringify({ previewMs, reviewMs, positions, hash, mobileNoOverflow: true,
-    detailPages: count('membership_detail_page'), keyboardInspector: true, exportConsistent: true, independentPerformance: true }, null, 2));
+    detailPages: count('membership_detail_page'), sourceUsage, keyboardInspector: true,
+    exportConsistent: true, independentPerformance: true }, null, 2));
 } finally {
   await browser.close();
 }
