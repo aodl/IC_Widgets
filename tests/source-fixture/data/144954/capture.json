@@ -1,0 +1,509 @@
+{
+  "version": 66013,
+  "subnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+  "source": "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+  "elapsed_ms": 11015,
+  "roster_count": 96,
+  "records": {
+    "subnet_record_tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe": {
+      "at": "2026-11-25T13:00:30.954Z",
+      "sha256": "6497dae72639a74c9dd115f782052f1b6a6029eb34c0648789046b7fc0c4ab78"
+    },
+    "subnet_list": {
+      "at": "2026-11-25T13:00:30.976Z",
+      "sha256": "b1912c26f82f37f4cd16a8dbccedfdbccc18d12669c6a8a89da8f54f59574e21"
+    },
+    "api_boundary_node_kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe": {
+      "at": "2026-11-25T13:00:31.204Z",
+      "sha256": "2cd7fe663030d5026cd4920952afc464df190c9d2cb140ab37cfa8391f2328d3"
+    },
+    "node_record_nf7qq-vkm72-lttne-dsnke-3x73z-ofybh-ogahy-vyvta-dgbny-s5dr7-qqe": {
+      "at": "2026-11-25T13:00:31.243Z",
+      "sha256": "a3223869f5113a5b02223c380955ff7da51c83aaaa82cb43a13e64fb1fd60bb1"
+    },
+    "node_record_oxevh-yptgl-yzu2p-w6dyn-lr6jc-b2xaq-aatz2-yyfot-hm4pr-ucvh6-gae": {
+      "at": "2026-11-25T13:00:31.284Z",
+      "sha256": "9e606e701558695a0d0c72b2729df9aa81ec7eab3aa57b9cae668d5eddf7dcb2"
+    },
+    "node_record_tbzjp-lv2kb-xhel7-36r77-rfa3z-6iox2-c4ttr-cppwv-naxob-n3arn-fae": {
+      "at": "2026-11-25T13:00:31.311Z",
+      "sha256": "3f6862babab9c9758c7cde143669b9f8c6e0e1667b101900af1c50252e202b76"
+    },
+    "node_record_v6r7h-luxm5-nxusv-bvhek-sis7i-sitrx-ezprf-j2lp3-2tnlt-2m6yt-zae": {
+      "at": "2026-11-25T13:00:31.342Z",
+      "sha256": "02ef89ca2163b00bdafbf0eb516a4bcb88210707d475a376064180245e20e68f"
+    },
+    "node_record_himck-kjpb3-eih7e-knfcr-tkz7f-qzx45-i6xwm-obvn7-fw2hv-2zuy7-aqe": {
+      "at": "2026-11-25T13:00:31.400Z",
+      "sha256": "4a5354a55a96d2aa22ff6fbab737bc40fee212e342cc5aaa4aa6bdbffd2acf29"
+    },
+    "node_record_dw2ac-qodm4-snxe5-bnat5-2nu2z-mmogu-7gps7-z4gon-zadqs-3dbqh-pae": {
+      "at": "2026-11-25T13:00:31.411Z",
+      "sha256": "b2ed6444f420c18b1b374eceb243ffd426dc1d152afad7c193b21e20b32b9598"
+    },
+    "node_record_urnku-x7qn7-gt2mu-kueib-duqoz-xcdgj-hsnwl-5q32r-w3vqp-on6lq-gae": {
+      "at": "2026-11-25T13:00:31.427Z",
+      "sha256": "3f885f8b984e1ab88631aac58bcee88a67a2442b923c9f9ed8a669aee00084d7"
+    },
+    "node_record_nj7re-dvkal-yq25a-opp2g-5y3qy-3ena4-opd5j-22uir-eaakx-ljk7k-6ae": {
+      "at": "2026-11-25T13:00:31.616Z",
+      "sha256": "0a76d24f32e605f86b1e3e079087e0b20256d0f091af598f91102726b858d91c"
+    },
+    "node_record_sekkk-e24lo-s2zu3-5ltyu-kbzqs-44bpv-klm7l-72g2n-z7zxu-2pqpu-pae": {
+      "at": "2026-11-25T13:00:31.629Z",
+      "sha256": "db6f23b78638161f3602d2ea52104e98b6c256f589224e01cbe7a4ce37d6ce38"
+    },
+    "node_record_3zfpk-du6xx-yg7j5-h7c5w-6rr7z-cmkbf-pfos7-lhu65-svdmj-co7nc-cae": {
+      "at": "2026-11-25T13:00:31.679Z",
+      "sha256": "44ed81f18a86c81dcdb7f24faa39daa4ad8e6269a9e66c73dc0b7de8789c9224"
+    },
+    "node_record_4mfcc-d3te7-zk2in-n5hm2-tcquv-bgc2e-obpbh-xp5jc-7boqr-oidte-jqe": {
+      "at": "2026-11-25T13:00:31.687Z",
+      "sha256": "7805f87ed8a5c9111cf34882b1883b2e56eff3a0fd6b5db76db2c9f1948de2f5"
+    },
+    "node_record_uafcv-c76tx-jzddu-wxygw-4yzkm-nyr7u-iwk57-bwind-wmupb-2wos6-4qe": {
+      "at": "2026-11-25T13:00:31.694Z",
+      "sha256": "ae18085ac8a0842c869a7268e0ba751a8b228094d33366291f72699428ff0a84"
+    },
+    "node_record_5veru-kf3gn-vjdxg-drid6-qpl2s-ojbxd-i73zf-kded7-7e4q3-5vuni-3qe": {
+      "at": "2026-11-25T13:00:31.734Z",
+      "sha256": "7fc32d8c472532ee6292bfe30eca77b2361fb2f284b43ede7806994e3ff2e25c"
+    },
+    "node_record_nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae": {
+      "at": "2026-11-25T13:00:31.744Z",
+      "sha256": "7148b1b7d92a60a9028bea9cd78b6ffae868606dc8782f56eabee843439e2044"
+    },
+    "node_record_2nehn-z42p7-36s7j-qqcz6-sy5rb-euhte-necpl-egqsv-hdoph-gx7qd-6ae": {
+      "at": "2026-11-25T13:00:31.793Z",
+      "sha256": "a0c46407f5c7dab32b1d5990741c1918bd7d370aef9a98df3269968cf1006a8b"
+    },
+    "node_record_5gcqu-upr5b-ol3fj-vz273-3ov5j-s2dzp-d3n4o-c3rdz-rnhto-tovcx-zqe": {
+      "at": "2026-11-25T13:00:31.962Z",
+      "sha256": "0ef159818c57b363efb9dad357eab45899787175d09b8778bacc5d0823c4613f"
+    },
+    "node_record_lh2af-66zso-76kqu-d57ag-jca5d-yvmfo-rcabh-ptlvj-ltfdf-kyg6q-lqe": {
+      "at": "2026-11-25T13:00:31.977Z",
+      "sha256": "39c2495f0ba24a5959c325bdcfd34163c1a10cf45e37f21ee67fef18fb855dad"
+    },
+    "node_record_jyh32-azcnn-mwosu-urewl-m3pyx-6pmlq-lu5fu-vqjyl-gwx3j-zqrjr-gae": {
+      "at": "2026-11-25T13:00:31.988Z",
+      "sha256": "bf15b9a6e34c9ca55ea06258013eb4a9c79d84c14e45da9ec0f96555dae4e2bf"
+    },
+    "node_record_zatyv-4l26n-3lecc-xpeme-ul34o-yiye2-3d447-aiiz4-5pxtm-v44nh-cqe": {
+      "at": "2026-11-25T13:00:31.997Z",
+      "sha256": "68410a1fa5f9a82b430fba33993f9b3873fa7d439a35c481f9d3b4f052d788a1"
+    },
+    "node_record_ulhxy-qlokv-5iual-yizlo-dtlmi-aavz5-bi7ez-kjwqz-la64z-cxjuk-fae": {
+      "at": "2026-11-25T13:00:32.021Z",
+      "sha256": "6ba6c8fd1e6c37e3e2836f9b8f5fcb643bc23160ea86a54379f11d4be10b3b02"
+    },
+    "node_record_lxgqb-dlqzi-schn4-i2mha-qh6re-eq3c2-3k6cn-oqumg-jkmgk-d4gex-3qe": {
+      "at": "2026-11-25T13:00:32.043Z",
+      "sha256": "ea0c4047598314003fd03a361948af278190f38a0b99cf41e90abcd9648b10b7"
+    },
+    "node_record_isegs-i4akf-kb7st-hnqjn-4col7-qxpph-pncbs-25hiy-5pwsu-nyw3x-xae": {
+      "at": "2026-11-25T13:00:32.049Z",
+      "sha256": "2fc0d2725eb69de30a49d509bdf4901375e01a397d6ba781a3d6c26642d18963"
+    },
+    "node_record_vysyd-tlwq5-f5vfi-kw2jc-ziylz-di2s5-sf4p3-iflm7-vyvjv-hz3b3-pae": {
+      "at": "2026-11-25T13:00:32.083Z",
+      "sha256": "c82d8ac4a711a23263aef2a7b3a80c2734de9394fd18951323ee36527938a892"
+    },
+    "node_record_jmuoq-7kbey-cbtmm-zlz6t-chwt6-dk7ly-d3jim-5nuu4-y5tou-l5egg-7qe": {
+      "at": "2026-11-25T13:00:32.351Z",
+      "sha256": "4da5f76e8b130e187bb088191c38c23d36d30163312b8f8b6881a4ed1320d64b"
+    },
+    "node_record_w2sev-mtuls-aa7m5-cdjgi-5vipg-2jn7i-4awvf-o6suu-73ebs-sw5db-kqe": {
+      "at": "2026-11-25T13:00:32.393Z",
+      "sha256": "95d140eea7ac8d4d6cac715c41af4af6d8721f86397b4d448d56a19bf7d0eaeb"
+    },
+    "node_record_2ftux-ivgjc-t4i2d-lq5hs-myjdg-3h2pz-l2ddl-nsxfc-wlaq7-fkbc5-6ae": {
+      "at": "2026-11-25T13:00:32.413Z",
+      "sha256": "13f7d9b1806a249ec31a7a2696b36dd8228dbfb0ae8dd5b6324858903ead06d7"
+    },
+    "node_record_yahq2-6rnmm-n7ubm-q76zd-256dl-5f7k6-jxx5l-njyo2-hl7tk-sqcet-6ae": {
+      "at": "2026-11-25T13:00:32.431Z",
+      "sha256": "3227731ab991b283e816f97b298fa7e716559678fed2a82b0e9f69c6f6ee2c54"
+    },
+    "node_record_gvm7l-ds4n6-vkyjn-gwalp-3vdo6-qfmq7-pxhu4-zvqcu-ozvb7-qz3gr-vqe": {
+      "at": "2026-11-25T13:00:32.795Z",
+      "sha256": "a2fcf6e45e81ca923f8eab342ab8124d8ad54582f5bcc4a3bc4cce7aa3cdae87"
+    },
+    "node_record_5iihd-fkroy-ow5zp-hlvwz-bsgbl-mecta-kxubm-6adxr-ckcu6-prsus-fqe": {
+      "at": "2026-11-25T13:00:32.915Z",
+      "sha256": "b1fc792d00e6422a5cec2f4e11b82e95f99548eb8f1465de06c98aecbf828416"
+    },
+    "node_record_k2ovz-ptdmz-hzmkh-ntfqn-evhux-ktxz4-26jg6-qjjsa-rpgal-wkdjo-kqe": {
+      "at": "2026-11-25T13:00:32.947Z",
+      "sha256": "55b306bcfc9abdeec86c0036058c33f28c173dfc05b7fdfd1a1d28d982d69c24"
+    },
+    "node_record_ncr4b-rasb7-tueb3-n4uos-5nxou-3wbxv-xmyt3-wfdsd-vu4b6-5x3cp-aqe": {
+      "at": "2026-11-25T13:00:32.991Z",
+      "sha256": "70c9cca5c6e03c843f57d4dd0dc062e66faca84be7e122e132b20ed04f15e15d"
+    },
+    "node_record_24fcm-3onfs-cykax-al4jb-gvdd3-u76zl-ht6ef-hcsbc-xwf54-xbrym-xae": {
+      "at": "2026-11-25T13:00:33.153Z",
+      "sha256": "d803a8120f8a8fa2a2ea81078f5dce4e5f283c274f4931aab4b967c1db71f51d"
+    },
+    "node_record_tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe": {
+      "at": "2026-11-25T13:00:33.175Z",
+      "sha256": "b8445d695505738896abbbb7f3544ac1a6273dfc77e5eddae2fc8c9350f8619c"
+    },
+    "node_record_q4ksz-lpvfy-ikkem-wyuaa-abopq-nmu5k-ovh6h-xfoqk-hx3x3-g2bk6-4qe": {
+      "at": "2026-11-25T13:00:33.210Z",
+      "sha256": "78f67ffeb348c30ddf03074bbf420fb87882ce7599ce2c38f15bf9e93e384ece"
+    },
+    "node_record_mae7q-ggnbj-xb52f-hvest-dgqoc-whvsq-yui5d-5cys2-zeold-l5ydx-oae": {
+      "at": "2026-11-25T13:00:33.224Z",
+      "sha256": "272965f4afdb13dc610df507fbadf66d0eb8b36d35a5c0838e38ef68f14ce06d"
+    },
+    "node_record_anudy-m6vfi-lphxb-sazpy-la4ti-2hriw-c67ny-butfn-axcel-otvuh-oqe": {
+      "at": "2026-11-25T13:00:33.250Z",
+      "sha256": "f06eac5e322a894b67a8775a0407795c8c6803ae5d741c5a00890bbef7c326dd"
+    },
+    "node_record_6hvx2-ymemx-tmykh-vxyic-bgfhv-2lcmt-3oy4x-rysuf-rnerz-vqokw-sqe": {
+      "at": "2026-11-25T13:00:33.328Z",
+      "sha256": "daac7a5b6a04b9f0ca4a7b60eae988a4e1dd83101f1f552388048b20c48716c4"
+    },
+    "node_record_gj6gc-mbslq-bt63y-72b7h-xs2xw-6vyuj-frvp3-tx375-dsqx5-wem6o-vqe": {
+      "at": "2026-11-25T13:00:33.341Z",
+      "sha256": "2b8bed7cd7f2c7f78d75b9996d7f77c9c160cbece4e9e15ed4000e623efb1aa2"
+    },
+    "node_record_u4zo2-i6nsc-mowwj-lf6az-s6rdo-caskt-a6yx6-fke5w-qyezs-lyqvn-tqe": {
+      "at": "2026-11-25T13:00:34.273Z",
+      "sha256": "1b7a7799f7088d1e29ab08fe47dcca663f2f8bf8e39315b3a12b1a569763f352"
+    },
+    "node_record_5mpdi-v4qj2-64are-tbe6r-6335g-6tksh-c7uzq-w3xyz-o4p5g-rwnll-vqe": {
+      "at": "2026-11-25T13:00:34.666Z",
+      "sha256": "de3aefd34289da838063c6a926eab9ed5c828339e2531bde56cabc5e10f4ef3a"
+    },
+    "node_record_kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe": {
+      "at": "2026-11-25T13:00:35.172Z",
+      "sha256": "cebac6b382243c305722ff194f6b6978d4601f69ee7bd85d236b7ff4644a4d0a"
+    },
+    "api_boundary_node_tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe": {
+      "at": "2026-11-25T13:00:35.435Z",
+      "sha256": "c279ba1472cf7394ef3bbe7bf0b0b7454aa4b09f3e805e83fc390d975243912d"
+    },
+    "node_operator_record_yngfj-akg4s-nectt-whzgk-5zqbw-z3e5u-zuycn-zqygi-xz4vt-244v6-zae": {
+      "at": "2026-11-25T13:00:35.559Z",
+      "sha256": "ca9c6270a2eee12e05feddf03db98b6bf0b4a8fbf273f3fafd675530655505f2"
+    },
+    "node_operator_record_x7fjr-ngws7-jpjtq-e3c7s-735uk-gyusv-ppoeh-n4xhg-fwjck-um6pf-fae": {
+      "at": "2026-11-25T13:00:35.613Z",
+      "sha256": "21934e80f70a0c1e9f887e813b4acc79e9f6834c0f542ea4c986a203df2e7fa1"
+    },
+    "node_operator_record_hoqyg-qkf6b-ulmyi-zfk6z-fuvlo-pekr6-goigz-qweij-xhghd-vibjl-jqe": {
+      "at": "2026-11-25T13:00:35.693Z",
+      "sha256": "8a65500d77482cb7333b999e77d12d4c8f37c9bfdd5d4c902d431593db784280"
+    },
+    "node_operator_record_4lbqo-vgpoe-kemak-voout-777uo-kk74n-fnct3-pc4eg-3txi3-7cghf-rqe": {
+      "at": "2026-11-25T13:00:35.708Z",
+      "sha256": "511f93491b3d951d199c0f81bdf188aac7f736db4740062d81a925dcacf95438"
+    },
+    "node_operator_record_ylbc3-d72nf-cv76h-era7m-zefob-r5kyw-kvdtp-xq4ep-nthfy-ml5ua-iae": {
+      "at": "2026-11-25T13:00:35.764Z",
+      "sha256": "09d96901f2fdeef8c1268f1f40488620f22760ac23f423bcff9a478a640c6ac6"
+    },
+    "node_operator_record_nhr3z-ekrj4-7usls-kmdbv-esy2j-3wvez-ck46k-qpdn6-i23c2-5xkgr-dae": {
+      "at": "2026-11-25T13:00:35.773Z",
+      "sha256": "72d3462750c6e49cc4bac5e25306f966e454a361dbae4ddbae63332329dba2b6"
+    },
+    "node_operator_record_jtrpk-wokqg-aqmcn-esiq7-fip4e-dl7lv-iwdyj-cu5pm-wbg7i-4jl4t-wae": {
+      "at": "2026-11-25T13:00:35.780Z",
+      "sha256": "062f7237a6310b21827142faa3d7003ae741febab3f65467e676bec3944e1d38"
+    },
+    "node_operator_record_ap2qh-n5jrf-vpjj6-i5pap-qxnhr-4tnar-yodpw-kh6fy-c5w4z-gibij-5ae": {
+      "at": "2026-11-25T13:00:35.818Z",
+      "sha256": "85e57f88f7fa918603e3bb726b6ce289c0a6dc39a27d1910ecaf3ae9bdf7a678"
+    },
+    "node_operator_record_oorkg-ilned-36bwb-vyprm-56g55-hp6xq-gucq3-fmn2i-44a4e-txzlp-gqe": {
+      "at": "2026-11-25T13:00:35.949Z",
+      "sha256": "135e9b11f53ad9ff4d8f740454628af01e7565249eb52e96b5775a573ff3b14b"
+    },
+    "node_operator_record_6zkgt-w7agd-kpvte-mia3x-sxucz-u2r7k-vfphb-tyhvv-i6hsm-h2ueo-uqe": {
+      "at": "2026-11-25T13:00:35.990Z",
+      "sha256": "c20e6288234b2e6b24d9a05d0d6ca5a17bbe55d9e2e3ced21b7ec0a15448b73d"
+    },
+    "node_operator_record_vicvb-nkzkt-tj2lz-yzzw4-gfcsj-3eggv-izdti-tarpt-fsojm-lgq22-wae": {
+      "at": "2026-11-25T13:00:35.996Z",
+      "sha256": "74524f4e0d2dfeb212e54508286e6ba4655c127fb7df49e27ec65e3b94a430df"
+    },
+    "node_operator_record_ihcmc-o45dd-elg2s-ntnhr-l4c35-datk6-gsyeb-m77as-yjzd2-4qyxz-xqe": {
+      "at": "2026-11-25T13:00:36.084Z",
+      "sha256": "fdd676075bff66edb538b21b595af0db66770ef0b44a8ee599b8ba759318f407"
+    },
+    "node_operator_record_lgp6d-brhlv-35izu-khc6p-rfszo-zdwng-xbtkh-xyvjg-y3due-7ha7t-uae": {
+      "at": "2026-11-25T13:00:36.104Z",
+      "sha256": "be795f670fc90cdcc8653aad111982b428a5a2b192c614ef2f2a4b575ba53f36"
+    },
+    "node_operator_record_3bohy-zygmq-6novb-wm65r-3k3y2-deh42-7emld-zhqo7-xl2oa-iextm-fae": {
+      "at": "2026-11-25T13:00:36.123Z",
+      "sha256": "55f1550a690609159b3bdbc1d34f5c1a122b5c43252024d19d08f8f461ff4185"
+    },
+    "node_operator_record_4isre-d3zxy-xpque-tagdf-xdzjp-hk7x3-szquu-kuwej-52cfy-f6jwc-zqe": {
+      "at": "2026-11-25T13:00:36.132Z",
+      "sha256": "72cfb5bbe4e6b957a5caa451bb14ba955120e616ab2f8d2ca9c32b7a38f8d914"
+    },
+    "node_operator_record_z6cfb-dbya3-nh4pm-nyteq-76n7d-xzi27-tf3cg-t7sz7-244qt-6rnjy-3ae": {
+      "at": "2026-11-25T13:00:36.137Z",
+      "sha256": "5e37a3d63b22bf305a4390e8157306363a2ee4941c9f7b94ba021e04e98e4b39"
+    },
+    "node_operator_record_raiov-7se2a-qvvut-fosrr-ewckg-wwvx5-yiyih-msga4-kibn2-tel4j-uae": {
+      "at": "2026-11-25T13:00:36.298Z",
+      "sha256": "b2710ec2be87717d6d16218438359d17bfcbc330253840d99106754c535ea89f"
+    },
+    "node_operator_record_3xiew-2wo3x-tnbn2-o7kok-wwsnw-7koo2-gna5r-rlrt3-zotsh-dwpg6-kae": {
+      "at": "2026-11-25T13:00:36.314Z",
+      "sha256": "4fda33a5a801a2a77b279e64936a4bf7a946eaa864d8183da822c71cf2b35bbd"
+    },
+    "node_operator_record_nvocp-jlbys-d44wi-od3pv-iws4n-2nll3-73hqk-koh72-3obvg-kt5v3-fae": {
+      "at": "2026-11-25T13:00:36.345Z",
+      "sha256": "98581a50073d44e00317fc56a6e4a4a16f592a52acc99d0761a9cc5c2d58f7d3"
+    },
+    "node_operator_record_5dwhe-vpbuf-zz5ml-ylu6k-7y2z2-36ywv-5e4wf-advxd-3endk-icvg4-cae": {
+      "at": "2026-11-25T13:00:36.353Z",
+      "sha256": "4cc5f6d9165cdb5591c42e77c5d853080915003c4a3e8ba987d74bab09397a77"
+    },
+    "node_operator_record_iubpe-vrzpt-cdf5f-kkzhq-rgp63-dkbfo-fje7f-6aknf-jekzg-3s7tv-oae": {
+      "at": "2026-11-25T13:00:36.389Z",
+      "sha256": "d8d67c14feb40862f4fcb65744b2813b5b778e4036f680f3475f689256e0dad4"
+    },
+    "node_operator_record_bftbl-quva3-hsn2r-qsjde-goegh-rupku-gb7xx-utj6e-lswl4-hclva-bqe": {
+      "at": "2026-11-25T13:00:36.394Z",
+      "sha256": "f9bc5f223da4ec775474ad99c2ed041b10b99a8b48d0c261f64a9b79ca7a0364"
+    },
+    "node_operator_record_ywjtr-pq5wc-m6foq-tyxvk-2a3wc-dlg3k-aaebf-6rk2d-5yvn7-tf743-gqe": {
+      "at": "2026-11-25T13:00:36.423Z",
+      "sha256": "dadc426c4ed0ad70fdbe19e6abdb69b967d337e2199bf225dd0762b55e88d766"
+    },
+    "node_operator_record_c5ssg-eh22p-pmsn6-fpjzj-k5nql-mx5mc-7gb4a-4klco-c4f37-ydnfp-bae": {
+      "at": "2026-11-25T13:00:36.430Z",
+      "sha256": "128462328aa19548d24a54eaba4828106e7356c0fa51840aadbfe457f95f79bb"
+    },
+    "node_operator_record_lis4o-siuek-6zrm6-g5pkh-lswnt-ttsd4-henvb-d6mit-lgfpr-lynph-xae": {
+      "at": "2026-11-25T13:00:36.525Z",
+      "sha256": "036b7beaecdc2bb0d0bc38cfaebea5cbf1f03ea34d1337fabd1ed4f0278bca68"
+    },
+    "node_operator_record_5p6xp-glfoz-fgh6d-4rx7e-hix7t-c4vcp-u2xhn-gv4mm-fkozw-6mntb-7qe": {
+      "at": "2026-11-25T13:00:36.618Z",
+      "sha256": "2fb2c887426b2c0ea5a8737c42875c23bf74220b7d48d5b72347c66441b605b5"
+    },
+    "node_operator_record_7rw6b-6r7qv-al3uk-rimg7-ifkjv-hettz-lhmly-t55g7-xrwac-25ayy-wae": {
+      "at": "2026-11-25T13:00:36.623Z",
+      "sha256": "c3be55698ca63e14b767c582e6e52ca7d62e43a2839332ec503ae7aa9217b0dc"
+    },
+    "node_operator_record_feb2q-mgxwe-okz7r-juws2-mahg4-wflqu-oeflf-kvh4r-qaqit-hbqpg-uqe": {
+      "at": "2026-11-25T13:00:36.632Z",
+      "sha256": "7e64a27610eb75b185bd42c8f4ee7e3dcb79dd3380076f7f4cc347a425bfa766"
+    },
+    "node_operator_record_ukji3-ju5bx-ty5r7-qwk4p-eobil-isp26-fsomg-44kwf-j4ew7-ozkqy-wqe": {
+      "at": "2026-11-25T13:00:36.657Z",
+      "sha256": "18f34b2457963b69a7a90ffed70bd83d896a84247f4360ac5e397269e4225839"
+    },
+    "node_operator_record_aaxec-cijpz-vzdwe-546fi-vahtf-s2awa-ldn7q-mzl2j-gmvhz-56zlq-mqe": {
+      "at": "2026-11-25T13:00:36.662Z",
+      "sha256": "f87eb33f44dcad38eab6fc156784ad8de9d1e262c856df52cd28183736dc7c06"
+    },
+    "node_operator_record_mbnsu-w4xfc-pmdok-r2lwo-wxfr4-gigu5-4idcm-5uuuy-znvby-biiny-jqe": {
+      "at": "2026-11-25T13:00:36.715Z",
+      "sha256": "36484f2a914dd47d16c1e60527838bb9c29696c4fc80f3cc7d80e652499f7d3d"
+    },
+    "node_operator_record_ymenq-4sr5h-3imm6-kjjw6-2knuy-ntmlu-oqf5k-vdnzv-z427q-gqdot-sae": {
+      "at": "2026-11-25T13:00:37.707Z",
+      "sha256": "3412de73c6ecd72851df860d5d7ecd752ee33709ce6b98d92fd1b7263acdb272"
+    },
+    "node_operator_record_eu5wc-g7r7l-zzy2o-227af-hfvin-orflw-4vdlf-j7gks-n5wrj-zezt7-tqe": {
+      "at": "2026-11-25T13:00:37.883Z",
+      "sha256": "2a3d6e4269931c35145bb89744a4dbe5d821650788676da30525cf73bf6b8651"
+    },
+    "node_operator_record_mpmyf-juliu-5qwcu-ofamg-es7ug-4mjt4-w5lht-dbrfb-ualjm-hcwmn-pae": {
+      "at": "2026-11-25T13:00:37.889Z",
+      "sha256": "85814150b114de950c521472f1f64f6b11ab9cfddef90f72913e2db2e44e1254"
+    },
+    "node_operator_record_a5glg-n6ul6-rkuc7-idthk-fb2fe-d5m75-4g4l7-22yko-h27pr-q3a7k-lae": {
+      "at": "2026-11-25T13:00:37.906Z",
+      "sha256": "ca3dc094aa5bf974475b42b231448e3809b20828259d66d6528e1dd3c05ca456"
+    },
+    "node_operator_record_f3toa-2qbnz-67mnl-ws76t-asi36-oz7vd-w5xjx-u5n75-jchls-uhioe-6qe": {
+      "at": "2026-11-25T13:00:37.936Z",
+      "sha256": "b1433f5d41c0dcab106b86e81b1d36f582a49b44fd568b2cacafe9ab2b26e497"
+    },
+    "node_operator_record_ueggl-7wvx2-2eezj-mgjrg-w6tmy-ngmye-xxbwu-gumli-hdf7u-zzpng-3ae": {
+      "at": "2026-11-25T13:00:37.953Z",
+      "sha256": "4d3f35a5ce9bed15129510edbb22ad3f6fd972a1f183ff0f01ac2563e5b8535f"
+    },
+    "node_operator_record_zc635-ppr46-ap6eg-pghtn-wtnxz-6czvv-a4uxm-adjgb-wtoh4-2ddnl-uae": {
+      "at": "2026-11-25T13:00:37.973Z",
+      "sha256": "475dda67ab01538d9c01d21c9555272280daf405e8f3755807a46aaa5e6cc99a"
+    },
+    "node_operator_record_s7dud-dfedw-dmrax-rjvop-5k4qw-htm4w-gj7ak-j2itz-txwwn-o5ymv-tae": {
+      "at": "2026-11-25T13:00:38.062Z",
+      "sha256": "afefdc4d98ccfb7a4ec9343d656b8ddc89fd61eaef182a24db444ffee2c572f5"
+    },
+    "data_center_record_im2": {
+      "at": "2026-11-25T13:00:38.244Z",
+      "sha256": "b6342cf5bae017509ffdab3a2097920ca6217207bb9b2723f282a329bb05c628"
+    },
+    "data_center_record_hk3": {
+      "at": "2026-11-25T13:00:38.249Z",
+      "sha256": "703e7654239492219f6ef1ec0b2ff335f86680a4f28a73c19c3a2ac32fde5f98"
+    },
+    "data_center_record_zh5": {
+      "at": "2026-11-25T13:00:38.275Z",
+      "sha256": "89951e82b567e469034ad419a60ac364a932c43ec312dae86274a1c1094a31bc"
+    },
+    "data_center_record_dr1": {
+      "at": "2026-11-25T13:00:38.296Z",
+      "sha256": "a6d4495d574de8fd7d573e50e66fbed814a2f01fd3b71af081b6215c4fd8d6a3"
+    },
+    "data_center_record_sj3": {
+      "at": "2026-11-25T13:00:38.396Z",
+      "sha256": "544c70ff00ec165e5dfa5984b2a8948e18198a318a237fc98acd1b278d5b748f"
+    },
+    "data_center_record_fm1": {
+      "at": "2026-11-25T13:00:38.439Z",
+      "sha256": "4d3405b1a64b9dd506c5a6d2736a9196341d6561259aecd13244c73097d3b562"
+    },
+    "data_center_record_ge1": {
+      "at": "2026-11-25T13:00:38.451Z",
+      "sha256": "cf19de915d1348d931b735f33a2ec23f23ef6e7aea7b95136c21521ae239a39c"
+    },
+    "data_center_record_ct2": {
+      "at": "2026-11-25T13:00:38.469Z",
+      "sha256": "05978248f855294ec52e7c98f5c316db09439ff76c4b281117e08426be66018f"
+    },
+    "data_center_record_hk1": {
+      "at": "2026-11-25T13:00:38.614Z",
+      "sha256": "a0623e80bc5fc3d5997b639dc9df02b6b416761e26f48d8a04c020945680943e"
+    },
+    "data_center_record_br2": {
+      "at": "2026-11-25T13:00:38.649Z",
+      "sha256": "4700170a4bf4480762729c9482fd3d2b34901e7d826742f90aa419604c463d98"
+    },
+    "data_center_record_jb2": {
+      "at": "2026-11-25T13:00:38.659Z",
+      "sha256": "c3de5004f3e0bab997fdb6a247ebeebcefdf8185b1d61f52ed5b634cf48f2fa9"
+    },
+    "data_center_record_sg3": {
+      "at": "2026-11-25T13:00:38.668Z",
+      "sha256": "90929f77df0b87158be9d169b7a4530d3702cdbcf5a548deaf9d1c9a98d34e66"
+    },
+    "data_center_record_es1": {
+      "at": "2026-11-25T13:00:38.700Z",
+      "sha256": "b6a83b7fbad389bbb2e3229826901dada23ba235f27b2b44c35764cdda612027"
+    },
+    "data_center_record_sh1": {
+      "at": "2026-11-25T13:00:38.754Z",
+      "sha256": "5efaa12dbed1f6f6ec61857abab3f001b8e7c8193e92b72642dbe71707ae36c9"
+    },
+    "data_center_record_nd1": {
+      "at": "2026-11-25T13:00:38.811Z",
+      "sha256": "f82211b477eab656aacf2a8dd2c122b1ab365cac8118616e034961d55f1f8e08"
+    },
+    "data_center_record_im1": {
+      "at": "2026-11-25T13:00:38.900Z",
+      "sha256": "1f5097695d5bfa4382a41a7d4be6e2f4d43b1fb1254eebf83cea6feb374f64c9"
+    },
+    "data_center_record_cm1": {
+      "at": "2026-11-25T13:00:39.067Z",
+      "sha256": "196a9e101c271c668cb422d44200eb74f22a2236e8b7b94ad613749e3542bdf6"
+    },
+    "data_center_record_ld1": {
+      "at": "2026-11-25T13:00:39.073Z",
+      "sha256": "4c0bb1f7dcebc8ae7dbb2812648d148e705148f027766daa0f4a73f9307f03ef"
+    },
+    "data_center_record_rg3": {
+      "at": "2026-11-25T13:00:39.093Z",
+      "sha256": "40b84b11a4767306abfad18b475d88cc410c9c6e601fc9abef4c309e037a3716"
+    },
+    "data_center_record_kr2": {
+      "at": "2026-11-25T13:00:39.139Z",
+      "sha256": "db8915b061b89414bd5d72c79c882d410d26ad5074cc0001e3609d77d6b68e26"
+    },
+    "data_center_record_kr1": {
+      "at": "2026-11-25T13:00:39.145Z",
+      "sha256": "e9f8c63be7e127b33d1150cfd70776bd3c884fe2a511906e8e413e57ae11c531"
+    },
+    "data_center_record_li2": {
+      "at": "2026-11-25T13:00:39.230Z",
+      "sha256": "0c9b5ffa0c8395d4c7ae8dfd2b4cbc5fb2b338d690e60c8de44f8dce69dd9036"
+    },
+    "data_center_record_bu1": {
+      "at": "2026-11-25T13:00:39.270Z",
+      "sha256": "10a377d477c585d54013f0b053ef7a8772021450ce81f964d8822fde1c2975f0"
+    },
+    "data_center_record_mb1": {
+      "at": "2026-11-25T13:00:39.537Z",
+      "sha256": "0f2f0864280c7194e987163feee911fd7190935a417cdc1cd8ce7d418ae53df2"
+    },
+    "data_center_record_bc1": {
+      "at": "2026-11-25T13:00:39.693Z",
+      "sha256": "356705da5622503db0720e5fde5815a73e5511644f85d746124a5579b8c5f48c"
+    },
+    "data_center_record_tv1": {
+      "at": "2026-11-25T13:00:39.731Z",
+      "sha256": "bd8ff141cd5a9befe51d3d4aa19e92f2b84c2665d6f08b6c0dc8f9a4d26f5f2a"
+    },
+    "data_center_record_jb3": {
+      "at": "2026-11-25T13:00:39.761Z",
+      "sha256": "9257d1cdb4c0a85b98da1b4316509b65097acb58160e1f273dd84f67e32b9dd8"
+    },
+    "data_center_record_hk4": {
+      "at": "2026-11-25T13:00:39.861Z",
+      "sha256": "ef55f61f9e75cbc5b03f6084221cd013af6bf61d45018e1ea249f3ffb8684921"
+    },
+    "data_center_record_bt1": {
+      "at": "2026-11-25T13:00:39.872Z",
+      "sha256": "938e30a1df74b250b88697cb55743087aaccd468e1246398014e05275d9ce39e"
+    },
+    "data_center_record_ar1": {
+      "at": "2026-11-25T13:00:39.877Z",
+      "sha256": "c0839cbc5c8c5f99cd558494bc95a297de911ff44a94599483d8f1eede96a3ff"
+    },
+    "data_center_record_sl1": {
+      "at": "2026-11-25T13:00:39.908Z",
+      "sha256": "8db4a62cd24fdfc1c6ac20dd26e04d6c22fbb2d0a0c5a69fb6a6843fea4b60ad"
+    },
+    "data_center_record_pl2": {
+      "at": "2026-11-25T13:00:39.983Z",
+      "sha256": "7e0739d8f49ab5e841be5444a4bf280c278bf3fc5b6c1a29c3c7178cd235bc97"
+    },
+    "data_center_record_nm1": {
+      "at": "2026-11-25T13:00:40.140Z",
+      "sha256": "9a733b9f0173f0ea07b5c547c98b810e13255a83f31f7be6fa6eb161ccd22e76"
+    },
+    "data_center_record_zh2": {
+      "at": "2026-11-25T13:00:40.156Z",
+      "sha256": "4b9e402badaac247f34bd1f798ea065309d92823c9d0ff16c8278a590f0c9394"
+    },
+    "data_center_record_lj2": {
+      "at": "2026-11-25T13:00:40.203Z",
+      "sha256": "ce255c8a6ab1ef92f40f537c193b09158abe7744a6b680a0dc6fe49365d13ad6"
+    },
+    "data_center_record_ty3": {
+      "at": "2026-11-25T13:00:40.208Z",
+      "sha256": "9b914fd2c10cfb81862c10844447af01e280a5af3008521561e21955cbc5c0c3"
+    },
+    "data_center_record_sc1": {
+      "at": "2026-11-25T13:00:40.269Z",
+      "sha256": "f6eb434904757db5ba0765775edb48f20eabc6f2c54a2e87823351cff4d164d6"
+    },
+    "data_center_record_bn1": {
+      "at": "2026-11-25T13:00:40.349Z",
+      "sha256": "79e1aaa1b284af487ba718d57c30b8b3c967a5c442dd873de43c420ea1a463cd"
+    },
+    "data_center_record_mtl1": {
+      "at": "2026-11-25T13:00:40.949Z",
+      "sha256": "058df8cad602f7e2ad115f25fb5b943f0a0f4a81947180ea385fc09cfaf04f99"
+    }
+  },
+  "governance": {
+    "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+    "requested_at": "2026-11-25T13:08:10.736Z",
+    "at": "2026-11-25T13:08:13.589Z",
+    "status": 1,
+    "id": 144954,
+    "function": 31
+  }
+}

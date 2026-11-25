@@ -90,6 +90,64 @@ pub struct MembershipState {
     pub distances: Distances,
 }
 
+/// Descriptive comparison of explicitly selected members. It makes no claims
+/// about assignment coverage, eligibility, or the validity of an execution.
+#[derive(Debug, CandidType, Deserialize)]
+pub struct MembershipComparison {
+    pub baseline: MembershipState,
+    pub selected: MembershipState,
+    pub registered_area_before: Distribution,
+    pub registered_area_after: Distribution,
+}
+
+/// Only the metadata used for descriptive grouping. Assignment coverage and
+/// proposal eligibility are evaluated by the separate simulation contract.
+pub struct TopologyEvidence<'a> {
+    pub nodes: &'a BTreeMap<Principal, Record<crate::Node>>,
+    pub operators: &'a BTreeMap<Principal, Record<crate::Operator>>,
+    pub data_centers: &'a BTreeMap<String, Record<crate::DataCenter>>,
+}
+
+impl<'a> From<&'a RegistryBaseline> for TopologyEvidence<'a> {
+    fn from(baseline: &'a RegistryBaseline) -> Self {
+        Self {
+            nodes: &baseline.nodes,
+            operators: &baseline.operators,
+            data_centers: &baseline.data_centers,
+        }
+    }
+}
+
+pub fn compare_membership(
+    evidence: &TopologyEvidence<'_>,
+    before: &[Principal],
+    after: &[Principal],
+    kind: i32,
+) -> MembershipComparison {
+    let nodes: BTreeSet<_> = before.iter().chain(after).copied().collect();
+    let metadata: BTreeMap<_, _> = nodes
+        .into_iter()
+        .map(|id| (id, metadata(evidence, id)))
+        .collect();
+    let areas = |members: &[Principal]| {
+        let mut groups = BTreeMap::new();
+        for member in members {
+            if let Some(area) = &metadata[member].area {
+                *groups
+                    .entry(Group::RegisteredLabel(area.clone()))
+                    .or_insert(0) += 1;
+            }
+        }
+        distribution(groups, members.len() as u32, matches!(kind, 1 | 2 | 4))
+    };
+    MembershipComparison {
+        baseline: summarize(before, before, kind, Some(&metadata)),
+        selected: summarize(before, after, kind, Some(&metadata)),
+        registered_area_before: areas(before),
+        registered_area_after: areas(after),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum MetadataIssue {
     MissingRecord(RegistryKey),
@@ -101,6 +159,7 @@ pub(crate) enum MetadataIssue {
 pub(crate) struct Metadata {
     groups: BTreeMap<Dimension, Group>,
     gps: Option<Coordinates>,
+    area: Option<String>,
     pub(crate) issues: Vec<MetadataIssue>,
 }
 
@@ -113,7 +172,7 @@ const DIMENSIONS: [Dimension; 6] = [
     Dimension::RegisteredContinent,
 ];
 
-pub(crate) fn metadata(registry: &RegistryBaseline, id: Principal) -> Metadata {
+pub(crate) fn metadata(registry: &TopologyEvidence<'_>, id: Principal) -> Metadata {
     use Dimension::*;
     let mut result = Metadata::default();
     let Some(node) = registry.nodes.get(&id).and_then(Record::value) else {
@@ -166,6 +225,13 @@ pub(crate) fn metadata(registry: &RegistryBaseline, id: Principal) -> Metadata {
     };
     let owner = dc.registered_owner.trim();
     let (continent, country) = registered_geography(&dc.registered_region);
+    result.area = dc
+        .registered_region
+        .split(',')
+        .nth(2)
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned);
     for (dimension, value) in [
         (RegisteredOwner, (!owner.is_empty()).then_some(owner)),
         (RegisteredCountry, country),
@@ -341,4 +407,63 @@ fn distance_metres(a: &Coordinates, b: &Coordinates) -> u32 {
     let haversine = ((lat_b - lat_a) * 0.5).sin().powi(2)
         + lat_a.cos() * lat_b.cos() * (dlon * 0.5).sin().powi(2);
     (2.0 * 6_376_500.0 * haversine.clamp(0.0, 1.0).sqrt().asin()).round() as u32
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn strict_third_and_fault_budget_thresholds_differ_at_a_multiple_of_three() {
+        let groups = [("A", 2), ("B", 2), ("C", 2)]
+            .map(|(label, count)| (Group::RegisteredLabel(label.into()), count))
+            .into();
+        let row = distribution(groups, 6, true);
+        assert_eq!(
+            row.greater_than_one_third,
+            Some(Threshold {
+                nodes_required: 3,
+                groups_to_reach: Some(2)
+            }),
+        );
+        assert_eq!(
+            row.fault_budget_plus_one,
+            Some(Threshold {
+                nodes_required: 2,
+                groups_to_reach: Some(1)
+            }),
+        );
+        let partial = distribution(row.groups, 7, true);
+        assert_eq!(partial.unknown, 1);
+        assert_eq!(
+            partial.greater_than_one_third.unwrap().groups_to_reach,
+            None
+        );
+        let cloud_engine = distribution(partial.groups, 6, false);
+        assert!(cloud_engine.greater_than_one_third.is_none());
+    }
+
+    #[test]
+    fn co_location_contributes_zero_and_unknown_pairs_do_not_enter_the_mean() {
+        let points = [
+            (Coordinates::from_degrees(0.0, 0.0).unwrap(), 2),
+            (Coordinates::from_degrees(0.0, 90.0).unwrap(), 1),
+        ]
+        .into();
+        let row = distances(points, 4);
+        assert_eq!(
+            (
+                row.known_nodes,
+                row.unknown_nodes,
+                row.valid_pairs,
+                row.total_pairs
+            ),
+            (3, 1, 3, 6)
+        );
+        assert_eq!(row.minimum_metres, Some(0));
+        assert_eq!(row.maximum_metres, Some(10_016_183));
+        assert_eq!(row.mean_metres, Some(6_677_455));
+        assert!(Coordinates::from_degrees(f64::NAN, 0.0).is_none());
+        assert!(Coordinates::from_degrees(0.0, 181.0).is_none());
+    }
 }

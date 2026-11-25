@@ -1,0 +1,442 @@
+# Proposal #144954 Review
+
+**VOTE**: ?
+
+**TLDR**: Registry 66,013 supports the registered zh2 → sh1 swap in tdb26 (40 → 40 members). Data-center and registered-owner concentration rise, while assignments outside the checked subnet remain unverified. Original Governance capture: Open, 25 November 2026 at 13:08:13.589 UTC.
+
+## Proposed membership and selected scenario
+
+[Proposal #144954](https://dashboard.internetcomputer.org/proposal/144954) · [Subnet tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe](https://dashboard.internetcomputer.org/subnet/tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe)
+
+A independently · After proposal #144954 (final step) · Registry version 66013
+
+40 → 40 members (1 added, 1 removed, 39 retained)
+
+## Findings and evidence limits
+
+- Registered placement changes from zh2 to sh1.
+- Data center needs fewer groups to exceed one third (13 → 12). sh1 2 → 3; zh2 1 → 0.
+- Data center largest share rises from 5.0% to 7.5%.
+- Registered data-center owner needs fewer groups to exceed one third (13 → 12). Digital Realty 2 → 3; Everyware 1 → 0.
+- Registered data-center owner largest share rises from 5.0% to 7.5%.
+- Node operator needs fewer groups to exceed one third (13 → 12). lgp6d-brhlv-35izu-khc6p-rfszo-zdwng-xbtkh-xyvjg-y3due-7ha7t-uae 2 → 3; s7dud-dfedw-dmrax-rjvop-5k4qw-htm4w-gj7ak-j2itz-txwwn-o5ymv-tae 1 → 0.
+- Node operator largest share rises from 5.0% to 7.5%.
+- The last member registered at zh2 leaves this subnet in the selected state. This is scoped to the subnet.
+- Local replica review. Observation times reflect the local reads; check the original source manifest when using captured evidence.
+- Hypothetical membership; execution validity remains unverified. Assignments outside the checked subnets remain unverified.
+- Membership evidence checked 1 of 96 listed subnets.
+- Subnet type System. SEV disabled at the pinned baseline.
+- Registration and hardware fields describe Registry entries. They provide no health, uptime, hardware attestation, or proof of decommissioning.
+
+### Governance observations
+
+| Proposal | Status | Observed (UTC) | Function |
+| --- | --- | --- | --- |
+| [#144954](https://dashboard.internetcomputer.org/proposal/144954) | Open | 2026-11-25 19:49:56.493Z | 31 |
+
+### Requested changes
+
+| Proposal | Action | Simulation | Requested additions | Requested removals |
+| --- | --- | --- | --- | --- |
+| [#144954](https://dashboard.internetcomputer.org/proposal/144954) | Change | Applied | kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe | tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe |
+
+### Simulation findings
+
+None.
+
+### Candidate assignments at baseline
+
+| Node | Evidence |
+| --- | --- |
+| [tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe](https://dashboard.internetcomputer.org/node/tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe) | [tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe](https://dashboard.internetcomputer.org/subnet/tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe) |
+| [kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe](https://dashboard.internetcomputer.org/node/kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe) | Assignment outside checked records unverified |
+
+### Decentralisation and concentration
+
+The Nakamoto coefficient counts the fewest groups that together exceed one third of the subnet. The separate f + 1 column uses f = floor((members − 1)/3). A coefficient requires complete coverage for that dimension. Registered ownership labels do not establish common control.
+
+| Dimension | Known groups | Largest group | Nakamoto / threshold | Δ Nakamoto | f + 1 groups / threshold | Unknown members |
+| --- | --- | --- | --- | --- | --- | --- |
+| Registered continent | 6 → 6 | 17 (42.5%) → 17 (42.5%) | 1 / 14 nodes → 1 / 14 nodes | 0 | 1 / 14 nodes → 1 / 14 nodes | 0 → 0 |
+| Registered country | 24 → 24 | 3 (7.5%) → 3 (7.5%) | 5 / 14 nodes → 5 / 14 nodes | 0 | 5 / 14 nodes → 5 / 14 nodes | 0 → 0 |
+| Data center | 39 → 38 | 2 (5.0%) → 3 (7.5%) | 13 / 14 nodes → 12 / 14 nodes | -1 | 13 / 14 nodes → 12 / 14 nodes | 0 → 0 |
+| Registered data-center owner | 39 → 38 | 2 (5.0%) → 3 (7.5%) | 13 / 14 nodes → 12 / 14 nodes | -1 | 13 / 14 nodes → 12 / 14 nodes | 0 → 0 |
+| Node provider | 38 → 38 | 3 (7.5%) → 3 (7.5%) | 12 / 14 nodes → 12 / 14 nodes | 0 | 12 / 14 nodes → 12 / 14 nodes | 0 → 0 |
+| Node operator | 39 → 38 | 2 (5.0%) → 3 (7.5%) | 13 / 14 nodes → 12 / 14 nodes | -1 | 13 / 14 nodes → 12 / 14 nodes | 0 → 0 |
+| Registered area (locality label) | 31 → 31 | 3 (7.5%) → 3 (7.5%) | 6 / 14 nodes → 6 / 14 nodes | 0 | 6 / 14 nodes → 6 / 14 nodes | 0 → 0 |
+
+### Geographic distances
+
+Distances use great-circle distances between registered data-center coordinates, weighted by node pairs. Pairs at the same coordinate count as zero. Missing coordinates are excluded and coverage is shown. Registered locations do not establish physical location or network latency.
+
+| Coverage and statistic | Before | Selected state |
+| --- | --- | --- |
+| Mapped members | 40 | 40 |
+| Unmapped members | 0 | 0 |
+| Geolocated pairs | 780 / 780 | 780 / 780 |
+| Shortest (km) | 0.000 | 0.000 |
+| Mean (km) | 7367.029 | 7361.847 |
+| Longest (km) | 19461.421 | 19461.421 |
+
+### Proposer claims and independent calculation
+
+Claimed figures come from the Governance summary. The comparison uses Registry groups and the greater-than-one-third threshold. Where shown, the aggregate tests the five published dimensions plus node operator. A numerical match leaves the proposer’s exact inputs and health claims unverified.
+
+| Proposer dimension | Claimed coefficient | Registry calculation | Comparison |
+| --- | --- | --- | --- |
+| node\_provider | 12.00 → 12.00 | 12 → 12 | Matches under this grouping |
+| data\_center | 13.00 → 12.00 | 13 → 12 | Matches under this grouping |
+| data\_center\_owner | 13.00 → 12.00 | 13 → 12 | Matches under this grouping |
+| area | 6.00 → 6.00 | 6 → 6 | Matches under this grouping |
+| country | 5.00 → 5.00 | 5 → 5 | Matches under this grouping |
+| Mean coefficient | 10.33 → 9.83 | 10.33 → 9.83 | Reproduced with node operator as sixth dimension |
+| Mean log₂ coefficient | 3.2655 → 3.2078 | 3.2655 → 3.2078 | Reproduced with node operator as sixth dimension |
+
+### Registered continent
+
+Known group counts unchanged. Known group sizes (min / mean / max), 1 / 6.67 / 17 → 1 / 6.67 / 17.
+
+| Group | Before (share) | After (share) | Node change |
+| --- | --- | --- | --- |
+| EU | 17 (42.5%) | 17 (42.5%) | 0 |
+| AS | 13 (32.5%) | 13 (32.5%) | 0 |
+| NA | 5 (12.5%) | 5 (12.5%) | 0 |
+| AF | 3 (7.5%) | 3 (7.5%) | 0 |
+| OC | 1 (2.5%) | 1 (2.5%) | 0 |
+| SA | 1 (2.5%) | 1 (2.5%) | 0 |
+| Unknown | 0 | 0 | 0 |
+
+### Registered country
+
+CH 3 → 2; SE 2 → 3. Known group sizes (min / mean / max), 1 / 1.67 / 3 → 1 / 1.67 / 3.
+
+| Group | Before (share) | After (share) | Node change |
+| --- | --- | --- | --- |
+| CH | 3 (7.5%) | 2 (5.0%) | -1 |
+| HK | 3 (7.5%) | 3 (7.5%) | 0 |
+| IN | 3 (7.5%) | 3 (7.5%) | 0 |
+| KR | 3 (7.5%) | 3 (7.5%) | 0 |
+| SE | 2 (5.0%) | 3 (7.5%) | +1 |
+| US | 3 (7.5%) | 3 (7.5%) | 0 |
+| ZA | 3 (7.5%) | 3 (7.5%) | 0 |
+| CA | 2 (5.0%) | 2 (5.0%) | 0 |
+| IM | 2 (5.0%) | 2 (5.0%) | 0 |
+| SI | 2 (5.0%) | 2 (5.0%) | 0 |
+| AR | 1 (2.5%) | 1 (2.5%) | 0 |
+| AU | 1 (2.5%) | 1 (2.5%) | 0 |
+| BE | 1 (2.5%) | 1 (2.5%) | 0 |
+| CZ | 1 (2.5%) | 1 (2.5%) | 0 |
+| ES | 1 (2.5%) | 1 (2.5%) | 0 |
+| GB | 1 (2.5%) | 1 (2.5%) | 0 |
+| IL | 1 (2.5%) | 1 (2.5%) | 0 |
+| JP | 1 (2.5%) | 1 (2.5%) | 0 |
+| LK | 1 (2.5%) | 1 (2.5%) | 0 |
+| LT | 1 (2.5%) | 1 (2.5%) | 0 |
+| LV | 1 (2.5%) | 1 (2.5%) | 0 |
+| PT | 1 (2.5%) | 1 (2.5%) | 0 |
+| RO | 1 (2.5%) | 1 (2.5%) | 0 |
+| SG | 1 (2.5%) | 1 (2.5%) | 0 |
+| Unknown | 0 | 0 | 0 |
+
+### Data center
+
+sh1 2 → 3; zh2 1 → 0. Known group sizes (min / mean / max), 1 / 1.03 / 2 → 1 / 1.05 / 3.
+
+| Group | Before (share) | After (share) | Node change |
+| --- | --- | --- | --- |
+| [sh1](https://dashboard.internetcomputer.org/center/sh1) | 2 (5.0%) | 3 (7.5%) | +1 |
+| [ar1](https://dashboard.internetcomputer.org/center/ar1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [bc1](https://dashboard.internetcomputer.org/center/bc1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [bn1](https://dashboard.internetcomputer.org/center/bn1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [br2](https://dashboard.internetcomputer.org/center/br2) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [bt1](https://dashboard.internetcomputer.org/center/bt1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [bu1](https://dashboard.internetcomputer.org/center/bu1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [cm1](https://dashboard.internetcomputer.org/center/cm1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [ct2](https://dashboard.internetcomputer.org/center/ct2) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [dr1](https://dashboard.internetcomputer.org/center/dr1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [es1](https://dashboard.internetcomputer.org/center/es1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [fm1](https://dashboard.internetcomputer.org/center/fm1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [ge1](https://dashboard.internetcomputer.org/center/ge1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [hk1](https://dashboard.internetcomputer.org/center/hk1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [hk3](https://dashboard.internetcomputer.org/center/hk3) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [hk4](https://dashboard.internetcomputer.org/center/hk4) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [im1](https://dashboard.internetcomputer.org/center/im1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [im2](https://dashboard.internetcomputer.org/center/im2) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [jb2](https://dashboard.internetcomputer.org/center/jb2) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [jb3](https://dashboard.internetcomputer.org/center/jb3) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [kr1](https://dashboard.internetcomputer.org/center/kr1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [kr2](https://dashboard.internetcomputer.org/center/kr2) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [ld1](https://dashboard.internetcomputer.org/center/ld1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [li2](https://dashboard.internetcomputer.org/center/li2) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [lj2](https://dashboard.internetcomputer.org/center/lj2) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [mb1](https://dashboard.internetcomputer.org/center/mb1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [mtl1](https://dashboard.internetcomputer.org/center/mtl1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [nd1](https://dashboard.internetcomputer.org/center/nd1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [nm1](https://dashboard.internetcomputer.org/center/nm1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [pl2](https://dashboard.internetcomputer.org/center/pl2) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [rg3](https://dashboard.internetcomputer.org/center/rg3) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [sc1](https://dashboard.internetcomputer.org/center/sc1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [sg3](https://dashboard.internetcomputer.org/center/sg3) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [sj3](https://dashboard.internetcomputer.org/center/sj3) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [sl1](https://dashboard.internetcomputer.org/center/sl1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [tv1](https://dashboard.internetcomputer.org/center/tv1) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [ty3](https://dashboard.internetcomputer.org/center/ty3) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [zh2](https://dashboard.internetcomputer.org/center/zh2) | 1 (2.5%) | 0 (0.0%) | -1 |
+| [zh5](https://dashboard.internetcomputer.org/center/zh5) | 1 (2.5%) | 1 (2.5%) | 0 |
+| Unknown | 0 | 0 | 0 |
+
+### Registered data-center owner
+
+Digital Realty 2 → 3; Everyware 1 → 0. Known group sizes (min / mean / max), 1 / 1.03 / 2 → 1 / 1.05 / 3.
+
+| Group | Before (share) | After (share) | Node change |
+| --- | --- | --- | --- |
+| Digital Realty | 2 (5.0%) | 3 (7.5%) | +1 |
+| Adam | 1 (2.5%) | 1 (2.5%) | 0 |
+| Africa Data Centres | 1 (2.5%) | 1 (2.5%) | 0 |
+| Anonstake | 1 (2.5%) | 1 (2.5%) | 0 |
+| AtlasEdge | 1 (2.5%) | 1 (2.5%) | 0 |
+| Baltneta | 1 (2.5%) | 1 (2.5%) | 0 |
+| Continent8 | 1 (2.5%) | 1 (2.5%) | 0 |
+| Cyxtera | 1 (2.5%) | 1 (2.5%) | 0 |
+| Edgoo Networks | 1 (2.5%) | 1 (2.5%) | 0 |
+| Equinix | 1 (2.5%) | 1 (2.5%) | 0 |
+| Everyware | 1 (2.5%) | 0 (0.0%) | -1 |
+| FiberState | 1 (2.5%) | 1 (2.5%) | 0 |
+| Gasan | 1 (2.5%) | 1 (2.5%) | 0 |
+| Green.ch | 1 (2.5%) | 1 (2.5%) | 0 |
+| HighDC | 1 (2.5%) | 1 (2.5%) | 0 |
+| hkcolo | 1 (2.5%) | 1 (2.5%) | 0 |
+| hkntt | 1 (2.5%) | 1 (2.5%) | 0 |
+| Hurricane Electric | 1 (2.5%) | 1 (2.5%) | 0 |
+| InfoObjects | 1 (2.5%) | 1 (2.5%) | 0 |
+| Interhost | 1 (2.5%) | 1 (2.5%) | 0 |
+| KT | 1 (2.5%) | 1 (2.5%) | 0 |
+| Latitude.sh | 1 (2.5%) | 1 (2.5%) | 0 |
+| Leaseweb | 1 (2.5%) | 1 (2.5%) | 0 |
+| M247 | 1 (2.5%) | 1 (2.5%) | 0 |
+| Manx Telecom | 1 (2.5%) | 1 (2.5%) | 0 |
+| Marvelous Web3 DC | 1 (2.5%) | 1 (2.5%) | 0 |
+| Master Internet | 1 (2.5%) | 1 (2.5%) | 0 |
+| Megazone Cloud | 1 (2.5%) | 1 (2.5%) | 0 |
+| Nano | 1 (2.5%) | 1 (2.5%) | 0 |
+| NEXTDC | 1 (2.5%) | 1 (2.5%) | 0 |
+| OrionStellar | 1 (2.5%) | 1 (2.5%) | 0 |
+| Posita.si | 1 (2.5%) | 1 (2.5%) | 0 |
+| Racks Central | 1 (2.5%) | 1 (2.5%) | 0 |
+| Rivram | 1 (2.5%) | 1 (2.5%) | 0 |
+| SyT - Servicios y Telecomunicaciones S.A. | 1 (2.5%) | 1 (2.5%) | 0 |
+| Teraco | 1 (2.5%) | 1 (2.5%) | 0 |
+| Unicom | 1 (2.5%) | 1 (2.5%) | 0 |
+| Xneelo | 1 (2.5%) | 1 (2.5%) | 0 |
+| Yotta | 1 (2.5%) | 1 (2.5%) | 0 |
+| Unknown | 0 | 0 | 0 |
+
+### Node provider
+
+Known group counts unchanged. Known group sizes (min / mean / max), 1 / 1.05 / 3 → 1 / 1.05 / 3.
+
+| Group | Before (share) | After (share) | Node change |
+| --- | --- | --- | --- |
+| [bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe](https://dashboard.internetcomputer.org/provider/bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe) | 3 (7.5%) | 3 (7.5%) | 0 |
+| [4dibr-2alzr-h6kva-bvwn2-yqgsl-o577t-od46o-v275p-a2zov-tcw4f-eae](https://dashboard.internetcomputer.org/provider/4dibr-2alzr-h6kva-bvwn2-yqgsl-o577t-od46o-v275p-a2zov-tcw4f-eae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [4fedi-eu6ue-nd7ts-vnof5-hzg66-hgzl7-liy5n-3otyp-h7ipw-owycg-uae](https://dashboard.internetcomputer.org/provider/4fedi-eu6ue-nd7ts-vnof5-hzg66-hgzl7-liy5n-3otyp-h7ipw-owycg-uae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [4jjya-hlyyc-s766p-fd6gr-d6tvv-vo3ah-j5ptx-i73gw-mwgyd-rw6w2-rae](https://dashboard.internetcomputer.org/provider/4jjya-hlyyc-s766p-fd6gr-d6tvv-vo3ah-j5ptx-i73gw-mwgyd-rw6w2-rae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [64xe5-tx2s3-4gjmj-pnozr-fejw2-77y5y-rhcjk-glnmx-62brf-qin5q-pqe](https://dashboard.internetcomputer.org/provider/64xe5-tx2s3-4gjmj-pnozr-fejw2-77y5y-rhcjk-glnmx-62brf-qin5q-pqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [6sq7t-knkul-fko6h-xzvnf-ktbvr-jhx7r-hapzr-kjlek-whugy-zt6ip-xqe](https://dashboard.internetcomputer.org/provider/6sq7t-knkul-fko6h-xzvnf-ktbvr-jhx7r-hapzr-kjlek-whugy-zt6ip-xqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [7at4h-nhtvt-a4s55-jigss-wr2ha-ysxkn-e6w7x-7ggnm-qd3d5-ry66r-cae](https://dashboard.internetcomputer.org/provider/7at4h-nhtvt-a4s55-jigss-wr2ha-ysxkn-e6w7x-7ggnm-qd3d5-ry66r-cae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [7ryes-jnj73-bsyu4-lo6h7-lbxk5-x4ien-lylws-5qwzl-hxd5f-xjh3w-mqe](https://dashboard.internetcomputer.org/provider/7ryes-jnj73-bsyu4-lo6h7-lbxk5-x4ien-lylws-5qwzl-hxd5f-xjh3w-mqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [7uioy-xitfw-yqcko-5gpya-3lpsw-dw7zt-dyyyf-wfqif-jvi76-fdbkg-cqe](https://dashboard.internetcomputer.org/provider/7uioy-xitfw-yqcko-5gpya-3lpsw-dw7zt-dyyyf-wfqif-jvi76-fdbkg-cqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [7ws2n-wqorv-vmo4m-5e222-n42c3-hk43s-ei3kp-4hpbn-xlkzo-jgv7i-tqe](https://dashboard.internetcomputer.org/provider/7ws2n-wqorv-vmo4m-5e222-n42c3-hk43s-ei3kp-4hpbn-xlkzo-jgv7i-tqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [cgmhq-c4zja-yov4u-zeyao-64ua5-idlhb-ezcgr-cultv-3vqjs-dhwo7-rqe](https://dashboard.internetcomputer.org/provider/cgmhq-c4zja-yov4u-zeyao-64ua5-idlhb-ezcgr-cultv-3vqjs-dhwo7-rqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [diyay-s4rfq-xnx23-zczwi-nptra-5254n-e4zn6-p7tqe-vqhzr-sd4gd-bqe](https://dashboard.internetcomputer.org/provider/diyay-s4rfq-xnx23-zczwi-nptra-5254n-e4zn6-p7tqe-vqhzr-sd4gd-bqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [efem5-kmwaw-xose7-zzhgg-6bfif-twmcw-csg7a-lmqvn-wrdou-mjwlb-vqe](https://dashboard.internetcomputer.org/provider/efem5-kmwaw-xose7-zzhgg-6bfif-twmcw-csg7a-lmqvn-wrdou-mjwlb-vqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [eybf4-6t6bb-unfb2-h2hhn-rrfi2-cd2vs-phksn-jdmbn-i463m-4lzds-vqe](https://dashboard.internetcomputer.org/provider/eybf4-6t6bb-unfb2-h2hhn-rrfi2-cd2vs-phksn-jdmbn-i463m-4lzds-vqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [g2ax6-jrkmb-3zuh3-jibtb-q5xoq-njrgo-5utbc-j2o7g-zfq2w-yyhky-dqe](https://dashboard.internetcomputer.org/provider/g2ax6-jrkmb-3zuh3-jibtb-q5xoq-njrgo-5utbc-j2o7g-zfq2w-yyhky-dqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [glrjs-2dbzh-owbdd-fpp5e-eweoz-nsuto-e3jmk-tl42c-wem4f-qfpfa-qqe](https://dashboard.internetcomputer.org/provider/glrjs-2dbzh-owbdd-fpp5e-eweoz-nsuto-e3jmk-tl42c-wem4f-qfpfa-qqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [hk7eo-22zam-kqmsx-dtfbj-k5i6f-jg65h-micpf-2cztc-t2eqk-efgvx-vqe](https://dashboard.internetcomputer.org/provider/hk7eo-22zam-kqmsx-dtfbj-k5i6f-jg65h-micpf-2cztc-t2eqk-efgvx-vqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [hzqcb-iiagd-4erjo-qn7rq-syqro-zztl6-cpble-atnkd-2c6bg-bxjoa-qae](https://dashboard.internetcomputer.org/provider/hzqcb-iiagd-4erjo-qn7rq-syqro-zztl6-cpble-atnkd-2c6bg-bxjoa-qae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [i3cfo-s2tgu-qe5ym-wk7e6-y7ura-pptgu-kevuf-2feh7-z4enq-5hz4s-mqe](https://dashboard.internetcomputer.org/provider/i3cfo-s2tgu-qe5ym-wk7e6-y7ura-pptgu-kevuf-2feh7-z4enq-5hz4s-mqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [i7dto-bgkj2-xo5dx-cyrb7-zkk5y-q46eh-gz6iq-qkgyc-w4qte-scgtb-6ae](https://dashboard.internetcomputer.org/provider/i7dto-bgkj2-xo5dx-cyrb7-zkk5y-q46eh-gz6iq-qkgyc-w4qte-scgtb-6ae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [kos24-5xact-6aror-uofg2-tnvt6-dq3bk-c2c5z-jtptt-jbqvc-lmegy-qae](https://dashboard.internetcomputer.org/provider/kos24-5xact-6aror-uofg2-tnvt6-dq3bk-c2c5z-jtptt-jbqvc-lmegy-qae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [mjnyf-lzqq6-s7fzb-62rqm-xzvge-5oa26-humwp-dvwxp-jxxkf-hoel7-fqe](https://dashboard.internetcomputer.org/provider/mjnyf-lzqq6-s7fzb-62rqm-xzvge-5oa26-humwp-dvwxp-jxxkf-hoel7-fqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [mme7u-zxs3z-jq3un-fbaly-nllcz-toct2-l2kp3-larrb-gti4r-u2bmo-dae](https://dashboard.internetcomputer.org/provider/mme7u-zxs3z-jq3un-fbaly-nllcz-toct2-l2kp3-larrb-gti4r-u2bmo-dae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [nmdd6-rouxw-55leh-wcbkn-kejit-njvje-p4s6e-v64d3-nlbjb-vipul-mae](https://dashboard.internetcomputer.org/provider/nmdd6-rouxw-55leh-wcbkn-kejit-njvje-p4s6e-v64d3-nlbjb-vipul-mae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [pa5mu-yxsey-b4yrk-bodka-dhjnm-a3nx4-w2grw-3b766-ddr6e-nupu4-pqe](https://dashboard.internetcomputer.org/provider/pa5mu-yxsey-b4yrk-bodka-dhjnm-a3nx4-w2grw-3b766-ddr6e-nupu4-pqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [py2kr-ipr2p-ryh66-x3a3v-5ts6u-7rfhf-alkna-ueffh-hz5ox-lt6du-qqe](https://dashboard.internetcomputer.org/provider/py2kr-ipr2p-ryh66-x3a3v-5ts6u-7rfhf-alkna-ueffh-hz5ox-lt6du-qqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [r3yjn-kthmg-pfgmb-2fngg-5c7d7-t6kqg-wi37r-j7gy6-iee64-kjdja-jae](https://dashboard.internetcomputer.org/provider/r3yjn-kthmg-pfgmb-2fngg-5c7d7-t6kqg-wi37r-j7gy6-iee64-kjdja-jae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [rbn2y-6vfsb-gv35j-4cyvy-pzbdu-e5aum-jzjg6-5b4n5-vuguf-ycubq-zae](https://dashboard.internetcomputer.org/provider/rbn2y-6vfsb-gv35j-4cyvy-pzbdu-e5aum-jzjg6-5b4n5-vuguf-ycubq-zae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [rpfvr-s3kuw-xdqrr-pvuuj-hc7hl-olytw-yxlie-fmr74-sr572-6gdqx-iqe](https://dashboard.internetcomputer.org/provider/rpfvr-s3kuw-xdqrr-pvuuj-hc7hl-olytw-yxlie-fmr74-sr572-6gdqx-iqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [s5nvr-ipdxf-xg6wd-ofacm-7tl4i-nwjzx-uulum-cugwb-kbpsa-wrsgs-cae](https://dashboard.internetcomputer.org/provider/s5nvr-ipdxf-xg6wd-ofacm-7tl4i-nwjzx-uulum-cugwb-kbpsa-wrsgs-cae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [sixix-2nyqd-t2k2v-vlsyz-dssko-ls4hl-hyij4-y7mdp-ja6cj-nsmpf-yae](https://dashboard.internetcomputer.org/provider/sixix-2nyqd-t2k2v-vlsyz-dssko-ls4hl-hyij4-y7mdp-ja6cj-nsmpf-yae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [trxbq-wy5xi-3y27q-bkpaf-mhi2m-puexs-yatgt-nhwiy-dh6jy-rolw5-zqe](https://dashboard.internetcomputer.org/provider/trxbq-wy5xi-3y27q-bkpaf-mhi2m-puexs-yatgt-nhwiy-dh6jy-rolw5-zqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [ulyfm-vkxtj-o42dg-e4nam-l4tzf-37wci-ggntw-4ma7y-d267g-ywxi6-iae](https://dashboard.internetcomputer.org/provider/ulyfm-vkxtj-o42dg-e4nam-l4tzf-37wci-ggntw-4ma7y-d267g-ywxi6-iae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [unqqg-no4b2-vbyad-ytik2-t3vly-3e57q-aje2t-sjb5l-bd4ke-chggn-uqe](https://dashboard.internetcomputer.org/provider/unqqg-no4b2-vbyad-ytik2-t3vly-3e57q-aje2t-sjb5l-bd4ke-chggn-uqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [w4buy-lgwzr-pccs7-huzhh-qqnws-rns75-iaoox-jolrm-xs2ra-vdu3o-2qe](https://dashboard.internetcomputer.org/provider/w4buy-lgwzr-pccs7-huzhh-qqnws-rns75-iaoox-jolrm-xs2ra-vdu3o-2qe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [wdjjk-blh44-lxm74-ojj43-rvgf4-j5rie-nm6xs-xvnuv-j3ptn-25t4v-6ae](https://dashboard.internetcomputer.org/provider/wdjjk-blh44-lxm74-ojj43-rvgf4-j5rie-nm6xs-xvnuv-j3ptn-25t4v-6ae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [x7uok-pi537-itm37-unjn3-ewkze-kuetg-kptap-nuqak-auq7z-tn5ey-dqe](https://dashboard.internetcomputer.org/provider/x7uok-pi537-itm37-unjn3-ewkze-kuetg-kptap-nuqak-auq7z-tn5ey-dqe) | 1 (2.5%) | 1 (2.5%) | 0 |
+| [zy4m7-z5mhs-zfkpl-zlsjl-blrbx-mvvmq-5z4zu-mf7eq-hhv7o-ezfro-3ae](https://dashboard.internetcomputer.org/provider/zy4m7-z5mhs-zfkpl-zlsjl-blrbx-mvvmq-5z4zu-mf7eq-hhv7o-ezfro-3ae) | 1 (2.5%) | 1 (2.5%) | 0 |
+| Unknown | 0 | 0 | 0 |
+
+### Node operator
+
+lgp6d-brhlv-35izu-khc6p-rfszo-zdwng-xbtkh-xyvjg-y3due-7ha7t-uae 2 → 3; s7dud-dfedw-dmrax-rjvop-5k4qw-htm4w-gj7ak-j2itz-txwwn-o5ymv-tae 1 → 0. Known group sizes (min / mean / max), 1 / 1.03 / 2 → 1 / 1.05 / 3.
+
+| Group | Before (share) | After (share) | Node change |
+| --- | --- | --- | --- |
+| lgp6d-brhlv-35izu-khc6p-rfszo-zdwng-xbtkh-xyvjg-y3due-7ha7t-uae | 2 (5.0%) | 3 (7.5%) | +1 |
+| 3bohy-zygmq-6novb-wm65r-3k3y2-deh42-7emld-zhqo7-xl2oa-iextm-fae | 1 (2.5%) | 1 (2.5%) | 0 |
+| 3xiew-2wo3x-tnbn2-o7kok-wwsnw-7koo2-gna5r-rlrt3-zotsh-dwpg6-kae | 1 (2.5%) | 1 (2.5%) | 0 |
+| 4isre-d3zxy-xpque-tagdf-xdzjp-hk7x3-szquu-kuwej-52cfy-f6jwc-zqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| 4lbqo-vgpoe-kemak-voout-777uo-kk74n-fnct3-pc4eg-3txi3-7cghf-rqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| 5dwhe-vpbuf-zz5ml-ylu6k-7y2z2-36ywv-5e4wf-advxd-3endk-icvg4-cae | 1 (2.5%) | 1 (2.5%) | 0 |
+| 5p6xp-glfoz-fgh6d-4rx7e-hix7t-c4vcp-u2xhn-gv4mm-fkozw-6mntb-7qe | 1 (2.5%) | 1 (2.5%) | 0 |
+| 6zkgt-w7agd-kpvte-mia3x-sxucz-u2r7k-vfphb-tyhvv-i6hsm-h2ueo-uqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| 7rw6b-6r7qv-al3uk-rimg7-ifkjv-hettz-lhmly-t55g7-xrwac-25ayy-wae | 1 (2.5%) | 1 (2.5%) | 0 |
+| a5glg-n6ul6-rkuc7-idthk-fb2fe-d5m75-4g4l7-22yko-h27pr-q3a7k-lae | 1 (2.5%) | 1 (2.5%) | 0 |
+| aaxec-cijpz-vzdwe-546fi-vahtf-s2awa-ldn7q-mzl2j-gmvhz-56zlq-mqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| ap2qh-n5jrf-vpjj6-i5pap-qxnhr-4tnar-yodpw-kh6fy-c5w4z-gibij-5ae | 1 (2.5%) | 1 (2.5%) | 0 |
+| bftbl-quva3-hsn2r-qsjde-goegh-rupku-gb7xx-utj6e-lswl4-hclva-bqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| c5ssg-eh22p-pmsn6-fpjzj-k5nql-mx5mc-7gb4a-4klco-c4f37-ydnfp-bae | 1 (2.5%) | 1 (2.5%) | 0 |
+| eu5wc-g7r7l-zzy2o-227af-hfvin-orflw-4vdlf-j7gks-n5wrj-zezt7-tqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| f3toa-2qbnz-67mnl-ws76t-asi36-oz7vd-w5xjx-u5n75-jchls-uhioe-6qe | 1 (2.5%) | 1 (2.5%) | 0 |
+| feb2q-mgxwe-okz7r-juws2-mahg4-wflqu-oeflf-kvh4r-qaqit-hbqpg-uqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| hoqyg-qkf6b-ulmyi-zfk6z-fuvlo-pekr6-goigz-qweij-xhghd-vibjl-jqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| ihcmc-o45dd-elg2s-ntnhr-l4c35-datk6-gsyeb-m77as-yjzd2-4qyxz-xqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| iubpe-vrzpt-cdf5f-kkzhq-rgp63-dkbfo-fje7f-6aknf-jekzg-3s7tv-oae | 1 (2.5%) | 1 (2.5%) | 0 |
+| jtrpk-wokqg-aqmcn-esiq7-fip4e-dl7lv-iwdyj-cu5pm-wbg7i-4jl4t-wae | 1 (2.5%) | 1 (2.5%) | 0 |
+| lis4o-siuek-6zrm6-g5pkh-lswnt-ttsd4-henvb-d6mit-lgfpr-lynph-xae | 1 (2.5%) | 1 (2.5%) | 0 |
+| mbnsu-w4xfc-pmdok-r2lwo-wxfr4-gigu5-4idcm-5uuuy-znvby-biiny-jqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| mpmyf-juliu-5qwcu-ofamg-es7ug-4mjt4-w5lht-dbrfb-ualjm-hcwmn-pae | 1 (2.5%) | 1 (2.5%) | 0 |
+| nhr3z-ekrj4-7usls-kmdbv-esy2j-3wvez-ck46k-qpdn6-i23c2-5xkgr-dae | 1 (2.5%) | 1 (2.5%) | 0 |
+| nvocp-jlbys-d44wi-od3pv-iws4n-2nll3-73hqk-koh72-3obvg-kt5v3-fae | 1 (2.5%) | 1 (2.5%) | 0 |
+| oorkg-ilned-36bwb-vyprm-56g55-hp6xq-gucq3-fmn2i-44a4e-txzlp-gqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| raiov-7se2a-qvvut-fosrr-ewckg-wwvx5-yiyih-msga4-kibn2-tel4j-uae | 1 (2.5%) | 1 (2.5%) | 0 |
+| s7dud-dfedw-dmrax-rjvop-5k4qw-htm4w-gj7ak-j2itz-txwwn-o5ymv-tae | 1 (2.5%) | 0 (0.0%) | -1 |
+| ueggl-7wvx2-2eezj-mgjrg-w6tmy-ngmye-xxbwu-gumli-hdf7u-zzpng-3ae | 1 (2.5%) | 1 (2.5%) | 0 |
+| ukji3-ju5bx-ty5r7-qwk4p-eobil-isp26-fsomg-44kwf-j4ew7-ozkqy-wqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| vicvb-nkzkt-tj2lz-yzzw4-gfcsj-3eggv-izdti-tarpt-fsojm-lgq22-wae | 1 (2.5%) | 1 (2.5%) | 0 |
+| x7fjr-ngws7-jpjtq-e3c7s-735uk-gyusv-ppoeh-n4xhg-fwjck-um6pf-fae | 1 (2.5%) | 1 (2.5%) | 0 |
+| ylbc3-d72nf-cv76h-era7m-zefob-r5kyw-kvdtp-xq4ep-nthfy-ml5ua-iae | 1 (2.5%) | 1 (2.5%) | 0 |
+| ymenq-4sr5h-3imm6-kjjw6-2knuy-ntmlu-oqf5k-vdnzv-z427q-gqdot-sae | 1 (2.5%) | 1 (2.5%) | 0 |
+| yngfj-akg4s-nectt-whzgk-5zqbw-z3e5u-zuycn-zqygi-xz4vt-244v6-zae | 1 (2.5%) | 1 (2.5%) | 0 |
+| ywjtr-pq5wc-m6foq-tyxvk-2a3wc-dlg3k-aaebf-6rk2d-5yvn7-tf743-gqe | 1 (2.5%) | 1 (2.5%) | 0 |
+| z6cfb-dbya3-nh4pm-nyteq-76n7d-xzi27-tf3cg-t7sz7-244qt-6rnjy-3ae | 1 (2.5%) | 1 (2.5%) | 0 |
+| zc635-ppr46-ap6eg-pghtn-wtnxz-6czvv-a4uxm-adjgb-wtoh4-2ddnl-uae | 1 (2.5%) | 1 (2.5%) | 0 |
+| Unknown | 0 | 0 | 0 |
+
+### Registered area (locality label)
+
+Stockholm 2 → 3; Zurich 2 → 1. Known group sizes (min / mean / max), 1 / 1.29 / 3 → 1 / 1.29 / 3.
+
+| Group | Before (share) | After (share) | Node change |
+| --- | --- | --- | --- |
+| HongKong | 3 (7.5%) | 3 (7.5%) | 0 |
+| Seoul | 3 (7.5%) | 3 (7.5%) | 0 |
+| Stockholm | 2 (5.0%) | 3 (7.5%) | +1 |
+| California | 2 (5.0%) | 2 (5.0%) | 0 |
+| Douglas | 2 (5.0%) | 2 (5.0%) | 0 |
+| Gauteng | 2 (5.0%) | 2 (5.0%) | 0 |
+| Zurich | 2 (5.0%) | 1 (2.5%) | -1 |
+| Barcelona | 1 (2.5%) | 1 (2.5%) | 0 |
+| British Columbia | 1 (2.5%) | 1 (2.5%) | 0 |
+| Brussels Capital | 1 (2.5%) | 1 (2.5%) | 0 |
+| Bucuresti | 1 (2.5%) | 1 (2.5%) | 0 |
+| CABA | 1 (2.5%) | 1 (2.5%) | 0 |
+| Cape Town | 1 (2.5%) | 1 (2.5%) | 0 |
+| Colombo | 1 (2.5%) | 1 (2.5%) | 0 |
+| Geneva | 1 (2.5%) | 1 (2.5%) | 0 |
+| Lisbon | 1 (2.5%) | 1 (2.5%) | 0 |
+| Ljubljana | 1 (2.5%) | 1 (2.5%) | 0 |
+| London | 1 (2.5%) | 1 (2.5%) | 0 |
+| Maribor | 1 (2.5%) | 1 (2.5%) | 0 |
+| Navi Mumbai | 1 (2.5%) | 1 (2.5%) | 0 |
+| New Delhi | 1 (2.5%) | 1 (2.5%) | 0 |
+| Panvel | 1 (2.5%) | 1 (2.5%) | 0 |
+| Quebec | 1 (2.5%) | 1 (2.5%) | 0 |
+| Queensland | 1 (2.5%) | 1 (2.5%) | 0 |
+| Riga | 1 (2.5%) | 1 (2.5%) | 0 |
+| Singapore | 1 (2.5%) | 1 (2.5%) | 0 |
+| South Moravian Region | 1 (2.5%) | 1 (2.5%) | 0 |
+| Tel Aviv | 1 (2.5%) | 1 (2.5%) | 0 |
+| Tokyo | 1 (2.5%) | 1 (2.5%) | 0 |
+| Utah | 1 (2.5%) | 1 (2.5%) | 0 |
+| Vilnius | 1 (2.5%) | 1 (2.5%) | 0 |
+| Unknown | 0 | 0 | 0 |
+
+### Added nodes
+
+| Node | Data center | Registered owner | Registered region | Provider | Operator | Reward type | SEV chip ID | Evidence gaps |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe](https://dashboard.internetcomputer.org/node/kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe) | [sh1](https://dashboard.internetcomputer.org/center/sh1) | Digital Realty | Europe,SE,Stockholm | [bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe](https://dashboard.internetcomputer.org/provider/bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe) | lgp6d-brhlv-35izu-khc6p-rfszo-zdwng-xbtkh-xyvjg-y3due-7ha7t-uae | Type 1.1 | Absent | — |
+
+### Removed nodes
+
+| Node | Data center | Registered owner | Registered region | Provider | Operator | Reward type | SEV chip ID | Evidence gaps |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe](https://dashboard.internetcomputer.org/node/tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe) | [zh2](https://dashboard.internetcomputer.org/center/zh2) | Everyware | Europe,CH,Zurich | [bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe](https://dashboard.internetcomputer.org/provider/bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe) | s7dud-dfedw-dmrax-rjvop-5k4qw-htm4w-gj7ak-j2itz-txwwn-o5ymv-tae | Type 1.1 | Absent | — |
+
+### Retained nodes
+
+| Node | Data center | Registered owner | Registered region | Provider | Operator | Reward type | SEV chip ID | Evidence gaps |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae](https://dashboard.internetcomputer.org/node/nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae) | [jb2](https://dashboard.internetcomputer.org/center/jb2) | Africa Data Centres | Africa,ZA,Gauteng | [nmdd6-rouxw-55leh-wcbkn-kejit-njvje-p4s6e-v64d3-nlbjb-vipul-mae](https://dashboard.internetcomputer.org/provider/nmdd6-rouxw-55leh-wcbkn-kejit-njvje-p4s6e-v64d3-nlbjb-vipul-mae) | 3bohy-zygmq-6novb-wm65r-3k3y2-deh42-7emld-zhqo7-xl2oa-iextm-fae | Type 3.1 | Absent | — |
+| [ncr4b-rasb7-tueb3-n4uos-5nxou-3wbxv-xmyt3-wfdsd-vu4b6-5x3cp-aqe](https://dashboard.internetcomputer.org/node/ncr4b-rasb7-tueb3-n4uos-5nxou-3wbxv-xmyt3-wfdsd-vu4b6-5x3cp-aqe) | [ld1](https://dashboard.internetcomputer.org/center/ld1) | Latitude.sh | Europe,UK,London | [i3cfo-s2tgu-qe5ym-wk7e6-y7ura-pptgu-kevuf-2feh7-z4enq-5hz4s-mqe](https://dashboard.internetcomputer.org/provider/i3cfo-s2tgu-qe5ym-wk7e6-y7ura-pptgu-kevuf-2feh7-z4enq-5hz4s-mqe) | raiov-7se2a-qvvut-fosrr-ewckg-wwvx5-yiyih-msga4-kibn2-tel4j-uae | Type 3.1 | Absent | — |
+| [jyh32-azcnn-mwosu-urewl-m3pyx-6pmlq-lu5fu-vqjyl-gwx3j-zqrjr-gae](https://dashboard.internetcomputer.org/node/jyh32-azcnn-mwosu-urewl-m3pyx-6pmlq-lu5fu-vqjyl-gwx3j-zqrjr-gae) | [bu1](https://dashboard.internetcomputer.org/center/bu1) | M247 | Europe,RO,Bucuresti | [i7dto-bgkj2-xo5dx-cyrb7-zkk5y-q46eh-gz6iq-qkgyc-w4qte-scgtb-6ae](https://dashboard.internetcomputer.org/provider/i7dto-bgkj2-xo5dx-cyrb7-zkk5y-q46eh-gz6iq-qkgyc-w4qte-scgtb-6ae) | c5ssg-eh22p-pmsn6-fpjzj-k5nql-mx5mc-7gb4a-4klco-c4f37-ydnfp-bae | Type 1.1 | Absent | — |
+| [yahq2-6rnmm-n7ubm-q76zd-256dl-5f7k6-jxx5l-njyo2-hl7tk-sqcet-6ae](https://dashboard.internetcomputer.org/node/yahq2-6rnmm-n7ubm-q76zd-256dl-5f7k6-jxx5l-njyo2-hl7tk-sqcet-6ae) | [ar1](https://dashboard.internetcomputer.org/center/ar1) | SyT - Servicios y Telecomunicaciones S.A. | South America,AR,CABA | [s5nvr-ipdxf-xg6wd-ofacm-7tl4i-nwjzx-uulum-cugwb-kbpsa-wrsgs-cae](https://dashboard.internetcomputer.org/provider/s5nvr-ipdxf-xg6wd-ofacm-7tl4i-nwjzx-uulum-cugwb-kbpsa-wrsgs-cae) | 5p6xp-glfoz-fgh6d-4rx7e-hix7t-c4vcp-u2xhn-gv4mm-fkozw-6mntb-7qe | Type 3.1 | Absent | — |
+| [himck-kjpb3-eih7e-knfcr-tkz7f-qzx45-i6xwm-obvn7-fw2hv-2zuy7-aqe](https://dashboard.internetcomputer.org/node/himck-kjpb3-eih7e-knfcr-tkz7f-qzx45-i6xwm-obvn7-fw2hv-2zuy7-aqe) | [ge1](https://dashboard.internetcomputer.org/center/ge1) | HighDC | Europe,CH,Geneva | [7ryes-jnj73-bsyu4-lo6h7-lbxk5-x4ien-lylws-5qwzl-hxd5f-xjh3w-mqe](https://dashboard.internetcomputer.org/provider/7ryes-jnj73-bsyu4-lo6h7-lbxk5-x4ien-lylws-5qwzl-hxd5f-xjh3w-mqe) | yngfj-akg4s-nectt-whzgk-5zqbw-z3e5u-zuycn-zqygi-xz4vt-244v6-zae | Type 1.1 | Absent | — |
+| [gj6gc-mbslq-bt63y-72b7h-xs2xw-6vyuj-frvp3-tx375-dsqx5-wem6o-vqe](https://dashboard.internetcomputer.org/node/gj6gc-mbslq-bt63y-72b7h-xs2xw-6vyuj-frvp3-tx375-dsqx5-wem6o-vqe) | [lj2](https://dashboard.internetcomputer.org/center/lj2) | Anonstake | Europe,SI,Ljubljana | [kos24-5xact-6aror-uofg2-tnvt6-dq3bk-c2c5z-jtptt-jbqvc-lmegy-qae](https://dashboard.internetcomputer.org/provider/kos24-5xact-6aror-uofg2-tnvt6-dq3bk-c2c5z-jtptt-jbqvc-lmegy-qae) | eu5wc-g7r7l-zzy2o-227af-hfvin-orflw-4vdlf-j7gks-n5wrj-zezt7-tqe | Type 3 | Absent | — |
+| [jmuoq-7kbey-cbtmm-zlz6t-chwt6-dk7ly-d3jim-5nuu4-y5tou-l5egg-7qe](https://dashboard.internetcomputer.org/node/jmuoq-7kbey-cbtmm-zlz6t-chwt6-dk7ly-d3jim-5nuu4-y5tou-l5egg-7qe) | [bc1](https://dashboard.internetcomputer.org/center/bc1) | Cyxtera | North America,CA,British Columbia | [7at4h-nhtvt-a4s55-jigss-wr2ha-ysxkn-e6w7x-7ggnm-qd3d5-ry66r-cae](https://dashboard.internetcomputer.org/provider/7at4h-nhtvt-a4s55-jigss-wr2ha-ysxkn-e6w7x-7ggnm-qd3d5-ry66r-cae) | feb2q-mgxwe-okz7r-juws2-mahg4-wflqu-oeflf-kvh4r-qaqit-hbqpg-uqe | Type 1.1 | Absent | — |
+| [nf7qq-vkm72-lttne-dsnke-3x73z-ofybh-ogahy-vyvta-dgbny-s5dr7-qqe](https://dashboard.internetcomputer.org/node/nf7qq-vkm72-lttne-dsnke-3x73z-ofybh-ogahy-vyvta-dgbny-s5dr7-qqe) | [sj3](https://dashboard.internetcomputer.org/center/sj3) | InfoObjects | North America,US,California | [7ws2n-wqorv-vmo4m-5e222-n42c3-hk43s-ei3kp-4hpbn-xlkzo-jgv7i-tqe](https://dashboard.internetcomputer.org/provider/7ws2n-wqorv-vmo4m-5e222-n42c3-hk43s-ei3kp-4hpbn-xlkzo-jgv7i-tqe) | jtrpk-wokqg-aqmcn-esiq7-fip4e-dl7lv-iwdyj-cu5pm-wbg7i-4jl4t-wae | Type 3.1 | Absent | — |
+| [5iihd-fkroy-ow5zp-hlvwz-bsgbl-mecta-kxubm-6adxr-ckcu6-prsus-fqe](https://dashboard.internetcomputer.org/node/5iihd-fkroy-ow5zp-hlvwz-bsgbl-mecta-kxubm-6adxr-ckcu6-prsus-fqe) | [hk4](https://dashboard.internetcomputer.org/center/hk4) | hkntt | Asia,HK,HongKong | [cgmhq-c4zja-yov4u-zeyao-64ua5-idlhb-ezcgr-cultv-3vqjs-dhwo7-rqe](https://dashboard.internetcomputer.org/provider/cgmhq-c4zja-yov4u-zeyao-64ua5-idlhb-ezcgr-cultv-3vqjs-dhwo7-rqe) | aaxec-cijpz-vzdwe-546fi-vahtf-s2awa-ldn7q-mzl2j-gmvhz-56zlq-mqe | Type 3.1 | Absent | — |
+| [sekkk-e24lo-s2zu3-5ltyu-kbzqs-44bpv-klm7l-72g2n-z7zxu-2pqpu-pae](https://dashboard.internetcomputer.org/node/sekkk-e24lo-s2zu3-5ltyu-kbzqs-44bpv-klm7l-72g2n-z7zxu-2pqpu-pae) | [hk3](https://dashboard.internetcomputer.org/center/hk3) | hkcolo | Asia,HK,HongKong | [4fedi-eu6ue-nd7ts-vnof5-hzg66-hgzl7-liy5n-3otyp-h7ipw-owycg-uae](https://dashboard.internetcomputer.org/provider/4fedi-eu6ue-nd7ts-vnof5-hzg66-hgzl7-liy5n-3otyp-h7ipw-owycg-uae) | 4lbqo-vgpoe-kemak-voout-777uo-kk74n-fnct3-pc4eg-3txi3-7cghf-rqe | Type 3.1 | Absent | — |
+| [gvm7l-ds4n6-vkyjn-gwalp-3vdo6-qfmq7-pxhu4-zvqcu-ozvb7-qz3gr-vqe](https://dashboard.internetcomputer.org/node/gvm7l-ds4n6-vkyjn-gwalp-3vdo6-qfmq7-pxhu4-zvqcu-ozvb7-qz3gr-vqe) | [tv1](https://dashboard.internetcomputer.org/center/tv1) | Interhost | Asia,IL,Tel Aviv | [6sq7t-knkul-fko6h-xzvnf-ktbvr-jhx7r-hapzr-kjlek-whugy-zt6ip-xqe](https://dashboard.internetcomputer.org/provider/6sq7t-knkul-fko6h-xzvnf-ktbvr-jhx7r-hapzr-kjlek-whugy-zt6ip-xqe) | lis4o-siuek-6zrm6-g5pkh-lswnt-ttsd4-henvb-d6mit-lgfpr-lynph-xae | Type 3.1 | Absent | — |
+| [k2ovz-ptdmz-hzmkh-ntfqn-evhux-ktxz4-26jg6-qjjsa-rpgal-wkdjo-kqe](https://dashboard.internetcomputer.org/node/k2ovz-ptdmz-hzmkh-ntfqn-evhux-ktxz4-26jg6-qjjsa-rpgal-wkdjo-kqe) | [rg3](https://dashboard.internetcomputer.org/center/rg3) | Nano | Europe,LV,Riga | [diyay-s4rfq-xnx23-zczwi-nptra-5254n-e4zn6-p7tqe-vqhzr-sd4gd-bqe](https://dashboard.internetcomputer.org/provider/diyay-s4rfq-xnx23-zczwi-nptra-5254n-e4zn6-p7tqe-vqhzr-sd4gd-bqe) | bftbl-quva3-hsn2r-qsjde-goegh-rupku-gb7xx-utj6e-lswl4-hclva-bqe | Type 3.1 | Absent | — |
+| [ulhxy-qlokv-5iual-yizlo-dtlmi-aavz5-bi7ez-kjwqz-la64z-cxjuk-fae](https://dashboard.internetcomputer.org/node/ulhxy-qlokv-5iual-yizlo-dtlmi-aavz5-bi7ez-kjwqz-la64z-cxjuk-fae) | [br2](https://dashboard.internetcomputer.org/center/br2) | AtlasEdge | Europe,BE,Brussels Capital | [rbn2y-6vfsb-gv35j-4cyvy-pzbdu-e5aum-jzjg6-5b4n5-vuguf-ycubq-zae](https://dashboard.internetcomputer.org/provider/rbn2y-6vfsb-gv35j-4cyvy-pzbdu-e5aum-jzjg6-5b4n5-vuguf-ycubq-zae) | oorkg-ilned-36bwb-vyprm-56g55-hp6xq-gucq3-fmn2i-44a4e-txzlp-gqe | Type 1.1 | Absent | — |
+| [lxgqb-dlqzi-schn4-i2mha-qh6re-eq3c2-3k6cn-oqumg-jkmgk-d4gex-3qe](https://dashboard.internetcomputer.org/node/lxgqb-dlqzi-schn4-i2mha-qh6re-eq3c2-3k6cn-oqumg-jkmgk-d4gex-3qe) | [cm1](https://dashboard.internetcomputer.org/center/cm1) | OrionStellar | Asia,LK,Colombo | [eybf4-6t6bb-unfb2-h2hhn-rrfi2-cd2vs-phksn-jdmbn-i463m-4lzds-vqe](https://dashboard.internetcomputer.org/provider/eybf4-6t6bb-unfb2-h2hhn-rrfi2-cd2vs-phksn-jdmbn-i463m-4lzds-vqe) | ywjtr-pq5wc-m6foq-tyxvk-2a3wc-dlg3k-aaebf-6rk2d-5yvn7-tf743-gqe | Type 3.1 | Absent | — |
+| [4mfcc-d3te7-zk2in-n5hm2-tcquv-bgc2e-obpbh-xp5jc-7boqr-oidte-jqe](https://dashboard.internetcomputer.org/node/4mfcc-d3te7-zk2in-n5hm2-tcquv-bgc2e-obpbh-xp5jc-7boqr-oidte-jqe) | [hk1](https://dashboard.internetcomputer.org/center/hk1) | Unicom | Asia,HK,HongKong | [g2ax6-jrkmb-3zuh3-jibtb-q5xoq-njrgo-5utbc-j2o7g-zfq2w-yyhky-dqe](https://dashboard.internetcomputer.org/provider/g2ax6-jrkmb-3zuh3-jibtb-q5xoq-njrgo-5utbc-j2o7g-zfq2w-yyhky-dqe) | z6cfb-dbya3-nh4pm-nyteq-76n7d-xzi27-tf3cg-t7sz7-244qt-6rnjy-3ae | Type 3.1 | Absent | — |
+| [w2sev-mtuls-aa7m5-cdjgi-5vipg-2jn7i-4awvf-o6suu-73ebs-sw5db-kqe](https://dashboard.internetcomputer.org/node/w2sev-mtuls-aa7m5-cdjgi-5vipg-2jn7i-4awvf-o6suu-73ebs-sw5db-kqe) | [pl2](https://dashboard.internetcomputer.org/center/pl2) | Yotta | Asia,IN,Panvel | [zy4m7-z5mhs-zfkpl-zlsjl-blrbx-mvvmq-5z4zu-mf7eq-hhv7o-ezfro-3ae](https://dashboard.internetcomputer.org/provider/zy4m7-z5mhs-zfkpl-zlsjl-blrbx-mvvmq-5z4zu-mf7eq-hhv7o-ezfro-3ae) | 7rw6b-6r7qv-al3uk-rimg7-ifkjv-hettz-lhmly-t55g7-xrwac-25ayy-wae | Type 3.1 | Absent | — |
+| [vysyd-tlwq5-f5vfi-kw2jc-ziylz-di2s5-sf4p3-iflm7-vyvjv-hz3b3-pae](https://dashboard.internetcomputer.org/node/vysyd-tlwq5-f5vfi-kw2jc-ziylz-di2s5-sf4p3-iflm7-vyvjv-hz3b3-pae) | [kr2](https://dashboard.internetcomputer.org/center/kr2) | Gasan | Asia,KR,Seoul | [64xe5-tx2s3-4gjmj-pnozr-fejw2-77y5y-rhcjk-glnmx-62brf-qin5q-pqe](https://dashboard.internetcomputer.org/provider/64xe5-tx2s3-4gjmj-pnozr-fejw2-77y5y-rhcjk-glnmx-62brf-qin5q-pqe) | 5dwhe-vpbuf-zz5ml-ylu6k-7y2z2-36ywv-5e4wf-advxd-3endk-icvg4-cae | Type 3.1 | Absent | — |
+| [zatyv-4l26n-3lecc-xpeme-ul34o-yiye2-3d447-aiiz4-5pxtm-v44nh-cqe](https://dashboard.internetcomputer.org/node/zatyv-4l26n-3lecc-xpeme-ul34o-yiye2-3d447-aiiz4-5pxtm-v44nh-cqe) | [mb1](https://dashboard.internetcomputer.org/center/mb1) | Posita.si | Europe,SI,Maribor | [wdjjk-blh44-lxm74-ojj43-rvgf4-j5rie-nm6xs-xvnuv-j3ptn-25t4v-6ae](https://dashboard.internetcomputer.org/provider/wdjjk-blh44-lxm74-ojj43-rvgf4-j5rie-nm6xs-xvnuv-j3ptn-25t4v-6ae) | 3xiew-2wo3x-tnbn2-o7kok-wwsnw-7koo2-gna5r-rlrt3-zotsh-dwpg6-kae | Type 1.1 | Absent | — |
+| [isegs-i4akf-kb7st-hnqjn-4col7-qxpph-pncbs-25hiy-5pwsu-nyw3x-xae](https://dashboard.internetcomputer.org/node/isegs-i4akf-kb7st-hnqjn-4col7-qxpph-pncbs-25hiy-5pwsu-nyw3x-xae) | [kr1](https://dashboard.internetcomputer.org/center/kr1) | KT | Asia,KR,Seoul | [r3yjn-kthmg-pfgmb-2fngg-5c7d7-t6kqg-wi37r-j7gy6-iee64-kjdja-jae](https://dashboard.internetcomputer.org/provider/r3yjn-kthmg-pfgmb-2fngg-5c7d7-t6kqg-wi37r-j7gy6-iee64-kjdja-jae) | iubpe-vrzpt-cdf5f-kkzhq-rgp63-dkbfo-fje7f-6aknf-jekzg-3s7tv-oae | Type 3.1 | Absent | — |
+| [6hvx2-ymemx-tmykh-vxyic-bgfhv-2lcmt-3oy4x-rysuf-rnerz-vqokw-sqe](https://dashboard.internetcomputer.org/node/6hvx2-ymemx-tmykh-vxyic-bgfhv-2lcmt-3oy4x-rysuf-rnerz-vqokw-sqe) | [nm1](https://dashboard.internetcomputer.org/center/nm1) | Rivram | Asia,IN,Navi Mumbai | [ulyfm-vkxtj-o42dg-e4nam-l4tzf-37wci-ggntw-4ma7y-d267g-ywxi6-iae](https://dashboard.internetcomputer.org/provider/ulyfm-vkxtj-o42dg-e4nam-l4tzf-37wci-ggntw-4ma7y-d267g-ywxi6-iae) | mpmyf-juliu-5qwcu-ofamg-es7ug-4mjt4-w5lht-dbrfb-ualjm-hcwmn-pae | Type 3 | Absent | — |
+| [5mpdi-v4qj2-64are-tbe6r-6335g-6tksh-c7uzq-w3xyz-o4p5g-rwnll-vqe](https://dashboard.internetcomputer.org/node/5mpdi-v4qj2-64are-tbe6r-6335g-6tksh-c7uzq-w3xyz-o4p5g-rwnll-vqe) | [ty3](https://dashboard.internetcomputer.org/center/ty3) | Equinix | Asia,JP,Tokyo | [sixix-2nyqd-t2k2v-vlsyz-dssko-ls4hl-hyij4-y7mdp-ja6cj-nsmpf-yae](https://dashboard.internetcomputer.org/provider/sixix-2nyqd-t2k2v-vlsyz-dssko-ls4hl-hyij4-y7mdp-ja6cj-nsmpf-yae) | a5glg-n6ul6-rkuc7-idthk-fb2fe-d5m75-4g4l7-22yko-h27pr-q3a7k-lae | Type 1.1 | Absent | — |
+| [v6r7h-luxm5-nxusv-bvhek-sis7i-sitrx-ezprf-j2lp3-2tnlt-2m6yt-zae](https://dashboard.internetcomputer.org/node/v6r7h-luxm5-nxusv-bvhek-sis7i-sitrx-ezprf-j2lp3-2tnlt-2m6yt-zae) | [dr1](https://dashboard.internetcomputer.org/center/dr1) | FiberState | North America,US,Utah | [trxbq-wy5xi-3y27q-bkpaf-mhi2m-puexs-yatgt-nhwiy-dh6jy-rolw5-zqe](https://dashboard.internetcomputer.org/provider/trxbq-wy5xi-3y27q-bkpaf-mhi2m-puexs-yatgt-nhwiy-dh6jy-rolw5-zqe) | nhr3z-ekrj4-7usls-kmdbv-esy2j-3wvez-ck46k-qpdn6-i23c2-5xkgr-dae | Type 3.1 | Absent | — |
+| [2nehn-z42p7-36s7j-qqcz6-sy5rb-euhte-necpl-egqsv-hdoph-gx7qd-6ae](https://dashboard.internetcomputer.org/node/2nehn-z42p7-36s7j-qqcz6-sy5rb-euhte-necpl-egqsv-hdoph-gx7qd-6ae) | [im1](https://dashboard.internetcomputer.org/center/im1) | Manx Telecom | Europe,IM,Douglas | [rpfvr-s3kuw-xdqrr-pvuuj-hc7hl-olytw-yxlie-fmr74-sr572-6gdqx-iqe](https://dashboard.internetcomputer.org/provider/rpfvr-s3kuw-xdqrr-pvuuj-hc7hl-olytw-yxlie-fmr74-sr572-6gdqx-iqe) | 4isre-d3zxy-xpque-tagdf-xdzjp-hk7x3-szquu-kuwej-52cfy-f6jwc-zqe | Type 1.1 | Absent | — |
+| [3zfpk-du6xx-yg7j5-h7c5w-6rr7z-cmkbf-pfos7-lhu65-svdmj-co7nc-cae](https://dashboard.internetcomputer.org/node/3zfpk-du6xx-yg7j5-h7c5w-6rr7z-cmkbf-pfos7-lhu65-svdmj-co7nc-cae) | [sg3](https://dashboard.internetcomputer.org/center/sg3) | Racks Central | Asia,SG,Singapore | [x7uok-pi537-itm37-unjn3-ewkze-kuetg-kptap-nuqak-auq7z-tn5ey-dqe](https://dashboard.internetcomputer.org/provider/x7uok-pi537-itm37-unjn3-ewkze-kuetg-kptap-nuqak-auq7z-tn5ey-dqe) | vicvb-nkzkt-tj2lz-yzzw4-gfcsj-3eggv-izdti-tarpt-fsojm-lgq22-wae | Type 1.1 | Absent | — |
+| [2ftux-ivgjc-t4i2d-lq5hs-myjdg-3h2pz-l2ddl-nsxfc-wlaq7-fkbc5-6ae](https://dashboard.internetcomputer.org/node/2ftux-ivgjc-t4i2d-lq5hs-myjdg-3h2pz-l2ddl-nsxfc-wlaq7-fkbc5-6ae) | [sl1](https://dashboard.internetcomputer.org/center/sl1) | Megazone Cloud | Asia,KR,Seoul | [4dibr-2alzr-h6kva-bvwn2-yqgsl-o577t-od46o-v275p-a2zov-tcw4f-eae](https://dashboard.internetcomputer.org/provider/4dibr-2alzr-h6kva-bvwn2-yqgsl-o577t-od46o-v275p-a2zov-tcw4f-eae) | ukji3-ju5bx-ty5r7-qwk4p-eobil-isp26-fsomg-44kwf-j4ew7-ozkqy-wqe | Type 3 | Absent | — |
+| [nj7re-dvkal-yq25a-opp2g-5y3qy-3ena4-opd5j-22uir-eaakx-ljk7k-6ae](https://dashboard.internetcomputer.org/node/nj7re-dvkal-yq25a-opp2g-5y3qy-3ena4-opd5j-22uir-eaakx-ljk7k-6ae) | [nd1](https://dashboard.internetcomputer.org/center/nd1) | Marvelous Web3 DC | Asia,IN,New Delhi | [pa5mu-yxsey-b4yrk-bodka-dhjnm-a3nx4-w2grw-3b766-ddr6e-nupu4-pqe](https://dashboard.internetcomputer.org/provider/pa5mu-yxsey-b4yrk-bodka-dhjnm-a3nx4-w2grw-3b766-ddr6e-nupu4-pqe) | ihcmc-o45dd-elg2s-ntnhr-l4c35-datk6-gsyeb-m77as-yjzd2-4qyxz-xqe | Type 3.1 | Absent | — |
+| [tbzjp-lv2kb-xhel7-36r77-rfa3z-6iox2-c4ttr-cppwv-naxob-n3arn-fae](https://dashboard.internetcomputer.org/node/tbzjp-lv2kb-xhel7-36r77-rfa3z-6iox2-c4ttr-cppwv-naxob-n3arn-fae) | [im2](https://dashboard.internetcomputer.org/center/im2) | Continent8 | Europe,IM,Douglas | [glrjs-2dbzh-owbdd-fpp5e-eweoz-nsuto-e3jmk-tl42c-wem4f-qfpfa-qqe](https://dashboard.internetcomputer.org/provider/glrjs-2dbzh-owbdd-fpp5e-eweoz-nsuto-e3jmk-tl42c-wem4f-qfpfa-qqe) | ylbc3-d72nf-cv76h-era7m-zefob-r5kyw-kvdtp-xq4ep-nthfy-ml5ua-iae | Type 1.1 | Absent | — |
+| [5veru-kf3gn-vjdxg-drid6-qpl2s-ojbxd-i73zf-kded7-7e4q3-5vuni-3qe](https://dashboard.internetcomputer.org/node/5veru-kf3gn-vjdxg-drid6-qpl2s-ojbxd-i73zf-kded7-7e4q3-5vuni-3qe) | [es1](https://dashboard.internetcomputer.org/center/es1) | Adam | Europe,ES,Barcelona | [w4buy-lgwzr-pccs7-huzhh-qqnws-rns75-iaoox-jolrm-xs2ra-vdu3o-2qe](https://dashboard.internetcomputer.org/provider/w4buy-lgwzr-pccs7-huzhh-qqnws-rns75-iaoox-jolrm-xs2ra-vdu3o-2qe) | 6zkgt-w7agd-kpvte-mia3x-sxucz-u2r7k-vfphb-tyhvv-i6hsm-h2ueo-uqe | Type 3.1 | Absent | — |
+| [dw2ac-qodm4-snxe5-bnat5-2nu2z-mmogu-7gps7-z4gon-zadqs-3dbqh-pae](https://dashboard.internetcomputer.org/node/dw2ac-qodm4-snxe5-bnat5-2nu2z-mmogu-7gps7-z4gon-zadqs-3dbqh-pae) | [fm1](https://dashboard.internetcomputer.org/center/fm1) | Hurricane Electric | North America,US,California | [hk7eo-22zam-kqmsx-dtfbj-k5i6f-jg65h-micpf-2cztc-t2eqk-efgvx-vqe](https://dashboard.internetcomputer.org/provider/hk7eo-22zam-kqmsx-dtfbj-k5i6f-jg65h-micpf-2cztc-t2eqk-efgvx-vqe) | hoqyg-qkf6b-ulmyi-zfk6z-fuvlo-pekr6-goigz-qweij-xhghd-vibjl-jqe | Type 3.1 | Registered | — |
+| [mae7q-ggnbj-xb52f-hvest-dgqoc-whvsq-yui5d-5cys2-zeold-l5ydx-oae](https://dashboard.internetcomputer.org/node/mae7q-ggnbj-xb52f-hvest-dgqoc-whvsq-yui5d-5cys2-zeold-l5ydx-oae) | [bn1](https://dashboard.internetcomputer.org/center/bn1) | Master Internet | Europe,CZ,South Moravian Region | [efem5-kmwaw-xose7-zzhgg-6bfif-twmcw-csg7a-lmqvn-wrdou-mjwlb-vqe](https://dashboard.internetcomputer.org/provider/efem5-kmwaw-xose7-zzhgg-6bfif-twmcw-csg7a-lmqvn-wrdou-mjwlb-vqe) | zc635-ppr46-ap6eg-pghtn-wtnxz-6czvv-a4uxm-adjgb-wtoh4-2ddnl-uae | Type 3.1 | Absent | — |
+| [24fcm-3onfs-cykax-al4jb-gvdd3-u76zl-ht6ef-hcsbc-xwf54-xbrym-xae](https://dashboard.internetcomputer.org/node/24fcm-3onfs-cykax-al4jb-gvdd3-u76zl-ht6ef-hcsbc-xwf54-xbrym-xae) | [bt1](https://dashboard.internetcomputer.org/center/bt1) | Baltneta | Europe,LT,Vilnius | [4jjya-hlyyc-s766p-fd6gr-d6tvv-vo3ah-j5ptx-i73gw-mwgyd-rw6w2-rae](https://dashboard.internetcomputer.org/provider/4jjya-hlyyc-s766p-fd6gr-d6tvv-vo3ah-j5ptx-i73gw-mwgyd-rw6w2-rae) | mbnsu-w4xfc-pmdok-r2lwo-wxfr4-gigu5-4idcm-5uuuy-znvby-biiny-jqe | Type 3.1 | Absent | — |
+| [u4zo2-i6nsc-mowwj-lf6az-s6rdo-caskt-a6yx6-fke5w-qyezs-lyqvn-tqe](https://dashboard.internetcomputer.org/node/u4zo2-i6nsc-mowwj-lf6az-s6rdo-caskt-a6yx6-fke5w-qyezs-lyqvn-tqe) | [sc1](https://dashboard.internetcomputer.org/center/sc1) | NEXTDC | Oceania,AU,Queensland | [unqqg-no4b2-vbyad-ytik2-t3vly-3e57q-aje2t-sjb5l-bd4ke-chggn-uqe](https://dashboard.internetcomputer.org/provider/unqqg-no4b2-vbyad-ytik2-t3vly-3e57q-aje2t-sjb5l-bd4ke-chggn-uqe) | f3toa-2qbnz-67mnl-ws76t-asi36-oz7vd-w5xjx-u5n75-jchls-uhioe-6qe | Type 3.1 | Absent | — |
+| [anudy-m6vfi-lphxb-sazpy-la4ti-2hriw-c67ny-butfn-axcel-otvuh-oqe](https://dashboard.internetcomputer.org/node/anudy-m6vfi-lphxb-sazpy-la4ti-2hriw-c67ny-butfn-axcel-otvuh-oqe) | [mtl1](https://dashboard.internetcomputer.org/center/mtl1) | Leaseweb | North America,CA,Quebec | [7uioy-xitfw-yqcko-5gpya-3lpsw-dw7zt-dyyyf-wfqif-jvi76-fdbkg-cqe](https://dashboard.internetcomputer.org/provider/7uioy-xitfw-yqcko-5gpya-3lpsw-dw7zt-dyyyf-wfqif-jvi76-fdbkg-cqe) | ueggl-7wvx2-2eezj-mgjrg-w6tmy-ngmye-xxbwu-gumli-hdf7u-zzpng-3ae | Type 3.1 | Absent | — |
+| [lh2af-66zso-76kqu-d57ag-jca5d-yvmfo-rcabh-ptlvj-ltfdf-kyg6q-lqe](https://dashboard.internetcomputer.org/node/lh2af-66zso-76kqu-d57ag-jca5d-yvmfo-rcabh-ptlvj-ltfdf-kyg6q-lqe) | [li2](https://dashboard.internetcomputer.org/center/li2) | Edgoo Networks | Europe,PT,Lisbon | [mjnyf-lzqq6-s7fzb-62rqm-xzvge-5oa26-humwp-dvwxp-jxxkf-hoel7-fqe](https://dashboard.internetcomputer.org/provider/mjnyf-lzqq6-s7fzb-62rqm-xzvge-5oa26-humwp-dvwxp-jxxkf-hoel7-fqe) | nvocp-jlbys-d44wi-od3pv-iws4n-2nll3-73hqk-koh72-3obvg-kt5v3-fae | Type 3.1 | Absent | — |
+| [urnku-x7qn7-gt2mu-kueib-duqoz-xcdgj-hsnwl-5q32r-w3vqp-on6lq-gae](https://dashboard.internetcomputer.org/node/urnku-x7qn7-gt2mu-kueib-duqoz-xcdgj-hsnwl-5q32r-w3vqp-on6lq-gae) | [ct2](https://dashboard.internetcomputer.org/center/ct2) | Teraco | Africa,ZA,Cape Town | [py2kr-ipr2p-ryh66-x3a3v-5ts6u-7rfhf-alkna-ueffh-hz5ox-lt6du-qqe](https://dashboard.internetcomputer.org/provider/py2kr-ipr2p-ryh66-x3a3v-5ts6u-7rfhf-alkna-ueffh-hz5ox-lt6du-qqe) | x7fjr-ngws7-jpjtq-e3c7s-735uk-gyusv-ppoeh-n4xhg-fwjck-um6pf-fae | Type 3.1 | Absent | — |
+| [5gcqu-upr5b-ol3fj-vz273-3ov5j-s2dzp-d3n4o-c3rdz-rnhto-tovcx-zqe](https://dashboard.internetcomputer.org/node/5gcqu-upr5b-ol3fj-vz273-3ov5j-s2dzp-d3n4o-c3rdz-rnhto-tovcx-zqe) | [sh1](https://dashboard.internetcomputer.org/center/sh1) | Digital Realty | Europe,SE,Stockholm | [bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe](https://dashboard.internetcomputer.org/provider/bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe) | lgp6d-brhlv-35izu-khc6p-rfszo-zdwng-xbtkh-xyvjg-y3due-7ha7t-uae | Type 1.1 | Absent | — |
+| [oxevh-yptgl-yzu2p-w6dyn-lr6jc-b2xaq-aatz2-yyfot-hm4pr-ucvh6-gae](https://dashboard.internetcomputer.org/node/oxevh-yptgl-yzu2p-w6dyn-lr6jc-b2xaq-aatz2-yyfot-hm4pr-ucvh6-gae) | [zh5](https://dashboard.internetcomputer.org/center/zh5) | Green.ch | Europe,CH,Zurich | [hzqcb-iiagd-4erjo-qn7rq-syqro-zztl6-cpble-atnkd-2c6bg-bxjoa-qae](https://dashboard.internetcomputer.org/provider/hzqcb-iiagd-4erjo-qn7rq-syqro-zztl6-cpble-atnkd-2c6bg-bxjoa-qae) | ap2qh-n5jrf-vpjj6-i5pap-qxnhr-4tnar-yodpw-kh6fy-c5w4z-gibij-5ae | Type 3 | Absent | — |
+| [q4ksz-lpvfy-ikkem-wyuaa-abopq-nmu5k-ovh6h-xfoqk-hx3x3-g2bk6-4qe](https://dashboard.internetcomputer.org/node/q4ksz-lpvfy-ikkem-wyuaa-abopq-nmu5k-ovh6h-xfoqk-hx3x3-g2bk6-4qe) | [jb3](https://dashboard.internetcomputer.org/center/jb3) | Xneelo | Africa,ZA,Gauteng | [mme7u-zxs3z-jq3un-fbaly-nllcz-toct2-l2kp3-larrb-gti4r-u2bmo-dae](https://dashboard.internetcomputer.org/provider/mme7u-zxs3z-jq3un-fbaly-nllcz-toct2-l2kp3-larrb-gti4r-u2bmo-dae) | ymenq-4sr5h-3imm6-kjjw6-2knuy-ntmlu-oqf5k-vdnzv-z427q-gqdot-sae | Type 3.1 | Absent | — |
+| [uafcv-c76tx-jzddu-wxygw-4yzkm-nyr7u-iwk57-bwind-wmupb-2wos6-4qe](https://dashboard.internetcomputer.org/node/uafcv-c76tx-jzddu-wxygw-4yzkm-nyr7u-iwk57-bwind-wmupb-2wos6-4qe) | [sh1](https://dashboard.internetcomputer.org/center/sh1) | Digital Realty | Europe,SE,Stockholm | [bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe](https://dashboard.internetcomputer.org/provider/bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe) | lgp6d-brhlv-35izu-khc6p-rfszo-zdwng-xbtkh-xyvjg-y3due-7ha7t-uae | Type 1.1 | Absent | — |
+
+## Map
+
+Red markers show removed nodes, green shows added nodes, blue shows retained nodes. Markers are grouped at registered data-center coordinates. Nodes without usable coordinates are listed separately in the interface.
+
+![Registry data-center map](https://raw.githubusercontent.com/aodl/IC_Widgets/codex/voting-grade-review/docs/review-artifacts/144954/map.png)
+
+## Sources
+
+- NNS Governance `get_proposal_info`, observations listed above.
+- NNS Registry `get_value` at version 66013.
+- Natural Earth public-domain land outline.
+- Registration and hardware fields describe Registry entries. They provide no health, uptime, hardware attestation, or proof of decommissioning.
+
+`#144954 SHA-256 f2875737ce603f9f03b65366f23abd880fdba50e42e7f685ee2dbfb3815db37b`
+
+Membership preview revision `e4ec1a91d36488024294e8d5771b514c0511cba50d82915eb2f0d7b4a982e8fe`.
+
+Calculation input SHA-256 `4f85dd063be57f6b899a963649a9c94b8212e54ba7a3df6022654afc588f9738` · analysis v3.
+
+The reviewer canister calculated the result in a replicated update over the submitted Candid input. The digest identifies those exact bytes. Registry and Governance observations provide the separate source evidence. The exact Candid input is available under Advanced detailed source evidence.

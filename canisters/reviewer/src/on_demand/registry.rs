@@ -128,15 +128,15 @@ fn unavailable(key: RegistryKey) -> LiveError {
     LiveError::InvalidEvidence(ReviewError::UnavailableRecord(key))
 }
 
-struct Resolver<'a> {
-    request: &'a mut Request,
-    source: Principal,
-    version: u64,
-    chunks: BTreeMap<Hash, (u64, Result<Vec<u8>, String>)>,
+pub(super) struct Resolver<'a> {
+    pub(super) request: &'a mut Request,
+    pub(super) source: Principal,
+    pub(super) version: u64,
+    pub(super) chunks: BTreeMap<Hash, (u64, Result<Vec<u8>, String>)>,
 }
 
 impl Resolver<'_> {
-    async fn read<T>(
+    pub(super) async fn read<T>(
         &mut self,
         keys: Vec<RecordKey>,
         project: fn(Details) -> Option<T>,

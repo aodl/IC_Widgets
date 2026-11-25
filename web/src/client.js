@@ -1,6 +1,8 @@
 import { Actor, HttpAgent } from '@icp-sdk/core/agent';
+import { IDL } from '@icp-sdk/core/candid';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import { idlFactory } from './reviewer.did.js';
+import { hex } from './view.js';
 
 // The browser keeps this pilot identity in memory and displays only its principal.
 export const identity = Ed25519KeyIdentity.generate();
@@ -17,6 +19,17 @@ export async function connect() {
 export function result(reply) {
   if ('Err' in reply) throw new Error(reply.Err);
   return reply.Ok;
+}
+
+export async function compareMembership(client, input) {
+  const method = Actor.interfaceOf(client).fieldsAsObject().compare_membership_details;
+  const bytes = IDL.encode(method.argTypes, [input]);
+  const inputHash = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
+  const calculated = result(await client.compare_membership_details(input));
+  if (hex(calculated.input_hash) !== inputHash) {
+    throw new Error('The replicated calculation returned a different input digest.');
+  }
+  return { ...calculated, bytes, inputHash };
 }
 
 export function liveError(error) {

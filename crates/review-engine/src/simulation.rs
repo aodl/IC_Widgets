@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::{
     ConcentrationRule, Dimension, MembershipAction, MembershipState, Proposal, Record, RegistryKey,
-    ReviewInput, ReviewManifest, ScenarioSelection, ScopeState,
+    ReviewInput, ReviewManifest, ScenarioSelection, ScopeState, TopologyEvidence,
     input::{digest, requested_nodes, target},
     scope::make_scope,
     topology::{Metadata, MetadataIssue, metadata, summarize},
@@ -144,11 +144,11 @@ pub fn analyze(input: &ReviewInput) -> Review {
         }
     }
     let metadata = (!input.membership_only).then(|| {
-        input
-            .baseline
+        let evidence = TopologyEvidence::from(&input.baseline);
+        evidence
             .nodes
             .keys()
-            .map(|id| (*id, metadata(&input.baseline, *id)))
+            .map(|id| (*id, metadata(&evidence, *id)))
             .collect()
     });
     let scenarios: Vec<_> = available

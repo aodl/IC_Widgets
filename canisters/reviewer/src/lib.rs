@@ -30,8 +30,8 @@ pub use metrics_archive::{
 };
 pub use model::{Observation, ProbeRequest, Receipt, Sources};
 pub use on_demand::{
-    CandidateAssignment, LiveError, LivePerformance, LiveReceipt, LiveResponse, LiveReview,
-    LiveUsage,
+    CandidateAssignment, DetailComparisonInput, DetailKeys, DetailRecords, LiveError,
+    LiveMembershipComparison, LivePerformance, LiveReceipt, LiveResponse, LiveReview, LiveUsage,
 };
 pub use registry_sync::{
     Assignment, KeyPage, ProviderPage, RecordAt, RecordEvidence, RegistryBlock, RegistryLimit,

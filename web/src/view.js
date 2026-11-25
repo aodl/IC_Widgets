@@ -51,9 +51,13 @@ function principalList(label, values, open = false) {
   return list;
 }
 
-function table(headers, rows) {
+export function table(headers, rows) {
   return styled('div', 'table-wrap',
-    el('table', el('thead', el('tr', headers.map(label => el('th', label)))),
+    el('table', el('thead', el('tr', headers.map(label => {
+      const heading = el('th', label);
+      heading.scope = 'col';
+      return heading;
+    }))),
       el('tbody', rows.map(row => el('tr', row.map(cell => el('td', cell)))))));
 }
 
@@ -81,6 +85,13 @@ export function reviewHeader(review, live) {
   const scoped = total !== undefined && live.listed_subnets < total;
   return styled('section', 'card',
     el('h2', `Proposal ${ids}`),
+    option(live.proposal_text ?? [])?.map(row => {
+      const title = option(row.title);
+      if (!title) return null;
+      const link = el('a', title);
+      link.href = 'https://dashboard.internetcomputer.org/proposal/' + row.id;
+      return el('p', link);
+    }) ?? null,
     el('p', 'Registry baseline ', el('strong', number(manifest.registry_version))),
     manifest.proposals.every(row => [1, 3].includes(row.lifecycle_status))
       ? el('p', scoped ? 'Scoped membership preview' : 'Prospective membership preview') : null,
@@ -131,12 +142,11 @@ export function renderScenario(review, scenario, subnet, stateIndex, container) 
   const view = scenario.subnets.find(([id]) => principal(id) === subnet)?.[1];
   const states = view ? [view.baseline, ...view.after_steps.map(option)] : [];
   const selected = states[stateIndex];
-  const final = scenario.completed ? states.at(-1) : undefined;
   const counts = view ? styled('div', 'grid', [
     ['Baseline members', view.baseline.member_count],
-    ['Net added', final?.added.length],
-    ['Net removed', final?.removed.length],
-    ['Final members', final?.member_count],
+    ['Net added', selected?.added.length],
+    ['Net removed', selected?.removed.length],
+    ['Selected state members', selected?.member_count],
   ].map(([label, count]) => styled('div', 'stat', el('strong', count === undefined ? 'Unavailable' : number(count)), el('span', label)))) : null;
 
   const timeline = el('ol', scenario.steps.map((step, index) => {
@@ -163,10 +173,9 @@ export function renderScenario(review, scenario, subnet, stateIndex, container) 
     timeline,
     notes,
     view ? principalList('Baseline membership', view.baseline.members) : el('p', 'This scenario has no resolved subnet scope.'),
-    final ? principalList('Added members', final.added) : null,
-    final ? principalList('Removed members', final.removed) : null,
-    final ? principalList('Final membership', final.members) : null,
-    selected && stateIndex > 0 && stateIndex !== states.length - 1 ? principalList('Selected intermediate membership', selected.members) : null,
+    selected && stateIndex > 0 ? principalList('Added members', selected.added) : null,
+    selected && stateIndex > 0 ? principalList('Removed members', selected.removed) : null,
+    selected && stateIndex > 0 ? principalList('Selected membership', selected.members) : null,
     view && !selected ? styled('p', 'notice warning', 'Membership after that step is unavailable.') : null,
   ].filter(Boolean));
 }
@@ -176,6 +185,7 @@ export function sourceReceipts(result) {
   return details('Source receipts',
     version === undefined ? null : el('p', `Pinned Registry version ${number(version)}`),
     el('p', `${number(result.usage.calls)} source calls · ${number(result.usage.source_bytes)} reply bytes`),
+    el('p', `${number((result.usage.finished_at - result.usage.started_at) / 1_000_000n)} ms source stage · ${number(result.usage.instructions)} instructions · ${number(result.usage.peak_batch_reservation)} cycles peak batch reservation`),
     table(['Observation', 'Source read', 'Observed at', 'Reply'], result.receipts.map(row => [
       row.id, el('span', row.method, ' ', el('code', row.item), el('br'), el('code', principal(row.source))),
       time(row.observed_at),

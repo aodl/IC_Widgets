@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "dfx": "0.31.0",
+  "canisters": {
+    "frontend": { "type": "assets", "source": ["assets"], "build": [] }
+  }
+}
