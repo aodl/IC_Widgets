@@ -1,292 +1,396 @@
-import { compareMembership, liveError, result } from './client.js';
-import { calculationNote, geographyNote, reviewModel, thresholdNote } from './detail-model.js';
-import { reviewMap } from './review-map.js';
-import { reviewMarkdown } from './review-markdown.js';
-import { branch, el, option, principal, sourceReceipts, styled, table } from './view.js';
+import { calculationNote, geographyNote, groupMembers, lifecycle, proposalUrl, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
+import { markdownEditor } from './review-export.js';
+import { action, saveFile } from './review-map.js';
+import { createReviewSession, emptyEvidence, stageLabel } from './review-session.js';
+import { branch, el, hex, number, option, principal, sourceReceipts, styled, table, time, words } from './view.js';
 
-const PAGE = 24;
-const emptyEvidence = () => ({ Nodes: new Map(), Operators: new Map(), DataCenters: new Map() });
-
-function button(label, listener) {
-  const node = el('button', label);
-  node.type = 'button';
-  node.addEventListener('click', listener);
-  return node;
+const modes = ['Nodes', 'Concentration', 'Claims', 'Evidence', 'Export review', 'Performance'];
+const roles = { Added: '+ Added', Removed: '− Removed', Retained: '• Retained' };
+function replace(node, ...children) {
+  const name = item => item.getAttribute('aria-label') || item.textContent.trim();
+  const focused = node.contains(document.activeElement) ? name(document.activeElement) : undefined;
+  const open = new Set([...node.querySelectorAll('details[open] > summary')].map(name));
+  node.replaceChildren(...children.flat().filter(child => child != null));
+  for (const summary of node.querySelectorAll('details > summary')) {
+    summary.parentElement.open = open.has(name(summary));
+  }
+  if (focused) [...node.querySelectorAll('button, input, summary, select, textarea, a[href], [tabindex="-1"]')]
+    .find(item => name(item) === focused)?.focus({ preventScroll: true });
 }
+const disclosure = (title, ...contents) => el('details', el('summary', title), ...contents);
 
-function link(cell) {
-  if (!cell || typeof cell !== 'object') return cell;
-  const anchor = el('a', cell.label);
-  anchor.href = cell.url;
+function link(label, url) {
+  const anchor = el('a', label);
+  anchor.href = url;
   return anchor;
 }
 
 function renderTable(model) {
-  return model.rows.length ? table(model.headers, model.rows.map(row => row.map(link))) : el('p', 'None.');
+  return model?.rows.length ? table(model.headers, model.rows.map(row => row.map(cell =>
+    cell && typeof cell === 'object' ? link(cell.label, cell.url) : cell))) : el('p', 'No records available.');
 }
 
-function disclose(label, ...children) {
-  return el('details', el('summary', label), ...children);
+function selectControl(label, values, run) {
+  const select = el('select', values.map(([value, label]) => {
+    const item = el('option', label);
+    item.value = value;
+    return item;
+  }));
+  select.setAttribute('aria-label', label);
+  select.addEventListener('change', () => run(select.value));
+  return Object.assign(el('label', label === 'Membership state' ? 'Step' : label, select), { select });
 }
 
-function saveFile(name, content, type) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const anchor = el('a');
-  anchor.href = url;
-  anchor.download = name;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+function stepSummary(context) {
+  if (!context) return el('p', 'No affected subnet was established.');
+  const lines = context.scenario.steps.map(step => {
+    const kind = branch(step.requested);
+    const payload = step.requested[kind];
+    const adds = payload.add ?? (kind === 'Add' ? payload.nodes : []);
+    const removes = payload.remove ?? (kind === 'Remove' ? payload.nodes : []);
+    return el('li', el('strong', '#' + step.proposal + ' · ' + words(kind)), ' · ' + branch(step.outcome),
+      adds.length ? el('p', 'Requested additions ', el('code', adds.map(principal).join(', '))) : null,
+      removes.length ? el('p', 'Requested removals ', el('code', removes.map(principal).join(', '))) : null);
+  });
+  return el('ol', lines);
 }
 
-function markdownEditor(model, draft, context) {
-  const vote = el('input');
-  vote.value = draft.vote ?? '?';
-  const tldr = el('textarea');
-  tldr.rows = 3;
-  tldr.value = draft.tldr ?? '';
-  const mapImage = el('input');
-  mapImage.type = 'url';
-  const inputHash = model.calculation?.inputHash;
-  mapImage.disabled = !inputHash;
-  mapImage.value = inputHash && context.mapImage?.inputHash === inputHash ? context.mapImage.url : '';
-  const previewVote = el('p');
-  const previewTldr = el('p');
-  const raw = el('textarea');
-  raw.readOnly = true;
-  raw.rows = 12;
-  raw.setAttribute('aria-label', 'Generated Markdown');
-  const status = styled('p', 'status');
-  status.setAttribute('role', 'status');
-  function update() {
-    Object.assign(draft, { vote: vote.value, tldr: tldr.value });
-    if (inputHash) context.mapImage = { inputHash, url: mapImage.value };
-    raw.value = reviewMarkdown(model, { ...draft, mapImage: mapImage.value });
-    previewVote.replaceChildren(el('strong', 'VOTE'), ' ' + (vote.value.trim() || '?'));
-    previewTldr.replaceChildren(el('strong', 'TLDR'), ' ' + tldr.value.trim());
+function detailBlock(live, context, session, model) {
+  const { report, assignments, listed_subnets } = live.outcome.Ok;
+  const manifest = report.manifest;
+  const labels = { MissingAtBaseline: 'Expected absence if the key is optional', Unavailable: 'Evidence unavailable',
+    Deleted: 'Record deleted', Present: 'Record present' };
+  const calc = model?.calculation;
+  const refs = manifest.registry.map(([key, evidence]) => {
+    const tag = branch(key);
+    const kind = branch(evidence);
+    const value = key[tag];
+    const stamp = kind === 'Unavailable' ? option(evidence[kind].stamp) : evidence[kind];
+    return [
+      words(tag), value?.toText?.() ?? value ?? '—',
+      kind === 'MissingAtBaseline' ? (tag === 'ApiBoundary' ? 'Confirmed absent at baseline' : 'Absent at baseline') : labels[kind] ?? words(kind),
+      stamp?.mutation_version ?? '—', stamp?.page_observation ?? '—',
+    ];
+  });
+  return el('div', el('h3', 'Coverage and provenance'),
+    el('p', 'Checked ' + number(listed_subnets) + ' of ' + (option(live.outcome.Ok.total_listed_subnets ?? []) ?? 'an unknown number of') +
+      ' listed subnet memberships. Membership, hardware and API-boundary checks apply to the captured scope.'),
+    context?.failures.length ? el('ul', context.failures.map(item => el('li',
+      (item.type ? stageLabel(item.type) + ' · ' + item.key + ' · ' : '') + item.reason))) : null,
+    disclosure('Candidate assignments', table(['Node', 'Assignment observation'], assignments.map(([node, item]) => [
+      el('code', principal(node)), item.ListedSubnet ? principal(item.ListedSubnet) : ({
+        ApiBoundary: 'Registered API boundary node',
+        UnknownOutsideListedSubnets: 'No assignment found in the checked records',
+        NodeAbsent: 'Node record absent at baseline',
+      })[branch(item)],
+    ]))),
+    disclosure('Method and exact inputs', el('p', thresholdNote), el('p', geographyNote), el('p', calculationNote),
+      el('p', 'Preview revision ', el('code', hex(report.revision))),
+      manifest.proposals.map(proposal => el('p', '#' + proposal.id + ' payload ', el('code', hex(proposal.payload_hash)),
+        el('br'), 'Governance reply ', el('code', hex(proposal.raw_hash)))),
+      calc ? el('div', el('p', 'Replicated comparison · analysis v' + calc.analysis_version + ' · ' + calc.instructions + ' instructions'),
+        el('p', 'Calculation input SHA-256 ', el('code', calc.inputHash)),
+        action('Download calculation input (Candid)', () => saveFile('calculation-' + calc.inputHash + '.didbin', calc.bytes, 'application/octet-stream'))) : null),
+    disclosure('Registry references', table(['Kind', 'Key', 'Evidence', 'Mutation', 'Observation'], refs)),
+    disclosure('Source receipts and timings', sourceReceipts(live),
+      session.receipts.map(({ type, response, error, keys }) => response
+        ? disclosure(stageLabel(type), sourceReceipts(response))
+        : el('p', stageLabel(type) + ' · ' + error, el('br'), el('code', keys.join(', '))))));
+}
+
+export function mountReviewWorkspace({ live, contexts, map, mapHost, active, call, phase, performance, local }) {
+  const { report, proposal_text, listed_subnets, total_listed_subnets } = live.outcome.Ok;
+  const { proposals, registry_version: version } = report.manifest;
+  const header = styled('section', 'review-header');
+  const overview = styled('section', 'review-overview', el('h3', 'What changes'));
+  const inspector = styled('section', 'inspector');
+  inspector.hidden = true;
+  const pane = styled('section', 'card review-pane');
+  const nav = styled('nav', 'review-nav');
+  nav.setAttribute('aria-label', 'Review views');
+  const primary = styled('div', 'review-grid', styled('div', 'map-card', mapHost),
+    styled('aside', 'findings-card', overview, inspector));
+  const section = styled('div', 'workspace', header, primary, nav, pane);
+  let current;
+  let model;
+  let selectedView = 'Nodes';
+  let selection;
+  let scenario = report.scenarios.find(row => branch(row.id) === 'AThenB') ?? report.scenarios[0];
+  let subnet;
+  let trigger;
+  let renderedMap;
+  let renderedPane;
+  let renderedInspector;
+
+  const session = createReviewSession({ live, contexts, active, call, phase, updated: render });
+  const retry = action('Retry unavailable evidence', () => session.retry());
+  retry.hidden = true;
+  const scopeLimit = styled('p', 'coverage-notice');
+  header.append(el('h2', proposals.length === 1 ? 'Proposal #' + proposals[0].id
+    : 'Proposals ' + proposals.map(row => '#' + row.id).join(' + ')),
+  styled('div', 'proposal-meta', proposals.map(row => el('span',
+    link(option((option(proposal_text ?? []) ?? []).find(t => t.id === row.id)?.title ?? []) ?? '#' + row.id, proposalUrl(row.id)),
+    ' · ' + (lifecycle[row.lifecycle_status] ?? 'Status ' + row.lifecycle_status) + ' observed ' + time(row.observed_at_nanos)))),
+  scopeLimit);
+  const controls = styled('div', 'controls review-controls');
+  const membership = styled('div', 'review-summary');
+  header.append(controls, membership);
+
+  function show(view, moveFocus = false) {
+    selectedView = view;
+    for (const button of nav.children) button.setAttribute('aria-pressed', String(button.textContent === view));
+    performance.visible(view === 'Performance');
+    renderPane();
+    if (moveFocus) nav.querySelector('[aria-pressed=true]')?.focus({ preventScroll: true });
   }
-  for (const input of [vote, tldr, mapImage]) input.addEventListener('input', update);
-  update();
+  for (const view of modes) nav.append(action(view, () => show(view)));
+  scopeLimit.append(styled('strong', 'coverage-heading',
+    option(total_listed_subnets ?? []) === listed_subnets ? 'Scoped execution checks' : 'Assignment checks are partial'),
+  ' · Checked ' + listed_subnets + ' of ' + (option(total_listed_subnets ?? []) ?? 'an unknown number of') + ' listed subnets. ',
+  option(total_listed_subnets ?? []) === listed_subnets ? 'Full execution validity remains unverified. ' : 'Incoming assignments elsewhere remain unverified. ',
+  action('Coverage', () => { show('Evidence', true); nav.scrollIntoView({ block: 'nearest' }); }));
 
-  const preview = styled('article', 'markdown-preview', el('h4', 'Proposal ' + model.ids.map(id => '#' + id).join(' + ') + ' Review'),
-    previewVote, previewTldr, el('p', model.membership), el('p', link(model.subnetLink), ' · Registry ' + model.version),
-    el('ul', [...model.consequences, ...model.notes].map(note => el('li', note))),
-    model.tables.map(row => disclose(row.title, renderTable(row))),
-    model.dimensions.map(row => disclose(row.label + ' distribution', el('p', row.note), renderTable(row.table))),
-    el('p', 'Use the exported PNG and the forum’s image upload to include the map.'));
-  return styled('section', 'detail-section', el('h3', 'Review Markdown'),
-    styled('div', 'markdown-fields', el('label', 'VOTE', vote), el('label', 'TLDR', tldr),
-      el('label', 'Uploaded map image URL (optional)', mapImage)),
-    styled('div', 'actions', button('Copy Markdown', async event => {
-      const copyButton = event.currentTarget;
-      try {
-        await navigator.clipboard.writeText(raw.value);
-        status.textContent = 'Review Markdown copied.';
-      } catch {
-        const source = raw.closest('details');
-        const wasOpen = source.open;
-        source.open = true;
-        raw.focus();
-        raw.select();
-        if (document.execCommand('copy')) {
-          source.open = wasOpen;
-          copyButton.focus();
-          status.textContent = 'Review Markdown copied.';
-        } else {
-          status.textContent = 'Select and copy the generated Markdown from the field.';
-        }
-      }
-    }), button('Download Markdown', () => saveFile('proposal-' + model.ids.join('-') + '-review.md', raw.value, 'text/markdown;charset=utf-8'))),
-    status, disclose('Review preview', preview), disclose('Generated Markdown source', raw));
-}
-
-function describeClaims(claim) {
-  return disclose('Proposer statement for #' + claim.id,
-    claim.title ? el('p', el('strong', claim.title)) : null,
-    el('p', 'The statement comes from the observed Governance proposal. Health and decommissioning remain proposer claims. The comparison uses Registry labels and the one-third threshold. Where shown, the aggregate tests node operator as the sixth dimension.'),
-    claim.truncated ? el('p', 'The statement excerpt is truncated.') : null,
-    styled('pre', 'claim-text', claim.summary));
-}
-
-function showComparison(container, model, draft, context, comparisonReady) {
-  const comparison = model.tables.find(row => row.title === 'Decentralisation and concentration');
-  const distances = model.tables.find(row => row.title === 'Geographic distances');
-  const claims = model.tables.find(row => row.title === 'Proposer claims and independent calculation');
-  container.replaceChildren(
-    el('p', el('strong', model.membership), ' · ', link(model.subnetLink)),
-    model.consequences.length ? styled('div', 'notice', el('h4', 'What changes'),
-      el('ul', model.consequences.map(note => el('li', note)))) : null,
-    comparison ? styled('section', 'detail-section', el('h3', comparison.title), el('p', thresholdNote),
-      renderTable(comparison), model.dimensions.map(row => disclose(row.label + ' distribution', el('p', row.note), renderTable(row.table)))) : null,
-    distances ? styled('section', 'detail-section', el('h3', distances.title), el('p', geographyNote), renderTable(distances)) : null,
-    claims ? styled('section', 'detail-section', el('h3', claims.title), renderTable(claims)) : null,
-    model.claim ? describeClaims(model.claim) : null,
-    comparisonReady ? reviewMap(model) : null,
-    disclose('Member records and registration', model.notes.filter(note => note.startsWith('Subnet type ')).map(note => el('p', note)),
-      ...model.tables.filter(row => row.title.endsWith(' nodes')).map(row => disclose(row.title + ' (' + row.rows.length + ')', renderTable(row)))),
-    markdownEditor(model, draft, context),
-  );
-}
-
-// Request-local browser state indexed by the selected comparison. It is discarded
-// on a new preview, and no stale response may update another scenario.
-export function mountMembershipDetails(actor, live, localReplica) {
-  const section = styled('section', 'card', el('h2', 'Detailed consequences'));
-  const status = styled('p', 'status');
-  status.setAttribute('role', 'status');
-  const output = el('div');
-  const progress = el('progress');
-  progress.setAttribute('aria-label', 'Detailed Registry reads');
-  progress.hidden = true;
-  const advanced = disclose('Advanced detailed source evidence');
-  advanced.hidden = true;
-  let selected;
-  let running;
-  const states = new Map();
-  const draft = {};
-  const version = live.outcome.Ok.report.manifest.registry_version;
-  const load = button('Load detailed analysis', start);
-  load.className = 'primary';
-  section.append(el('p', 'Read node registrations, operators and data centers at the preview’s pinned Registry version. The membership preview is available while these reads run.'),
-    load, status, progress, output, advanced);
-
-  function active(context) {
-    return section.isConnected && selected === context;
+  function choose(next, resetSelection = true) {
+    current = next;
+    if (resetSelection) {
+      selection = undefined;
+      trigger = undefined;
+      renderedMap = renderedPane = renderedInspector = undefined;
+    }
+    const scope = current && live.outcome.Ok.scopes.find(row => branch(row.scenario) === branch(current.scenario.id) &&
+      principal(row.subnet) === principal(current.subnet));
+    performance.scope(current?.state ? { context: current, scope, version } : undefined);
+    session.select(next);
+    if (!next) render(undefined);
   }
 
-  async function readStage(client, context, type, ids) {
-    const map = context.evidence[type];
-    const unique = [...new Map(ids.map(id => [id.toText?.() ?? id, id])).entries()];
-    const remaining = unique.filter(([key]) => !map.has(key) || 'Unavailable' in map.get(key)[1]);
-    for (let offset = 0; offset < remaining.length; offset += PAGE) {
-      if (!active(context)) return;
-      const page = remaining.slice(offset, offset + PAGE);
-      status.textContent = type + ' · ' + (offset + 1) + '–' + (offset + page.length) + ' of ' + remaining.length + ' records';
-      try {
-        const response = result(await client.membership_detail_page(version, { [type]: page.map(([, id]) => id) }));
-        context.receipts.push([type, response]);
-        if ('Err' in response.outcome) throw new Error(liveError(response.outcome.Err));
-        const records = response.outcome.Ok[type];
-        if (option(response.registry_version) !== version || records?.length !== page.length) {
-          throw new Error('Source page does not match the selected snapshot.');
-        }
-        for (const record of records) {
-          const stamp = record.Present?.stamp ?? record.Deleted ?? option(record.Unavailable?.stamp ?? []);
-          if (stamp && stamp.mutation_version > version) throw new Error('A record is newer than the pinned version.');
-        }
-        page.forEach(([key, id], index) => map.set(key, [id, records[index]]));
-        const unavailable = records.filter(record => 'Unavailable' in record).length;
-        if (unavailable) context.failures.push(type + ' · ' + unavailable + ' records unavailable in page ' + (Math.floor(offset / PAGE) + 1));
-      } catch (error) {
-        context.failures.push(type + ' page ' + (Math.floor(offset / PAGE) + 1) + ' · ' + error.message);
-      }
+  function chooseScope() {
+    const candidates = contexts.filter(c => c.scenario === scenario);
+    const subnets = [...new Set(candidates.map(c => principal(c.subnet)))];
+    if (!subnets.includes(subnet)) subnet = subnets[0];
+    const phases = candidates.filter(c => principal(c.subnet) === subnet);
+    const activePhase = phases.at(-1);
+    drawControls(phases);
+    choose(activePhase);
+  }
+
+  function drawControls(phases) {
+    const focused = controls.contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
+    controls.replaceChildren();
+    if (report.scenarios.length > 1) {
+      const order = selectControl('Proposal order', report.scenarios.map(row => [branch(row.id), scenarioName(row) +
+        ' · ' + row.steps.map(step => words(branch(step.requested)).toLowerCase()).join(' then ')]), key => {
+        scenario = report.scenarios.find(row => branch(row.id) === key);
+        chooseScope();
+      });
+      order.select.value = branch(scenario.id);
+      controls.append(order);
+    }
+    const subnets = [...new Set(contexts.filter(c => c.scenario === scenario).map(c => principal(c.subnet)))];
+    const labels = shortIds(subnets);
+    if (subnets.length > 1) {
+      const control = selectControl('Subnet', subnets.map(id => [id, labels.get(id)]), key => {
+        subnet = key;
+        chooseScope();
+      });
+      control.select.value = subnet;
+      controls.append(control);
+    } else if (subnet) {
+      // tdb26 is the NNS system subnet. Other subnet names remain registry identities.
+      controls.append(link((subnet === 'tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe' ? 'NNS · ' : 'Subnet · ') + labels.get(subnet),
+        'https://dashboard.internetcomputer.org/subnet/' + subnet));
+    }
+    if (phases.length > 1) {
+      const control = selectControl('Membership state', phases.map(c => [String(c.index),
+        c.index === 0 ? 'Baseline' : 'After #' + c.scenario.steps[c.index - 1].proposal +
+          (c.state ? '' : ' · simulation unavailable')]), key => {
+        choose(phases.find(c => c.index === Number(key)));
+      });
+      control.select.value = String(phases.at(-1).index);
+      controls.append(control);
+    }
+    if (focused) [...controls.querySelectorAll('select')].find(select => select.getAttribute('aria-label') === focused)?.focus();
+  }
+
+  function inspect(ids, title, moveFocus = true) {
+    if (!inspector.contains(document.activeElement)) trigger = document.activeElement;
+    selection = { ids, title };
+    map.highlight(ids);
+    if (document.activeElement?.dataset.marker) trigger = document.activeElement;
+    renderInspector();
+    if (moveFocus) inspector.querySelector('h3')?.focus({ preventScroll: true });
+  }
+
+  function closeInspector() {
+    selection = undefined;
+    inspector.hidden = true;
+    if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    else overview.querySelector('button')?.focus({ preventScroll: true });
+    map.highlight([]);
+  }
+  inspector.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeInspector();
+  });
+
+  function nodeCard(node, chooseNode = true) {
+    return styled('article', 'node-card', styled('span', 'node-role role-' + node.role.toLowerCase(), roles[node.role]),
+      el('strong', node.label), el('span', [node.dc, node.region?.split(',')[2]?.trim()].filter(Boolean).join(' · ') ||
+        'Registered location unavailable'), chooseNode ? action('Details · ' + node.label, () => inspect([node.id], node.label)) : null);
+  }
+
+  function renderInspector() {
+    renderedInspector = current?.calculation;
+    inspector.hidden = !selection || !model;
+    if (inspector.hidden) return;
+    const rows = model.members.filter(node => selection.ids.includes(node.id));
+    const title = el('h3', selection.title);
+    title.tabIndex = -1;
+    let content = rows.map(node => nodeCard(node));
+    if (rows.length === 1) {
+      const node = rows[0];
+      const copyStatus = el('p');
+      copyStatus.setAttribute('role', 'status');
+      const fullId = el('input');
+      fullId.value = node.id;
+      fullId.readOnly = true;
+      fullId.setAttribute('aria-label', 'Full node principal');
+      content = [
+        nodeCard(node, false), fullId, action('Copy node ID', async () => {
+          fullId.select();
+          try { await navigator.clipboard.writeText(node.id); copyStatus.textContent = 'Node ID copied.'; }
+          catch { copyStatus.textContent = document.execCommand('copy') ? 'Node ID copied.' : 'Copy the selected node ID.'; }
+        }), ' ', link('Dashboard node record', node.row[0].url), copyStatus,
+        el('dl', ['Registered owner', 'Registered region', 'Provider', 'Operator', 'Reward type', 'SEV chip ID', 'Evidence gaps'].map((label, index) =>
+          el('div', el('dt', label), el('dd', node.row[index + 2]?.label ?? node.row[index + 2])))),
+        !node.point ? el('p', 'This node has no usable registered coordinates. It remains part of the analytical scope.') : null,
+      ];
+    }
+    replace(inspector, styled('div', 'inspector-heading', title, action('Close details', closeInspector)),
+      el('p', rows.length + (rows.length === 1 ? ' node' : ' nodes') + ' selected. Subnet totals and review exports keep the full selected state.'),
+      ...content);
+  }
+
+  function findingCard(finding) {
+    const item = action(finding.title, () => inspect(finding.ids, finding.title));
+    item.className = 'finding-select';
+    return styled('article', 'finding-card', item, el('p', finding.explanation),
+      finding.metrics.length ? el('ul', finding.metrics.map(metric => {
+        const value = metric.value.length > 34 ? shortIds([metric.value]).get(metric.value) : metric.value;
+        const [before, after] = metric.coefficient;
+        return el('li', metric.name + ' ' + value + ' · ' + metric.before + ' → ' + metric.after,
+          finding.kind !== 'last-member' && before !== undefined && after !== undefined && before !== after
+            ? ' · coefficient ' + before + ' → ' + after : '');
+      })) : null);
+  }
+
+  function render(next) {
+    model = next?.state ? reviewModel(live, next.scenario, principal(next.subnet),
+      { ...next.state, label: next.index ? 'After proposal #' + next.scenario.steps[next.index - 1].proposal : 'Baseline' },
+      next.rules, next.calculation?.comparison, next.calculation?.evidence ?? emptyEvidence(), next.failures) : undefined;
+    if (model) {
+      model.calculation = next.calculation;
+      if (local) model.notes.unshift('Local replica review. Observation times describe the local reads.');
+    }
+    const historical = proposals.some(row => row.lifecycle_status === 4 || row.executed_at_seconds.length);
+    const blocking = (next?.scenario.steps ?? scenario?.steps ?? []).flatMap(step => step.findings)
+      .filter(row => 'Error' in row.severity);
+    const placement = model?.placement ?? [];
+    const removed = placement.find(node => node.role === 'Removed');
+    const added = placement.find(node => node.role === 'Added');
+    const location = node => node?.region?.split(',')[2]?.trim() || node?.dc || node?.label;
+    replace(membership,
+      el('strong', model ? model.membership : 'Simulation unavailable'),
+      removed && added && placement.length === 2 ? el('span', 'Registered replacement · ' + location(removed) + ' → ' + location(added)) : null,
+      historical ? styled('p', 'notice warning', 'Governance observed execution. The actual historical before-state is unavailable here.' +
+        (next?.state && next.index ? ' This comparison uses the selected Registry snapshot.' : '')) : null,
+      blocking.length ? styled('ul', 'notice warning', blocking.map(row => el('li',
+        'Blocking simulation finding · ' + words(branch(row.code)) + (option(row.proposal) ? ' · #' + option(row.proposal) : '')))) : null);
+    const orders = report.findings.some(row => 'DifferentIntermediateStates' in row.code);
+    const primaryFindings = model?.findings.filter(row => ['size', 'concentration', 'last-member'].includes(row.kind)) ?? [];
+    const quiet = model?.findings.filter(row => row.kind === 'context') ?? [];
+    const key = [...primaryFindings, ...quiet].slice(0, 3);
+    replace(overview, el('h3', 'What changes'),
+      orders ? styled('p', 'order-note', 'The two orders have different intermediate memberships. Inspect each step with the proposal order and membership controls.') : null,
+      session.pendingOrders() ? styled('p', 'muted', session.pendingOrders() + ' order comparisons still pending.') : null,
+      ...key.map(findingCard),
+      !key.length ? el('p', model?.calculation ? 'No primary concentration or membership findings.' :
+        next?.state ? 'Membership is available. Registered group findings appear as comparisons arrive.' : 'Required membership evidence did not establish a resulting state.') : null,
+      model?.findings.length ? action('All consequences', () => { show('Concentration', true); nav.scrollIntoView({ block: 'nearest' }); }) : null,
+      next?.calculation && model.members.some(node => !node.point) ? el('p', model.members.filter(node => !node.point).length + ' nodes lack usable registered coordinates in Changes. Other figures retain their stated coverage.') : null,
+      retry);
+    retry.hidden = !['partial', 'unavailable'].includes(next?.status);
+    if (!renderedMap || renderedMap.calculation !== next?.calculation) {
+      map.update(model, selection?.ids, 'The map needs a resolved membership state.');
+      renderedMap = { calculation: next?.calculation };
+    }
+    if (!selection || next?.calculation !== renderedInspector) renderInspector();
+    renderPane();
+    const comparing = session.pendingOrders() > 0 && !session.isStopped();
+    if (next?.status === 'available') phase('Analysis loaded' + (listed_subnets < (option(total_listed_subnets ?? []) ?? Infinity) ? ' · assignment checks remain partial' : '') +
+      (comparing ? ' · comparing proposal orders' : ''), comparing);
+    if (next?.status === 'partial') phase('Some evidence unavailable. Showing the last accepted calculation.', comparing);
+    if (next?.status === 'unavailable') phase('Detailed comparison unavailable. Membership is available.', comparing);
+    if (next?.status === 'blocked' || !next?.rules) phase('Detailed comparison unavailable for this state.', comparing);
+    if (next?.status === 'pending' && next.rules && !session.isStopped()) {
+      phase(next.calculation ? 'Membership available. Continuing the selected comparison.' :
+        'Membership available. Preparing the selected comparison.', true);
     }
   }
 
-  async function calculate(client, context) {
-    if (active(context)) status.textContent = 'Waiting for the replicated comparison…';
-    const { before, state, rules, scenario, subnet } = context;
-    const evidence = {
-      Nodes: new Map(context.evidence.Nodes),
-      Operators: new Map(context.evidence.Operators),
-      DataCenters: new Map(context.evidence.DataCenters),
-    };
-    const calculated = await compareMembership(client, {
-      registry_version: version,
-      preview_revision: live.outcome.Ok.report.revision,
-      subnet: scenario.subnets.find(([id]) => principal(id) === subnet)[0],
-      before: before.members, after: state.members, kind: rules.kind,
-      nodes: [...evidence.Nodes.values()], operators: [...evidence.Operators.values()],
-      data_centers: [...evidence.DataCenters.values()],
-    });
-    context.calculation = { ...calculated, evidence };
-  }
-
-  async function start() {
-    if (!selected || running || !selected.rules) return;
-    const context = selected;
-    running = context;
-    context.failures = [];
-    refreshStatus();
-    try {
-      const client = await actor();
-      const { evidence, before, state } = context;
-      await readStage(client, context, 'Nodes', [...before.members, ...state.members]);
-      if (!active(context)) return;
-      const operators = [...evidence.Nodes.values()].flatMap(([, row]) => row.Present?.value.operator ?? []);
-      await readStage(client, context, 'Operators', operators);
-      if (!active(context)) return;
-      const centers = [...evidence.Operators.values()].map(([, row]) => row.Present?.value.data_center.toLowerCase())
-        .filter(id => id && new TextEncoder().encode(id).length <= 128);
-      // Publish the non-geographic grouping before waiting for the optional DC stage.
-      await calculate(client, context);
-      if (!active(context)) return;
-      if (centers.length) {
-        refresh();
-        await readStage(client, context, 'DataCenters', centers);
-        if (!active(context)) return;
-        await calculate(client, context);
-      }
-      context.done = true;
-    } catch (error) {
-      context.failures.push(error.message);
-    } finally {
-      running = undefined;
-      if (section.isConnected) refresh();
-    }
-  }
-
-  function refreshStatus() {
-    const waiting = Boolean(running);
-    load.disabled = waiting || !selected?.rules;
-    load.hidden = !selected || (selected.done && !selected.failures.length);
-    load.textContent = selected?.failures.length ? 'Retry unavailable detailed reads' : 'Load detailed analysis';
-    progress.hidden = !waiting;
-    if (waiting) status.textContent = running === selected ? 'Reading pinned Registry evidence…' : 'Waiting for the previous page to finish.';
-    else if (selected?.failures.length) status.textContent = selected.failures.join(' · ');
-    else if (selected?.done) status.textContent = 'Detailed analysis loaded. Coverage is reported for each dimension.';
-    else if (selected && !selected.rules) status.textContent = 'This preview did not supply the pinned subnet settings needed for the detailed analysis.';
-    else status.textContent = '';
-  }
-
-  function refresh() {
-    refreshStatus();
-    const calculation = selected?.calculation;
-    advanced.hidden = !selected?.receipts.length && !calculation;
-    advanced.replaceChildren(el('summary', 'Advanced detailed source evidence'),
-      calculation ? el('div',
-        el('p', 'Replicated comparison · analysis v' + calculation.analysis_version + ' · ' + calculation.instructions + ' instructions'),
-        el('p', 'Calculation input SHA-256 ', el('code', calculation.inputHash)),
-        el('p', calculationNote),
-        button('Download calculation input (Candid)', () => saveFile(
-          'calculation-' + calculation.inputHash + '.didbin', calculation.bytes, 'application/octet-stream')),
-      ) : null,
-      ...((selected?.receipts ?? []).map(([type, response]) => disclose(type + ' page', sourceReceipts(response)))));
-    if (!selected) {
-      output.replaceChildren(el('p', 'The selected scenario has no membership state to analyse.'));
+  function renderPane() {
+    if (!section.isConnected && !current) return;
+    const lookup = title => model?.tables.find(row => row.title === title);
+    if (selectedView === 'Performance') {
+      if (!pane.contains(performance.section)) replace(pane, performance.section);
+      pane.hidden = false;
       return;
     }
-    const { scenario, subnet, state, rules, failures } = selected;
-    const model = reviewModel(live, scenario, subnet, state, rules, calculation?.comparison, calculation?.evidence ?? emptyEvidence(), failures);
-    if (calculation) model.calculation = calculation;
-    if (localReplica) {
-      model.notes.unshift('Local replica review. Observation times reflect the local reads; check the original source manifest when using captured evidence.');
+    const signature = [selectedView, current, current?.calculation, current?.status,
+      selectedView === 'Evidence' ? session.receipts.length : 0];
+    if (renderedPane?.every((value, i) => signature[i] === value) && !pane.contains(performance.section)) return;
+    renderedPane = signature;
+    pane.hidden = false;
+    if (selectedView === 'Evidence') {
+      replace(pane, detailBlock(live, current, session, model));
+    } else if (selectedView === 'Nodes') {
+      const list = model?.members ?? [];
+      replace(pane, el('h3', 'Nodes'),
+        styled('div', 'node-list', list.filter(node => node.role !== 'Retained').map(node => nodeCard(node))),
+        list.length ? disclosure('All ' + list.length + ' nodes in Changes', styled('div', 'node-list', list.map(node => nodeCard(node)))) : null,
+        disclosure('Requested payload and simulation steps', stepSummary(current)));
+    } else if (selectedView === 'Claims') {
+      replace(pane, el('h3', 'Proposer claims'),
+        el('p', 'These claims are compared with registered facts where the selected scenario supports it. Physical decommissioning and health remain unverified.'),
+        lookup('Proposer claims and independent calculation') ? renderTable(lookup('Proposer claims and independent calculation')) : null,
+        (option(proposal_text ?? []) ?? []).map(row => disclosure('Proposal #' + row.id + ' statement',
+          styled('pre', 'claim-text', row.summary), row.truncated ? el('p', 'The captured statement was truncated.') : null)));
+    } else if (selectedView === 'Concentration') {
+      const summary = lookup('Decentralisation and concentration');
+      const showFaultBudget = model?.dimensions.some(row => [row.before, row.after].some(side => {
+        const third = option(side.greater_than_one_third);
+        const fault = option(side.fault_budget_plus_one);
+        return third && fault && third.nodes_required !== fault.nodes_required;
+      }));
+      replace(pane, el('h3', 'Concentration'),
+        summary ? renderTable(showFaultBudget ? summary : { headers: summary.headers.filter((_, i) => i !== 5),
+          rows: summary.rows.map(row => row.filter((_, i) => i !== 5)) }) : el('p', 'No accepted comparison yet.'),
+        model?.findings.length ? disclosure('All consequences (' + model.findings.length + ')', ...model.findings.map(findingCard)) : null,
+        ...(model?.dimensions ?? []).map(dimension => disclosure(dimension.label + ' distribution', el('p', dimension.note),
+          table(dimension.table.headers, dimension.table.rows.map(([group, ...cells]) => {
+            const key = group.label ?? group;
+            const ids = groupMembers(model.members, dimension.key, key).map(node => node.id);
+            return [ids.length ? action(key.length > 34 ? shortIds([key]).get(key) : key,
+              () => inspect(ids, words(dimension.key) + ' · ' + (key.length > 34 ? shortIds([key]).get(key) : key))) : key, ...cells];
+          })))),
+        lookup('Geographic distances') ? disclosure('Geographic distances', el('p', geographyNote), renderTable(lookup('Geographic distances'))) : null);
+    } else {
+      replace(pane, model?.calculation && current?.status !== 'pending'
+        ? markdownEditor(model, current.draft, map.exportButton)
+        : el('p', 'Export is available after a comparison has settled. The export uses the full selected scenario and step.'));
     }
-    showComparison(output, model, draft, selected, Boolean(calculation) && (selected.done || model.members.some(node => node.point)));
   }
 
-  return { section, select(scenario, subnet, index, label) {
-    const view = scenario.subnets.find(([id]) => principal(id) === subnet)?.[1];
-    const state = index === 0 ? view?.baseline : option(view?.after_steps[index - 1] ?? []);
-    const key = branch(scenario.id) + '/' + subnet + '/' + index;
-    if (!state) selected = undefined;
-    else {
-      if (!states.has(key)) {
-        const rules = option(live.outcome.Ok.subnet_rules ?? [])?.find(row => principal(row.subnet) === subnet);
-        states.set(key, { scenario, subnet, state: { ...state, label }, before: view.baseline, rules,
-          evidence: emptyEvidence(), failures: [], receipts: [] });
-      }
-      selected = states.get(key);
-    }
-    refresh();
-  } };
+  for (const button of nav.children) button.setAttribute('aria-pressed', String(button.textContent === selectedView));
+  // The parent mounts the workspace before selections issue any remote work.
+  return { section, start: chooseScope, inspect, session };
 }

@@ -21,10 +21,11 @@ export function result(reply) {
   return reply.Ok;
 }
 
-export async function compareMembership(client, input) {
+export async function compareMembership(client, input, active = () => true) {
   const method = Actor.interfaceOf(client).fieldsAsObject().compare_membership_details;
   const bytes = IDL.encode(method.argTypes, [input]);
   const inputHash = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
+  if (!active()) return undefined;
   const calculated = result(await client.compare_membership_details(input));
   if (hex(calculated.input_hash) !== inputHash) {
     throw new Error('The replicated calculation returned a different input digest.');

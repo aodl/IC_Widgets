@@ -1,10 +1,10 @@
-// Run with Node after deploying fixture/reviewer/frontend to an isolated local DFX project.
+// Run against the isolated local DFX project loaded with load_voting_reference.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { HttpAgent } from '@icp-sdk/core/agent';
+import { Cbor, HttpAgent, requestIdOf } from '@icp-sdk/core/agent';
 
 const [project, output] = process.argv.slice(2);
 if (!project || !output) throw new Error('Usage: node browser-voting-review.mjs <local DFX project> <output>');
@@ -14,141 +14,161 @@ const dfx = (...args) => execFileSync('dfx', args, {
 }).trim();
 const frontend = dfx('canister', 'id', '--network', 'local', 'frontend');
 const reviewer = dfx('canister', 'id', '--network', 'local', 'reviewer');
-const host = 'http://' + frontend + '.localhost:4966';
+const url = 'http://' + frontend + '.localhost:4966';
 await mkdir(output, { recursive: true });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
 
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_EXECUTABLE,
-  args: ['--no-sandbox'],
-});
 try {
-  const page = await browser.newPage({ viewport: { width: 1360, height: 1000 }, acceptDownloads: true,
+  const page = await browser.newPage({ viewport: { width: 1366, height: 900 }, acceptDownloads: true,
     permissions: ['clipboard-read', 'clipboard-write'] });
   const errors = [];
   const hosts = new Set();
+  const calls = new Map();
   page.on('pageerror', error => errors.push(error.message));
-  page.on('request', request => hosts.add(new URL(request.url()).hostname));
-  await page.goto(host);
+  page.on('request', request => {
+    hosts.add(new URL(request.url()).hostname);
+    if (!request.url().endsWith('/canister/' + reviewer + '/call')) return;
+    const { content } = Cbor.decode(new Uint8Array(request.postDataBuffer()));
+    calls.set(Buffer.from(requestIdOf(content)).toString('hex'), content.method_name);
+  });
+  const count = method => [...calls.values()].filter(value => value === method).length;
+  await page.goto(url);
   await page.locator('input[name=first]').fill('144954');
-  await page.getByRole('button', { name: 'Review', exact: true }).click();
-  await page.getByText('on-demand access requires an authorized principal').waitFor();
-  const publicId = (await page.locator('#browser-principal').textContent()).trim();
-  assert.match(publicId, /^[a-z2-7-]+$/);
+  const review = page.getByRole('button', { name: 'Review', exact: true });
+  await review.click();
+  await page.getByText(/Pilot authorization required/).waitFor();
+  const principal = (await page.locator('#browser-principal').textContent()).trim();
+  assert.match(principal, /^[a-z2-7-]+$/);
   assert.match(dfx('canister', 'call', '--network', 'local', 'reviewer', 'set_on_demand_caller',
-    '(opt principal "' + publicId + '")'), /Ok/);
-
-  let started = Date.now();
-  await page.getByRole('button', { name: 'Review', exact: true }).click();
-  await page.getByRole('heading', { name: 'Proposal #144954', exact: true }).waitFor({ timeout: 120000 });
-  const previewMs = Date.now() - started;
-  await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).first().waitFor();
-  await page.getByText(/Checked 1 of 96 listed subnet memberships/).waitFor();
-  await page.getByRole('button', { name: 'Load detailed analysis' }).focus();
-  started = Date.now();
-  await page.keyboard.press('Enter');
-  await page.getByText('Detailed analysis loaded. Coverage is reported for each dimension.', { exact: true }).waitFor({ timeout: 180000 });
-  const detailMs = Date.now() - started;
-  const concentration = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Decentralisation and concentration', exact: true }) }).last();
-  const row = concentration.getByRole('row').filter({ hasText: 'Registered data-center owner' });
-  assert.match(await row.textContent(), /13 \/ 14 nodes → 12 \/ 14 nodes/);
-  const operator = concentration.getByRole('row').filter({ hasText: 'Node operator' });
-  assert.match(await operator.textContent(), /13 \/ 14 nodes → 12 \/ 14 nodes/);
-  const ownerCells = await row.getByRole('cell').allTextContents();
-  await page.getByText('10.33 → 9.83', { exact: true }).first().waitFor();
-  await page.getByText('3.2655 → 3.2078', { exact: true }).first().waitFor();
-  await page.getByText(/The last member registered at zh2 leaves this subnet/).first().waitFor();
-  await page.getByText('Registered placement changes from zh2 to sh1.', { exact: true }).first().waitFor();
-  await page.screenshot({ path: resolve(output, '144954-desktop.png'), fullPage: true });
-  await page.getByText('Advanced detailed source evidence', { exact: true }).click();
-  const inputPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Download calculation input (Candid)' }).click();
-  const inputDownload = await inputPromise;
-  const inputPath = resolve(output, '144954-calculation.didbin');
-  await inputDownload.saveAs(inputPath);
-  const inputHash = createHash('sha256').update(await readFile(inputPath)).digest('hex');
-  assert.equal(inputDownload.suggestedFilename(), 'calculation-' + inputHash + '.didbin');
-  await page.getByText(inputHash, { exact: true }).waitFor();
-  await page.getByText('Advanced detailed source evidence', { exact: true }).click();
-
+    '(opt principal "' + principal + '")'), /Ok/);
+  await page.getByText('Pilot access', { exact: true }).click();
+  calls.clear();
+  const began = Date.now();
+  await review.click();
   const map = page.locator('.map-section');
-  await map.scrollIntoViewIfNeeded();
-  assert.ok(await map.locator('.map-pin').count() > 5);
-  const changed = map.getByRole('button', { name: /Removed 1/ }).first();
-  await map.getByRole('button', { name: /Added 1.*sh1/ }).waitFor();
-  await map.getByRole('button', { name: /Retained [1-9]/ }).first().waitFor();
-  await changed.focus();
-  await page.keyboard.press('Enter');
-  await map.getByText(/tg4ec-/).first().waitFor();
-  await map.getByRole('button', { name: 'Zoom in' }).click();
-  await map.getByRole('button', { name: 'Pan east' }).click();
-  await map.getByRole('button', { name: 'Reset map' }).click();
-  await map.getByLabel('Retained', { exact: true }).uncheck();
-  assert.ok(await map.locator('.map-pin').count() <= 2);
-  await map.getByLabel('Retained', { exact: true }).check();
-  const mapPromise = page.waitForEvent('download');
-  await map.getByRole('button', { name: 'Export map PNG' }).click();
-  const pngDownload = await mapPromise;
-  assert.match(pngDownload.suggestedFilename(), /144954.*66013/);
-  await pngDownload.saveAs(resolve(output, '144954-map.png'));
-  const png = await readFile(resolve(output, '144954-map.png'));
-  assert.equal(png.subarray(1, 4).toString(), 'PNG');
-  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 620]);
-  assert.ok(png.length > 50_000);
-  await map.screenshot({ path: resolve(output, '144954-map-panel.png') });
+  await map.getByRole('heading', { name: 'World map' }).waitFor();
+  await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).waitFor();
+  const previewMs = Date.now() - began;
+  await page.getByText(/Analysis loaded · assignment checks remain partial/).waitFor({ timeout: 120000 });
+  const reviewMs = Date.now() - began;
+  assert.equal(count('review_on_demand'), 1);
+  assert.equal(count('membership_detail_page'), 6);
+  assert.equal(count('compare_membership_details'), 2);
+  assert.equal(await page.getByRole('button', { name: 'Load detailed analysis' }).count(), 0);
+  await page.getByText(/Checked 1 of 96 listed subnets/).waitFor();
+  await page.getByText('Changes · 41 distinct nodes · 41/41 mapped', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Provider distribution unchanged' }).waitFor();
+  await page.getByText(/Registered replacement · Zurich → Stockholm/).waitFor();
+  const departure = await page.getByRole('button', { name: 'Last zh2 member leaves' }).locator('..').textContent();
+  assert.match(departure, /Zurich 2 → 1/);
+  assert.match(departure, /Switzerland 3 → 2/);
+  assert.ok(await map.getByRole('button', { name: /Removed 1/ }).count());
+  assert.ok(await map.getByRole('button', { name: /Added 1/ }).count());
 
-  await page.getByLabel('VOTE', { exact: true }).fill('?');
-  await page.getByLabel('TLDR', { exact: true }).fill(
-    'Registry 66,013 supports the registered zh2 → sh1 swap in tdb26 (40 → 40 members). Data-center and registered-owner concentration rise, while assignments outside the checked subnet remain unverified. Original Governance capture: Open, 25 November 2026 at 13:08:13.589 UTC.');
-  if (process.env.VOTING_REVIEW_MAP_URL) {
-    await page.getByLabel('Uploaded map image URL (optional)', { exact: true }).fill(process.env.VOTING_REVIEW_MAP_URL);
+  const positions = {};
+  for (const [width, height] of [[1366, 900], [1024, 900], [390, 844], [320, 700]]) {
+    await page.setViewportSize({width, height});
+    const overflow = await page.evaluate(() => {
+      if (document.documentElement.scrollWidth <= window.innerWidth) return [];
+      return [document.documentElement.scrollWidth, ...[...document.querySelectorAll('body *')]
+        .filter(node => node.getBoundingClientRect().right > window.innerWidth + 1)
+        .slice(0, 12).map(node => `${node.tagName}.${node.className} ${node.getBoundingClientRect().right}`)];
+    });
+    assert.deepEqual(overflow, [], `Page content overflows at ${width}px`);
+    positions[width] = Math.round((await map.locator('canvas').boundingBox()).y);
+    if (width === 1366 || width === 390) {
+      await page.screenshot({ path: resolve(output, '144954-' + (width === 1366 ? 'desktop' : 'mobile') + '.png'), fullPage: true });
+    }
   }
-  await page.getByText('Review preview', { exact: true }).click();
-  await page.getByRole('heading', { name: 'Proposal #144954 Review' }).waitFor();
-  const mdPromise = page.waitForEvent('download');
+  await page.setViewportSize({ width: 1366, height: 900 });
+  const finding = page.getByRole('button', { name: 'Concentration increases at sh1', exact: true });
+  await finding.focus();
+  await page.keyboard.press('Enter');
+  const inspector = page.locator('.inspector');
+  await inspector.getByText(/3 nodes selected/).waitFor();
+  assert.equal(await inspector.locator('.node-card').count(), 3);
+  await inspector.getByRole('button', { name: /Details · kaoz3/ }).focus();
+  await page.keyboard.press('Enter');
+  assert.match(await inspector.getByLabel('Full node principal').inputValue(), /^kaoz3-.*-4qe$/);
+  await inspector.getByRole('button', { name: 'Copy node ID' }).click();
+  await inspector.getByText(/copied/).waitFor();
+  await page.keyboard.press('Escape');
+  assert.equal(await inspector.isVisible(), false);
+  await map.getByRole('button', { name: 'Before', exact: true }).click();
+  await page.getByText('Before · 40 members · 40/40 mapped', { exact: true }).waitFor();
+  await map.getByRole('button', { name: 'After', exact: true }).click();
+  await page.getByText('After · 40 members · 40/40 mapped', { exact: true }).waitFor();
+  await map.getByRole('button', { name: 'Changes', exact: true }).click();
+  assert.equal(count('membership_detail_page'), 6);
+
+  await page.getByRole('button', { name: 'Concentration', exact: true }).click();
+  const owner = page.getByRole('row').filter({ has: page.getByRole('cell', { name: 'Registered data-center owner', exact: true }) });
+  assert.match(await owner.textContent(), /39 → 38.*13 \/ 14 nodes → 12 \/ 14 nodes/);
+  await page.getByText('Data center distribution', { exact: true }).click();
+  await page.getByRole('button', { name: 'sh1', exact: true }).click();
+  await inspector.getByText(/3 nodes selected/).waitFor();
+  assert.match(await owner.textContent(), /39 → 38/);
+  await inspector.getByRole('button', {name:'Close details'}).click();
+  await page.getByRole('button', { name: 'Coverage', exact: true }).click();
+  const sourceUsage = await page.locator('.review-pane p').filter({
+    hasText: /source calls ·.* reply bytes|ms source stage ·.* instructions/,
+  }).allTextContents();
+  assert.equal(sourceUsage.length, 14);
+  await page.getByText('Registry references', { exact: true }).click();
+  await page.getByText('Confirmed absent at baseline', { exact: true }).first().waitFor();
+  await page.getByText('Method and exact inputs', { exact: true }).click();
+  const inputDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download calculation input (Candid)' }).click();
+  const file = await inputDownload;
+  await file.saveAs(resolve(output, '144954-calculation.didbin'));
+  const hash = createHash('sha256').update(await readFile(resolve(output, '144954-calculation.didbin'))).digest('hex');
+  assert.equal(file.suggestedFilename(), 'calculation-' + hash + '.didbin');
+
+  await map.getByRole('button', {name:'Focus changes', exact:true}).click();
+  await page.getByRole('button', { name: 'Export review', exact: true }).click();
+  const imageDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export map PNG' }).click();
+  const pngFile = await imageDownload;
+  assert.match(pngFile.suggestedFilename(), /144954.*66013/);
+  await pngFile.saveAs(resolve(output, '144954-map.png'));
+  const png = await readFile(resolve(output, '144954-map.png'));
+  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 620]);
+  const example = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download Markdown' }).click();
-  await (await mdPromise).saveAs(resolve(output, '144954-review.md'));
-  const md = await readFile(resolve(output, '144954-review.md'), 'utf8');
-  assert.match(md, /\*\*VOTE\*\*: \?/);
-  assert.match(md, /13 \/ 14 nodes → 12 \/ 14 nodes/);
-  assert.ok(md.includes(ownerCells.join(' | ')));
-  assert.ok(md.includes(inputHash));
-  assert.match(md, /Everyware/);
-  assert.match(md, /Reproduced with node operator as sixth dimension/);
-  assert.match(md, /Local replica review/);
+  await (await example).saveAs(resolve(output, '144954-review.md'));
+  await page.getByLabel('VOTE', { exact: true }).fill('Example assessment');
+  await page.getByLabel('TLDR', { exact: true }).fill('Review concentration and assignment coverage.');
+  await page.getByLabel('Uploaded map image URL (optional)', { exact: true }).fill('https://example.test/144954.png');
+  const mdDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download Markdown' }).click();
+  const md = await readFile(await (await mdDownload).path(), 'utf8');
+  assert.ok(md.includes(hash) && md.includes('40 → 40 members') && md.includes('13 / 14 nodes → 12 / 14 nodes'));
   assert.match(md, /Assignments outside the checked subnets remain unverified/);
   await page.getByRole('button', { name: 'Copy Markdown' }).click();
   await page.getByText('Review Markdown copied.').waitFor();
-  await page.evaluate(() => {
-    const input = document.createElement('textarea');
-    input.id = 'clipboard-check';
-    document.body.append(input);
-    input.focus();
-  });
+  await page.getByLabel('TLDR', { exact:true }).focus();
+  await page.keyboard.press('Control+A');
   await page.keyboard.press('Control+V');
-  assert.equal(await page.locator('#clipboard-check').inputValue(), md);
-  await page.locator('#clipboard-check').evaluate(node => node.remove());
-
-  const phase = page.getByLabel('Membership state', { exact: true });
+  assert.equal(await page.getByLabel('TLDR', { exact:true }).inputValue(), md);
+  await page.getByLabel('TLDR', { exact:true }).fill('Review concentration and assignment coverage.');
+  const phase = page.getByLabel('Membership state', {exact:true});
   await phase.selectOption('0');
-  await page.getByText('40 → 40 members (0 added, 0 removed, 40 retained)', { exact: true }).first().waitFor();
-  assert.equal(await page.getByRole('heading', { name: 'World map', exact: true }).count(), 0);
-  assert.equal(await page.getByRole('heading', { name: 'Decentralisation and concentration', exact: true }).count(), 0);
-  const markdownInput = page.getByLabel('Generated Markdown', { exact: true });
-  assert.ok(!(await markdownInput.inputValue()).includes(inputHash));
-  if (process.env.VOTING_REVIEW_MAP_URL) {
-    assert.ok(!(await markdownInput.inputValue()).includes(process.env.VOTING_REVIEW_MAP_URL));
-  }
+  await page.getByText(/Analysis loaded · assignment checks remain partial/).waitFor();
+  assert.equal(await page.getByLabel('VOTE', {exact:true}).inputValue(), '?');
+  assert.equal(await page.getByLabel('Uploaded map image URL (optional)', {exact:true}).inputValue(), '');
   await phase.selectOption('1');
-  await page.getByText('40 → 40 members (1 added, 1 removed, 39 retained)', { exact: true }).first().waitFor();
-  await map.getByRole('button', { name: /Added 1.*sh1/ }).waitFor();
-  assert.equal(await markdownInput.inputValue(), md);
-  await page.setViewportSize({ width: 400, height: 830 });
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
-  await page.screenshot({ path: resolve(output, '144954-mobile.png'), fullPage: true });
+  assert.equal(await page.getByLabel('VOTE', {exact:true}).inputValue(), 'Example assessment');
+  assert.equal(await page.getByLabel('Uploaded map image URL (optional)', {exact:true}).inputValue(), 'https://example.test/144954.png');
+  assert.equal(count('membership_detail_page'), 6);
+  assert.equal(count('compare_membership_details'), 3);
 
-  await page.getByRole('button', { name: 'Use this scope in Node Performance' }).click();
-  assert.match(await page.locator('#performance-context').textContent(), /Filtered to 41 nodes.*66,013/);
-  await page.getByRole('button', { name: 'Clear node filter' }).click();
+  await page.getByRole('navigation', {name:'Review views'}).getByRole('button', {name:'Performance',exact:true}).click();
+  await page.getByLabel('Performance scope').selectOption('follow');
+  await page.getByLabel('Node filter').selectOption('incoming');
+  await page.getByText(/After #144954 · Registry 66,013 · 1 nodes/).waitFor();
+  await phase.selectOption('0');
+  await page.getByText(/Baseline · Registry 66,013 · 0 nodes/).waitFor();
+  await page.getByLabel('Performance scope').selectOption('independent');
   const agent = await HttpAgent.create({ host: 'http://127.0.0.1:4966', shouldFetchRootKey: true });
   const subnet = (await agent.getSubnetIdFromCanister(reviewer)).toText();
   await page.getByLabel('Subnet principal').fill(subnet);
@@ -157,9 +177,9 @@ try {
   assert.match(await page.locator('#performance-result').textContent(), /node_metrics_history/);
   assert.deepEqual(errors, []);
   assert.ok([...hosts].every(host => host.endsWith('localhost') || host === '127.0.0.1'));
-  console.log(JSON.stringify({ previewMs, detailMs, mapBytes: png.length, markdownBytes: Buffer.byteLength(md),
-    inputHash,
-    desktopWidth: 1360, mobileWidth: 400, keyboard: true, localRequestsOnly: true, independentPerformance: true }, null, 2));
+  console.log(JSON.stringify({ previewMs, reviewMs, positions, hash, mobileNoOverflow: true,
+    detailPages: count('membership_detail_page'), sourceUsage, keyboardInspector: true,
+    exportConsistent: true, independentPerformance: true }, null, 2));
 } finally {
   await browser.close();
 }

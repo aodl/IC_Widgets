@@ -3,42 +3,57 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Subnet Membership | Network Nexus</title>
+  <title>Proposal review | Network Nexus</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="./app.js" type="module"></script>
 </head>
 <body>
   <header class="masthead">
-    <div class="container"><strong>Network Nexus</strong></div>
+    <div class="container masthead-row">
+      <strong>Network Nexus</strong>
+      <div class="actions">
+        <button type="button" id="open-performance">Performance</button>
+        <details id="pilot-access">
+          <summary>Pilot access</summary>
+          <div class="access-panel">
+            <p>Share this public principal with the pilot operator. Keep this tab open after authorization.</p>
+            <code id="browser-principal"></code>
+            <button type="button" id="copy-principal">Copy principal</button>
+            <p id="access-status" role="status"></p>
+          </div>
+        </details>
+      </div>
+    </div>
   </header>
   <main class="container">
-    <h1>Subnet membership</h1>
-    <p id="local-notice" class="notice" hidden>Local replica. Reviews here may use fixture data.</p>
-    <section class="card" aria-labelledby="search-heading">
-      <h2 id="search-heading">Review a proposal</h2>
+    <p id="local-notice" class="local-note" hidden>Local replica · fixture data</p>
+    <section class="search-shell" aria-label="Review a proposal">
       <form id="search">
         <label>Proposal ID <input name="first" inputmode="numeric" pattern="[0-9]+" maxlength="20" required></label>
         <label>Second proposal ID <small>(optional)</small> <input name="second" inputmode="numeric" pattern="[0-9]+" maxlength="20"></label>
         <button class="primary">Review</button>
+        <button type="button" id="stop-review" hidden>Stop</button>
       </form>
-      <details>
-        <summary>Pilot access</summary>
-        <p>Share this principal with the pilot operator. Keep this tab open after authorization. Reloading creates a new principal.</p>
-        <code id="browser-principal"></code>
-      </details>
-      <p id="report-status" class="status" role="status"></p>
-      <progress id="review-progress" aria-label="Review in progress" hidden></progress>
+      <div class="status-row">
+        <p id="report-status" class="status" role="status"></p>
+        <p id="review-elapsed" class="muted" aria-hidden="true"></p>
+      </div>
     </section>
     <div id="report"></div>
-    <section class="card" id="performance" aria-labelledby="performance-heading">
-      <h2 id="performance-heading">Node performance</h2>
+    <section class="performance" id="performance" aria-labelledby="performance-heading" hidden>
+      <h2 tabindex="-1" id="performance-heading">Node performance</h2>
+      <p>Blockmaking counter coverage describes the observed samples. Uptime and health remain unverified.</p>
       <form id="performance-form">
+        <label>Performance scope <select id="performance-mode"><option value="independent">Independent subnet</option><option value="follow">Follow membership review</option></select></label>
+        <label id="performance-presets" hidden>Node filter <select id="performance-preset">
+          <option value="selected">Selected-state members</option><option value="incoming">Incoming</option>
+          <option value="outgoing">Outgoing</option><option value="affected">All affected nodes, including intermediate steps</option>
+        </select></label>
         <label>Subnet principal <input name="subnet" required></label>
         <label>Lookback days <input name="days" type="number" min="1" max="60" value="7" required></label>
         <button class="primary">Read blockmaking samples</button>
       </form>
-      <p id="performance-context" class="muted" hidden></p>
-      <button type="button" id="clear-performance-context" hidden>Clear node filter</button>
+      <p id="performance-context" class="muted">Independent subnet scope.</p>
       <p id="performance-status" class="status" role="status"></p>
       <div id="performance-result"></div>
     </section>

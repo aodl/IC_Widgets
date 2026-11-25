@@ -1,4 +1,4 @@
-import { branch, hex, option, principal, scenarioLabel, time, words } from './view.js';
+import { branch, hex, option, principal, time, words } from './view.js';
 
 export const proposalUrl = id => 'https://dashboard.internetcomputer.org/proposal/' + id;
 const registryUrl = (kind, id) => 'https://dashboard.internetcomputer.org/' + kind + '/' + encodeURIComponent(id);
@@ -17,7 +17,18 @@ export const eligibility = 'Registration and hardware fields describe Registry e
 export const calculationNote = 'The reviewer canister calculated the result in a replicated update over the submitted Candid input. The digest identifies those exact bytes. Registry and Governance observations provide the separate source evidence.';
 export const thresholdNote = 'The Nakamoto coefficient counts the fewest groups that together exceed one third of the subnet. The separate f + 1 column uses f = floor((members − 1)/3). A coefficient requires complete coverage for that dimension. Registered ownership labels do not establish common control.';
 export const geographyNote = 'Distances use great-circle distances between registered data-center coordinates, weighted by node pairs. Pairs at the same coordinate count as zero. Missing coordinates are excluded and coverage is shown. Registered locations do not establish physical location or network latency.';
-const lifecycle = { 1: 'Open', 2: 'Rejected', 3: 'Adopted', 4: 'Executed', 5: 'Failed' };
+export function shortIds(ids) {
+  const unique = [...new Set(ids)];
+  return new Map(unique.map(id => {
+    let length = 5;
+    const label = (value, size) => value.length > size + 4 ? value.slice(0, size) + '…' + value.slice(-3) : value;
+    while (unique.some(other => other !== id && label(other, length) === label(id, length))) length++;
+    return [id, label(id, length)];
+  }));
+}
+
+export const scenarioName = scenario => Array.from(scenario.proposal_ids, id => 'Proposal #' + id).join(' then ');
+export const lifecycle = { 1: 'Open', 2: 'Rejected', 3: 'Adopted', 4: 'Executed', 5: 'Failed' };
 const kinds = { 1: 'Application', 2: 'System', 4: 'Verified Application', 5: 'Cloud Engine' };
 const rewards = ['Unspecified', 'Type 0', 'Type 1', 'Type 2', 'Type 3', 'Type 3.1', 'Type 1.1',
   'Type 4', 'Type 4.1', 'Type 4.2', 'Type 4.3', 'Type 4.4', 'Type 4.5'];
@@ -155,6 +166,113 @@ function dimension(key, before, after, beforeCount, afterCount) {
   };
 }
 
+export function groupMembers(nodes, kind, key, mode = 'Changes') {
+  const country = node => {
+    const code = node.region?.split(',')[1]?.trim().toUpperCase();
+    return typeof REGISTRY_COUNTRY_CODES === 'undefined' ? code : REGISTRY_COUNTRY_CODES[code];
+  };
+  const continent = node => {
+    const code = node.region?.split(',')[0]?.trim().toLowerCase().replace(/[ -]/g, '_');
+    const names = { africa: 'AF', antarctica: 'AN', asia: 'AS', europe: 'EU', north_america: 'NA', oceania: 'OC', south_america: 'SA' };
+    return names[code] ?? Object.values(names).find(value => value === code?.toUpperCase());
+  };
+  const matches = {
+    Operator: node => node.operatorId,
+    Provider: node => node.provider,
+    DataCenter: node => node.dc,
+    RegisteredOwner: node => node.owner,
+    RegisteredCountry: country,
+    RegisteredContinent: continent,
+    RegisteredArea: node => node.region?.split(',')[2]?.trim(),
+  };
+  return nodes.filter(node => (mode !== 'After' || node.role !== 'Removed') &&
+    (mode !== 'Before' || node.role !== 'Added') && (matches[kind](node) || 'Unknown') === key);
+}
+
+function reviewFindings(dimensions, members, beforeCount, afterCount) {
+  const sites = dimensions.find(row => row.key === 'DataCenter');
+  const matched = new Set();
+  const shifts = [];
+  const metric = (row, change) => ({
+    name: row.label, value: change.label, before: change.was, after: change.now,
+    beforeShare: share(change.was, beforeCount), afterShare: share(change.now, afterCount),
+    coefficient: [coefficient(row.before), coefficient(row.after)],
+    points: beforeCount && afterCount ? 100 * (change.now / afterCount - change.was / beforeCount) : undefined,
+  });
+  const same = (a, b) => a.length === b.length && a.every(node => b.some(other => other.id === node.id));
+  for (const change of sites?.changes ?? []) {
+    if (sites.before.unknown || sites.after.unknown) break;
+    const prior = groupMembers(members, sites.key, change.label, 'Before');
+    const next = groupMembers(members, sites.key, change.label, 'After');
+    const increased = change.now > change.was && change.now / afterCount > change.was / beforeCount;
+    if (!increased && change.now !== 0) continue;
+    const metrics = [metric(sites, change)];
+    if (increased) {
+      for (const row of dimensions.filter(row => ['RegisteredOwner', 'Operator'].includes(row.key))) {
+        const linked = row.changes.find(group => group.was === change.was && group.now === change.now &&
+          !row.before.unknown && !row.after.unknown &&
+          same(groupMembers(members, row.key, group.label, 'Before'), prior) &&
+          same(groupMembers(members, row.key, group.label, 'After'), next));
+        if (linked) {
+          matched.add(row.key + '/' + linked.label);
+          metrics.push(metric(row, linked));
+        }
+      }
+    }
+    const wider = increased ? [] : dimensions.filter(row =>
+      ['RegisteredArea', 'RegisteredCountry'].includes(row.key) && !row.before.unknown && !row.after.unknown)
+      .flatMap(row => row.changes.filter(group => group.now > 0 && groupMembers(prior, row.key, group.label).length)
+        .map(group => (row.key === 'RegisteredCountry' && /^[A-Z]{2}$/.test(group.label)
+          ? new Intl.DisplayNames(['en'], { type: 'region' }).of(group.label) : group.label) +
+          ' ' + formatPair(group.was, group.now)));
+    matched.add(sites.key + '/' + change.label);
+    shifts.push({
+      kind: increased ? 'concentration' : 'last-member',
+      title: increased ? 'Concentration increases at ' + change.label : 'Last ' + change.label + ' member leaves',
+      explanation: increased ? 'Share of the selected subnet rises from ' +
+        share(change.was, beforeCount) + ' to ' + share(change.now, afterCount) +
+        ' (+' + Number(metrics[0].points.toFixed(2)) + ' percentage points).'
+        : 'This applies to the named data center in this subnet at the pinned snapshot.' +
+          (wider.length ? ' Wider membership remains (' + wider.join(', ') + ').' : ''),
+      ids: (increased ? next : prior).map(node => node.id), metrics,
+    });
+  }
+  for (const row of dimensions) {
+    if (row.before.unknown || row.after.unknown) continue;
+    for (const change of row.changes) {
+      if (matched.has(row.key + '/' + change.label)) continue;
+      const prior = coefficient(row.before);
+      const next = coefficient(row.after);
+      const material = change.now > change.was && ((prior !== undefined && next < prior) ||
+        (change.now === option(row.after.largest) && change.now / afterCount > option(row.before.largest) / beforeCount));
+      shifts.push({
+        kind: material ? 'concentration' : 'distribution',
+        title: row.label + (material ? ' concentration increases' : ' changes'),
+        explanation: change.was + ' → ' + change.now + ' members.',
+        ids: groupMembers(members, row.key, change.label).map(node => node.id),
+        metrics: [metric(row, change)],
+      });
+    }
+  }
+  if (beforeCount !== afterCount) shifts.unshift({
+    kind: 'size', title: 'Subnet membership changes',
+    explanation: beforeCount + ' → ' + afterCount + ' members.',
+    ids: members.filter(node => node.role !== 'Retained').map(node => node.id), metrics: [],
+  });
+  const providers = dimensions.find(row => row.key === 'Provider');
+  if (providers && !providers.before.unknown && !providers.after.unknown && !providers.changes.length) {
+    const changed = members.filter(node => node.role !== 'Retained');
+    shifts.push({
+      kind: 'context', title: 'Provider distribution unchanged',
+      explanation: changed.length === 2 && changed[0].provider === changed[1].provider
+        ? 'The outgoing and incoming nodes share a registered provider principal.'
+        : 'Registered provider counts are unchanged.',
+      ids: changed.map(node => node.id), metrics: [],
+    });
+  }
+  return shifts;
+}
+
 export function reviewModel(live, scenario, subnet, state, rules, comparison, evidence, failures) {
   const { report, listed_subnets: checked, assignments } = live.outcome.Ok;
   const { registry_version: version, proposals } = report.manifest;
@@ -167,12 +285,18 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
     ...selected.added.map(id => memberEvidence(evidence, principal(id), 'Added')),
     ...selected.retained.map(id => memberEvidence(evidence, principal(id), 'Retained')),
   ];
+  const labels = shortIds(members.map(node => node.id));
+  for (const node of members) node.label = labels.get(node.id);
   const membership = view.baseline.member_count + ' → ' + selected.member_count + ' members'
     + ' (' + selected.added.length + ' added, ' + selected.removed.length + ' removed, ' + selected.retained.length + ' retained)';
   const notes = [
-    'Hypothetical membership; execution validity remains unverified. Assignments outside the checked subnets remain unverified.',
+    'Hypothetical membership. Full execution validity remains unverified.',
     'Membership evidence checked ' + checked + ' of ' + scope + ' listed subnets.',
   ];
+  if (scope === unknown || checked < scope) notes.push('Assignments outside the checked subnets remain unverified.');
+  if (proposals.some(row => ids.includes(String(row.id)) && (row.lifecycle_status === 4 || row.executed_at_seconds.length))) {
+    notes.push('Governance observed execution. The actual historical before-state is unavailable here. This comparison uses the selected Registry snapshot.');
+  }
   const candidates = new Set();
   const steps = scenario.steps.map(step => {
     const action = branch(step.requested);
@@ -264,7 +388,7 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
     }
   }
   if (!comparison) notes.push('Detailed Registry calculations have not loaded.');
-  if (rules) notes.push('Subnet type ' + (kinds[rules.kind] ?? rules.kind) + '. SEV ' + (rules.sev_enabled ? 'enabled; registered chip identity required by the modeled check.' : 'disabled at the pinned baseline.'));
+  if (rules) notes.push('Subnet type ' + (kinds[rules.kind] ?? rules.kind) + '. SEV ' + (rules.sev_enabled ? 'enabled. The modeled check requires registered chip identity.' : 'disabled at the pinned baseline.'));
   notes.push(eligibility);
   if (failures.length) notes.push('Detailed analysis encountered ' + failures.length + ' errors. Figures reflect the last accepted calculation and its evidence coverage.');
   for (const role of ['Added', 'Removed', 'Retained']) tables.push({
@@ -275,7 +399,9 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
 
   return {
     ids, subnet, subnetLink: link(subnet, registryUrl('subnet', subnet)), version, membership,
-    scenario: scenarioLabel(scenario.id), notes, dimensions, consequences, members, tables, claim,
+    scenario: scenarioName(scenario), notes, dimensions, consequences, members, tables, claim,
+    findings: comparison ? reviewFindings(dimensions, members, view.baseline.member_count, selected.member_count) : [],
+    placement: members.filter(node => node.role !== 'Retained'),
     stateLabel: state.label, previewRevision: hex(report.revision),
     payloads: proposals.filter(p => ids.includes(String(p.id))).map(p => '#' + p.id + ' SHA-256 ' + hex(p.payload_hash)),
   };
