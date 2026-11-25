@@ -25,7 +25,7 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } =
   const blocks = [
     '# Proposal ' + title + ' Review',
     '**VOTE**: ' + (vote.trim() || '?'),
-    '**TLDR**: ' + tldr.trim(),
+    ('**TLDR**: ' + tldr.trim()).trimEnd(),
     '## Proposed membership and selected scenario',
     links + ' · [Subnet ' + model.subnet + '](' + model.subnetLink.url + ')',
     model.scenario + ' · ' + model.stateLabel + ' · Registry version ' + model.version,

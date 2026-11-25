@@ -352,7 +352,6 @@ export function reviewMap(inspect) {
       selected = new Set(ids);
       exportButton.disabled = !model?.calculation;
       focus.disabled = !model?.members?.some(node => node.role !== 'Retained' && node.point);
-      unmapped.hidden = !model;
       redrawUnmapped();
       draw();
     },
