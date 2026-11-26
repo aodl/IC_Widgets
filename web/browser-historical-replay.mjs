@@ -65,7 +65,8 @@ const checkHitTargets = async () => {
   await page.locator('.map-frame').scrollIntoViewIfNeeded();
   const result = await page.locator('.map-pin:visible').evaluateAll(nodes => ({
     count: nodes.length,
-    minimumTarget: Math.min(...nodes.map(node => node.getBoundingClientRect().width)),
+    minimumTarget: Math.floor(Math.min(...nodes.map(node => node.getBoundingClientRect().width))),
+    glyphSizes: [...new Set(nodes.map(node => node.querySelector('.map-glyph').getBoundingClientRect().width))].sort((a, b) => a - b),
     maximumDisplacement: Math.ceil(Math.max(...nodes.map(node => Math.hypot(
       parseFloat(node.style.left) - Number(node.dataset.anchorX),
       parseFloat(node.style.top) - Number(node.dataset.anchorY))))),
@@ -76,8 +77,29 @@ const checkHitTargets = async () => {
   }));
   assert.equal(result.count, 41);
   assert.equal(result.allHit, true);
-  assert.ok(result.minimumTarget >= 24);
-  mapChecks.push({ width: page.viewportSize().width, mapTop, ...result });
+  assert.deepEqual(result.glyphSizes, [8, 20]);
+  assert.ok(result.maximumDisplacement <= 48, 'Every glyph stays near its registered anchor.');
+  const world = await page.locator('.map-pin.role-added').getAttribute('data-anchor-y');
+  await page.getByRole('button', { name: 'Focus changes', exact: true }).click();
+  await page.locator('.map-frame').scrollIntoViewIfNeeded();
+  const regional = await page.locator('.map-pin:visible').evaluateAll(nodes => ({
+    count: nodes.length,
+    changed: nodes.filter(node => !node.classList.contains('role-retained')).length,
+    maximumDisplacement: Math.ceil(Math.max(...nodes.map(node => Math.hypot(
+      parseFloat(node.style.left) - Number(node.dataset.anchorX), parseFloat(node.style.top) - Number(node.dataset.anchorY))))),
+    allHit: nodes.every(node => {
+      const { left, top, width, height } = node.getBoundingClientRect();
+      return document.elementFromPoint(left + width / 2, top + height / 2) === node;
+    }),
+  }));
+  assert.ok(regional.count < result.count);
+  assert.equal(regional.changed, 2);
+  assert.ok(regional.allHit);
+  assert.notEqual(await page.locator('.map-pin.role-added').getAttribute('data-anchor-y'), world);
+  await capture('focused-' + page.viewportSize().width);
+  await page.getByRole('button', { name: 'World', exact: true }).click();
+  assert.equal(await page.locator('.map-pin.role-added').getAttribute('data-anchor-y'), world);
+  mapChecks.push({ width: page.viewportSize().width, mapTop, ...result, regional });
 };
 const download = async (button, filename) => {
   const pending = page.waitForEvent('download');
@@ -101,6 +123,7 @@ try {
   await page.getByText('40 members · 39 retained · 1 incoming · 1 outgoing', { exact: true }).waitFor();
   await page.getByText(/Target subnet checked; assignments in the other 95 listed subnets were not checked/).waitFor();
   await page.getByText(/41 nodes across both states · 41\/41 located · 41 shown/).waitFor();
+  await page.locator('.map-card').getByText(/Calculation · Complete · Governance · Final verification passed/).waitFor();
   await page.locator('#local-notice').getByText(/Historical replay · Recorded Open proposal · Registry 66,013/).waitFor();
   await page.getByText(/Recorded status: Open · Original Governance observation 2026-11-25 13:08:13.589 UTC/).waitFor();
   await page.getByText(/No Target Topology limits have been assumed/).waitFor();
@@ -110,11 +133,25 @@ try {
     ['Data center · sh1', '2 → 3'], ['Data center · zh2', '1 → 0'],
     ['Registered owner name · Digital Realty', '2 → 3'], ['Registered owner name · Everyware', '1 → 0'],
     ['Recorded country label · SE', '2 → 3'], ['Recorded country label · CH', '3 → 2'],
+    ['Recorded country label · HK', '3'],
     ['Node provider · bvcsg…mqe', '3'],
   ]) {
     const row = page.locator('.topology-card').getByRole('row').filter({ has: page.getByRole('button', { name, exact: true }) });
     assert.equal((await row.getByRole('cell').last().textContent()).trim(), value);
   }
+  const composition = page.locator('.topology-card');
+  const dimensions = composition.getByLabel('Composition dimension');
+  const coefficient = composition.getByRole('button', { name: 'Data center · 13 → 12', exact: true });
+  await coefficient.click();
+  await page.locator('.inspector').getByText(/Nakamoto coefficient.*13 → 12/).waitFor();
+  await page.keyboard.press('Escape');
+  await dimensions.selectOption('RegisteredCountry');
+  await composition.getByText(/Distinct recorded groups · 24/).waitFor();
+  await composition.getByText(/recorded groups are tied at 3 members/).waitFor();
+  await dimensions.selectOption('DataCenter');
+  await composition.getByText(/Distinct recorded groups · 39 → 38/).waitFor();
+  assert.equal(await composition.getByRole('row').count(), 40);
+  await dimensions.selectOption('overview');
   const marker = role => page.locator('.map-pin.role-' + role + ':visible');
   assert.equal(await marker('retained').count(), 39);
   assert.equal(await marker('added').count(), 1);
@@ -139,8 +176,6 @@ try {
   const targets = [...await sh1.all(), marker('removed')];
   for (const target of targets) {
     const id = await target.getAttribute('data-marker');
-    const dimensions = await target.boundingBox();
-    assert.ok(dimensions.width >= 24 && dimensions.height >= 24);
     await target.tap();
     assert.equal(await page.getByLabel('Full node principal').inputValue(), id);
     await page.getByRole('button', { name: 'Close details' }).click();
@@ -152,6 +187,14 @@ try {
   await marker('removed').tap();
   assert.equal(await page.getByLabel('Full node principal').inputValue(), await marker('removed').getAttribute('data-marker'));
   await page.getByRole('button', { name: 'Close details' }).click();
+  await page.getByRole('button', { name: 'Focus changes', exact: true }).click();
+  for (const target of [...await sh1.all(), marker('removed')]) {
+    const id = await target.getAttribute('data-marker');
+    await target.tap();
+    assert.equal(await page.getByLabel('Full node principal').inputValue(), id);
+    await page.getByRole('button', { name: 'Close details' }).click();
+  }
+  await page.getByRole('button', { name: 'World', exact: true }).click();
   await capture('recorded-320');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -189,6 +232,13 @@ try {
   assert.match(markdown, /Original Registry observations/);
   assert.match(markdown, /Synthetic NNS-role supplement/);
   assert.match(markdown, /Filter: Incoming, Outgoing/);
+  assert.doesNotMatch(markdown, /Full recorded distribution|other unchanged recorded groups/);
+  await page.getByRole('checkbox', { name: 'Include full recorded distribution' }).check();
+  const full = (await download('Download Markdown', 'recorded-review-full.md')).toString('utf8');
+  assert.ok(full.startsWith(markdown));
+  assert.match(full, /Full recorded distribution/);
+  assert.match(full, /### Node operator/);
+  assert.match(full, /### Recorded continent label/);
   assert.doesNotMatch(markdown, /Matches target|Exception unresolved|Identity unresolved|143190/);
   const png = await download('Export map PNG', 'recorded-map.png');
   const checkPixels = await page.evaluate(async base64 => {
@@ -203,8 +253,8 @@ try {
     const header = raster.height - Math.ceil(map.clientHeight * factor);
     return [...map.querySelectorAll('button:not([hidden])')].map(button => ({
       role: button.className.split(' ').at(-1),
-      pixel: [...context.getImageData((parseFloat(button.style.left) - 8) * factor,
-        header + (parseFloat(button.style.top) - 5) * factor, 1, 1).data].slice(0, 3),
+      pixel: [...context.getImageData((parseFloat(button.style.left) - 6) * factor,
+        header + (parseFloat(button.style.top) - 4) * factor, 1, 1).data].slice(0, 3),
     }));
   }, png.toString('base64'));
   assert.deepEqual(Object.fromEntries(checkPixels.map(row => [row.role, row.pixel])),
@@ -387,6 +437,10 @@ try {
     mapChecks, recordedDigest: digest, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log(JSON.stringify(summary, null, 2));
+} catch (error) {
+  console.error('Review status:', await page.locator('#report-status').textContent());
+  await capture('failure');
+  throw error;
 } finally {
   await browser.close();
 }

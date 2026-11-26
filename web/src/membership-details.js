@@ -1,4 +1,4 @@
-import { assignmentCoverage, calculationNote, criteriaNote, geographyNote, governanceText, groupKey, metrics, metricDelta, replayRegistryText, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
+import { assignmentCoverage, calculationNote, criteriaNote, geographyNote, governanceText, groupKey, metrics, metricDelta, replayRegistryText, reviewModel, reviewReadiness, scenarioName, shortIds, thresholdNote } from './detail-model.js';
 import { terminalOutcome } from './terminal-outcome.js';
 import { markdownEditor } from './review-export.js';
 import { help } from './review-help.js';
@@ -118,16 +118,21 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const summary = styled('div', 'review-summary');
   const changedNodes = styled('div', 'actions changed-nodes');
   changedNodes.hidden = true;
+  const verification = el('div');
   const topology = styled('section', 'topology-card');
   const tableBody = el('tbody');
 
   const topologyTable = el('table', el('thead', el('tr',
     el('th', 'Registered group'),
     el('th', 'Before → proposed ', help('Proposed membership', 'Membership produced by applying the decoded action to the selected Registry snapshot.')))), tableBody);
-  const expand = action('', () => { expanded = !expanded; render(); });
-  expand.setAttribute('aria-expanded', 'false');
+  const navigation = styled('div', 'controls composition-navigation', selector('Composition dimension',
+    [['overview', 'Overview'], ...Object.entries(metrics).map(([key, info]) => [key, info.label])], 'overview', key => {
+      dimension = key;
+      render();
+    }));
+  const compositionSummary = styled('div', 'composition-summary');
   topology.append(el('h3', 'Subnet composition'), styled('p', 'muted topology-status', criteriaNote),
-    styled('div', 'table-wrap', topologyTable), expand);
+    navigation, compositionSummary, styled('div', 'table-wrap', topologyTable));
   const inspector = styled('section', 'card inspector');
   inspector.hidden = true;
   const pane = styled('section', 'card review-pane');
@@ -136,7 +141,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const header = styled('section', 'review-header',
     el('h2', proposals.length === 1 ? 'Proposal #' + proposals[0].id : 'Proposals ' + proposals.map(row => '#' + row.id).join(' + ')),
     contextLine, controls, limit, summary);
-  const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost, changedNodes), topology);
+  const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost, changedNodes, verification), topology);
   const section = styled('div', 'workspace', header, grid, tools, inspector, pane);
   const session = createReviewSession({ live, contexts, active, call, progress, updated: render });
   const exportReview = action('Export review', () => inspect({ type: 'export' }));
@@ -149,12 +154,13 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   let trigger;
   let scenario = report.scenarios.find(row => branch(row.id) === 'AThenB') ?? report.scenarios[0];
   let subnet;
-  let expanded = false;
+  let dimension = 'overview';
 
   function choose(next) {
     const activeElement = document.activeElement;
     selected = next;
-    expanded = false;
+    dimension = 'overview';
+    navigation.querySelector('select').value = dimension;
     inspection = undefined;
     trigger = undefined;
     const wire = next && body.scopes.find(row => branch(row.scenario) === branch(next.scenario.id) && principal(row.subnet) === principal(next.subnet));
@@ -217,7 +223,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   function pendingLabel(state, key) {
     if (state.work === 'settled') return 'Could not calculate from the available evidence';
     if (state.work === 'stopped') return 'Not loaded · Review stopped';
-    if (state.stage === 'DataCenters' && ['DataCenter', 'RegisteredOwner', 'RegisteredCountry'].includes(key)) return 'Loading data centers';
+    if (state.stage === 'DataCenters' && ['DataCenter', 'RegisteredOwner', 'RegisteredCountry', 'RegisteredContinent'].includes(key)) return 'Loading data centers';
     return 'Waiting for composition calculation';
   }
 
@@ -241,19 +247,36 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   }
 
   function metricDetails(row) {
-    const majorityBefore = option(row.old.greater_than_one_third);
-    const majorityAfter = option(row.next.greater_than_one_third);
     const share = metricDelta(row.a === undefined || !model.beforeCount ? undefined : 100 * row.a / model.beforeCount,
       row.b === undefined || !model.selectedCount ? undefined : 100 * row.b / model.selectedCount,
       { percentage: true, beforePartial: !!row.old.unknown, afterPartial: !!row.next.unknown });
-    return el('div', el('p', row.help), row.key === 'Provider' ? el('p', el('code', row.group)) : null,
+    return el('div', el('p', row.help), row.identity === 'principal' ? el('p', el('code', row.group)) : null,
       el('p', 'Recorded members ', deltaNode(row.delta)),
       el('p', 'Recorded group share ', deltaNode(share), ' · Subnet size ', deltaNode(metricDelta(model.beforeCount, model.selectedCount))),
       row.old.unknown || row.next.unknown ? el('p', 'Members with unknown grouping · '
         + metricDelta(row.old.unknown, row.next.unknown).text) : null,
       row.note ? el('p', row.note) : null,
-      majorityBefore || majorityAfter ? el('p', 'Nakamoto coefficient ', help('Nakamoto coefficient', thresholdNote), ' · ',
-        deltaNode(metricDelta(option(majorityBefore?.groups_to_reach ?? []), option(majorityAfter?.groups_to_reach ?? [])))) : null);
+      coefficientLine(model.dimensions.find(item => item.key === row.key)));
+  }
+
+  function coefficientLine(item) {
+    return el('p', 'Nakamoto coefficient ', help('Nakamoto coefficient', thresholdNote), ' · ', deltaNode(item.coefficient));
+  }
+
+  function dimensionSummary(item) {
+    return [
+      el('p', 'Distinct recorded groups · ', deltaNode(item.distinct),
+        item.old.unknown || item.next.unknown ? ' · Grouping incomplete' : ''),
+      item.tied > 1 ? el('p', item.tied + ' recorded groups are tied at ' + item.maximum + ' members in the proposed state'
+        + (item.next.unknown ? ' among known records.' : '.')) : null,
+    ];
+  }
+
+  function readinessLine(state) {
+    const result = reviewReadiness(selected, state);
+    return styled('p', 'review-outcomes', state.stage === 'Provisional' ? 'Data loading complete · ' : '',
+      'Calculation · ', el('strong', result.calculation),
+      ' · Governance · ', el('strong', result.governance));
   }
 
   function renderInspector() {
@@ -275,14 +298,16 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       : markdownEditor(model, selected.draft, map);
     else if (inspection.type === 'nodes' && nodes.length === 1) content = nodeDetails(nodes[0]);
     else {
-      const first = row ? metricDetails(row) : inspection.key ? el('p', pendingLabel(state, inspection.key)) : null;
+      const item = model?.dimensions.find(item => item.key === inspection.key);
+      const first = row ? metricDetails(row) : item ? el('div', el('p', item.help), dimensionSummary(item), coefficientLine(item))
+        : inspection.key ? el('p', pendingLabel(state, inspection.key)) : null;
       content = [first, nodes.length ? el('div', el('h4', 'Nodes in this group'),
         styled('div', 'actions', nodes.map(node => nodeButton(node, () => inspect([node.id], node.label))))) : null];
     }
     const readiness = ({ Finished: 'Data loading complete', Provisional: 'Provisional · Governance check failed',
       Stopped: state.work === 'stopping' ? 'Stopping' : 'Stopped', Blocked: 'Review blocked' })[state.stage] ?? 'Review in progress';
     replace(inspector, styled('div', 'inspector-heading', heading, action('Close details', close)),
-      styled('p', 'inspector-readiness', readiness), content);
+      styled('p', 'inspector-readiness', readiness), selected?.state ? readinessLine(state) : null, content);
   }
 
   function render() {
@@ -322,23 +347,27 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
         : 'Provisional · ' + state.consistency.reason) : null,
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
+    replace(verification, selected?.state ? readinessLine(state) : null);
     topology.setAttribute('aria-busy', String(!model?.calculation && (state.work === 'running' || state.work === 'stopping')));
+    navigation.hidden = !model?.calculation;
     const rows = model?.composition ?? [];
-    const featured = rows.filter(row => row.featured);
-    const initial = featured.slice(0, 18);
-    const displayed = expanded ? [...featured, ...rows.filter(row => !row.featured)] : initial;
-    const additional = rows.length - initial.length;
-    expand.hidden = !additional;
-    expand.textContent = expanded ? 'Show key groups' : 'Show ' + additional + ' more groups';
-    expand.setAttribute('aria-expanded', String(expanded));
+    const displayed = rows.filter(row => dimension === 'overview' ? row.featured : row.key === dimension);
+    const item = model?.dimensions.find(item => item.key === dimension);
+    const changedCoefficients = model?.dimensions.filter(item => item.coefficientChanged) ?? [];
+    replace(compositionSummary, item ? [...dimensionSummary(item), coefficientLine(item)]
+      : changedCoefficients.length ? styled('div', 'composition-coefficients',
+        el('span', 'Changed Nakamoto coefficients ', help('Nakamoto coefficient', thresholdNote)),
+        changedCoefficients.map(item => action(item.label + ' · ' + item.coefficient.text,
+          () => inspect({ type: 'metric', key: item.key })))) : null);
     replace(tableBody, displayed.length ? displayed.map(row => el('tr',
       el('td', styled('span', 'measure-label',
         action(row.label + ' · ' + row.groupLabel, () => inspect({ type: 'group', key: row.key, group: row.group })),
         help(row.label, row.help)), row.note ? el('small', row.note) : null),
       el('td', deltaNode(row.delta)))) : model && !model.calculation ? Object.entries(metrics).map(([key, info]) => el('tr',
         el('td', styled('span', 'measure-label', action(info.label, () => inspect({ type: 'metric', key })), help(info.label, info.help))),
-        el('td', pendingLabel(state, key)))) : el('tr', Object.assign(el('td', model
-          ? 'No groups have recorded evidence for this selection.' : 'A proposed membership state is unavailable.'), { colSpan: 2 })));
+      el('td', pendingLabel(state, key)))) : el('tr', Object.assign(el('td', !model
+          ? 'A proposed membership state is unavailable.' : rows.length && dimension === 'overview'
+            ? 'Choose a dimension to see its recorded groups.' : 'No groups have recorded evidence for this selection.'), { colSpan: 2 })));
     map.update(model, selectionIds(), state.consistency?.blocked ? 'Review blocked · Governance changed'
       : 'Map unavailable · Required membership evidence');
     exportReview.disabled = !model?.calculation || !model.finalVerified || state.work !== 'settled';

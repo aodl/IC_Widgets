@@ -13,6 +13,8 @@ export const metrics = {
   RegisteredOwner: { label: 'Registered owner name', help: 'The owner name stored for a data center. Matching names are grouped. This does not prove corporate independence.' },
   Provider: { label: 'Node provider', help: 'The provider principal recorded for a node. The provider and data-center owner can be different.' },
   RegisteredCountry: { label: 'Recorded country label', help: 'The country text in the registered location. Different spellings remain separate.' },
+  Operator: { label: 'Node operator', help: 'The operator principal recorded for a node. An operator can manage multiple nodes.' },
+  RegisteredContinent: { label: 'Recorded continent label', help: 'The first label in the registered location. Different spellings remain separate.' },
 };
 
 export function shortIds(ids) {
@@ -39,7 +41,7 @@ export function metricDelta(before, after, { percentage = false, beforePartial =
   if (b === undefined) return { text: a + ' before · Proposed unavailable' };
   if (a === b) return { text: before === after ? a : 'About ' + a + ' in both states', after: b };
   return {
-    text: a + ' → ' + b, before: a, after: b, direction: Math.sign(after - before),
+    text: a + ' → ' + b, before: a, after: b, direction: beforePartial || afterPartial ? 0 : Math.sign(after - before),
     accessible: (beforePartial ? 'At least ' + a.slice(1) : a) + ' before, '
       + (afterPartial ? 'at least ' + b.slice(1) : b) + ' proposed',
   };
@@ -84,8 +86,11 @@ export function memberEvidence(evidence, id, role, { work, stage }) {
 }
 
 export function groupKey(node, dimension) {
-  if (dimension === 'RegisteredCountry') return node.region?.split(',')[1]?.trim() || undefined;
-  return ({ RegisteredOwner: node.owner, DataCenter: node.dc, Provider: node.provider })[dimension] || undefined;
+  if (dimension === 'RegisteredCountry' || dimension === 'RegisteredContinent') {
+    const labels = node.region?.split(',') ?? [];
+    return labels.length >= 2 ? labels[dimension === 'RegisteredCountry' ? 1 : 0].trim() || undefined : undefined;
+  }
+  return ({ RegisteredOwner: node.owner, DataCenter: node.dc, Provider: node.provider, Operator: node.operatorId })[dimension] || undefined;
 }
 
 function groups(distribution) {
@@ -100,11 +105,6 @@ function publishingEvidence(live, context, subnet, before, after) {
   const dimensions = { data_center: ['DataCenter', 'Data center'], data_center_owner: ['RegisteredOwner', 'Registered DC owner'],
     node_provider: ['Provider', 'Node provider'], node_operator: ['Operator', 'Node operator'],
     country: ['RegisteredCountry', 'Recorded country label'] };
-  const changes = Object.values(dimensions).flatMap(([key, label]) => {
-    const a = coefficient(before.get(key));
-    const b = coefficient(after.get(key));
-    return a !== undefined && b !== undefined && a !== b ? [[label, metricDelta(a, b).text]] : [];
-  });
   const source = (option(live.outcome.Ok.proposal_text ?? []) ?? []).find(row => row.id === context.scenario.proposal_ids[0]);
   const heading = 'Decentralization Nakamoto coefficient changes for subnet `' + subnet + '`:';
   const summary = source?.summary.split(heading)[1]?.split('\n\n')[0];
@@ -118,10 +118,10 @@ function publishingEvidence(live, context, subnet, before, after) {
         a === undefined || b === undefined ? 'Grouping evidence incomplete' : metricDelta(a, b).text,
         a === undefined || b === undefined ? 'Unverified' : a === Number(proposedBefore) && b === Number(proposedAfter) ? 'Agrees' : 'Differs']];
     });
-  return { changes, claims };
+  return { claims };
 }
 
-export function compositionRows(before, after, sharedProvider) {
+export function compositionRows(before, after, sharedProvider, changedNodes = []) {
   return Object.entries(metrics).flatMap(([key, definition]) => {
     const old = before.get(key);
     const next = after.get(key);
@@ -129,8 +129,10 @@ export function compositionRows(before, after, sharedProvider) {
     const prior = new Map(groups(old).map(item => [item.label, item.count]));
     const proposed = new Map(groups(next).map(item => [item.label, item.count]));
     const labels = [...new Set([...prior.keys(), ...proposed.keys()])];
-    const names = key === 'Provider' ? shortIds(labels) : new Map();
-    const largest = proposed.keys().next().value;
+    const identity = key === 'Provider' || key === 'Operator' ? 'principal' : 'label';
+    const names = identity === 'principal' ? shortIds(labels) : new Map();
+    const maximum = proposed.values().next().value ?? 0;
+    const affected = new Set(changedNodes.map(node => groupKey(node, key)));
     return labels.map(group => {
       const a = prior.get(group) ?? (old.unknown ? undefined : 0);
       const b = proposed.get(group) ?? (next.unknown ? undefined : 0);
@@ -138,12 +140,42 @@ export function compositionRows(before, after, sharedProvider) {
       const shared = key === 'Provider' && group === sharedProvider;
       const last = key === 'DataCenter' && a > 0 && b === 0;
       const note = last ? 'Last member leaves this subnet' : shared ? 'Incoming and outgoing nodes share this provider' : '';
-      return { key, group, groupLabel: names.get(group) ?? group, ...definition, a, b, old, next, changed, note,
+      return { key, group, groupLabel: names.get(group) ?? group, ...definition, a, b, old, next, changed, note, identity,
         delta: metricDelta(a, b, { beforePartial: !!old.unknown, afterPartial: !!next.unknown }),
-        featured: changed || group === largest || shared };
+        featured: changed || affected.has(group) || shared || (maximum > 1 && b === maximum) };
     }).sort((a, b) => Number(b.changed) - Number(a.changed)
       || (b.b ?? -1) - (a.b ?? -1) || a.group.localeCompare(b.group));
   });
+}
+
+export function compositionDimensions(before, after) {
+  return Object.entries(metrics).flatMap(([key, definition]) => {
+    const old = before.get(key);
+    const next = after.get(key);
+    if (!old || !next) return [];
+    const a = coefficient(old);
+    const b = coefficient(next);
+    const maximum = next.groups.reduce((max, [, count]) => Math.max(max, count), 0);
+    return [{ key, ...definition, old, next,
+      distinct: metricDelta(old.groups.length, next.groups.length, { beforePartial: !!old.unknown, afterPartial: !!next.unknown }),
+      coefficient: metricDelta(a, b), coefficientChanged: a !== undefined && b !== undefined && a !== b,
+      maximum, tied: next.groups.filter(([, count]) => count === maximum).length }];
+  });
+}
+
+export function reviewReadiness(context, { work, final, consistency, stage }) {
+  const calculation = consistency?.blocked ? 'Invalidated'
+    : context?.calculation && ['stale', 'pending'].includes(context.status) ? 'Previous result retained'
+    : context?.calculation ? 'Complete'
+    : context?.status === 'outside' ? 'Outside this review’s work budget'
+    : context?.status === 'unavailable' ? 'Failed'
+    : ['running', 'stopping', 'idle'].includes(work) ? 'Pending' : 'Unavailable';
+  const governance = consistency?.blocked ? 'Review invalidated by final check'
+    : consistency ? 'Final verification failed'
+    : final ? 'Final verification passed'
+    : stage === 'Lifecycle' && work === 'running' ? 'Final verification in progress'
+    : ['running', 'idle'].includes(work) ? 'Final verification pending' : 'Final verification not completed';
+  return { calculation, governance };
 }
 
 export function assignmentCoverage(live, context) {
@@ -179,7 +211,8 @@ export function reviewModel(live, context, evidence, section, replay) {
   const outgoing = members.filter(node => node.role === 'Removed');
   const sharedProvider = incoming.length === 1 && outgoing.length === 1 && incoming[0].provider
     && incoming[0].provider === outgoing[0].provider ? incoming[0].provider : undefined;
-  const composition = compositionRows(before, after, sharedProvider);
+  const composition = compositionRows(before, after, sharedProvider, [...incoming, ...outgoing]);
+  const dimensions = compositionDimensions(before, after);
   const coverage = assignmentCoverage(live, context);
   const evidenceNotes = [];
   const fields = { Nodes: 'node registration', Operators: 'operator and provider', DataCenters: 'data-center location and owner' };
@@ -204,13 +237,13 @@ export function reviewModel(live, context, evidence, section, replay) {
     consistency?.reason].filter(Boolean);
   const publishing = publishingEvidence(live, context, subnet, before, after);
   return {
-    members, composition, membership, version, subnet, coverage, evidenceNotes, notes, calculation, replay,
+    members, composition, dimensions, membership, version, subnet, coverage, evidenceNotes, notes, calculation, replay,
     beforeCount: context.before.member_count, selectedCount: selected.member_count,
     scope: context.scenario, scenario: scenarioName(context.scenario),
     stateLabel: context.index ? 'After proposal #' + context.scenario.steps[context.index - 1].proposal : 'Registered baseline',
     ids: Array.from(context.scenario.proposal_ids, String), previewRevision: hex(report.revision),
     governance: final ?? report.manifest.proposals, finalVerified: !!final && !previousAccepted && !consistency, work,
-    previousAccepted, publishing,
+    previousAccepted, publishing, readiness: reviewReadiness(context, section),
   };
 }
 

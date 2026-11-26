@@ -15,6 +15,9 @@ export function markdownEditor(model, draft, map) {
   const inputHash = model.calculation?.inputHash;
   mapImage.disabled = !inputHash;
   mapImage.value = draft.mapImage?.inputHash === inputHash ? draft.mapImage?.url ?? '' : '';
+  const fullDistribution = el('input');
+  fullDistribution.type = 'checkbox';
+  fullDistribution.checked = !!draft.fullDistribution;
   const previewVote = el('p');
   const previewTldr = el('p');
   const raw = el('textarea');
@@ -24,13 +27,13 @@ export function markdownEditor(model, draft, map) {
   const status = styled('p', 'status');
   status.setAttribute('role', 'status');
   function update() {
-    Object.assign(draft, { vote: vote.value, tldr: tldr.value });
+    Object.assign(draft, { vote: vote.value, tldr: tldr.value, fullDistribution: fullDistribution.checked });
     if (inputHash) draft.mapImage = { inputHash, url: mapImage.value };
     raw.value = reviewMarkdown(model, { ...draft, mapImage: mapImage.value, mapView: map.describe() });
     previewVote.replaceChildren(el('strong', 'VOTE'), ' ' + (vote.value.trim() || '?'));
     previewTldr.replaceChildren(el('strong', 'TLDR'), ' ' + tldr.value.trim());
   }
-  for (const input of [vote, tldr, mapImage]) input.addEventListener('input', update);
+  for (const input of [vote, tldr, mapImage, fullDistribution]) input.addEventListener('input', update);
   update();
 
   const preview = styled('article', 'markdown-preview', el('h4', 'Proposal ' + model.ids.map(id => '#' + id).join(' + ') + ' Review'),
@@ -40,6 +43,7 @@ export function markdownEditor(model, draft, map) {
   return styled('section', 'detail-section', el('h3', 'Review Markdown'),
     styled('div', 'markdown-fields', el('label', 'VOTE', vote), el('label', 'TLDR', tldr),
       el('label', 'Uploaded map image URL (optional)', mapImage)),
+    styled('label', 'distribution-option', fullDistribution, ' Include full recorded distribution'),
     styled('div', 'actions', map.exportButton, action('Copy Markdown', async event => {
       const copyButton = event.currentTarget;
       update();

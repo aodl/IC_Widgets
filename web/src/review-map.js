@@ -8,57 +8,54 @@ const names = { Added: 'Incoming', Removed: 'Outgoing', Retained: 'Retained' };
 const distance = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const order = (a, b) => (a.dc ?? '').localeCompare(b.dc ?? '') || a.id.localeCompare(b.id);
-const spacing = 28;
-const offsets = Array.from({ length: 9 * 9 }, (_, index) => ({ x: index % 9 - 4, y: Math.floor(index / 9) - 4 }))
-  .sort((a, b) => distance(a, { x: 0, y: 0 }) - distance(b, { x: 0, y: 0 }) || a.y - b.y || a.x - b.x);
+const glyphSize = role => role === 'Retained' ? 8 : 20;
+const maxDisplacement = 48;
+const targetSize = 26;
+const offsets = [{ x: 0, y: 0 }];
+for (let radius = 4; radius <= maxDisplacement; radius += 4) {
+  const points = Math.ceil(2 * Math.PI * radius / 5);
+  for (let index = 0; index < points; index++) {
+    const angle = 2 * Math.PI * index / points + radius / 4 * 2.4;
+    offsets.push({ x: radius * Math.cos(angle), y: radius * Math.sin(angle) });
+  }
+}
 
-function placeNear(nodes, view) {
+function placeMarkers(nodes, view) {
   const markers = [];
   for (const { node, anchor } of nodes) {
-    const point = offsets.map(({ x, y }) => ({
-      x: clamp(anchor.x + spacing * x, spacing / 2, view.width - spacing / 2),
-      y: clamp(anchor.y + spacing * y, spacing / 2, view.height - spacing / 2),
-    })).find(point => markers.every(previous =>
-      Math.abs(previous.x - point.x) >= spacing || Math.abs(previous.y - point.y) >= spacing));
-    if (!point) return;
-    markers.push({ node, anchor, ...point });
+    const diameter = glyphSize(node.role);
+    const inset = diameter / 2 + 1;
+    let best;
+    let bestClearance = -Infinity;
+    for (const offset of offsets) {
+      const x = clamp(anchor.x + offset.x, inset, view.width - inset);
+      const y = clamp(anchor.y + offset.y, inset, view.height - inset);
+      if (distance(anchor, { x, y }) > maxDisplacement ** 2 + 0.01) continue;
+      const clearance = markers.reduce((min, previous) => Math.min(min,
+        Math.hypot(previous.x - x, previous.y - y) - (previous.diameter + diameter) / 2), Infinity);
+      if (clearance > bestClearance) {
+        best = { x, y };
+        bestClearance = clearance;
+      }
+      if (clearance >= 2) break;
+    }
+    markers.push({ node, anchor, diameter, ...best });
   }
   return markers;
 }
 
-function placeOnGrid(nodes, view) {
-  let step = spacing;
-  while (Math.floor(view.width / step) * Math.floor(view.height / step) < nodes.length) step--;
-  const available = [];
-  for (let y = step / 2; y <= view.height - step / 2; y += step) {
-    for (let x = step / 2; x <= view.width - step / 2; x += step) available.push({ x, y });
-  }
-  const markers = nodes.map(({ node, anchor }) => {
-    let nearest = 0;
-    for (let index = 1; index < available.length; index++) {
-      if (distance(available[index], anchor) < distance(available[nearest], anchor)) nearest = index;
-    }
-    const [point] = available.splice(nearest, 1);
-    return { node, anchor, ...point };
-  });
-  return { markers, diameter: step - 2 };
-}
-
-function facilityLabels(facilities, markers, view, diameter) {
+function facilityLabels(facilities, markers, view) {
   const occupied = [];
   for (const facility of facilities) {
-    if (facility.before === facility.after && facility.before === facility.markers.length) continue;
-    const label = facility.description;
-    const width = 9 + label.length * 6.5;
+    const label = facility.id + ' · ' + facility.count;
+    const width = 9 + label.length * 6.4;
     const { left, top, right, bottom } = facility.box;
     const center = (left + right) / 2 - width / 2;
     const candidates = [[center, top - 18], [center, bottom + 2], [right + 3, top], [left - width - 3, top]];
-    // Mobile facilities can share a dense band. Keep the label near its group and above the connector layer.
-    for (let hop = 1; hop <= 4; hop++) candidates.push([center, top - 18 - hop * 18], [center, bottom + 2 + hop * 18]);
     const bounds = candidates.map(([x, y]) => ({
       x: clamp(x, 2, Math.max(2, view.width - width - 2)), y: clamp(y, 2, view.height - 18), width,
-    })).find(box => !markers.some(marker => marker.x + diameter / 2 > box.x && marker.x - diameter / 2 < box.x + width
-      && marker.y + diameter / 2 > box.y && marker.y - diameter / 2 < box.y + 16)
+    })).find(box => !markers.some(({ x, y, diameter }) => x + diameter / 2 > box.x && x - diameter / 2 < box.x + width
+      && y + diameter / 2 > box.y && y - diameter / 2 < box.y + 16)
       && !occupied.some(other => other.x < box.x + width && other.x + other.width > box.x
         && other.y < box.y + 16 && other.y + 16 > box.y));
     if (!bounds) continue;
@@ -72,12 +69,17 @@ export function mapScene(members, roles, project, view) {
   const beforePartial = members.some(node => !node.dc && node.role !== 'Added');
   const afterPartial = members.some(node => !node.dc && node.role !== 'Removed');
   const changes = new Set(members.filter(node => node.role !== 'Retained').map(node => node.dc ?? node.id));
-  const priority = node => changes.has(node.dc ?? node.id) ? 0 : 1;
-  const nodes = located.filter(node => roles.has(node.role)).sort((a, b) => priority(a) - priority(b) || order(a, b))
+  const priority = node => node.role !== 'Retained' ? 0 : changes.has(node.dc ?? node.id) ? 1 : 2;
+  const nodes = located.sort((a, b) => priority(a) - priority(b) || order(a, b))
     .map(node => ({ node, anchor: project(node.point.lon, node.point.lat) }))
     .filter(({ anchor }) => anchor.x >= 0 && anchor.x <= view.width && anchor.y >= 0 && anchor.y <= view.height);
-  const nearby = placeNear(nodes, view);
-  const { markers, diameter } = nearby ? { markers: nearby, diameter: 26 } : placeOnGrid(nodes, view);
+  const markers = placeMarkers(nodes, view).filter(({ node }) => roles.has(node.role));
+  for (const marker of markers) {
+    // Give separated markers larger native targets. Their hit boxes never cover another marker's center.
+    const clearance = markers.reduce((min, other) => other === marker ? min
+      : Math.min(min, Math.max(Math.abs(marker.x - other.x), Math.abs(marker.y - other.y))), targetSize + 0.5);
+    marker.target = Math.max(1, clearance - 0.5);
+  }
   const facilities = [];
   const groups = new Map();
   for (const marker of markers) {
@@ -91,21 +93,22 @@ export function mapScene(members, roles, project, view) {
     const all = members.filter(node => node.dc === id);
     const before = all.filter(node => node.role !== 'Added').length;
     const after = all.filter(node => node.role !== 'Removed').length;
-    const pad = diameter / 2 + 4;
-    const box = { left: Math.min(...group.map(p => p.x)) - pad, right: Math.max(...group.map(p => p.x)) + pad,
-      top: Math.min(...group.map(p => p.y)) - pad, bottom: Math.max(...group.map(p => p.y)) + pad };
-    const radius = diameter / 2;
-    const separate = markers.some(marker => marker.node.dc !== id && marker.x + radius > box.left && marker.x - radius < box.right
-      && marker.y + radius > box.top && marker.y - radius < box.bottom);
+    const box = { left: Math.min(...group.map(p => p.x - p.diameter / 2)) - 3,
+      right: Math.max(...group.map(p => p.x + p.diameter / 2)) + 3,
+      top: Math.min(...group.map(p => p.y - p.diameter / 2)) - 3,
+      bottom: Math.max(...group.map(p => p.y + p.diameter / 2)) + 3 };
+    const separate = markers.some(({ node, x, y, diameter }) => node.dc !== id
+      && x + diameter / 2 > box.left && x - diameter / 2 < box.right
+      && y + diameter / 2 > box.top && y - diameter / 2 < box.bottom);
     const count = metricDelta(before || (beforePartial ? undefined : 0), after || (afterPartial ? undefined : 0),
       { beforePartial, afterPartial });
     const description = id + ' · ' + count.text + ' recorded ' + (after === 1 ? 'member' : 'members')
       + (group.length > after ? ' · ' + group.length + (group.length === 1 ? ' marker shown' : ' markers shown') : '');
-    facilities.push({ id, before, after, description, markers: group, box, separate });
+    facilities.push({ id, before, after, count: count.text, description, markers: group, box, separate });
   }
   facilities.sort((a, b) => (Number(b.before !== b.after) - Number(a.before !== a.after)) || a.id.localeCompare(b.id));
-  facilityLabels(facilities, markers, view, diameter);
-  return { ...view, markers, facilities, diameter, mapped: located.length, total: members.length,
+  facilityLabels(facilities, markers, view);
+  return { ...view, markers, facilities, mapped: located.length, total: members.length,
     pending: members.filter(node => node.locationPending).length,
     roles: Object.keys(names).filter(role => roles.has(role)) };
 }
@@ -127,7 +130,7 @@ export function saveFile(name, content, type) {
 }
 
 function drawScene(ctx, scene, project, selected, exported) {
-  const { width, height, markers, facilities, diameter } = scene;
+  const { width, height, markers, facilities } = scene;
   ctx.fillStyle = '#e7eff2';
   ctx.fillRect(0, 0, width, height);
   ctx.strokeStyle = '#cedde1';
@@ -156,22 +159,22 @@ function drawScene(ctx, scene, project, selected, exported) {
   for (const { anchor, x, y } of markers) {
     if (distance(anchor, { x, y }) < 1) continue;
     ctx.beginPath(); ctx.moveTo(anchor.x, anchor.y); ctx.lineTo(x, y);
-    ctx.strokeStyle = '#46616d9e';
+    ctx.strokeStyle = '#46616d72';
     ctx.stroke();
-    ctx.beginPath(); ctx.arc(anchor.x, anchor.y, 2, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(anchor.x, anchor.y, 1.4, 0, Math.PI * 2);
     ctx.fillStyle = '#48616c';
     ctx.fill();
   }
-  ctx.strokeStyle = '#3b5867';
-  ctx.setLineDash([2, 3]);
+  ctx.strokeStyle = '#3b586787';
+  ctx.setLineDash([1, 2.5]);
   for (const facility of facilities) {
     if (facility.markers.length < 2) continue;
     const { left, top, right, bottom } = facility.box;
     ctx.beginPath();
     if (facility.separate) {
-      for (const marker of facility.markers) {
-        ctx.moveTo(marker.x + diameter / 2 + 2, marker.y);
-        ctx.arc(marker.x, marker.y, diameter / 2 + 2, 0, Math.PI * 2);
+      for (const { x, y, diameter } of facility.markers) {
+        ctx.moveTo(x + diameter / 2 + 2, y);
+        ctx.arc(x, y, diameter / 2 + 2, 0, Math.PI * 2);
       }
     } else ctx.roundRect(left, top, right - left, bottom - top, 8);
     ctx.stroke();
@@ -187,18 +190,21 @@ function drawScene(ctx, scene, project, selected, exported) {
     ctx.textAlign = 'left';
     ctx.fillText(text, x + 3, y + 12, width - 6);
   }
-  if (exported) for (const { node, x, y } of markers) {
+  if (exported) for (const { node, x, y, diameter } of [...markers].reverse()) {
     ctx.beginPath();
-    ctx.arc(x, y, diameter / 2 - 1, 0, Math.PI * 2);
+    ctx.arc(x, y, diameter / 2 - 0.6, 0, Math.PI * 2);
     ctx.fillStyle = palette[node.role];
     ctx.fill();
-    ctx.lineWidth = selected.has(node.id) ? 3 : 1.5;
+    ctx.lineWidth = selected.has(node.id) ? 2 : 1;
     ctx.strokeStyle = selected.has(node.id) ? '#ec9a33' : '#fff';
     ctx.stroke();
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.font = 'bold ' + Math.min(16, diameter - 5) + 'px system-ui';
-    ctx.fillText(signs[node.role], x, y + 5);
+    if (node.role !== 'Retained') {
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 14px system-ui';
+      ctx.fillText(signs[node.role], x, y);
+    }
   }
 }
 
@@ -206,6 +212,11 @@ function sceneCaption(scene) {
   const filter = scene.roles.length === Object.keys(names).length ? 'All roles' : 'Filter: ' + (scene.roles.map(role => names[role]).join(', ') || 'no roles');
   return scene.total + ' nodes across both states · ' + scene.mapped + '/' + scene.total + ' located · '
     + scene.markers.length + ' shown · ' + filter + (scene.pending ? ' · ' + scene.pending + ' locations pending' : '');
+}
+
+function facilityCaption(scene) {
+  return scene.facilities.filter(site => site.before !== site.after || site.markers.length > site.after)
+    .map(site => site.description).join(' | ');
 }
 
 export function reviewMap(inspect, active) {
@@ -235,6 +246,7 @@ export function reviewMap(inspect, active) {
   let lon = 0;
   let lat = 0;
   let pointer;
+  let dragged = false;
   let unit;
   const limit = () => {
     lon = clamp(lon, -180, 180);
@@ -242,6 +254,7 @@ export function reviewMap(inspect, active) {
   };
 
   function draw() {
+    map.toggleAttribute('data-regional', scale > 1);
     const width = map.clientWidth || 320;
     const height = map.clientHeight || 330;
     const ratio = window.devicePixelRatio || 1;
@@ -260,11 +273,13 @@ export function reviewMap(inspect, active) {
     ctx.setTransform(rasterWidth / width, 0, 0, rasterHeight / height, 0, 0);
     drawScene(ctx, scene, projection, selected, false);
     const visible = new Set();
-    for (const { node, anchor, x, y } of scene.markers) {
+    for (const { node, anchor, x, y, target, diameter } of scene.markers) {
       let button = buttons.get(node.id);
       if (!button) {
         button = action('', () => inspect([node.id], button.dataset.nodeLabel));
         button.dataset.marker = node.id;
+        button.append(styled('span', 'map-glyph'));
+        button.firstElementChild.setAttribute('aria-hidden', 'true');
         buttons.set(node.id, button);
         pins.append(button);
       }
@@ -276,8 +291,9 @@ export function reviewMap(inspect, active) {
       button.title = label;
       button.setAttribute('aria-label', label + ' · ' + node.id);
       button.setAttribute('aria-pressed', String(selected.has(node.id)));
-      button.textContent = signs[node.role];
-      button.style.setProperty('--pin-size', scene.diameter + 'px');
+      button.firstElementChild.textContent = node.role === 'Retained' ? '' : signs[node.role];
+      button.style.setProperty('--pin-glyph', diameter + 'px');
+      button.style.setProperty('--pin-target', target + 'px');
       button.style.left = x + 'px';
       button.style.top = y + 'px';
       button.dataset.anchorX = String(anchor.x);
@@ -295,11 +311,10 @@ export function reviewMap(inspect, active) {
       buttons.get(hiddenFocus).focus({ preventScroll: true });
       hiddenFocus = undefined;
     }
-    caption.textContent = model ? sceneCaption(scene) + (scene.diameter < 24 ? ' · Dense view. Zoom or use the node list for larger targets.' : '')
+    caption.textContent = model ? sceneCaption(scene) + (scene.markers.some(marker => marker.target < 24)
+      ? ' · Zoom in or use the node list to select nodes in dense locations.' : '')
       : emptyMessage ?? 'Registered locations appear here as evidence becomes available.';
-    facilities.textContent = scene.facilities
-      .filter(site => site.before !== site.after || site.markers.length > site.after)
-      .map(site => site.description).join(' | ');
+    facilities.textContent = facilityCaption(scene);
   }
 
   function redrawUnmapped() {
@@ -346,12 +361,15 @@ export function reviewMap(inspect, active) {
     draw();
   }
   map.addEventListener('pointerdown', event => {
+    dragged = false;
     if (event.target.closest('button') || event.pointerType === 'touch') return;
     pointer = [event.clientX, event.clientY, lon, lat];
     map.setPointerCapture(event.pointerId);
   });
   map.addEventListener('pointermove', event => {
     if (!pointer) return;
+    if (!dragged && Math.hypot(event.clientX - pointer[0], event.clientY - pointer[1]) < 4) return;
+    dragged = true;
     lon = pointer[2] - (event.clientX - pointer[0]) / unit / scale;
     lat = pointer[3] + (event.clientY - pointer[1]) / unit / scale;
     limit();
@@ -359,6 +377,24 @@ export function reviewMap(inspect, active) {
     draw();
   });
   for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) map.addEventListener(name, () => { pointer = undefined; });
+  map.addEventListener('click', event => {
+    if (dragged || event.target.closest('button')) return;
+    const rect = pins.getBoundingClientRect();
+    const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    let nearest;
+    let squared = (targetSize / 2) ** 2;
+    for (const marker of scene.markers) {
+      const separation = distance(point, marker);
+      if (separation >= squared) continue;
+      squared = separation;
+      nearest = marker;
+    }
+    if (nearest) {
+      const button = buttons.get(nearest.node.id);
+      button.focus({ preventScroll: true });
+      button.click();
+    }
+  });
 
   const arrows = [['←', 'Pan west', -30, 0], ['↑', 'Pan north', 0, 30], ['↓', 'Pan south', 0, -30], ['→', 'Pan east', 30, 0]];
   const focus = action('Focus changes', focusChanges);
@@ -383,6 +419,7 @@ export function reviewMap(inspect, active) {
       'Registry ' + number(model.version) + ' · Subnet ' + model.subnet,
       model.membership,
       sceneCaption(scene) + ' · ' + focusLabel + ' · ' + scale.toFixed(1) + '×',
+      facilityCaption(scene),
       model.replay ? replayLabel(model.replay) + (model.replay.roleSupplement ? ' · Synthetic NNS-role supplement' : '') : null,
       model.replay ? replayRegistryText(model.replay) : null,
       ...model.governance.map(proposal => governanceText(proposal, model.replay, true)),
