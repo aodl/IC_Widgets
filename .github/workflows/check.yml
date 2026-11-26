@@ -48,8 +48,8 @@ jobs:
             echo 'The production build accepted a replay manifest.'
             exit 1
           fi
-          rg -q 'Replay assets require the local network' .local/replay-production-build.log
-          if rg 'Replay scenario|Development replay|nns-144954|ic-api.internetcomputer.org' web/dist; then
+          grep -Fq 'Replay assets require the local network' .local/replay-production-build.log
+          if grep -rqE 'Replay scenario|Development replay|nns-144954|ic-api\.internetcomputer\.org' web/dist; then
             echo 'Development replay controls or external acquisition leaked into the production bundle.'
             exit 1
           fi
