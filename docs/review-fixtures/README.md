@@ -12,33 +12,22 @@ The launcher defaults to port 4971. Use `--port PORT` for a separate project or 
 
 Provision the pinned Rust toolchain, Wasm target, DFX 0.31, `codex_local` identity, Protobuf compiler, `candid-extractor` 0.1.6 and Node dependencies before going offline. Run `dfx cache install`, `cargo fetch --locked` and `npm --prefix web ci` during setup. The launcher builds with `cargo --offline`, uses caching across selections, and requires the existing DFX runtime. If `POCKET_IC_BIN` is configured, it checks for the prepared 14.0.0 executable. Browser replay uses the DFX-bundled local replica. Focused Rust integration tests use the separately prepared PocketIC server.
 
-The browser signs its local updates with a fresh in-memory identity. The launcher uses a reviewer feature that accepts these identities only when Governance and Registry both point to the same explicit noncanonical fixture source. Ordinary local-fixture tests still exercise the pilot admission path. The production build rejects source overrides, the fixture loader requires a local controller, and the production frontend bundle excludes the menu and corpus.
+The browser signs updates with a fresh in-memory identity. The production reviewer rejects source overrides. The fixture loader requires a local controller, and production frontend builds exclude the menu and corpus.
 
-## Browser access to the Azure VM
+## Public HTTPS replay on Azure
 
-1. On the VM, start the launcher from the Network Nexus checkout and wait for the `Open http://…localhost:4971/` line. The replica gateway binds to `127.0.0.1:4971`.
-2. On your computer, keep an SSH tunnel open through your existing authenticated VM route. For a VPN or jump-host SSH alias, use the command below with that alias.
+Open the public replay URL, choose **Replay scenario**, and click **Review**. The page identifies the selected case's recorded and synthetic evidence.
 
-   ```bash
-   ssh -N -T -o ExitOnForwardFailure=yes -o GatewayPorts=no -L 127.0.0.1:4971:127.0.0.1:4971 AZURE_SSH_ALIAS
-   ```
-
-3. Open the exact canister-specific `*.localhost:4971` URL printed by the launcher. The hostname identifies the frontend canister to the local gateway. Both endpoints of the SSH forward use loopback. [OpenSSH forwarding](https://man.openbsd.org/ssh)
-
-If your VM uses an existing Azure Bastion with native-client support, run the following on your computer in two terminals. Sign in with the account authorized for that VM, substitute the Bastion and VM details from Azure, and use the existing VM SSH login. Verify the VM's SSH host key as for a direct connection. [Azure Bastion native-client tunnel](https://learn.microsoft.com/en-us/azure/bastion/connect-vm-native-client-linux#connect-to-a-vm---tunnel-command)
+To serve the replay, start the ordinary launcher on the VM and use the project path it prints. In separate VM processes, run the scoped ingress and point a Cloudflare Quick Tunnel at it:
 
 ```bash
-az login
-az network bastion tunnel --name BASTION_NAME --resource-group BASTION_RESOURCE_GROUP --target-resource-id VM_RESOURCE_ID --resource-port 22 --port 2222
+node web/replay-ingress.mjs "$PROJECT" 4971 4972
+cloudflared tunnel --no-autoupdate --protocol http2 --metrics 127.0.0.1:4978 --url http://127.0.0.1:4972
 ```
 
-```bash
-ssh -p 2222 -N -T -o ExitOnForwardFailure=yes -o GatewayPorts=no -L 127.0.0.1:4971:127.0.0.1:4971 VM_USER@127.0.0.1
-```
+Share the HTTPS URL printed by `cloudflared`. A tunnel restart generates a new URL. Stop the tunnel and the scoped ingress on the VM, then run the launcher's printed replica stop command. Restart all three processes to publish a new URL. [Quick Tunnel documentation](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)
 
-Use Ctrl+C to close the workstation tunnel. To stop the replica, run the command printed by the launcher on the VM. To restart, run the launcher again and use its new URL. Reopen the SSH forward if the port changed or the tunnel was closed. Keep the replica, the forwarded port and the management endpoints on loopback. Development replay assets also require a loopback browser origin.
-
-Verification covered the VM's loopback listener, the exact canister hostname and the SSH client's loopback forwarding configuration. Workstation sign-in uses your existing Azure network route and credentials.
+Both VM listeners bind to loopback. The public ingress serves the built app, the replica status used to obtain the local trust root, and signed calls to selected public reviewer methods with certified request-status polling. Controller methods, fixture mutation, the replica dashboard and other canisters stay private. The HTTPS ingress is for replay only. The live app uses the IC transport and its normal trust root.
 
 ## Evidence matrix
 

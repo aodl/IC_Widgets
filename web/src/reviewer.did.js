@@ -343,6 +343,7 @@ export const idlFactory = ({ IDL }) => {
     'InvalidEvidence' : ReviewError,
     'Deadline' : IDL.Null,
     'Source' : IDL.Record({ 'observation' : IDL.Nat64, 'reason' : IDL.Text }),
+    'PublicBudget' : IDL.Null,
     'CallLimit' : IDL.Null,
     'SourceBytes' : IDL.Null,
     'CycleBalance' : IDL.Null,
@@ -1286,7 +1287,6 @@ export const idlFactory = ({ IDL }) => {
     'request_membership_review' : IDL.Func([ReviewRequest], [Result_37], []),
     'retry_registry' : IDL.Func([], [Result_1], []),
     'review_on_demand' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_3], []),
-    'set_on_demand_caller' : IDL.Func([IDL.Opt(IDL.Principal)], [Result_1], []),
     'source_observation' : IDL.Func([IDL.Nat64], [Result_38], []),
     'start_probe' : IDL.Func([ProbeRequest], [Result_39], []),
     'start_probe_with_limits' : IDL.Func(

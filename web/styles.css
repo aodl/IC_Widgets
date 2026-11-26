@@ -106,21 +106,7 @@ textarea { width: 100%; font: inherit; border: 1px solid #a9bac0; border-radius:
 main { padding-top: .85rem; }
 .masthead { padding: .48rem 0; background: #122a37; }
 .masthead-row, .map-heading, .inspector-heading { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
-.masthead-row > .actions { gap: .75rem; align-items: center; }
-.masthead button, .masthead summary { color: #f1f8f8; }
-.masthead button { background: transparent; border-color: #657d88; padding: .3rem .7rem; font-size: .9rem; }
-.masthead summary { font-size: .9rem; padding: .35rem 0; }
-#pilot-access { margin: 0; }
-#pilot-access:not([open]) .access-panel { display: none; }
-.access-panel {
-  position: absolute; z-index: 5; right: max(1rem, calc((100% - 82rem) / 2));
-  width: min(22rem, calc(100% - 2rem)); color: #182c3d; background: #fff;
-  border: 1px solid var(--border); border-radius: .6rem; padding: .85rem;
-  box-shadow: 0 12px 30px #142b3d20;
-}
-.access-panel code { display: block; margin: .5rem 0; overflow-wrap: anywhere; }
-.access-panel button { color: #182c3d; }
-.access-panel > :last-child:empty { display: none; }
+.masthead button { color: #f1f8f8; background: transparent; border-color: #657d88; padding: .3rem .7rem; font-size: .9rem; }
 .local-note { font-size: .82rem; color: var(--muted); margin: 0 0 .4rem; }
 .replay-purpose { margin-top: .25rem; }
 .terminal-outcome { overflow-wrap: anywhere; }

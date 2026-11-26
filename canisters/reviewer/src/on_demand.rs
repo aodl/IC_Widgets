@@ -3,7 +3,10 @@ mod detail;
 mod policy;
 mod registry;
 
-use std::{cell::Cell, collections::BTreeSet};
+use std::{
+    cell::{Cell, RefCell},
+    collections::BTreeSet,
+};
 
 pub use detail::{DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison};
 pub use policy::PolicySnapshot;
@@ -13,7 +16,7 @@ use futures_util::future::join_all;
 use ic_cdk::{
     api::{
         call_context_instruction_counter, canister_cycle_balance, canister_liquid_cycle_balance,
-        is_controller, msg_caller, time,
+        msg_caller, time,
     },
     call::Call,
 };
@@ -29,7 +32,7 @@ use nexus_review_engine::{
 };
 use serde::Deserialize;
 
-use crate::{Sources, budget::FLOOR, require_controller, store};
+use crate::{Sources, budget::FLOOR, store};
 
 const SECOND: u64 = 1_000_000_000;
 const DEADLINE: u64 = 120 * SECOND;
@@ -40,8 +43,9 @@ const RESULT_BYTES: usize = 1024 * 1024;
 const NODE_LIMIT: usize = 128;
 
 thread_local! {
-    static DELEGATE: Cell<Option<Principal>> = const { Cell::new(None) };
     static BUSY_UNTIL: Cell<u64> = const { Cell::new(0) };
+    static PUBLIC_UPDATES: RefCell<Allowance> = const { RefCell::new(Allowance::new(96, 30 * SECOND)) };
+    static PUBLIC_SOURCE_CALLS: RefCell<Allowance> = const { RefCell::new(Allowance::new(768, 30 * SECOND)) };
 }
 
 #[derive(Debug, CandidType, Deserialize)]
@@ -49,6 +53,7 @@ pub enum LiveError {
     Deadline,
     CycleBalance,
     CallLimit,
+    PublicBudget,
     SourceBytes,
     ResultLimit,
     Source {
@@ -147,45 +152,52 @@ pub struct LivePerformance {
     pub samples: NodeMetricsHistoryResult,
 }
 
-/// One optional browser principal for a local or explicitly approved pilot.
-/// The principal is cleared on upgrade and receives no controller permissions.
-#[ic_cdk::update]
-fn set_on_demand_caller(caller: Option<Principal>) -> Result<(), String> {
-    require_controller()?;
-    if caller == Some(Principal::anonymous()) {
-        return Err("an authenticated principal is required".into());
-    }
-    DELEGATE.set(caller);
-    Ok(())
+struct Allowance {
+    capacity: u64,
+    refill_interval: u64,
+    available: u64,
+    last_refill: Option<u64>,
 }
 
-fn require_on_demand_caller() -> Result<(), String> {
-    let caller = msg_caller();
-    #[cfg(feature = "fixture-browser")]
-    if caller != Principal::anonymous() {
-        let sources = store::config().sources;
-        if sources.governance == sources.registry
-            && sources.registry != Sources::canonical().registry
-        {
-            return Ok(());
+impl Allowance {
+    const fn new(capacity: u64, refill_interval: u64) -> Self {
+        Self {
+            capacity,
+            refill_interval,
+            available: capacity,
+            last_refill: None,
         }
     }
-    if caller == Principal::anonymous()
-        || (!is_controller(&caller) && DELEGATE.get() != Some(caller))
-    {
-        return Err("on-demand access requires an authorized principal".into());
+
+    fn consume(&mut self, now: u64, amount: u64) -> bool {
+        let last = *self.last_refill.get_or_insert(now);
+        let refill = now.saturating_sub(last) / self.refill_interval;
+        self.last_refill = Some(last + refill * self.refill_interval);
+        self.available = self.capacity.min(self.available.saturating_add(refill));
+        if let Some(available) = self.available.checked_sub(amount) {
+            self.available = available;
+            true
+        } else {
+            false
+        }
     }
-    Ok(())
 }
 
 struct RequestGuard(u64);
 
 impl RequestGuard {
     fn acquire() -> Result<Self, String> {
-        require_on_demand_caller()?;
         let now = time();
         if BUSY_UNTIL.get() > now {
             return Err("another on-demand request is running".into());
+        }
+        if canister_liquid_cycle_balance() < FLOOR {
+            return Err("The canister has insufficient liquid cycles.".into());
+        }
+        if !PUBLIC_UPDATES.with_borrow_mut(|budget| budget.consume(now, 1)) {
+            return Err(
+                "The public request budget is temporarily exhausted. Try again later.".into(),
+            );
         }
         let expiry = now.saturating_add(DEADLINE);
         BUSY_UNTIL.set(expiry);
@@ -208,14 +220,19 @@ async fn review_on_demand(ids: Vec<u64>) -> Result<LiveResponse<LiveReview>, Str
 
 #[ic_cdk::update]
 async fn begin_membership_review(ids: Vec<u64>) -> Result<LiveResponse<LiveReview>, String> {
+    if msg_caller() == Principal::anonymous() {
+        return Err(
+            "A distinct request identity is required for an isolated review session.".into(),
+        );
+    }
     preview(ids, true).await
 }
 
 async fn preview(ids: Vec<u64>, contextual: bool) -> Result<LiveResponse<LiveReview>, String> {
-    let guard = RequestGuard::acquire()?;
     if !(1..=2).contains(&ids.len()) || ids.contains(&0) || (ids.len() == 2 && ids[0] == ids[1]) {
         return Err("select one or two distinct positive proposal IDs".into());
     }
+    let guard = RequestGuard::acquire()?;
     let mut request = Request::new(guard.0);
     let sources = if cfg!(feature = "local-fixtures") {
         store::config().sources
@@ -223,13 +240,26 @@ async fn preview(ids: Vec<u64>, contextual: bool) -> Result<LiveResponse<LiveRev
         Sources::canonical()
     };
     let mut outcome = review(&mut request, sources, &ids).await;
-    if contextual && let Ok(review) = &mut outcome {
+    if contextual
+        && let Ok(review) = &mut outcome
+        && review.report.manifest.proposals.iter().any(|row| {
+            matches!(row.lifecycle_status, 1 | 3)
+                && row.executed_at_seconds.unwrap_or_default() == 0
+        })
+    {
+        // Include the token in the result-size check before publishing the context.
+        review.review_context = Some([0; 32]);
+    }
+    let mut response = request.finish(outcome);
+    if let Ok(review) = &mut response.outcome
+        && review.review_context.is_some()
+    {
         review.review_context = Some(policy::begin(
             &review.report,
             review.subnet_rules.as_deref().unwrap_or_default(),
-        ));
+        )?);
     }
-    Ok(request.finish(outcome))
+    Ok(response)
 }
 
 #[ic_cdk::update]
@@ -238,7 +268,6 @@ async fn node_performance_on_demand(
     start_at_timestamp_nanos: u64,
     nodes: Option<Vec<Principal>>,
 ) -> Result<LiveResponse<LivePerformance>, String> {
-    let guard = RequestGuard::acquire()?;
     const MAX_LOOKBACK: u64 = 60 * 24 * 60 * 60 * SECOND;
     let now = time();
     if subnet.as_slice().is_empty()
@@ -248,6 +277,7 @@ async fn node_performance_on_demand(
     {
         return Err("select a subnet, up to 128 nodes and a start within the last 60 days".into());
     }
+    let guard = RequestGuard::acquire()?;
     let mut request = Request::new(guard.0);
     let outcome = performance(&mut request, subnet, start_at_timestamp_nanos, nodes).await;
     Ok(request.finish(outcome))
@@ -576,6 +606,11 @@ impl Request {
             let reservation = calls.iter().map(Call::get_cost).sum::<u128>();
             if canister_liquid_cycle_balance() < reservation.saturating_add(FLOOR) {
                 return Err(LiveError::CycleBalance);
+            }
+            if !PUBLIC_SOURCE_CALLS
+                .with_borrow_mut(|budget| budget.consume(time(), batch.len() as u64))
+            {
+                return Err(LiveError::PublicBudget);
             }
             self.peak_batch_reservation = self.peak_batch_reservation.max(reservation);
             let results = join_all(calls.into_iter().map(|call| async move {

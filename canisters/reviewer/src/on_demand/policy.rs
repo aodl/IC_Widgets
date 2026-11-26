@@ -1,4 +1,4 @@
-//! One transient review context for the current browser request.
+//! Bounded transient review contexts, keyed by the browser's ephemeral caller.
 use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet},
@@ -19,14 +19,14 @@ use nexus_review_engine::{NnsTarget, ProposalEvidence, Review, parse_nns_target}
 use serde::Deserialize;
 
 use super::{
-    DetailComparisonInput, LiveResponse, Request, RequestGuard, SubnetRules, check_proposal,
-    proposals,
+    DetailComparisonInput, LiveResponse, Request, RequestGuard, SECOND, SubnetRules,
+    check_proposal, proposals,
 };
 use crate::{Sources, store};
 
 struct Context {
     token: Hash,
-    caller: Principal,
+    expires_at: u64,
     revision: Hash,
     version: u64,
     states: BTreeSet<Hash>,
@@ -38,9 +38,13 @@ struct Context {
     policy: Option<PolicySnapshot>,
 }
 
-// Pilot selection. Limits and scope conditions always come from the motion.
-const PILOT_REFERENCE_MOTION: u64 = 143_190;
+// Limits and scope conditions always come from the selected motion.
+const REFERENCE_MOTION: u64 = 143_190;
 const RECORD_LIMIT_PER_KIND: usize = 256;
+const CONTEXT_LIMIT: usize = 32;
+const CONTEXT_LIFETIME: u64 = 30 * 60 * SECOND;
+const CONTEXT_UNAVAILABLE: &str =
+    "This review session has expired or was replaced. Start a new review.";
 
 pub(super) struct BoundRecord {
     digest: Hash,
@@ -55,7 +59,7 @@ pub(super) fn bind_record<T: CandidType>(record: &T, next: Option<RecordKey>) ->
 }
 
 thread_local! {
-    static CONTEXT: RefCell<Option<Context>> = const { RefCell::new(None) };
+    static CONTEXTS: RefCell<BTreeMap<Principal, Context>> = const { RefCell::new(BTreeMap::new()) };
 }
 
 #[derive(Clone, CandidType, Deserialize)]
@@ -93,10 +97,20 @@ fn state_id(subnet: Principal, before: &[Principal], after: &[Principal]) -> Has
     sha256(&candid::encode_args((subnet, before, after)).expect("review membership identity"))
 }
 
-pub(super) fn begin(report: &Review, rules: &[SubnetRules]) -> Hash {
+pub(super) fn begin(report: &Review, rules: &[SubnetRules]) -> Result<Hash, String> {
     let caller = msg_caller();
-    let token =
-        sha256(&candid::encode_args((caller, time(), report.revision)).expect("review token"));
+    let now = time();
+    let previous = CONTEXTS.with_borrow_mut(|contexts| {
+        contexts.retain(|_, context| context.expires_at > now);
+        let previous = contexts.get(&caller).map(|context| context.token);
+        if previous.is_none() && contexts.len() >= CONTEXT_LIMIT {
+            return Err("The public review session limit is full. Try again later.");
+        }
+        Ok(previous)
+    })?;
+    let token = sha256(
+        &candid::encode_args((caller, now, report.revision, previous)).expect("review token"),
+    );
     let states = report
         .scenarios
         .iter()
@@ -108,9 +122,9 @@ pub(super) fn begin(report: &Review, rules: &[SubnetRules]) -> Hash {
                 .map(move |next| state_id(subnet, before, &next.members))
         })
         .collect();
-    CONTEXT.set(Some(Context {
+    let context = Context {
         token,
-        caller,
+        expires_at: now.saturating_add(CONTEXT_LIFETIME),
         revision: report.revision,
         version: report.manifest.registry_version,
         states,
@@ -128,11 +142,15 @@ pub(super) fn begin(report: &Review, rules: &[SubnetRules]) -> Hash {
         records: BTreeMap::new(),
         proposals: report.manifest.proposals.clone(),
         policy: None,
-    }));
-    token
+    };
+    CONTEXTS.with_borrow_mut(|contexts| contexts.insert(caller, context));
+    Ok(token)
 }
 
-pub(super) fn admit_details(token: Hash, keys: &[RecordKey]) -> Result<u64, String> {
+pub(super) fn admit_details(
+    token: Hash,
+    keys: &[RecordKey],
+) -> Result<(RequestGuard, u64), String> {
     let version = with_context(token, |context| {
         for key in keys {
             let allowed = match key {
@@ -164,28 +182,20 @@ pub(super) fn admit_details(token: Hash, keys: &[RecordKey]) -> Result<u64, Stri
         }
         Ok(context.version)
     })??;
-    CONTEXT.with_borrow_mut(|context| {
-        let reads = &mut context.as_mut().expect("validated context").reads;
+    let guard = RequestGuard::acquire()?;
+    with_context_mut(token, |context| {
         for key in keys {
-            *reads.entry(key.clone()).or_default() += 1;
+            *context.reads.entry(key.clone()).or_default() += 1;
         }
-    });
-    Ok(version)
+    })?;
+    Ok((guard, version))
 }
 
 pub(super) fn retain_details(
     token: Hash,
     records: impl IntoIterator<Item = (RecordKey, BoundRecord)>,
 ) {
-    if with_context(token, |_| ()).is_ok() {
-        CONTEXT.with_borrow_mut(|context| {
-            context
-                .as_mut()
-                .expect("validated context")
-                .records
-                .extend(records)
-        });
-    }
+    let _ = with_context_mut(token, |context| context.records.extend(records));
 }
 
 fn check_records<K: Ord, T: CandidType>(
@@ -216,13 +226,27 @@ fn check_records<K: Ord, T: CandidType>(
 }
 
 fn with_context<T>(token: Hash, read: impl FnOnce(&Context) -> T) -> Result<T, String> {
-    CONTEXT.with_borrow(|context| {
-        context
-            .as_ref()
-            .filter(|context| context.token == token && context.caller == msg_caller())
+    CONTEXTS.with_borrow(|contexts| {
+        contexts
+            .get(&msg_caller())
+            .filter(|context| context.token == token && context.expires_at > time())
             .map(read)
-            .ok_or_else(|| "This review context was superseded. Start a new review.".into())
+            .ok_or_else(|| CONTEXT_UNAVAILABLE.into())
     })
+}
+
+fn with_context_mut<T>(token: Hash, write: impl FnOnce(&mut Context) -> T) -> Result<T, String> {
+    CONTEXTS.with_borrow_mut(|contexts| {
+        contexts
+            .get_mut(&msg_caller())
+            .filter(|context| context.token == token && context.expires_at > time())
+            .map(write)
+            .ok_or_else(|| CONTEXT_UNAVAILABLE.into())
+    })
+}
+
+pub(super) fn verify_context(token: Hash) -> Result<(), String> {
+    with_context(token, |_| ())
 }
 
 pub(super) fn policy_for(
@@ -274,13 +298,13 @@ async fn membership_target_topology(
     token: Hash,
     policy_id: Option<u64>,
 ) -> Result<LiveResponse<PolicySnapshot>, String> {
-    let guard = RequestGuard::acquire()?;
-    let policy_id = Some(policy_id.unwrap_or(PILOT_REFERENCE_MOTION));
+    let policy_id = Some(policy_id.unwrap_or(REFERENCE_MOTION));
     if policy_id == Some(0) {
         return Err("Select a positive policy proposal ID.".into());
     }
     let (version, prior) =
         with_context(token, |context| (context.version, context.policy.clone()))?;
+    let guard = RequestGuard::acquire()?;
     let sources = sources();
     let mut request = Request::new(guard.0);
     request.version = Some(version);
@@ -387,10 +411,7 @@ async fn membership_target_topology(
         sha256(&candid::encode_args((token, &source)).expect("policy evidence identity"));
     let response = request.finish(Ok(source));
     if let Ok(source) = &response.outcome {
-        with_context(token, |_| ())?;
-        CONTEXT.with_borrow_mut(|context| {
-            context.as_mut().expect("validated context").policy = Some(source.clone())
-        });
+        with_context_mut(token, |context| context.policy = Some(source.clone()))?;
     }
     Ok(response)
 }
@@ -426,10 +447,10 @@ fn resolve_motion(motion: &mut PolicyMotion, raw: &[u8]) {
 async fn finalize_membership_review(
     token: Hash,
 ) -> Result<LiveResponse<Vec<ProposalEvidence>>, String> {
-    let guard = RequestGuard::acquire()?;
     let (version, prior) = with_context(token, |context| {
         (context.version, context.proposals.clone())
     })?;
+    let guard = RequestGuard::acquire()?;
     let ids = prior.iter().map(|proposal| proposal.id).collect::<Vec<_>>();
     let mut request = Request::new(guard.0);
     request.version = Some(version);

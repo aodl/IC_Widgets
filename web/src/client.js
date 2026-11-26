@@ -4,13 +4,14 @@ import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import { idlFactory } from './reviewer.did.js';
 import { hex } from './view.js';
 
-// The browser keeps this pilot identity in memory and displays only its principal.
-export const identity = Ed25519KeyIdentity.generate();
+// Each page has its own identity for isolated, expiring review sessions.
+const identity = Ed25519KeyIdentity.generate();
 
 export const replays = typeof FIXTURE_REPLAY === 'undefined' ? null : FIXTURE_REPLAY;
 if (typeof FIXTURE_REPLAY !== 'undefined' && FIXTURE_REPLAY
+    && location.protocol !== 'https:'
     && !['127.0.0.1', '[::1]', 'localhost'].includes(location.hostname) && !location.hostname.endsWith('.localhost')) {
-  throw new Error('Development replay requires a loopback origin.');
+  throw new Error('Development replay requires HTTPS or a loopback origin.');
 }
 export const activeReplay = replays && (replays.cases.find(row => row.id === new URLSearchParams(location.search).get('case'))
   ?? replays.cases.find(row => row.id === replays.initial));
@@ -66,6 +67,7 @@ export function liveError(error) {
     Deadline: 'The source reads exceeded the time limit. Try again.',
     CycleBalance: 'The canister has insufficient liquid cycles for the next batch.',
     CallLimit: 'The review exceeded its source-call or node limit.',
+    PublicBudget: 'The public source-read budget is temporarily exhausted. Try again later.',
     SourceBytes: 'The source replies exceeded the input size limit.',
     ResultLimit: 'The result exceeded its response size limit.',
   };

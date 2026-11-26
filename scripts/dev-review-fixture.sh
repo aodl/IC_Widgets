@@ -58,7 +58,7 @@ for index, row in enumerate(selected):
 (project / "cases.tsv").write_text("".join(f"fixture{suffix}\treviewer{suffix}\t{id}\n" for suffix,id in linked))
 PY
 cargo build --locked --offline --release --target wasm32-unknown-unknown \
-    -p nexus-reviewer -p nexus-source-fixture --features nexus-reviewer/fixture-browser,nexus-source-fixture/slow-governance
+    -p nexus-reviewer -p nexus-source-fixture --features nexus-reviewer/local-fixtures,nexus-source-fixture/slow-governance
 wasms="$root/target/wasm32-unknown-unknown/release"
 mkdir -p "$project/assets"
 cp "$wasms/nexus_reviewer.wasm" "$project/reviewer.wasm"
@@ -100,5 +100,4 @@ dfx deploy --network local frontend
 frontend=$(dfx canister id --network local frontend)
 trap - ERR
 echo "Open http://$frontend.localhost:$port/"
-echo "From your computer, forward 127.0.0.1:$port to 127.0.0.1:$port on the VM over SSH."
 echo "Stop with (cd '$project' && DFX_IDENTITY=codex_local dfx stop)."

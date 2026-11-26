@@ -901,13 +901,6 @@ fn native_metrics_producer_resumes_per_subnet_and_preserves_overlap() {
 
     // Read the native remote source before any archive or collector is enabled.
     let viewer = Principal::from_slice(&[86, 2]);
-    call::<Result<(), String>>(
-        &pic,
-        reviewer,
-        "set_on_demand_caller",
-        encode_one(Some(viewer)).unwrap(),
-    )
-    .unwrap();
     let start = pic
         .get_time()
         .as_nanos_since_unix_epoch()

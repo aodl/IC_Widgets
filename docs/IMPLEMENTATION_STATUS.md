@@ -66,7 +66,7 @@ The initial on-demand implementation used the broader topology path. Cross-subne
 | Proposal 144942 with a synthetic two-member target | 19 | 15,673 | 7,637 | 0.71 s | 33.34 M | 164.19 M |
 | Native remote blockmaking, standalone | 1 | 241 | 914 | 0.026 s | 0.58 M | 13.67 M |
 
-Chromium on the local asset canister verified denied access before delegation, both execution orders, a linked 51-node filter, clearing that filter, and an independent blockmaking request. The pair review and the blockmaking request each took about 3.2 seconds from the browser. Browser traffic remained on the local replica.
+Chromium on the local asset canister verified both execution orders, a linked 51-node filter, clearing that filter, and an independent blockmaking request. The pair review and the blockmaking request each took about 3.2 seconds from the browser. Browser traffic remained on the local replica.
 
 The 144942 test replayed the archived 23 November Governance reply with SHA-256 `8c9845cc9bb67edc1c35f688b00170ccae0eb41f54e4abd8d90b00a1e5019ad3`. It verified the actual executable addition and removal against the fixture. The revised preview awaits a separately authorized mainnet measurement.
 

@@ -16,7 +16,9 @@ const data = JSON.parse(await readFile(resolve(project, 'replays.json'), 'utf8')
 const id = execFileSync('dfx', ['canister', 'id', '--network', 'local', 'frontend'], {
   cwd: project, env: { ...process.env, DFX_IDENTITY: 'codex_local' }, encoding: 'utf8',
 }).trim();
-const url = new URL('http://' + id + '.localhost:' + port);
+const publicUrl = process.env.NEXUS_REPLAY_PUBLIC_URL;
+const url = new URL(publicUrl ?? 'http://' + id + '.localhost:' + port);
+if (publicUrl && url.protocol !== 'https:') throw new Error('Public replay URL requires HTTPS.');
 await mkdir(output, { recursive: true });
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
@@ -206,10 +208,58 @@ try {
   assert.equal(count('compare_membership_with_policy'), comparisons);
   assert.ok(await exportButton().isEnabled());
 
+  const first = await browser.newPage();
+  const second = await browser.newPage();
+  let holdFirst;
+  let releaseFirst;
+  const ready = new Promise(resolve => { holdFirst = resolve; });
+  const paused = new Promise(resolve => { releaseFirst = resolve; });
+  const senders = new Set();
+  for (const tab of [first, second]) {
+    tab.on('pageerror', error => errors.push(error.message));
+    await tab.route('**/*', route => {
+      if (new URL(route.request().url()).origin === url.origin) return route.continue();
+      external.push(route.request().url());
+      return route.abort();
+    });
+    await tab.route(detailRoute, async route => {
+      const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
+      if (content.method_name === 'begin_membership_review') {
+        senders.add(Buffer.from(content.sender).toString('hex'));
+      }
+      if (tab === first && content.method_name === 'membership_context_detail_page') {
+        holdFirst();
+        await paused;
+      }
+      return route.fallback();
+    });
+  }
+  const concurrencyUrl = new URL('/?case=multiple-changes', url);
+  const start = async tab => {
+    await tab.goto(concurrencyUrl.toString());
+    await tab.getByRole('button', { name: 'Review', exact: true }).click();
+  };
+  const tabFinished = tab => tab.locator('#report-status').getByText('Finished with gaps', { exact: true })
+    .waitFor({ timeout: 120000 });
+  try {
+    await start(first);
+    await Promise.race([ready, first.locator('#review-counts').getByText(/records settled/).waitFor()]);
+    await start(second);
+    await tabFinished(second);
+  } finally {
+    releaseFirst();
+  }
+  await tabFinished(first);
+  assert.equal(senders.size, 2);
+  for (const tab of [first, second]) {
+    assert.ok(await tab.getByRole('button', { name: 'Export review', exact: true }).isEnabled());
+    await tab.close();
+  }
+
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
   const summary = { cases: ['recorded', 'multiple changes', 'paired orders', 'executed terminal', 'rejected terminal',
-    'failed terminal', 'held locations', 'subnet A→B→A'],
+    'failed terminal', 'held locations', 'subnet A→B→A', 'independent browser contexts'],
     recordedDigest: digest, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log(JSON.stringify(summary, null, 2));

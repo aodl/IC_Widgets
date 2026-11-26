@@ -95,6 +95,173 @@ fn review(
 
 #[test]
 #[ignore = "run through scripts/test-m0.sh to build Wasms and start PocketIC"]
+fn public_sessions_are_isolated_and_share_a_finite_work_budget() {
+    use nexus_reviewer::{DetailKeys, DetailRecords, ProposalEvidence};
+
+    assert!(enabled());
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+    let controller = id(90, 1);
+    let a = id(90, 2);
+    let b = id(90, 3);
+    let anonymous = Principal::anonymous();
+    let topology = pic.topology();
+    let fixture =
+        pic.create_canister_on_subnet(Some(controller), None, topology.get_nns().unwrap());
+    let reviewer =
+        pic.create_canister_on_subnet(Some(controller), None, topology.get_app_subnets()[0]);
+    pic.install_canister(
+        fixture,
+        wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
+        encode_args(()).unwrap(),
+        Some(controller),
+    );
+    call::<()>(
+        &pic,
+        fixture,
+        controller,
+        "load_voting_reference",
+        encode_args(()).unwrap(),
+    );
+    pic.install_canister(
+        reviewer,
+        wasm(".local/reviewer-fixture.wasm"),
+        encode_one(Some(Sources {
+            registry: fixture,
+            governance: fixture,
+        }))
+        .unwrap(),
+        Some(controller),
+    );
+    let checkpoint = |method| {
+        pic.update_call(reviewer, controller, method, encode_args(()).unwrap())
+            .unwrap()
+    };
+    let registry = checkpoint("registry_status");
+    let collector = checkpoint("collection_status");
+    assert!(
+        call::<Result<nexus_reviewer::CollectionStatus, String>>(
+            &pic,
+            reviewer,
+            a,
+            "collection_status",
+            encode_args(()).unwrap()
+        )
+        .unwrap_err()
+        .contains("controller required")
+    );
+    let begin = |caller| {
+        call::<Reply>(
+            &pic,
+            reviewer,
+            caller,
+            "begin_membership_review",
+            encode_one([144_954u64]).unwrap(),
+        )
+    };
+    let finish = |caller, token: [u8; 32]| {
+        call::<Result<LiveResponse<Vec<ProposalEvidence>>, String>>(
+            &pic,
+            reviewer,
+            caller,
+            "finalize_membership_review",
+            encode_one(token).unwrap(),
+        )
+    };
+    let context = |caller| {
+        begin(caller)
+            .unwrap()
+            .outcome
+            .unwrap()
+            .review_context
+            .unwrap()
+    };
+    assert!(begin(anonymous).is_err());
+    let a0 = context(a);
+    let b0 = context(b);
+    assert_ne!(a0, b0);
+    assert!(finish(a, b0).is_err());
+    assert!(finish(b, a0).is_err());
+    assert!(finish(anonymous, a0).is_err());
+    let a1 = context(a);
+    assert_ne!(a0, a1);
+    assert!(finish(a, a0).is_err());
+    for (caller, token) in [(a, a1), (b, b0)] {
+        assert_eq!(
+            finish(caller, token).unwrap().outcome.unwrap()[0].id,
+            144_954
+        );
+    }
+    for index in 4..34 {
+        context(id(90, index));
+    }
+    assert!(
+        begin(id(90, 34))
+            .err()
+            .unwrap()
+            .contains("session limit is full")
+    );
+    assert!(finish(b, b0).unwrap().outcome.is_ok());
+    pic.advance_time(Duration::from_secs(30 * 60));
+    assert!(finish(b, b0).is_err());
+    assert!(finish(a, a1).is_err());
+    context(id(90, 34));
+    pic.advance_time(Duration::from_secs(768 * 30));
+    assert!(
+        review(&pic, reviewer, anonymous, &[144_954])
+            .outcome
+            .is_ok()
+    );
+
+    let page = |caller, count| {
+        call::<Result<LiveResponse<DetailRecords>, String>>(
+            &pic,
+            reviewer,
+            caller,
+            "membership_detail_page",
+            encode_args((
+                66_013u64,
+                DetailKeys::DataCenters(
+                    (0..count).map(|index| format!("budget-{index}")).collect(),
+                ),
+            ))
+            .unwrap(),
+        )
+    };
+    let mut charged = 0;
+    loop {
+        let row = page(id(91, charged), 24).unwrap();
+        if matches!(row.outcome, Err(LiveError::PublicBudget)) {
+            charged += row.usage.calls as u16;
+            break;
+        }
+        assert!(row.outcome.is_ok());
+        assert_eq!(row.usage.calls, 24);
+        charged += 24;
+        assert!(charged <= 768);
+    }
+    assert!((752..=768).contains(&charged));
+    let mut exhausted = false;
+    for index in 0..96 {
+        if let Err(reason) = page(id(92, index), 8) {
+            assert!(reason.contains("public request budget"));
+            exhausted = true;
+            break;
+        }
+    }
+    assert!(exhausted);
+    pic.advance_time(Duration::from_secs(30));
+    let refill = page(a, 1).unwrap();
+    assert_eq!(refill.usage.calls, 1);
+    assert!(refill.outcome.is_ok());
+    assert_eq!(checkpoint("registry_status"), registry);
+    assert_eq!(checkpoint("collection_status"), collector);
+}
+
+#[test]
+#[ignore = "run through scripts/test-m0.sh to build Wasms and start PocketIC"]
 fn on_demand_previews_resolve_pinned_membership_and_bound_evidence() {
     assert!(enabled());
     let pic = PocketIcBuilder::new()
@@ -143,16 +310,6 @@ fn on_demand_previews_resolve_pinned_membership_and_bound_evidence() {
             encode_one(ids).unwrap(),
         )
     };
-    assert!(try_review(Principal::anonymous(), vec![93]).is_err());
-    assert!(try_review(browser, vec![93]).is_err());
-    call::<Result<(), String>>(
-        &pic,
-        reviewer,
-        controller,
-        "set_on_demand_caller",
-        encode_one(Some(browser)).unwrap(),
-    )
-    .unwrap();
     assert!(try_review(browser, vec![93, 93]).is_err());
     let storage = || {
         pic.canister_status(reviewer, Some(controller))
@@ -762,17 +919,6 @@ fn voting_detail_replays_the_66013_registry() {
     };
     let caller = id(90, 2);
     let full_args = args_for(66_013, data_centers);
-    for unapproved in [Principal::anonymous(), caller] {
-        let rejected = pic
-            .update_call(
-                reviewer,
-                unapproved,
-                "compare_membership_details",
-                full_args.clone(),
-            )
-            .unwrap_err();
-        assert!(format!("{rejected:?}").contains("requires an authorized principal"));
-    }
     assert!(
         pic.query_call(
             reviewer,
@@ -782,14 +928,6 @@ fn voting_detail_replays_the_66013_registry() {
         )
         .is_err()
     );
-    call::<Result<(), String>>(
-        &pic,
-        reviewer,
-        controller,
-        "set_on_demand_caller",
-        encode_one(Some(caller)).unwrap(),
-    )
-    .unwrap();
     let mut too_large = full_args.clone();
     too_large.resize(256 * 1024 + 1, 0);
     let rejected = pic
