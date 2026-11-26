@@ -50,8 +50,6 @@ async function test(name, fixture, run) {
   const count = method => [...requests.values()].filter(row => row.method_name === method).length;
   try {
     await page.goto('http://' + frontend + '.localhost:' + port);
-    const principal = (await page.locator('#browser-principal').textContent()).trim();
-    assert.match(localCall('reviewer', 'set_on_demand_caller', '(opt principal "' + principal + '")'), /Ok/);
     const nodeReads = () => [...requests.values()].filter(row => row.method_name === 'membership_context_detail_page').reduce((sum, row) => {
       const [, keys] = IDL.decode(methods.membership_context_detail_page.argTypes, row.arg);
       return sum + (keys.Nodes?.length ?? 0);

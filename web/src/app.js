@@ -1,4 +1,4 @@
-import { activeReplay, connect, identity, liveError, replays, result } from './client.js';
+import { activeReplay, connect, liveError, replays, result } from './client.js';
 import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
 import { reviewMap } from './review-map.js';
@@ -11,7 +11,6 @@ const reportStatus = document.querySelector('#report-status');
 const elapsed = document.querySelector('#review-elapsed');
 const stop = document.querySelector('#stop-review');
 const reportContainer = document.querySelector('#report');
-const access = document.querySelector('#pilot-access');
 const progressRow = document.querySelector('#review-progress');
 const progressBar = progressRow.querySelector('progress');
 const progressCounts = document.querySelector('#review-counts');
@@ -20,7 +19,6 @@ const notice = document.querySelector('#local-notice');
 notice.hidden = !LOCAL_REPLICA;
 if (FIXTURE_REPLAY && activeReplay) {
   notice.textContent = 'Development replay · ' + activeReplay.provenance;
-  access.hidden = true;
   const selector = el('select', replays.cases.map(row => Object.assign(el('option', row.name), { value: row.id })));
   selector.value = activeReplay.id;
   const label = el('label', 'Replay scenario', selector);
@@ -34,21 +32,6 @@ if (FIXTURE_REPLAY && activeReplay) {
   search.elements.first.value = activeReplay.proposalIds[0];
   search.elements.second.value = activeReplay.proposalIds[1] ?? '';
 }
-const browserPrincipal = document.querySelector('#browser-principal');
-browserPrincipal.textContent = identity.getPrincipal().toText();
-document.querySelector('#copy-principal').addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText(browserPrincipal.textContent);
-    document.querySelector('#access-status').textContent = 'Principal copied.';
-  } catch {
-    const range = document.createRange();
-    range.selectNodeContents(browserPrincipal);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    document.querySelector('#access-status').textContent = 'Principal selected for copying.';
-  }
-});
 
 let generation = 0;
 let connection;
@@ -227,10 +210,7 @@ search.addEventListener('submit', event => {
     } catch (error) {
       if (!active() || thisRequest.stopped) return;
       map.update(undefined, [], 'The map needs supported membership evidence for this review.');
-      if (/authorized principal/.test(error.message)) {
-        access.open = true;
-        status({ work: 'settled', stage: 'Blocked', reason: 'Pilot authorization required. Share the browser principal in Pilot access.' });
-      } else status({ work: 'settled', stage: 'Blocked', reason: error.message });
+      status({ work: 'settled', stage: 'Blocked', reason: error.message });
     } finally {
       if (active() && thisRequest.stopped) {
         map.update(undefined, [], 'Not loaded · Review stopped');

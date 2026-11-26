@@ -13,7 +13,6 @@ use serde::Deserialize;
 
 use super::{
     LiveError, LiveResponse, NODE_LIMIT, Request, RequestGuard, policy, registry::Resolver,
-    require_on_demand_caller,
 };
 use crate::{Sources, budget::FLOOR, review_records, store};
 
@@ -67,11 +66,11 @@ async fn membership_detail_page(
     version: u64,
     keys: DetailKeys,
 ) -> Result<LiveResponse<DetailRecords>, String> {
-    let guard = RequestGuard::acquire()?;
     validate(&keys)?;
     if version == 0 {
         return Err("Select one pinned Registry version.".into());
     }
+    let guard = RequestGuard::acquire()?;
     Ok(page(&guard, version, keys).await)
 }
 
@@ -80,14 +79,13 @@ async fn membership_context_detail_page(
     token: Hash,
     keys: DetailKeys,
 ) -> Result<LiveResponse<DetailRecords>, String> {
-    let guard = RequestGuard::acquire()?;
     validate(&keys)?;
     let record_keys: Vec<_> = match &keys {
         DetailKeys::Nodes(ids) => ids.iter().copied().map(RecordKey::Node).collect(),
         DetailKeys::Operators(ids) => ids.iter().copied().map(RecordKey::Operator).collect(),
         DetailKeys::DataCenters(ids) => ids.iter().cloned().map(RecordKey::DataCenter).collect(),
     };
-    let version = policy::admit_details(token, &record_keys)?;
+    let (guard, version) = policy::admit_details(token, &record_keys)?;
     let response = page(&guard, version, keys).await;
     if let Ok(rows) = &response.outcome {
         let observations: Vec<_> = match rows {
@@ -192,7 +190,6 @@ async fn read(
 }
 
 fn comparison_ingress() -> Result<(), String> {
-    require_on_demand_caller()?;
     if msg_arg_data().len() > COMPARISON_INPUT_BYTES {
         return Err("comparison input exceeds 256 KiB".into());
     }
@@ -224,6 +221,7 @@ fn compare_membership_with_policy(
     token: Hash,
     policy_digest: Hash,
 ) -> Result<LiveMembershipComparison, String> {
+    policy::verify_context(token)?;
     let _guard = RequestGuard::acquire()?;
     let rule = policy::policy_for(token, policy_digest, &input)?
         .filter(|policy| policy.nns_subnet == Some(input.subnet))

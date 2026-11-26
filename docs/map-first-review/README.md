@@ -64,14 +64,9 @@ cp -a web/dist/. "$project/assets/"
 )
 ```
 
-Open `http://<frontend-id>.localhost:4966/`. Copy the browser principal from **Pilot access**, keep that tab open and grant that principal on the local reviewer.
+Open `http://<frontend-id>.localhost:4966/` and click **Review**.
 
-```bash
-(cd "$project" && dfx canister call --network local reviewer set_on_demand_caller \
-  '(opt principal "BROWSER_PRINCIPAL")')
-```
-
-The Chromium scripts accept the project directory and, for the first script, an artifact output directory. Set `PLAYWRIGHT_MODULE` to an installed Playwright module if it is outside the package and `CHROMIUM_EXECUTABLE` if using a separately installed browser. The scripts grant each test tab on the disposable reviewer.
+The Chromium scripts accept the project directory and, for the first script, an artifact output directory. Set `PLAYWRIGHT_MODULE` to an installed Playwright module if it is outside the package and `CHROMIUM_EXECUTABLE` if using a separately installed browser.
 
 ```bash
 npm --prefix web test

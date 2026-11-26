@@ -46,7 +46,7 @@ function policyEvidence(model, state, policyId) {
   const roleStatus = state.work === 'stopped' ? 'NNS role not loaded · Review stopped.'
     : state.work === 'settled' ? 'NNS role evidence unavailable.' : 'NNS role evidence pending.';
   return el('div',
-    el('p', model?.policyText ?? (policyId ? 'Policy motion #' + policyId : 'Configured pilot reference motion')),
+    el('p', model?.policyText ?? (policyId ? 'Policy motion #' + policyId : 'Configured reference motion')),
     state.policyFailure ? el('p', state.policyFailure) : null,
     stamp === undefined ? el('p', option(snapshot?.nns_issue ?? []) ?? roleStatus)
       : el('p', 'Registry nns_subnet_id · Mutation version ' + number(stamp), el('br'),
@@ -307,7 +307,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     const evidence = canSimulate ? selected.calculation?.evidence ?? comparisonEvidence(state.records,
       [...selected.before.members, ...selected.state.members]) : undefined;
     model = canSimulate ? reviewModel(live, selected, evidence, state, policyId, local) : undefined;
-    const policyLine = model?.policyText ?? (source ? 'Motion #' + source.id : policyId ? 'Motion #' + policyId + ' selected' : 'Configured pilot reference motion');
+    const policyLine = model?.policyText ?? (source ? 'Motion #' + source.id : policyId ? 'Motion #' + policyId + ' selected' : 'Configured reference motion');
     const title = (option(body.proposal_text ?? []) ?? []).map(row => option(row.title)).filter(Boolean).join(' · ');
     replace(contextLine, title ? el('span', title) : null,
       el('span', (state.final ?? proposals).map(governanceText).join(' · ')));

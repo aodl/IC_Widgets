@@ -123,7 +123,7 @@ function publishingEvidence(live, context, subnet, before, after) {
 
 function policyDescription(policy, selectedId, subnet, running, failure) {
   if (!policy) return failure ? 'Could not load policy evidence'
-    : running ? 'Waiting for policy evidence' : selectedId ? 'Policy evidence not loaded' : 'Pilot policy evidence not loaded';
+    : running ? 'Waiting for policy evidence' : selectedId ? 'Policy evidence not loaded' : 'Reference policy evidence not loaded';
   const motion = option(policy.motion);
   if (!motion) return 'No policy motion selected';
   if (option(motion.issue)) return 'Motion #' + motion.id + ' · ' + option(motion.issue);

@@ -247,6 +247,7 @@ type LiveError = variant {
   InvalidEvidence : ReviewError;
   Deadline;
   Source : record { observation : nat64; reason : text };
+  PublicBudget;
   CallLimit;
   SourceBytes;
   CycleBalance;
@@ -1093,9 +1094,6 @@ service : (opt Sources) -> {
   request_membership_review : (ReviewRequest) -> (Result_37);
   retry_registry : () -> (Result_1);
   review_on_demand : (vec nat64) -> (Result_3);
-  // One optional browser principal for a local or explicitly approved pilot.
-  // The principal is cleared on upgrade and receives no controller permissions.
-  set_on_demand_caller : (opt principal) -> (Result_1);
   source_observation : (nat64) -> (Result_38);
   start_probe : (ProbeRequest) -> (Result_39);
   start_probe_with_limits : (ProbeRequest, Limits) -> (Result_39);

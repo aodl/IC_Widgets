@@ -78,15 +78,8 @@ dfx canister install --network ic --identity codex_local \
   --mode upgrade --no-asset-upgrade frontend
 ```
 
-Between the two operations, verify the new backend module and all checkpoint/settings invariants. Verify the certified frontend URL and bundle hash after the sync. The upgrade clears the pilot grant. Open the frontend, keep the tab open and authorize its current public principal through the existing controller operation. A reload generates a new principal.
+Between the two operations, verify the new backend module and all checkpoint and settings invariants. Compare the certified frontend assets with the release bundle after synchronization.
 
-```bash
-dfx canister call --network ic --identity codex_local --update \
-  --candid canisters/reviewer/reviewer.did \
-  s34gv-3qaaa-aaaar-qcifa-cai set_on_demand_caller \
-  '(opt principal "BROWSER_PUBLIC_PRINCIPAL")'
-```
-
-For the first separately authorized acceptance test, confirm proposal 144954 still fits the expected prospective function-31 case and verify its executable payload. Record the controller-observed cycle balance, collector state, checkpoint and retained evidence before starting. With the granted tab, run one Membership preview for 144954 and trigger detailed enrichment once. Record browser elapsed time for the preview and full enrichment. Record the source receipts and use their counts, reply sizes, elapsed times, instruction counts, batch reservations and page outcomes to break down the run. Record both comparison updates, which make zero source calls. Wait for the request to settle and measure the review’s cycle spend from the controller-observed balance delta, with the deployment and pilot grant already settled. Keep failures in the record and stop the test on a material discrepancy.
+For a live acceptance test, verify that the chosen proposal still supports prospective Membership review. Record the controller-observed balance, collector state, checkpoint and retained evidence before starting. Open the frontend in a fresh tab, enter the proposal ID and select **Review**. Record browser elapsed time and the source receipt counts, reply sizes, instructions, batch reservations and page outcomes. Wait for the request to settle before measuring the balance difference. Keep any failure in the record.
 
 Check the selected scenario and pin in the decentralisation tables, map and PNG. Compare the copied Markdown with the displayed figures and verify the downloaded input’s SHA-256 against its published digest. Compare to the 66,013 reference where the new observations support equivalent metadata and membership, and explain any evidence changes. Finish by confirming that the collector remains disabled with no lease and that the checkpoint and evidence are preserved. A production incompatibility can be recovered with separately authorized upgrades using the prior compressed reviewer Wasm and frontend bundle after checking evidence compatibility.

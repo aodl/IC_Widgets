@@ -41,9 +41,6 @@ try {
   const count = method => [...calls.values()].filter(value => value === method).length;
   await page.goto(url);
   await page.locator('input[name=first]').fill('144954');
-  const principal = (await page.locator('#browser-principal').textContent()).trim();
-  assert.match(dfx('canister', 'call', '--network', 'local', 'reviewer', 'set_on_demand_caller',
-    '(opt principal "' + principal + '")'), /Ok/);
   await page.locator('#report-status').evaluate(node => {
     window.reviewPhases = [];
     new MutationObserver(() => window.reviewPhases.push([node.textContent, performance.now()]))
