@@ -1151,12 +1151,12 @@ fn voting_detail_replays_the_66013_registry() {
         encode_args((66_013u64, DetailKeys::Nodes(vec![after.added[0]; 25]))).unwrap(),
     );
     assert!(malformed.is_err());
-    let denied: Result<LiveResponse<DetailRecords>, String> = call(
+    let public_page: Result<LiveResponse<DetailRecords>, String> = call(
         &pic,
         reviewer,
         Principal::anonymous(),
         "membership_detail_page",
         encode_args((66_013u64, DetailKeys::Nodes(after.added.clone()))).unwrap(),
     );
-    assert!(denied.is_err());
+    assert!(public_page.unwrap().outcome.is_ok());
 }
