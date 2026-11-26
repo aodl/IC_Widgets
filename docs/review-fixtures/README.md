@@ -1,6 +1,6 @@
 # Historical review fixtures
 
-Start the ordinary Network Nexus frontend and reviewer against committed local inputs.
+Start the ordinary Network Nexus frontend and reviewer against committed local inputs. [Current factual replay, screenshots and verification](FACTUAL_OVERVIEW.md)
 
 ```bash
 ./scripts/dev-review-fixture.sh --case nns-144954-recorded-open
