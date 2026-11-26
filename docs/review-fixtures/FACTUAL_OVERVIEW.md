@@ -1,6 +1,6 @@
 # Factual Membership replay verification
 
-The [public replay](https://ashley-arabia-rebates-railroad.trycloudflare.com/) serves application revision `c2b4ee06cf7746e1fa5df2bc28298415ed36b4cf`. The captured comparison is the recorded Open proposal #144954 at Registry 66,013, with the synthetic NNS-role supplement labelled. Its original Governance capture was 25 November 2026 at 13:08:13.589 UTC. The receiving replica's delivery times are separate from the capture.
+The original acceptance run used application revision `c2b4ee06cf7746e1fa5df2bc28298415ed36b4cf`. See [PR #10 refinements and current replay](FACTUAL_REFINEMENTS.md) for the follow-up. The captured comparison is the recorded Open proposal #144954 at Registry 66,013, with the synthetic NNS-role supplement labelled. Its original Governance capture was 25 November 2026 at 13:08:13.589 UTC. The receiving replica's delivery times are separate from the capture.
 
 One Review action read the pinned Registry role, calculated the composition over bound evidence and rechecked Governance. The browser made zero policy-motion or stateless comparison calls. The overview showed 40 proposed members, 39 retained, one incoming and one outgoing. It showed all seven expected facility, owner, provider and country-label counts. Assignment coverage explicitly qualified the 95 other listed subnets.
 
