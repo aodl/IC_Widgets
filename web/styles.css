@@ -161,6 +161,7 @@ main { padding-top: .85rem; }
 .map-pin[aria-pressed=true] { z-index: 1; box-shadow: 0 0 0 3px #ec9a33; }
 .map-facilities { color: #385563; font-size: .78rem; margin: .2rem 0; }
 .map-facilities:empty { display: none; }
+.map-card > .changed-nodes { margin-top: .55rem; }
 .findings-card { padding: .85rem; }
 .findings-card h3 { margin: .1rem 0 .6rem; font-size: 1.05rem; }
 .finding-card { border-top: 1px solid var(--border); padding: .45rem 0; }

@@ -84,9 +84,16 @@ async function holdPage(page, accepts) {
     await release.settled;
     return route.fulfill({ response });
   });
-  const diagnosed = page.locator('#report-status').getByText(/Data loading complete|Could not produce a review/).waitFor({ timeout: 45000 })
-    .then(async () => { throw new Error('The requested page never started. ' + await page.locator('.coverage-notice').textContent()); });
-  return { dispatched: Promise.race([dispatched.settled, diagnosed]), release: release.release };
+  return {
+    dispatched() {
+      let timer;
+      const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('The requested evidence page was not dispatched.')), 45_000);
+      });
+      return Promise.race([dispatched.settled, deadline]).finally(() => clearTimeout(timer));
+    },
+    release: release.release,
+  };
 }
 const status = page => page.locator('#report-status');
 const finished = page => status(page).getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });
@@ -96,7 +103,7 @@ try {
     const hold = await holdPage(page, key => 'DataCenters' in key);
     try {
       await send(144954);
-      await hold.dispatched;
+      await hold.dispatched();
       await page.locator('#review-counts').getByText(/^0 of 39 records settled/).waitFor();
       await page.getByText(/41 locations pending/).waitFor();
       assert.equal(await page.getByText(/Unmapped nodes/).isVisible(), false);
@@ -125,7 +132,7 @@ try {
     const hold = await holdPage(page, key => 'DataCenters' in key);
     try {
       await send(144954);
-      await hold.dispatched;
+      await hold.dispatched();
       await page.getByRole('button', { name: 'Stop', exact: true }).click();
       await status(page).getByText(/Stopping.*accepted call/).waitFor();
     } finally {
@@ -143,7 +150,7 @@ try {
     const hold = await holdPage(page, key => 'Nodes' in key);
     try {
       await send(144954);
-      await hold.dispatched;
+      await hold.dispatched();
       await send(999999);
       await page.getByRole('heading', { name: 'Proposal #999999' }).waitFor();
       assert.equal(count('begin_membership_review'), 1);
@@ -166,7 +173,7 @@ try {
     const hold = await holdPage(page, key => 'DataCenters' in key);
     try {
       await page.getByRole('button', { name: 'Retry failed evidence', exact: true }).click();
-      await hold.dispatched;
+      await hold.dispatched();
       await page.getByText('Previous accepted comparison · Retry in progress', { exact: true }).waitFor();
       await page.getByText(/41 nodes across both states · 38\/41 located/).waitFor();
       assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());

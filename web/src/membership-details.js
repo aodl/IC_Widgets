@@ -116,6 +116,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const controls = styled('div', 'controls review-controls');
   const limit = styled('p', 'coverage-notice');
   const summary = styled('div', 'review-summary');
+  const changedNodes = styled('div', 'actions changed-nodes');
+  changedNodes.hidden = true;
   const topology = styled('section', 'topology-card');
   const tableBody = el('tbody');
 
@@ -134,7 +136,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const header = styled('section', 'review-header',
     el('h2', proposals.length === 1 ? 'Proposal #' + proposals[0].id : 'Proposals ' + proposals.map(row => '#' + row.id).join(' + ')),
     contextLine, controls, limit, summary);
-  const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost), topology);
+  const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost, changedNodes), topology);
   const section = styled('div', 'workspace', header, grid, tools, inspector, pane);
   const session = createReviewSession({ live, contexts, active, call, progress, updated: render });
   const exportReview = action('Export review', () => inspect({ type: 'export' }));
@@ -310,11 +312,12 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     grid.hidden = terminal.length > 0;
     limit.hidden = grid.hidden;
     exportReview.hidden = grid.hidden;
+    changedNodes.hidden = !changed.length;
+    replace(changedNodes, changed.map(node => nodeButton(node, () => inspect([node.id], node.label))));
     replace(summary,
       model ? el('strong', model.membership) : terminal.length ? terminal : el('strong', 'Proposed membership unavailable'),
       subnetLabel && !terminal.length ? el('span', subnetLabel + ' · Registry ' + number(version), ' ',
         help('Registry snapshot', 'The version used for every Registry record in this review. Governance has its own observation times.')) : null,
-      changed.length ? styled('div', 'actions changed-nodes', changed.map(node => nodeButton(node, () => inspect([node.id], node.label)))) : null,
       state.consistency?.reason ? el('p', state.consistency.blocked ? state.consistency.reason
         : 'Provisional · ' + state.consistency.reason) : null,
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,

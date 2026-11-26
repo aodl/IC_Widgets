@@ -60,6 +60,8 @@ const resize = async (width, height) => {
 };
 const mapChecks = [];
 const checkHitTargets = async () => {
+  const mapTop = await page.locator('.map-frame').evaluate(map => Math.round(map.getBoundingClientRect().top + scrollY));
+  assert.ok(mapTop < page.viewportSize().height, 'The map starts below the first viewport.');
   await page.locator('.map-frame').scrollIntoViewIfNeeded();
   const result = await page.locator('.map-pin:visible').evaluateAll(nodes => ({
     count: nodes.length,
@@ -75,7 +77,7 @@ const checkHitTargets = async () => {
   assert.equal(result.count, 41);
   assert.equal(result.allHit, true);
   assert.ok(result.minimumTarget >= 24);
-  mapChecks.push({ width: page.viewportSize().width, ...result });
+  mapChecks.push({ width: page.viewportSize().width, mapTop, ...result });
 };
 const download = async (button, filename) => {
   const pending = page.waitForEvent('download');
