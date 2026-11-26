@@ -202,6 +202,28 @@ fn scoped_baseline_supports_targeted_preview_only() {
 }
 
 #[test]
+fn recorded_region_tokens_preserve_spelling_and_blank_fields() {
+    use nexus_review_engine::registered_geography;
+    assert_eq!(
+        registered_geography(" Europe, UK, London "),
+        (Some("Europe"), Some("UK"))
+    );
+    assert_eq!(
+        registered_geography("EU,GB,London"),
+        (Some("EU"), Some("GB"))
+    );
+    assert_eq!(
+        registered_geography("EU, GBR, London"),
+        (Some("EU"), Some("GBR"))
+    );
+    assert_eq!(
+        registered_geography("EU, recorded text, London"),
+        (Some("EU"), Some("recorded text"))
+    );
+    assert_eq!(registered_geography("EU,,London"), (Some("EU"), None));
+}
+
+#[test]
 fn exact_change_and_registered_topology() {
     let review = run(baseline(), vec![change(&[3], &[2])]);
     let scenario = scenario(&review, ScenarioId::A);
@@ -218,11 +240,11 @@ fn exact_change_and_registered_topology() {
     assert_eq!(after.distances.maximum_metres, Some(10_016_183));
     assert_eq!(
         after.distributions[&Dimension::RegisteredCountry].unknown,
-        1
+        0
     );
     assert_eq!(
         after.distributions[&Dimension::RegisteredCountry].groups
-            [&Group::RegisteredLabel("CH".into())],
+            [&Group::RegisteredLabel("CHE".into())],
         1
     );
     assert_eq!(
@@ -231,7 +253,7 @@ fn exact_change_and_registered_topology() {
             .as_ref()
             .unwrap()
             .groups_to_reach,
-        None
+        Some(1)
     );
     assert!(
         !review

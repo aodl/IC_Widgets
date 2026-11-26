@@ -1,4 +1,5 @@
-import { calculationNote, eligibility, geographyNote, proposalUrl, thresholdNote } from './detail-model.js';
+import { calculationNote, geographyNote, governanceText } from './detail-model.js';
+import { hex, option, time, words } from './view.js';
 
 function escape(text) {
   return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -6,58 +7,46 @@ function escape(text) {
 }
 
 export function markdownTable({ headers, rows }) {
-  if (!rows.length) return 'None.';
-  const cell = value => value && typeof value === 'object'
-    ? '[' + escape(value.label) + '](' + value.url + ')' : escape(value);
-  const line = cells => '| ' + cells.join(' | ') + ' |';
-  return [
-    line(headers.map(escape)), line(headers.map(() => '---')),
-    ...rows.map(row => line(row.map(cell))),
-  ].join('\n');
+  const line = cells => '| ' + cells.map(escape).join(' | ') + ' |';
+  return [line(headers), line(headers.map(() => '---')), ...rows.map(line)].join('\n');
 }
 
 export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } = {}) {
-  const title = model.ids.map(id => '#' + id).join(' + ');
-  const links = model.ids.map(id => '[Proposal #' + id + '](' + proposalUrl(id) + ')').join(' · ');
   const map = /^https:\/\/[^\s()<>"']+$/i.test(mapImage.trim())
     ? '![Registry data-center map](' + mapImage.trim() + ')'
-    : 'Export the PNG from the Network Nexus map, upload it to the forum, then insert its image link here.';
+    : 'Upload the map PNG to include it in the report.';
+  const motion = model.source;
   const blocks = [
-    '# Proposal ' + title + ' Review',
+    '# Proposal ' + model.ids.map(id => '#' + id).join(' + ') + ' Review',
     '**VOTE**: ' + (vote.trim() || '?'),
     ('**TLDR**: ' + tldr.trim()).trimEnd(),
-    '## Proposed membership and selected scenario',
-    links + ' · [Subnet ' + model.subnet + '](' + model.subnetLink.url + ')',
-    model.scenario + ' · ' + model.stateLabel + ' · Registry version ' + model.version,
+    model.gaps ? '**Finished with gaps**' : '**Finished**',
+    escape(model.scenario + ' · ' + model.stateLabel + ' · Registry ' + model.version),
+    'Subnet `' + model.subnet + '`',
     model.membership,
-    '## Findings and evidence limits',
-    [...(model.findings?.length ? model.findings.map(finding => finding.title + '. ' + finding.explanation +
-      (finding.metrics.length ? ' ' + finding.metrics.map(metric => metric.name + ' ' + metric.value + ' ' + metric.before + ' → ' + metric.after +
-        (metric.coefficient.every(value => value !== undefined) && metric.coefficient[0] !== metric.coefficient[1]
-          ? ' (coefficient ' + metric.coefficient.join(' → ') + ')' : '')).join(' · ') + '.' : '')) : model.consequences),
-    ...model.notes].map(note => '- ' + escape(note)).join('\n'),
+    '## Target Topology',
+    escape(model.policyText),
+    markdownTable({ headers: ['Measure', 'Proposed', 'Rule', 'Assessment'],
+      rows: model.topology.map(row => [row.label, (row.ready ? row.delta.text : row.evidence)
+        + (row.ready && row.evidence ? ' · ' + row.evidence : ''), row.limit,
+      row.assessment + (row.breach ? ' · ' + words(row.breach) + ' breach' : '')]) }),
+    model.rule ? 'Adopted clause\n\n`' + model.rule.clause.replaceAll('`', '') + '`' : null,
+    option(model.rule?.exception ?? []) ? escape(option(model.rule.exception)) : null,
+    '## Membership evidence',
+    model.members.filter(node => node.role !== 'Retained').map(node => '- ' + node.role + ' `' + node.id + '`'
+      + (node.dc ? ' · ' + escape(node.dc) : '') + (node.region ? ' · ' + escape(node.region) : '')).join('\n'),
+    model.notes.map(note => '- ' + escape(note)).join('\n'),
+    '## Map', geographyNote, map,
+    '## Provenance',
+    model.governance.map(proposal => '- ' + governanceText(proposal) + ' · Payload SHA-256 `' + hex(proposal.payload_hash) + '`').join('\n'),
+    model.finalVerified ? 'Governance checked after the selected comparisons.' : 'Final Governance observation unavailable.',
+    motion && option(motion.raw_hash) ? 'Policy motion #' + motion.id + ' observed ' + time(option(motion.observed_at))
+      + ' · Reply SHA-256 `' + hex(option(motion.raw_hash)) + '`.' : null,
+    model.policy ? 'Policy evidence digest `' + hex(model.policy.digest) + '`.' : null,
+    'Membership preview revision `' + model.previewRevision + '`.',
+    model.calculation ? 'Calculation input SHA-256 `' + model.calculation.inputHash + '` · analysis v'
+      + model.calculation.analysis_version + '.' : null,
+    calculationNote,
   ];
-  for (const table of [...model.tables.filter(table => !table.title.endsWith(' nodes')),
-    ...model.dimensions.map(row => ({ ...row.table, note: row.note })),
-    ...model.tables.filter(table => table.title.endsWith(' nodes'))]) {
-    blocks.push('### ' + table.title);
-    if (table.title === 'Decentralisation and concentration') blocks.push(thresholdNote);
-    if (table.title === 'Geographic distances') blocks.push(geographyNote);
-    if (table.note) blocks.push(escape(table.note));
-    if (table.title === 'Proposer claims and independent calculation') {
-      blocks.push('Claimed figures come from the Governance summary. The comparison uses Registry groups and the greater-than-one-third threshold. Where shown, the aggregate tests the five published dimensions plus node operator. A numerical match leaves the proposer’s exact inputs and health claims unverified.');
-    }
-    blocks.push(markdownTable(table));
-  }
-  blocks.push('## Map', 'Plus marks identify additions, minus marks identify removals, and neutral counts include retained nodes. A PNG may show a focused viewport or role filter. The review tables cover the full selected scenario and step. Nodes without usable registered coordinates are listed separately in the interface.', map,
-    '## Sources', '- NNS Governance `get_proposal_info`, observations listed above.\n- NNS Registry `get_value` at version ' + model.version
-    + '.\n- Natural Earth public-domain land outline.\n- ' + eligibility,
-    ...model.payloads.map(value => '`' + value + '`'),
-  );
-  if (model.previewRevision) blocks.push('Membership preview revision `' + model.previewRevision + '`.');
-  if (model.calculation) blocks.push(
-    'Calculation input SHA-256 `' + model.calculation.inputHash + '` · analysis v' + model.calculation.analysis_version + '.',
-    calculationNote + ' The exact Candid input is available in Evidence under Method and exact inputs.',
-  );
-  return blocks.join('\n\n') + '\n';
+  return blocks.filter(Boolean).join('\n\n') + '\n';
 }

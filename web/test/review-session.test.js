@@ -37,6 +37,7 @@ test('a shared-slot request settles before the latest eligible request is sent',
 function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => false } = {}) {
   const recorded = [];
   const render = [];
+  const updates = [];
   const a = id('node-a');
   const b = id('node-b');
   const provider = id('provider');
@@ -70,9 +71,9 @@ function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => 
       await comparison?.();
       return { inputHash: input.after.length + '-' + input.data_centers.length, comparison: {} };
     },
-    updated: ctx => render.push(ctx.key), phase() {},
+    updated: ctx => render.push(ctx?.key), progress: state => updates.push(state),
   });
-  return { session, recorded, render, one, two };
+  return { session, recorded, render, updates, one, two };
 }
 
 test('switching orders during a source page prioritizes the selected order and reuses its evidence', async () => {
@@ -96,25 +97,21 @@ test('switching orders during a source page prioritizes the selected order and r
   assert.equal(recorded.length, calls);
 });
 
-test('selecting a cached state leaves no queued reads for an obsolete independent context', async () => {
+test('progress counts settled records and stays active until both ordered comparisons settle', async () => {
   const hold = deferred();
   const began = deferred();
-  const { session, recorded, one, two } = fixture({ firstOrder: 'A', firstPage: () => {
+  const { session, updates, one } = fixture({ firstPage: () => {
     began.resolve();
     return hold.promise;
   } });
-  two.status = 'available';
   session.select(one);
   await began.promise;
-  session.select(two);
+  assert.deepEqual(updates.at(-1).counts, { planned: 2, settled: 0, present: 0, absent: 0, failed: 0, inFlight: 2 });
   hold.resolve();
   await session.settled();
-  assert.deepEqual(recorded.map(row => row.kind), ['Nodes']);
-
-  session.select(one);
-  await session.settled();
-  assert.equal(one.status, 'available');
-  assert.equal(recorded.filter(row => row.kind === 'Nodes').length, 1);
+  assert.ok(updates.some(state => state.stage === 'Nodes' && state.counts?.settled === 2));
+  assert.ok(updates.some(state => state.stage === 'Comparison' && state.remaining === 1 && state.work === 'running'));
+  assert.equal(updates.at(-1).work, 'settled');
 });
 
 test('retry targets failed metadata, keeps successful observations and copies accepted inputs', async () => {
@@ -129,7 +126,7 @@ test('retry targets failed metadata, keeps successful observations and copies ac
   const before = recorded.length;
   session.retry();
   await session.settled();
-  assert.deepEqual(recorded.slice(before).map(row => row.kind), ['DataCenters', 'comparison']);
+  assert.deepEqual(recorded.slice(before).map(row => row.kind), ['DataCenters', 'comparison', 'comparison']);
   assert.equal(one.status, 'available');
   assert.ok(old.DataCenters.get('known')[1].Unavailable);
   assert.ok(one.calculation.evidence.DataCenters.get('known')[1].Present);
@@ -142,8 +139,10 @@ test('stop waits for the accepted page and schedules no follow-up calls', async 
   session.select(one);
   await began.promise;
   session.stop();
+  assert.equal(session.section().work, 'stopping');
   hold.resolve();
   await session.settled();
+  assert.equal(session.section().work, 'stopped');
   assert.deepEqual(recorded.map(row => row.kind), ['Nodes']);
 });
 
@@ -157,7 +156,7 @@ test('stop leaves an accepted comparison out of the stopped workspace', async ()
   hold.resolve();
   await session.settled();
   assert.equal(one.calculation, undefined);
-  assert.deepEqual(recorded.map(row => row.kind), ['Nodes', 'Operators', 'comparison']);
+  assert.deepEqual(recorded.map(row => row.kind), ['Nodes', 'Operators', 'DataCenters', 'comparison']);
 });
 
 test('shortened principals remain distinct when both ends collide', () => {

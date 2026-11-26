@@ -11,6 +11,9 @@ const elapsed = document.querySelector('#review-elapsed');
 const stop = document.querySelector('#stop-review');
 const reportContainer = document.querySelector('#report');
 const access = document.querySelector('#pilot-access');
+const progressRow = document.querySelector('#review-progress');
+const progressBar = progressRow.querySelector('progress');
+const progressCounts = document.querySelector('#review-counts');
 document.querySelector('#local-notice').hidden = !LOCAL_REPLICA;
 const browserPrincipal = document.querySelector('#browser-principal');
 browserPrincipal.textContent = identity.getPrincipal().toText();
@@ -33,6 +36,7 @@ let connection;
 let current;
 let previewTask;
 let timer;
+let request;
 const serialize = serializeCalls();
 function remote(active, run) {
   return serialize(active, async () => {
@@ -55,50 +59,90 @@ const performance = mountPerformance(async (active, run) => {
 });
 performance.visible(true);
 
-function status(message, working = false, error = false) {
+const phases = {
+  Preview: 'Proposal and membership · Reading pinned evidence',
+  Nodes: 'Registered nodes · Loading node records',
+  Operators: 'Registered nodes · Loading operator records',
+  DataCenters: 'Locations and policy · Loading data centers',
+  Policy: 'Locations and policy · Checking the selected policy and Registry role',
+  Comparison: 'Comparison · Calculating supported states',
+  Lifecycle: 'Comparison · Checking Governance again',
+  Finished: 'Finished', Gaps: 'Finished with gaps', Blocked: 'Could not produce a review', Stopped: 'Stopped',
+};
+
+function status({ work, stage, counts, reason, remaining, selectedReady }) {
+  const working = work === 'running' || work === 'stopping';
+  const label = work === 'stopping' ? 'Stopping · Waiting for an accepted call to settle' : phases[stage];
+  const message = [label, reason].filter(Boolean).join(' · ');
   if (reportStatus.textContent !== message) reportStatus.textContent = message;
-  reportStatus.classList.toggle('error', error);
-  stop.hidden = !working;
+  reportStatus.classList.toggle('error', stage === 'Blocked');
+  stop.hidden = work !== 'running';
+  progressRow.hidden = !working;
+  progressBar.setAttribute('aria-label', label ?? 'Current review phase');
+  if (counts?.planned) {
+    progressBar.max = counts.planned;
+    progressBar.value = counts.settled;
+  } else progressBar.removeAttribute('value');
+  const tally = counts?.planned ? counts.settled + ' of ' + counts.planned + (stage === 'Comparison' ? ' comparisons settled'
+    : ' records settled · ' + counts.present + ' present · ' + counts.absent + ' absent · ' + counts.failed + ' failed') : '';
+  progressCounts.textContent = tally + (stage === 'Comparison' && selectedReady && remaining ? ' · Selected comparison is ready' : '');
+  const tick = () => {
+    if (request) {
+      const running = request.segment === undefined ? 0 : Date.now() - request.segment;
+      elapsed.textContent = Math.floor((request.elapsed + running) / 1000) + ' s elapsed';
+    }
+  };
   if (working && timer === undefined) {
-    const began = Date.now();
-    const tick = () => { elapsed.textContent = Math.floor((Date.now() - began) / 1000) + ' s elapsed'; };
+    request.segment ??= Date.now();
     tick();
     timer = setInterval(tick, 1000);
   }
   if (!working && timer !== undefined) {
+    request.elapsed += Date.now() - request.segment;
+    request.segment = undefined;
+    tick();
     clearInterval(timer);
     timer = undefined;
   }
 }
 
 function idsForSearch() {
-  const ids = [...new FormData(search).values()].map(value => value.trim()).filter(Boolean).map(BigInt);
-  if (!ids.length || ids.some(id => id < 1n || id > 18_446_744_073_709_551_615n)
-    || new Set(ids).size !== ids.length) {
+  const fields = new FormData(search);
+  const ids = ['first', 'second'].map(name => fields.get(name).trim()).filter(Boolean).map(BigInt);
+  const policy = fields.get('policy').trim();
+  const policyId = policy ? BigInt(policy) : undefined;
+  const valid = id => id >= 1n && id <= 18_446_744_073_709_551_615n;
+  if (!ids.length || ids.some(id => !valid(id)) || new Set(ids).size !== ids.length) {
     throw new Error('Choose one or two distinct positive proposal IDs.');
   }
-  return ids;
+  if (policyId !== undefined && !valid(policyId)) throw new Error('Choose a positive policy motion ID.');
+  return { ids, policyId };
 }
 
 stop.addEventListener('click', () => {
   if (current) current.session.stop();
-  else generation++;
-  status('Review stopped. Any accepted call can finish before the next request.');
+  else if (request) {
+    request.stopped = true;
+    status({ work: 'stopping', stage: 'Stopped' });
+  }
 });
 
 search.addEventListener('submit', event => {
   event.preventDefault();
-  let ids;
+  let fields;
   try {
-    ids = idsForSearch();
+    fields = idsForSearch();
   } catch (error) {
-    status(error.message, false, true);
+    document.querySelector('#search-error').textContent = error.message;
     return;
   }
+  document.querySelector('#search-error').textContent = '';
+  const { ids, policyId } = fields;
   const ticket = ++generation;
   const active = () => generation === ticket;
   current?.session.stop();
   current = undefined;
+  const thisRequest = request = { segment: Date.now(), elapsed: 0, stopped: false };
   performance.scope(undefined);
   performance.visible(false);
   const map = reviewMap((...args) => current?.inspect(...args), active);
@@ -109,34 +153,36 @@ search.addEventListener('submit', event => {
     styled('div', 'review-grid', styled('div', 'map-card', mapHost))));
   clearInterval(timer);
   timer = undefined;
-  status('Reading proposal and membership…', true);
+  status({ work: 'running', stage: 'Preview' });
   previewTask = (async () => {
     try {
-      const response = await remote(active, client => client.review_on_demand(ids));
-      if (!active() || !response) return;
+      const response = await remote(() => active() && !thisRequest.stopped, client => client.begin_membership_review(ids));
+      if (!active() || !response || thisRequest.stopped) return;
       const live = result(response);
       if ('Err' in live.outcome) {
-        status('Simulation unavailable. ' + liveError(live.outcome.Err), false, true);
-        map.update(undefined, [], 'The map needs supported membership evidence for this review.');
+        status({ work: 'settled', stage: 'Blocked', reason: liveError(live.outcome.Err) });
+        map.update(undefined, [], 'Map unavailable · Required membership evidence');
         reportContainer.append(styled('section', 'card', el('h3', 'Evidence'), sourceReceipts(live)));
         return;
       }
       const body = live.outcome.Ok;
       const contexts = reviewContexts(body.report, option(body.subnet_rules ?? []) ?? []);
-      const phase = (message, working) => {
-        if (active()) status(message, working ?? /^(Reading|Membership available|Checking)|comparing proposal orders/.test(message));
-      };
       current = mountReviewWorkspace({ live, contexts, map, mapHost, active, call: remote,
-        phase, performance, local: LOCAL_REPLICA });
+        policyId, progress: state => { if (active()) status(state); }, performance, local: LOCAL_REPLICA });
       reportContainer.replaceChildren(current.section);
       current.start();
     } catch (error) {
-      if (!active()) return;
+      if (!active() || thisRequest.stopped) return;
       map.update(undefined, [], 'The map needs supported membership evidence for this review.');
       if (/authorized principal/.test(error.message)) {
         access.open = true;
-        status('Pilot authorization required. Share the browser principal in Pilot access, then select Review again.', false, true);
-      } else status(error.message, false, true);
+        status({ work: 'settled', stage: 'Blocked', reason: 'Pilot authorization required. Share the browser principal in Pilot access.' });
+      } else status({ work: 'settled', stage: 'Blocked', reason: error.message });
+    } finally {
+      if (active() && thisRequest.stopped) {
+        map.update(undefined, [], 'Not loaded · Review stopped');
+        status({ work: 'stopped', stage: 'Stopped' });
+      }
     }
   })();
 });
@@ -144,7 +190,7 @@ search.addEventListener('submit', event => {
 const independent = document.querySelector('#open-performance');
 independent.addEventListener('click', () => {
   if (current) {
-    current.section.querySelector('.review-nav').lastElementChild.click();
+    current.openPerformance();
   } else {
     if (!performance.section.isConnected) document.querySelector('main').append(performance.section);
     performance.visible(true);

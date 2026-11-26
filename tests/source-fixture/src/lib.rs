@@ -145,8 +145,31 @@ struct VotingRegistry {
 #[ic_cdk::update]
 fn load_voting_reference() {
     assert!(ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()));
-    let (version, rows): (u64, Vec<(String, Vec<u8>)>) =
+    let (version, mut rows): (u64, Vec<(String, Vec<u8>)>) =
         candid::decode_args(include_bytes!("../data/144954/registry.didbin")).unwrap();
+    use nexus_ic_sources::registry::wire::types::v1::{PrincipalId, SubnetId};
+    let target = rows
+        .iter()
+        .find_map(|(key, _)| key.strip_prefix("subnet_record_tdb26-"))
+        .map(|suffix| Principal::from_text(format!("tdb26-{suffix}")).unwrap())
+        .unwrap();
+    rows.push((
+        "nns_subnet_id".into(),
+        HighCapacityRegistryGetValueResponse {
+            error: None,
+            version,
+            timestamp_nanoseconds: 0,
+            content: Some(high_capacity_registry_get_value_response::Content::Value(
+                SubnetId {
+                    principal_id: Some(PrincipalId {
+                        raw: target.as_slice().to_vec(),
+                    }),
+                }
+                .encode_to_vec(),
+            )),
+        }
+        .encode_to_vec(),
+    ));
     VOTING_REGISTRY.set(Some(VotingRegistry {
         version,
         replies: rows
@@ -242,6 +265,10 @@ fn set_demo_proposal(id: u64, reply: Vec<u8>) {
 
 #[ic_cdk::query(manual_reply = true)]
 fn get_proposal_info(id: u64) {
+    if id == 143_190 {
+        msg_reply(include_bytes!("../data/143190/governance.didbin"));
+        return;
+    }
     if DEMO_PROPOSAL.with_borrow(|capture| {
         if let Some((expected, bytes)) = capture
             && *expected == id

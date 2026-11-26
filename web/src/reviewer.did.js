@@ -100,6 +100,273 @@ export const idlFactory = ({ IDL }) => {
     'raw_bytes' : IDL.Nat64,
   });
   const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
+  const LiveUsage = IDL.Record({
+    'balance_after' : IDL.Nat,
+    'calls' : IDL.Nat32,
+    'balance_before' : IDL.Nat,
+    'instructions' : IDL.Nat64,
+    'source_bytes' : IDL.Nat64,
+    'peak_batch_reservation' : IDL.Nat,
+    'started_at' : IDL.Nat64,
+    'finished_at' : IDL.Nat64,
+  });
+  const SubnetRules = IDL.Record({
+    'kind' : IDL.Int32,
+    'subnet' : IDL.Principal,
+    'sev_enabled' : IDL.Bool,
+  });
+  const ScenarioId = IDL.Variant({
+    'A' : IDL.Null,
+    'B' : IDL.Null,
+    'BThenA' : IDL.Null,
+    'AThenB' : IDL.Null,
+  });
+  const Distances = IDL.Record({
+    'known_nodes' : IDL.Nat32,
+    'maximum_metres' : IDL.Opt(IDL.Nat32),
+    'unknown_nodes' : IDL.Nat32,
+    'total_pairs' : IDL.Nat64,
+    'valid_pairs' : IDL.Nat64,
+    'mean_metres' : IDL.Opt(IDL.Nat32),
+    'minimum_metres' : IDL.Opt(IDL.Nat32),
+  });
+  const Dimension = IDL.Variant({
+    'Operator' : IDL.Null,
+    'RegisteredContinent' : IDL.Null,
+    'RegisteredCountry' : IDL.Null,
+    'RegisteredOwner' : IDL.Null,
+    'DataCenter' : IDL.Null,
+    'Provider' : IDL.Null,
+  });
+  const Group = IDL.Variant({
+    'RegisteredLabel' : IDL.Text,
+    'Principal' : IDL.Principal,
+  });
+  const Threshold = IDL.Record({
+    'nodes_required' : IDL.Nat32,
+    'groups_to_reach' : IDL.Opt(IDL.Nat32),
+  });
+  const Distribution = IDL.Record({
+    'groups' : IDL.Vec(IDL.Tuple(Group, IDL.Nat32)),
+    'largest' : IDL.Opt(IDL.Nat32),
+    'mean_ratio' : IDL.Opt(IDL.Tuple(IDL.Nat32, IDL.Nat32)),
+    'greater_than_one_third' : IDL.Opt(Threshold),
+    'smallest' : IDL.Opt(IDL.Nat32),
+    'fault_budget_plus_one' : IDL.Opt(Threshold),
+    'unknown' : IDL.Nat32,
+  });
+  const MembershipState = IDL.Record({
+    'distances' : Distances,
+    'members' : IDL.Vec(IDL.Principal),
+    'added' : IDL.Vec(IDL.Principal),
+    'baseline_count' : IDL.Nat32,
+    'retained' : IDL.Vec(IDL.Principal),
+    'distributions' : IDL.Vec(IDL.Tuple(Dimension, Distribution)),
+    'member_count' : IDL.Nat32,
+    'net_change' : IDL.Int64,
+    'removed' : IDL.Vec(IDL.Principal),
+  });
+  const SubnetReview = IDL.Record({
+    'baseline' : MembershipState,
+    'after_steps' : IDL.Vec(IDL.Opt(MembershipState)),
+  });
+  const MembershipAction = IDL.Variant({
+    'Add' : IDL.Record({
+      'subnet' : IDL.Principal,
+      'nodes' : IDL.Vec(IDL.Principal),
+    }),
+    'Remove' : IDL.Record({ 'nodes' : IDL.Vec(IDL.Principal) }),
+    'Change' : IDL.Record({
+      'add' : IDL.Vec(IDL.Principal),
+      'remove' : IDL.Vec(IDL.Principal),
+      'subnet' : IDL.Principal,
+    }),
+  });
+  const FindingCode = IDL.Variant({
+    'DuplicateInstruction' : IDL.Null,
+    'ConcentrationIncreased' : Dimension,
+    'RemovalOutsideTarget' : IDL.Null,
+    'UnavailableRegisteredCoordinates' : IDL.Null,
+    'HistoricalBaselineUnavailable' : IDL.Null,
+    'UnaffectedRemovalCandidate' : IDL.Null,
+    'TerminalProposal' : IDL.Int32,
+    'EmptyResultingSubnet' : IDL.Null,
+    'MissingRegistryMetadata' : IDL.Null,
+    'EarlierBaselineHypothesis' : IDL.Null,
+    'ExecutedProposalHypothesis' : IDL.Null,
+    'AlreadyInTarget' : IDL.Null,
+    'AssignedElsewhere' : IDL.Null,
+    'RewardTypeMismatch' : IDL.Null,
+    'MissingNode' : IDL.Null,
+    'PreviouslyUnassigned' : IDL.Null,
+    'DeletedNode' : IDL.Null,
+    'UnavailableNode' : IDL.Null,
+    'MissingSevChipIdentity' : IDL.Null,
+    'UnlistedTarget' : IDL.Null,
+    'UnknownDimension' : Dimension,
+    'OverlappingInstructionsRemovalWins' : IDL.Null,
+    'DuplicateResultingMembership' : IDL.Null,
+    'InvalidTarget' : IDL.Null,
+    'ApiBoundaryAssignment' : IDL.Null,
+    'DifferentIntermediateStates' : IDL.Null,
+  });
+  const Severity = IDL.Variant({
+    'Error' : IDL.Null,
+    'Note' : IDL.Null,
+    'Warning' : IDL.Null,
+  });
+  const Finding = IDL.Record({
+    'subnets' : IDL.Vec(IDL.Principal),
+    'code' : FindingCode,
+    'step' : IDL.Opt(IDL.Nat8),
+    'nodes' : IDL.Vec(IDL.Principal),
+    'proposal' : IDL.Opt(IDL.Nat64),
+    'severity' : Severity,
+    'registry' : IDL.Vec(RegistryKey),
+  });
+  const StepOutcome = IDL.Variant({
+    'Skipped' : IDL.Record({ 'failed_step' : IDL.Nat8 }),
+    'Applied' : IDL.Record({
+      'writes' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Vec(IDL.Principal))),
+    }),
+    'Rejected' : IDL.Null,
+  });
+  const Step = IDL.Record({
+    'requested' : MembershipAction,
+    'findings' : IDL.Vec(Finding),
+    'proposal' : IDL.Nat64,
+    'outcome' : StepOutcome,
+  });
+  const Scenario = IDL.Record({
+    'id' : ScenarioId,
+    'subnets' : IDL.Vec(IDL.Tuple(IDL.Principal, SubnetReview)),
+    'completed' : IDL.Bool,
+    'proposal_ids' : IDL.Vec(IDL.Nat64),
+    'steps' : IDL.Vec(Step),
+    'findings' : IDL.Vec(Finding),
+  });
+  const HistoricalHead = IDL.Record({
+    'observed_at_nanos' : IDL.Nat64,
+    'version' : IDL.Nat64,
+    'observation' : IDL.Nat64,
+    'raw_hash' : IDL.Vec(IDL.Nat8),
+  });
+  const ProposalEvidence = IDL.Record({
+    'id' : IDL.Nat64,
+    'function' : IDL.Int32,
+    'proposed_at_seconds' : IDL.Opt(IDL.Nat64),
+    'observed_at_nanos' : IDL.Nat64,
+    'executed_at_seconds' : IDL.Opt(IDL.Nat64),
+    'observation' : IDL.Nat64,
+    'raw_hash' : IDL.Vec(IDL.Nat8),
+    'decoder' : IDL.Text,
+    'lifecycle_status' : IDL.Int32,
+    'payload_hash' : IDL.Vec(IDL.Nat8),
+  });
+  const RecordStamp = IDL.Record({
+    'value_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'mutation_time' : IDL.Opt(IDL.Nat64),
+    'page_observation' : IDL.Nat64,
+    'chunk_observations' : IDL.Vec(IDL.Nat64),
+    'mutation_version' : IDL.Nat64,
+  });
+  const RecordReference = IDL.Variant({
+    'Present' : RecordStamp,
+    'MissingAtBaseline' : IDL.Null,
+    'Deleted' : RecordStamp,
+    'Unavailable' : IDL.Record({
+      'stamp' : IDL.Opt(RecordStamp),
+      'reason' : IDL.Text,
+    }),
+  });
+  const ConcentrationRule = IDL.Variant({
+    'GreaterThanOneThird' : IDL.Null,
+    'FaultBudgetPlusOne' : IDL.Null,
+  });
+  const Policy = IDL.Record({
+    'warn_on_largest_share_increase' : IDL.Bool,
+    'version' : IDL.Nat16,
+    'concentration_rule' : ConcentrationRule,
+  });
+  const ReviewManifest = IDL.Record({
+    'metrics_revision' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'schema' : IDL.Nat16,
+    'registry_version' : IDL.Nat64,
+    'historical_head' : IDL.Opt(HistoricalHead),
+    'scenario' : ScenarioSelection,
+    'proposals' : IDL.Vec(ProposalEvidence),
+    'registry' : IDL.Vec(IDL.Tuple(RegistryKey, RecordReference)),
+    'input_hash' : IDL.Vec(IDL.Nat8),
+    'policy' : Policy,
+    'analysis_version' : IDL.Nat16,
+  });
+  const Review = IDL.Record({
+    'hypothetical_executed' : IDL.Opt(IDL.Bool),
+    'scenarios' : IDL.Vec(Scenario),
+    'findings' : IDL.Vec(Finding),
+    'revision' : IDL.Vec(IDL.Nat8),
+    'manifest' : ReviewManifest,
+  });
+  const CandidateAssignment = IDL.Variant({
+    'UnknownOutsideListedSubnets' : IDL.Null,
+    'NodeAbsent' : IDL.Null,
+    'ApiBoundary' : IDL.Null,
+    'ListedSubnet' : IDL.Principal,
+  });
+  const LiveScope = IDL.Record({
+    'subnet' : IDL.Principal,
+    'nodes' : IDL.Vec(IDL.Principal),
+    'scenario' : ScenarioId,
+  });
+  const ProposalText = IDL.Record({
+    'id' : IDL.Nat64,
+    'title' : IDL.Opt(IDL.Text),
+    'truncated' : IDL.Bool,
+    'summary' : IDL.Text,
+  });
+  const LiveReview = IDL.Record({
+    'subnet_rules' : IDL.Opt(IDL.Vec(SubnetRules)),
+    'report' : Review,
+    'assignments' : IDL.Vec(IDL.Tuple(IDL.Principal, CandidateAssignment)),
+    'total_listed_subnets' : IDL.Opt(IDL.Nat32),
+    'scopes' : IDL.Vec(LiveScope),
+    'listed_subnets' : IDL.Nat32,
+    'review_context' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'proposal_text' : IDL.Opt(IDL.Vec(ProposalText)),
+  });
+  const LiveError = IDL.Variant({
+    'ProposalChanged' : IDL.Record({
+      'id' : IDL.Nat64,
+      'status' : IDL.Int32,
+      'observation' : IDL.Nat64,
+    }),
+    'InvalidEvidence' : ReviewError,
+    'Deadline' : IDL.Null,
+    'Source' : IDL.Record({ 'observation' : IDL.Nat64, 'reason' : IDL.Text }),
+    'CallLimit' : IDL.Null,
+    'SourceBytes' : IDL.Null,
+    'CycleBalance' : IDL.Null,
+    'ResultLimit' : IDL.Null,
+  });
+  const Result_2 = IDL.Variant({ 'Ok' : LiveReview, 'Err' : LiveError });
+  const LiveReceipt = IDL.Record({
+    'id' : IDL.Nat64,
+    'reject' : IDL.Opt(IDL.Text),
+    'method' : IDL.Text,
+    'argument_hash' : IDL.Vec(IDL.Nat8),
+    'reply_bytes' : IDL.Nat64,
+    'source' : IDL.Principal,
+    'item' : IDL.Text,
+    'reply_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'observed_at' : IDL.Nat64,
+  });
+  const LiveResponse = IDL.Record({
+    'registry_version' : IDL.Opt(IDL.Nat64),
+    'usage' : LiveUsage,
+    'outcome' : Result_2,
+    'receipts' : IDL.Vec(LiveReceipt),
+  });
+  const Result_3 = IDL.Variant({ 'Ok' : LiveResponse, 'Err' : IDL.Text });
   const Stop = IDL.Variant({
     'CycleCeiling' : IDL.Null,
     'Deadline' : IDL.Null,
@@ -146,18 +413,11 @@ export const idlFactory = ({ IDL }) => {
     'usage' : IDL.Opt(Usage),
     'in_flight' : IDL.Opt(Work),
   });
-  const Result_2 = IDL.Variant({ 'Ok' : CollectionStatus, 'Err' : IDL.Text });
+  const Result_4 = IDL.Variant({ 'Ok' : CollectionStatus, 'Err' : IDL.Text });
   const Node = IDL.Record({
     'operator' : IDL.Opt(IDL.Principal),
     'reward_type' : IDL.Opt(IDL.Int32),
     'has_chip_id' : IDL.Bool,
-  });
-  const RecordStamp = IDL.Record({
-    'value_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'mutation_time' : IDL.Opt(IDL.Nat64),
-    'page_observation' : IDL.Nat64,
-    'chunk_observations' : IDL.Vec(IDL.Nat64),
-    'mutation_version' : IDL.Nat64,
   });
   const Record = IDL.Variant({
     'Missing' : IDL.Null,
@@ -210,64 +470,55 @@ export const idlFactory = ({ IDL }) => {
     'preview_revision' : IDL.Vec(IDL.Nat8),
     'data_centers' : IDL.Vec(IDL.Tuple(IDL.Text, Record_2)),
   });
-  const Distances = IDL.Record({
-    'known_nodes' : IDL.Nat32,
-    'maximum_metres' : IDL.Opt(IDL.Nat32),
-    'unknown_nodes' : IDL.Nat32,
-    'total_pairs' : IDL.Nat64,
-    'valid_pairs' : IDL.Nat64,
-    'mean_metres' : IDL.Opt(IDL.Nat32),
-    'minimum_metres' : IDL.Opt(IDL.Nat32),
-  });
-  const Dimension = IDL.Variant({
-    'Operator' : IDL.Null,
-    'RegisteredContinent' : IDL.Null,
-    'RegisteredCountry' : IDL.Null,
-    'RegisteredOwner' : IDL.Null,
-    'DataCenter' : IDL.Null,
-    'Provider' : IDL.Null,
-  });
-  const Group = IDL.Variant({
-    'RegisteredLabel' : IDL.Text,
-    'Principal' : IDL.Principal,
-  });
-  const Threshold = IDL.Record({
-    'nodes_required' : IDL.Nat32,
-    'groups_to_reach' : IDL.Opt(IDL.Nat32),
-  });
-  const Distribution = IDL.Record({
-    'groups' : IDL.Vec(IDL.Tuple(Group, IDL.Nat32)),
-    'largest' : IDL.Opt(IDL.Nat32),
-    'mean_ratio' : IDL.Opt(IDL.Tuple(IDL.Nat32, IDL.Nat32)),
-    'greater_than_one_third' : IDL.Opt(Threshold),
-    'smallest' : IDL.Opt(IDL.Nat32),
-    'fault_budget_plus_one' : IDL.Opt(Threshold),
-    'unknown' : IDL.Nat32,
-  });
-  const MembershipState = IDL.Record({
-    'distances' : Distances,
-    'members' : IDL.Vec(IDL.Principal),
-    'added' : IDL.Vec(IDL.Principal),
-    'baseline_count' : IDL.Nat32,
-    'retained' : IDL.Vec(IDL.Principal),
-    'distributions' : IDL.Vec(IDL.Tuple(Dimension, Distribution)),
-    'member_count' : IDL.Nat32,
-    'net_change' : IDL.Int64,
-    'removed' : IDL.Vec(IDL.Principal),
-  });
   const MembershipComparison = IDL.Record({
     'baseline' : MembershipState,
     'registered_area_before' : Distribution,
     'selected' : MembershipState,
     'registered_area_after' : Distribution,
   });
+  const TargetMetric = IDL.Variant({
+    'Size' : IDL.Null,
+    'RegisteredCountry' : IDL.Null,
+    'RegisteredOwner' : IDL.Null,
+    'DataCenter' : IDL.Null,
+    'Provider' : IDL.Null,
+  });
+  const BreachChange = IDL.Variant({
+    'New' : IDL.Null,
+    'Unchanged' : IDL.Null,
+    'Worsened' : IDL.Null,
+    'Improved' : IDL.Null,
+    'Resolved' : IDL.Null,
+  });
+  const Assessment = IDL.Variant({
+    'IdentityUnresolved' : IDL.Null,
+    'MatchesTarget' : IDL.Null,
+    'ExceedsLimit' : IDL.Null,
+    'WithinLimit' : IDL.Null,
+    'ExceptionUnresolved' : IDL.Null,
+    'DataIncomplete' : IDL.Null,
+    'DiffersFromTarget' : IDL.Null,
+    'AtLimit' : IDL.Null,
+  });
+  const TargetRow = IDL.Record({
+    'metric' : TargetMetric,
+    'breach' : IDL.Opt(BreachChange),
+    'after' : IDL.Opt(IDL.Nat32),
+    'assessment' : Assessment,
+    'limit' : IDL.Nat32,
+    'before_assessment' : Assessment,
+    'before' : IDL.Opt(IDL.Nat32),
+    'unknown_after' : IDL.Nat32,
+    'unknown_before' : IDL.Nat32,
+  });
   const LiveMembershipComparison = IDL.Record({
     'comparison' : MembershipComparison,
     'instructions' : IDL.Nat64,
     'input_hash' : IDL.Vec(IDL.Nat8),
+    'target_rows' : IDL.Opt(IDL.Vec(TargetRow)),
     'analysis_version' : IDL.Nat16,
   });
-  const Result_3 = IDL.Variant({
+  const Result_5 = IDL.Variant({
     'Ok' : LiveMembershipComparison,
     'Err' : IDL.Text,
   });
@@ -285,12 +536,12 @@ export const idlFactory = ({ IDL }) => {
     'queued' : IDL.Nat32,
     'oldest_scanned' : IDL.Opt(IDL.Nat64),
   });
-  const Result_4 = IDL.Variant({ 'Ok' : DiscoveryStatus, 'Err' : IDL.Text });
+  const Result_6 = IDL.Variant({ 'Ok' : DiscoveryStatus, 'Err' : IDL.Text });
   const ReplyPage = IDL.Record({
     'bytes' : IDL.Vec(IDL.Nat8),
     'next_offset' : IDL.Opt(IDL.Nat32),
   });
-  const Result_5 = IDL.Variant({ 'Ok' : ReplyPage, 'Err' : IDL.Text });
+  const Result_7 = IDL.Variant({ 'Ok' : ReplyPage, 'Err' : IDL.Text });
   const SourceObservation = IDL.Record({
     'id' : IDL.Nat64,
     'argument' : IDL.Vec(IDL.Nat8),
@@ -310,7 +561,18 @@ export const idlFactory = ({ IDL }) => {
     'schema_version' : IDL.Nat16,
     'observations' : IDL.Vec(SourceObservation),
   });
-  const Result_6 = IDL.Variant({ 'Ok' : EvidenceManifest, 'Err' : IDL.Text });
+  const Result_8 = IDL.Variant({ 'Ok' : EvidenceManifest, 'Err' : IDL.Text });
+  const Result_9 = IDL.Variant({
+    'Ok' : IDL.Vec(ProposalEvidence),
+    'Err' : LiveError,
+  });
+  const LiveResponse_1 = IDL.Record({
+    'registry_version' : IDL.Opt(IDL.Nat64),
+    'usage' : LiveUsage,
+    'outcome' : Result_9,
+    'receipts' : IDL.Vec(LiveReceipt),
+  });
+  const Result_10 = IDL.Variant({ 'Ok' : LiveResponse_1, 'Err' : IDL.Text });
   const CompletedReview = IDL.Record({
     'hypothetical_executed' : IDL.Opt(IDL.Bool),
     'registry_version' : IDL.Nat64,
@@ -322,63 +584,22 @@ export const idlFactory = ({ IDL }) => {
     'DataCenters' : IDL.Vec(IDL.Text),
     'Operators' : IDL.Vec(IDL.Principal),
   });
-  const LiveUsage = IDL.Record({
-    'balance_after' : IDL.Nat,
-    'calls' : IDL.Nat32,
-    'balance_before' : IDL.Nat,
-    'instructions' : IDL.Nat64,
-    'source_bytes' : IDL.Nat64,
-    'peak_batch_reservation' : IDL.Nat,
-    'started_at' : IDL.Nat64,
-    'finished_at' : IDL.Nat64,
-  });
   const DetailRecords = IDL.Variant({
     'Nodes' : IDL.Vec(Record),
     'DataCenters' : IDL.Vec(Record_2),
     'Operators' : IDL.Vec(Record_1),
   });
-  const LiveError = IDL.Variant({
-    'ProposalChanged' : IDL.Record({
-      'id' : IDL.Nat64,
-      'status' : IDL.Int32,
-      'observation' : IDL.Nat64,
-    }),
-    'InvalidEvidence' : ReviewError,
-    'Deadline' : IDL.Null,
-    'Source' : IDL.Record({ 'observation' : IDL.Nat64, 'reason' : IDL.Text }),
-    'CallLimit' : IDL.Null,
-    'SourceBytes' : IDL.Null,
-    'CycleBalance' : IDL.Null,
-    'ResultLimit' : IDL.Null,
-  });
-  const Result_7 = IDL.Variant({ 'Ok' : DetailRecords, 'Err' : LiveError });
-  const LiveReceipt = IDL.Record({
-    'id' : IDL.Nat64,
-    'reject' : IDL.Opt(IDL.Text),
-    'method' : IDL.Text,
-    'argument_hash' : IDL.Vec(IDL.Nat8),
-    'reply_bytes' : IDL.Nat64,
-    'source' : IDL.Principal,
-    'item' : IDL.Text,
-    'reply_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'observed_at' : IDL.Nat64,
-  });
-  const LiveResponse = IDL.Record({
+  const Result_11 = IDL.Variant({ 'Ok' : DetailRecords, 'Err' : LiveError });
+  const LiveResponse_2 = IDL.Record({
     'registry_version' : IDL.Opt(IDL.Nat64),
     'usage' : LiveUsage,
-    'outcome' : Result_7,
+    'outcome' : Result_11,
     'receipts' : IDL.Vec(LiveReceipt),
   });
-  const Result_8 = IDL.Variant({ 'Ok' : LiveResponse, 'Err' : IDL.Text });
+  const Result_12 = IDL.Variant({ 'Ok' : LiveResponse_2, 'Err' : IDL.Text });
   const ScopeCursor = IDL.Record({
     'after' : IDL.Principal,
     'selection' : IDL.Vec(IDL.Nat8),
-  });
-  const ScenarioId = IDL.Variant({
-    'A' : IDL.Null,
-    'B' : IDL.Null,
-    'BThenA' : IDL.Null,
-    'AThenB' : IDL.Null,
   });
   const NodeRole = IDL.Variant({
     'FinalMember' : IDL.Null,
@@ -434,7 +655,42 @@ export const idlFactory = ({ IDL }) => {
     }),
     'Unavailable' : ScopeUnavailable,
   });
-  const Result_9 = IDL.Variant({ 'Ok' : ScopePage, 'Err' : IDL.Text });
+  const Result_13 = IDL.Variant({ 'Ok' : ScopePage, 'Err' : IDL.Text });
+  const NnsTarget = IDL.Record({
+    'clause' : IDL.Text,
+    'exception' : IDL.Opt(IDL.Text),
+    'size' : IDL.Nat32,
+    'country_cap' : IDL.Nat32,
+    'group_cap' : IDL.Nat32,
+    'sev_designated' : IDL.Bool,
+  });
+  const PolicyMotion = IDL.Record({
+    'id' : IDL.Nat64,
+    'raw' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'status' : IDL.Opt(IDL.Int32),
+    'rule' : IDL.Opt(NnsTarget),
+    'issue' : IDL.Opt(IDL.Text),
+    'raw_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'retryable' : IDL.Bool,
+    'observed_at' : IDL.Opt(IDL.Nat64),
+  });
+  const PolicySnapshot = IDL.Record({
+    'nns_retryable' : IDL.Bool,
+    'nns_record' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'nns_issue' : IDL.Opt(IDL.Text),
+    'digest' : IDL.Vec(IDL.Nat8),
+    'motion' : IDL.Opt(PolicyMotion),
+    'nns_mutation_version' : IDL.Opt(IDL.Nat64),
+    'nns_subnet' : IDL.Opt(IDL.Principal),
+  });
+  const Result_14 = IDL.Variant({ 'Ok' : PolicySnapshot, 'Err' : LiveError });
+  const LiveResponse_3 = IDL.Record({
+    'registry_version' : IDL.Opt(IDL.Nat64),
+    'usage' : LiveUsage,
+    'outcome' : Result_14,
+    'receipts' : IDL.Vec(LiveReceipt),
+  });
+  const Result_15 = IDL.Variant({ 'Ok' : LiveResponse_3, 'Err' : IDL.Text });
   const MetricConflict = IDL.Record({
     'conflicting_hash' : IDL.Vec(IDL.Nat8),
     'raw_response_hash' : IDL.Vec(IDL.Nat8),
@@ -446,7 +702,7 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'rows' : IDL.Vec(MetricConflict),
   });
-  const Result_10 = IDL.Variant({
+  const Result_16 = IDL.Variant({
     'Ok' : MetricConflictPage,
     'Err' : IDL.Text,
   });
@@ -484,7 +740,7 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Principal),
     'rows' : IDL.Vec(NodeMetrics),
   });
-  const Result_11 = IDL.Variant({ 'Ok' : MetricRows, 'Err' : IDL.Text });
+  const Result_17 = IDL.Variant({ 'Ok' : MetricRows, 'Err' : IDL.Text });
   const HistoryKind = IDL.Variant({
     'Empty' : IDL.Null,
     'MissingBoundary' : IDL.Null,
@@ -515,18 +771,18 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Nat64),
     'rows' : IDL.Vec(MetricSample),
   });
-  const Result_12 = IDL.Variant({ 'Ok' : MetricPage, 'Err' : IDL.Text });
+  const Result_18 = IDL.Variant({ 'Ok' : MetricPage, 'Err' : IDL.Text });
   const MetricsRosterStatus = IDL.Record({
     'registry_version' : IDL.Opt(IDL.Nat64),
     'error' : IDL.Opt(IDL.Text),
     'eligible_count' : IDL.Nat32,
     'unsupported' : IDL.Vec(IDL.Principal),
   });
-  const Result_13 = IDL.Variant({
+  const Result_19 = IDL.Variant({
     'Ok' : MetricsRosterStatus,
     'Err' : IDL.Text,
   });
-  const Result_14 = IDL.Variant({ 'Ok' : SubnetCollection, 'Err' : IDL.Text });
+  const Result_20 = IDL.Variant({ 'Ok' : SubnetCollection, 'Err' : IDL.Text });
   const NodeMetricsHistoryRecord = IDL.Record({
     'timestamp_nanos' : IDL.Nat64,
     'node_metrics' : IDL.Vec(NodeMetrics),
@@ -536,19 +792,19 @@ export const idlFactory = ({ IDL }) => {
     'samples' : IDL.Vec(NodeMetricsHistoryRecord),
     'subnet' : IDL.Principal,
   });
-  const Result_15 = IDL.Variant({ 'Ok' : LivePerformance, 'Err' : LiveError });
-  const LiveResponse_1 = IDL.Record({
+  const Result_21 = IDL.Variant({ 'Ok' : LivePerformance, 'Err' : LiveError });
+  const LiveResponse_4 = IDL.Record({
     'registry_version' : IDL.Opt(IDL.Nat64),
     'usage' : LiveUsage,
-    'outcome' : Result_15,
+    'outcome' : Result_21,
     'receipts' : IDL.Vec(LiveReceipt),
   });
-  const Result_16 = IDL.Variant({ 'Ok' : LiveResponse_1, 'Err' : IDL.Text });
+  const Result_22 = IDL.Variant({ 'Ok' : LiveResponse_4, 'Err' : IDL.Text });
   const ProbeBudget = IDL.Record({
     'migrated_from_m0' : IDL.Bool,
     'usage' : Usage,
   });
-  const Result_17 = IDL.Variant({ 'Ok' : ProbeBudget, 'Err' : IDL.Text });
+  const Result_23 = IDL.Variant({ 'Ok' : ProbeBudget, 'Err' : IDL.Text });
   const ListedProposal = IDL.Record({
     'id' : IDL.Nat64,
     'function' : IDL.Opt(IDL.Int32),
@@ -580,18 +836,6 @@ export const idlFactory = ({ IDL }) => {
       'region' : IDL.Text,
       'has_gps' : IDL.Bool,
       'registered_owner' : IDL.Text,
-    }),
-  });
-  const MembershipAction = IDL.Variant({
-    'Add' : IDL.Record({
-      'subnet' : IDL.Principal,
-      'nodes' : IDL.Vec(IDL.Principal),
-    }),
-    'Remove' : IDL.Record({ 'nodes' : IDL.Vec(IDL.Principal) }),
-    'Change' : IDL.Record({
-      'add' : IDL.Vec(IDL.Principal),
-      'remove' : IDL.Vec(IDL.Principal),
-      'subnet' : IDL.Principal,
     }),
   });
   const VersionSpan = IDL.Record({
@@ -683,7 +927,7 @@ export const idlFactory = ({ IDL }) => {
     'raw_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'cycles_before' : IDL.Nat,
   });
-  const Result_18 = IDL.Variant({ 'Ok' : Receipt, 'Err' : IDL.Text });
+  const Result_24 = IDL.Variant({ 'Ok' : Receipt, 'Err' : IDL.Text });
   const Status = IDL.Record({
     'caller_subnet' : IDL.Principal,
     'captured_registry_head' : IDL.Opt(IDL.Nat64),
@@ -699,8 +943,8 @@ export const idlFactory = ({ IDL }) => {
     'started_at_nanos' : IDL.Nat64,
     'stop_reason' : IDL.Opt(IDL.Text),
   });
-  const Result_19 = IDL.Variant({ 'Ok' : Status, 'Err' : IDL.Text });
-  const Result_20 = IDL.Variant({ 'Ok' : MembershipAction, 'Err' : IDL.Text });
+  const Result_25 = IDL.Variant({ 'Ok' : Status, 'Err' : IDL.Text });
+  const Result_26 = IDL.Variant({ 'Ok' : MembershipAction, 'Err' : IDL.Text });
   const ActionStatus = IDL.Variant({
     'MalformedPayload' : IDL.Text,
     'UnsupportedAction' : IDL.Null,
@@ -726,12 +970,12 @@ export const idlFactory = ({ IDL }) => {
     'collected_at' : IDL.Nat64,
     'payload_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
-  const Result_21 = IDL.Variant({ 'Ok' : ProposalCapture, 'Err' : IDL.Text });
+  const Result_27 = IDL.Variant({ 'Ok' : ProposalCapture, 'Err' : IDL.Text });
   const CapturePage = IDL.Record({
     'next' : IDL.Opt(IDL.Nat64),
     'rows' : IDL.Vec(ProposalCapture),
   });
-  const Result_22 = IDL.Variant({ 'Ok' : CapturePage, 'Err' : IDL.Text });
+  const Result_28 = IDL.Variant({ 'Ok' : CapturePage, 'Err' : IDL.Text });
   const ProposalStatus = IDL.Record({
     'last_status' : IDL.Opt(SourceStatus),
     'next_lifecycle_check' : IDL.Opt(IDL.Nat64),
@@ -739,7 +983,7 @@ export const idlFactory = ({ IDL }) => {
     'last_observation' : IDL.Opt(IDL.Nat64),
     'capture_count' : IDL.Nat64,
   });
-  const Result_23 = IDL.Variant({ 'Ok' : ProposalStatus, 'Err' : IDL.Text });
+  const Result_29 = IDL.Variant({ 'Ok' : ProposalStatus, 'Err' : IDL.Text });
   const PerformanceRequest = IDL.Record({
     'scope' : ScopeRequest,
     'timestamp' : IDL.Opt(IDL.Nat64),
@@ -750,130 +994,8 @@ export const idlFactory = ({ IDL }) => {
     'last_success_at' : IDL.Opt(IDL.Nat64),
     'scope' : ScopePage,
   });
-  const Result_24 = IDL.Variant({ 'Ok' : PerformancePage, 'Err' : IDL.Text });
-  const SubnetReview = IDL.Record({
-    'baseline' : MembershipState,
-    'after_steps' : IDL.Vec(IDL.Opt(MembershipState)),
-  });
-  const FindingCode = IDL.Variant({
-    'DuplicateInstruction' : IDL.Null,
-    'ConcentrationIncreased' : Dimension,
-    'RemovalOutsideTarget' : IDL.Null,
-    'UnavailableRegisteredCoordinates' : IDL.Null,
-    'HistoricalBaselineUnavailable' : IDL.Null,
-    'UnaffectedRemovalCandidate' : IDL.Null,
-    'TerminalProposal' : IDL.Int32,
-    'EmptyResultingSubnet' : IDL.Null,
-    'MissingRegistryMetadata' : IDL.Null,
-    'EarlierBaselineHypothesis' : IDL.Null,
-    'ExecutedProposalHypothesis' : IDL.Null,
-    'AlreadyInTarget' : IDL.Null,
-    'AssignedElsewhere' : IDL.Null,
-    'RewardTypeMismatch' : IDL.Null,
-    'MissingNode' : IDL.Null,
-    'PreviouslyUnassigned' : IDL.Null,
-    'DeletedNode' : IDL.Null,
-    'UnavailableNode' : IDL.Null,
-    'MissingSevChipIdentity' : IDL.Null,
-    'UnlistedTarget' : IDL.Null,
-    'UnknownDimension' : Dimension,
-    'OverlappingInstructionsRemovalWins' : IDL.Null,
-    'DuplicateResultingMembership' : IDL.Null,
-    'InvalidTarget' : IDL.Null,
-    'ApiBoundaryAssignment' : IDL.Null,
-    'DifferentIntermediateStates' : IDL.Null,
-  });
-  const Severity = IDL.Variant({
-    'Error' : IDL.Null,
-    'Note' : IDL.Null,
-    'Warning' : IDL.Null,
-  });
-  const Finding = IDL.Record({
-    'subnets' : IDL.Vec(IDL.Principal),
-    'code' : FindingCode,
-    'step' : IDL.Opt(IDL.Nat8),
-    'nodes' : IDL.Vec(IDL.Principal),
-    'proposal' : IDL.Opt(IDL.Nat64),
-    'severity' : Severity,
-    'registry' : IDL.Vec(RegistryKey),
-  });
-  const StepOutcome = IDL.Variant({
-    'Skipped' : IDL.Record({ 'failed_step' : IDL.Nat8 }),
-    'Applied' : IDL.Record({
-      'writes' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Vec(IDL.Principal))),
-    }),
-    'Rejected' : IDL.Null,
-  });
-  const Step = IDL.Record({
-    'requested' : MembershipAction,
-    'findings' : IDL.Vec(Finding),
-    'proposal' : IDL.Nat64,
-    'outcome' : StepOutcome,
-  });
-  const Scenario = IDL.Record({
-    'id' : ScenarioId,
-    'subnets' : IDL.Vec(IDL.Tuple(IDL.Principal, SubnetReview)),
-    'completed' : IDL.Bool,
-    'proposal_ids' : IDL.Vec(IDL.Nat64),
-    'steps' : IDL.Vec(Step),
-    'findings' : IDL.Vec(Finding),
-  });
-  const HistoricalHead = IDL.Record({
-    'observed_at_nanos' : IDL.Nat64,
-    'version' : IDL.Nat64,
-    'observation' : IDL.Nat64,
-    'raw_hash' : IDL.Vec(IDL.Nat8),
-  });
-  const ProposalEvidence = IDL.Record({
-    'id' : IDL.Nat64,
-    'function' : IDL.Int32,
-    'proposed_at_seconds' : IDL.Opt(IDL.Nat64),
-    'observed_at_nanos' : IDL.Nat64,
-    'executed_at_seconds' : IDL.Opt(IDL.Nat64),
-    'observation' : IDL.Nat64,
-    'raw_hash' : IDL.Vec(IDL.Nat8),
-    'decoder' : IDL.Text,
-    'lifecycle_status' : IDL.Int32,
-    'payload_hash' : IDL.Vec(IDL.Nat8),
-  });
-  const RecordReference = IDL.Variant({
-    'Present' : RecordStamp,
-    'MissingAtBaseline' : IDL.Null,
-    'Deleted' : RecordStamp,
-    'Unavailable' : IDL.Record({
-      'stamp' : IDL.Opt(RecordStamp),
-      'reason' : IDL.Text,
-    }),
-  });
-  const ConcentrationRule = IDL.Variant({
-    'GreaterThanOneThird' : IDL.Null,
-    'FaultBudgetPlusOne' : IDL.Null,
-  });
-  const Policy = IDL.Record({
-    'warn_on_largest_share_increase' : IDL.Bool,
-    'version' : IDL.Nat16,
-    'concentration_rule' : ConcentrationRule,
-  });
-  const ReviewManifest = IDL.Record({
-    'metrics_revision' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'schema' : IDL.Nat16,
-    'registry_version' : IDL.Nat64,
-    'historical_head' : IDL.Opt(HistoricalHead),
-    'scenario' : ScenarioSelection,
-    'proposals' : IDL.Vec(ProposalEvidence),
-    'registry' : IDL.Vec(IDL.Tuple(RegistryKey, RecordReference)),
-    'input_hash' : IDL.Vec(IDL.Nat8),
-    'policy' : Policy,
-    'analysis_version' : IDL.Nat16,
-  });
-  const Review = IDL.Record({
-    'hypothetical_executed' : IDL.Opt(IDL.Bool),
-    'scenarios' : IDL.Vec(Scenario),
-    'findings' : IDL.Vec(Finding),
-    'revision' : IDL.Vec(IDL.Nat8),
-    'manifest' : ReviewManifest,
-  });
-  const Result_25 = IDL.Variant({ 'Ok' : Review, 'Err' : IDL.Text });
+  const Result_30 = IDL.Variant({ 'Ok' : PerformancePage, 'Err' : IDL.Text });
+  const Result_31 = IDL.Variant({ 'Ok' : Review, 'Err' : IDL.Text });
   const Assignment = IDL.Variant({
     'UnknownNode' : IDL.Null,
     'Replica' : IDL.Principal,
@@ -885,7 +1007,7 @@ export const idlFactory = ({ IDL }) => {
       'api_boundary' : IDL.Bool,
     }),
   });
-  const Result_26 = IDL.Variant({ 'Ok' : Assignment, 'Err' : IDL.Text });
+  const Result_32 = IDL.Variant({ 'Ok' : Assignment, 'Err' : IDL.Text });
   const RecordKey = IDL.Variant({
     'Operator' : IDL.Principal,
     'Node' : IDL.Principal,
@@ -901,7 +1023,7 @@ export const idlFactory = ({ IDL }) => {
     'keys' : IDL.Vec(RecordKey),
     'next' : IDL.Opt(IDL.Text),
   });
-  const Result_27 = IDL.Variant({ 'Ok' : KeyPage, 'Err' : IDL.Text });
+  const Result_33 = IDL.Variant({ 'Ok' : KeyPage, 'Err' : IDL.Text });
   const RecordEvidence = IDL.Record({
     'value_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'page' : IDL.Nat64,
@@ -913,7 +1035,7 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Text),
     'operators' : IDL.Vec(IDL.Tuple(IDL.Principal, RecordEvidence)),
   });
-  const Result_28 = IDL.Variant({ 'Ok' : ProviderPage, 'Err' : IDL.Text });
+  const Result_34 = IDL.Variant({ 'Ok' : ProviderPage, 'Err' : IDL.Text });
   const Endpoint = IDL.Record({ 'ip' : IDL.Text, 'port' : IDL.Nat32 });
   const Position = IDL.Record({
     'latitude' : IDL.Float32,
@@ -970,7 +1092,7 @@ export const idlFactory = ({ IDL }) => {
     'Opaque' : IDL.Record({ 'evidence' : RecordEvidence, 'reason' : IDL.Text }),
     'Deleted' : RecordEvidence,
   });
-  const Result_29 = IDL.Variant({ 'Ok' : RecordAt, 'Err' : IDL.Text });
+  const Result_35 = IDL.Variant({ 'Ok' : RecordAt, 'Err' : IDL.Text });
   const Staging = IDL.Record({
     'end' : IDL.Nat64,
     'count' : IDL.Nat32,
@@ -1023,63 +1145,30 @@ export const idlFactory = ({ IDL }) => {
     'limits' : IDL.Opt(RegistryLimits),
     'superseded_mutations' : IDL.Nat64,
   });
-  const Result_30 = IDL.Variant({ 'Ok' : RegistryStatus, 'Err' : IDL.Text });
-  const Result_31 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : IDL.Text });
-  const SubnetRules = IDL.Record({
-    'kind' : IDL.Int32,
-    'subnet' : IDL.Principal,
-    'sev_enabled' : IDL.Bool,
-  });
-  const CandidateAssignment = IDL.Variant({
-    'UnknownOutsideListedSubnets' : IDL.Null,
-    'NodeAbsent' : IDL.Null,
-    'ApiBoundary' : IDL.Null,
-    'ListedSubnet' : IDL.Principal,
-  });
-  const LiveScope = IDL.Record({
-    'subnet' : IDL.Principal,
-    'nodes' : IDL.Vec(IDL.Principal),
-    'scenario' : ScenarioId,
-  });
-  const ProposalText = IDL.Record({
-    'id' : IDL.Nat64,
-    'title' : IDL.Opt(IDL.Text),
-    'truncated' : IDL.Bool,
-    'summary' : IDL.Text,
-  });
-  const LiveReview = IDL.Record({
-    'subnet_rules' : IDL.Opt(IDL.Vec(SubnetRules)),
-    'report' : Review,
-    'assignments' : IDL.Vec(IDL.Tuple(IDL.Principal, CandidateAssignment)),
-    'total_listed_subnets' : IDL.Opt(IDL.Nat32),
-    'scopes' : IDL.Vec(LiveScope),
-    'listed_subnets' : IDL.Nat32,
-    'proposal_text' : IDL.Opt(IDL.Vec(ProposalText)),
-  });
-  const Result_32 = IDL.Variant({ 'Ok' : LiveReview, 'Err' : LiveError });
-  const LiveResponse_2 = IDL.Record({
-    'registry_version' : IDL.Opt(IDL.Nat64),
-    'usage' : LiveUsage,
-    'outcome' : Result_32,
-    'receipts' : IDL.Vec(LiveReceipt),
-  });
-  const Result_33 = IDL.Variant({ 'Ok' : LiveResponse_2, 'Err' : IDL.Text });
-  const Result_34 = IDL.Variant({ 'Ok' : SourceObservation, 'Err' : IDL.Text });
+  const Result_36 = IDL.Variant({ 'Ok' : RegistryStatus, 'Err' : IDL.Text });
+  const Result_37 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : IDL.Text });
+  const Result_38 = IDL.Variant({ 'Ok' : SourceObservation, 'Err' : IDL.Text });
   const ProbeRequest = IDL.Record({
     'registry_subnet' : IDL.Opt(IDL.Principal),
     'metrics_start_nanos' : IDL.Nat64,
     'remote_subnet' : IDL.Opt(IDL.Principal),
     'proposal_id' : IDL.Opt(IDL.Nat64),
   });
-  const Result_35 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
+  const Result_39 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
   return IDL.Service({
     'advance_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'authorize_verification' : IDL.Func([IDL.Nat64, Limits], [Result_1], []),
+    'begin_membership_review' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_3], []),
     'capture_proposal' : IDL.Func([IDL.Nat64], [Result_1], []),
-    'collection_status' : IDL.Func([], [Result_2], []),
+    'collection_status' : IDL.Func([], [Result_4], []),
     'compare_membership_details' : IDL.Func(
         [DetailComparisonInput],
-        [Result_3],
+        [Result_5],
+        [],
+      ),
+    'compare_membership_with_policy' : IDL.Func(
+        [DetailComparisonInput, IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
+        [Result_5],
         [],
       ),
     'configure_collection' : IDL.Func([IDL.Opt(Limits)], [Result_1], []),
@@ -1089,96 +1178,106 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'configure_registry_limits' : IDL.Func([RegistryLimits], [Result_1], []),
-    'discovery_status' : IDL.Func([], [Result_4], []),
-    'evidence_bytes' : IDL.Func([IDL.Vec(IDL.Nat8), IDL.Nat32], [Result_5], []),
+    'discovery_status' : IDL.Func([], [Result_6], []),
+    'evidence_bytes' : IDL.Func([IDL.Vec(IDL.Nat8), IDL.Nat32], [Result_7], []),
     'evidence_manifest' : IDL.Func(
         [IDL.Opt(IDL.Nat64), IDL.Vec(IDL.Nat64)],
-        [Result_6],
+        [Result_8],
+        [],
+      ),
+    'finalize_membership_review' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_10],
         [],
       ),
     'list_completed_reviews' : IDL.Func([], [IDL.Vec(CompletedReview)], []),
     'membership_detail_page' : IDL.Func(
         [IDL.Nat64, DetailKeys],
-        [Result_8],
+        [Result_12],
         [],
       ),
     'membership_review_page' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat32],
-        [Result_5],
+        [Result_7],
         [],
       ),
-    'membership_review_scope' : IDL.Func([ScopeRequest], [Result_9], []),
+    'membership_review_scope' : IDL.Func([ScopeRequest], [Result_13], []),
     'membership_review_status' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
+    'membership_target_topology' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Nat64)],
+        [Result_15],
+        [],
+      ),
     'metric_conflicts' : IDL.Func(
         [IDL.Principal, IDL.Nat64, IDL.Opt(IDL.Vec(IDL.Nat8))],
-        [Result_10],
+        [Result_16],
         [],
       ),
     'metric_sample_rows' : IDL.Func(
         [IDL.Principal, IDL.Nat64, IDL.Opt(IDL.Principal)],
-        [Result_11],
+        [Result_17],
         [],
       ),
     'metric_samples' : IDL.Func(
         [IDL.Principal, IDL.Nat64, IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_12],
+        [Result_18],
         [],
       ),
-    'metrics_roster' : IDL.Func([], [Result_13], []),
-    'metrics_status' : IDL.Func([IDL.Principal], [Result_14], []),
+    'metrics_roster' : IDL.Func([], [Result_19], []),
+    'metrics_status' : IDL.Func([IDL.Principal], [Result_20], []),
     'node_performance_on_demand' : IDL.Func(
         [IDL.Principal, IDL.Nat64, IDL.Opt(IDL.Vec(IDL.Principal))],
-        [Result_16],
+        [Result_22],
         [],
       ),
-    'probe_budget' : IDL.Func([IDL.Nat64], [Result_17], []),
-    'probe_receipt' : IDL.Func([IDL.Nat64, IDL.Nat32], [Result_18], []),
-    'probe_reply' : IDL.Func([IDL.Nat64, IDL.Nat32, IDL.Nat32], [Result_5], []),
-    'probe_status' : IDL.Func([IDL.Nat64], [Result_19], []),
+    'probe_budget' : IDL.Func([IDL.Nat64], [Result_23], []),
+    'probe_receipt' : IDL.Func([IDL.Nat64, IDL.Nat32], [Result_24], []),
+    'probe_reply' : IDL.Func([IDL.Nat64, IDL.Nat32, IDL.Nat32], [Result_7], []),
+    'probe_status' : IDL.Func([IDL.Nat64], [Result_25], []),
     'proposal_action' : IDL.Func(
         [IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_20],
+        [Result_26],
         [],
       ),
     'proposal_archive' : IDL.Func(
         [IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_21],
+        [Result_27],
         [],
       ),
     'proposal_history' : IDL.Func(
         [IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_22],
-        [],
-      ),
-    'proposal_status' : IDL.Func([IDL.Nat64], [Result_23], []),
-    'read_membership_performance' : IDL.Func(
-        [PerformanceRequest],
-        [Result_24],
-        [],
-      ),
-    'read_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_25], []),
-    'registry_assignment' : IDL.Func(
-        [IDL.Nat64, IDL.Principal],
-        [Result_26],
-        [],
-      ),
-    'registry_keys' : IDL.Func([IDL.Nat64, IDL.Opt(IDL.Text)], [Result_27], []),
-    'registry_provider' : IDL.Func(
-        [IDL.Nat64, IDL.Principal, IDL.Opt(IDL.Text)],
         [Result_28],
         [],
       ),
-    'registry_record' : IDL.Func([IDL.Nat64, RecordKey], [Result_29], []),
-    'registry_status' : IDL.Func([], [Result_30], []),
-    'request_membership_review' : IDL.Func([ReviewRequest], [Result_31], []),
+    'proposal_status' : IDL.Func([IDL.Nat64], [Result_29], []),
+    'read_membership_performance' : IDL.Func(
+        [PerformanceRequest],
+        [Result_30],
+        [],
+      ),
+    'read_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_31], []),
+    'registry_assignment' : IDL.Func(
+        [IDL.Nat64, IDL.Principal],
+        [Result_32],
+        [],
+      ),
+    'registry_keys' : IDL.Func([IDL.Nat64, IDL.Opt(IDL.Text)], [Result_33], []),
+    'registry_provider' : IDL.Func(
+        [IDL.Nat64, IDL.Principal, IDL.Opt(IDL.Text)],
+        [Result_34],
+        [],
+      ),
+    'registry_record' : IDL.Func([IDL.Nat64, RecordKey], [Result_35], []),
+    'registry_status' : IDL.Func([], [Result_36], []),
+    'request_membership_review' : IDL.Func([ReviewRequest], [Result_37], []),
     'retry_registry' : IDL.Func([], [Result_1], []),
-    'review_on_demand' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_33], []),
+    'review_on_demand' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_3], []),
     'set_on_demand_caller' : IDL.Func([IDL.Opt(IDL.Principal)], [Result_1], []),
-    'source_observation' : IDL.Func([IDL.Nat64], [Result_34], []),
-    'start_probe' : IDL.Func([ProbeRequest], [Result_35], []),
+    'source_observation' : IDL.Func([IDL.Nat64], [Result_38], []),
+    'start_probe' : IDL.Func([ProbeRequest], [Result_39], []),
     'start_probe_with_limits' : IDL.Func(
         [ProbeRequest, Limits],
-        [Result_35],
+        [Result_39],
         [],
       ),
   });

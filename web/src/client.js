@@ -21,12 +21,14 @@ export function result(reply) {
   return reply.Ok;
 }
 
-export async function compareMembership(client, input, active = () => true) {
-  const method = Actor.interfaceOf(client).fieldsAsObject().compare_membership_details;
-  const bytes = IDL.encode(method.argTypes, [input]);
+export async function compareMembership(client, input, active = () => true, policy = []) {
+  const name = policy.length ? 'compare_membership_with_policy' : 'compare_membership_details';
+  const args = [input, ...policy];
+  const method = Actor.interfaceOf(client).fieldsAsObject()[name];
+  const bytes = IDL.encode(method.argTypes, args);
   const inputHash = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
   if (!active()) return undefined;
-  const calculated = result(await client.compare_membership_details(input));
+  const calculated = result(await client[name](...args));
   if (hex(calculated.input_hash) !== inputHash) {
     throw new Error('The replicated calculation returned a different input digest.');
   }
@@ -35,7 +37,7 @@ export async function compareMembership(client, input, active = () => true) {
 
 export function liveError(error) {
   if ('ProposalChanged' in error) {
-    return `Proposal #${error.ProposalChanged.id} changed while the Registry was being read. Run the review again.`;
+    return `Proposal #${error.ProposalChanged.id} changed during the review. Start a new review for its observed state.`;
   }
   if ('Source' in error) {
     return `Source observation ${error.Source.observation} is unavailable. ${error.Source.reason}`;

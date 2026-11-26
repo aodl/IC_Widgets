@@ -6,8 +6,8 @@ use ic_cdk::api::{canister_liquid_cycle_balance, msg_arg_data, performance_count
 use nexus_domain::{Hash, sha256};
 use nexus_ic_sources::projection::RecordKey;
 use nexus_review_engine::{
-    ANALYSIS_VERSION, DataCenter, MembershipComparison, Node, Operator, Record, TopologyEvidence,
-    compare_membership, data_center_key,
+    ANALYSIS_VERSION, DataCenter, MembershipComparison, Node, Operator, Record, TargetRow,
+    TopologyEvidence, assess_target, compare_membership, data_center_key,
 };
 use serde::Deserialize;
 
@@ -54,6 +54,7 @@ pub struct LiveMembershipComparison {
     pub input_hash: Hash,
     pub analysis_version: u16,
     pub instructions: u64,
+    pub target_rows: Option<Vec<TargetRow>>,
 }
 
 fn valid_keys<T: Ord>(keys: &[T]) -> bool {
@@ -153,6 +154,27 @@ fn compare_membership_details(
     input: DetailComparisonInput,
 ) -> Result<LiveMembershipComparison, String> {
     let _guard = RequestGuard::acquire()?;
+    calculate(input)
+}
+
+#[ic_cdk::update(guard = "comparison_ingress")]
+fn compare_membership_with_policy(
+    input: DetailComparisonInput,
+    token: Hash,
+    policy_digest: Hash,
+) -> Result<LiveMembershipComparison, String> {
+    let _guard = RequestGuard::acquire()?;
+    let policy = super::policy::policy_for(token, policy_digest, &input)?;
+    let applies = policy.nns_subnet == Some(input.subnet);
+    let mut result = calculate(input)?;
+    if applies && let Some(rule) = policy.motion.and_then(|motion| motion.rule) {
+        result.target_rows = Some(assess_target(&rule, &result.comparison));
+        result.instructions = performance_counter(0);
+    }
+    Ok(result)
+}
+
+fn calculate(input: DetailComparisonInput) -> Result<LiveMembershipComparison, String> {
     if canister_liquid_cycle_balance() < FLOOR {
         return Err("insufficient liquid cycles for comparison".into());
     }
@@ -202,5 +224,6 @@ fn compare_membership_details(
         input_hash: sha256(&msg_arg_data()),
         analysis_version: ANALYSIS_VERSION,
         instructions: performance_counter(0),
+        target_rows: None,
     })
 }

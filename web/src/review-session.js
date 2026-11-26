@@ -70,142 +70,240 @@ export function reviewContexts(report, rules) {
     }))));
 }
 
-export function createReviewSession({ live, contexts, active, call, updated, phase, compare = compareMembership }) {
-  const { report } = live.outcome.Ok;
-  const { registry_version: version } = report.manifest;
+export function createReviewSession({ live, contexts, policyId, active, call, updated, progress, compare = compareMembership }) {
+  const { report, review_context } = live.outcome.Ok;
+  const token = option(review_context ?? []);
+  const version = report.manifest.registry_version;
+  const required = contexts.filter(context => context.index && context.rules && context.state);
   const records = emptyEvidence();
   const receipts = [];
-  const paired = contexts.filter(c => c.index > 0 && c.rules && c.state && ['AThenB', 'BThenA'].includes(branch(c.scenario.id)));
   let selected;
   let running;
   let stopped = false;
-  const valid = () => active() && !stopped;
-  const pending = c => c?.status === 'pending' && c.rules && c.state;
-  const useful = context => valid() && (selected === context || paired.includes(context) && !pending(selected));
+  let policy;
+  let policyFailure;
+  let final;
+  let consistency;
+  let work = 'idle';
+  let stage;
 
-  function publish(context) {
-    if (active() && selected === context) updated(context);
+  const valid = () => active() && !stopped;
+  const pending = context => context?.status === 'pending' && context.rules && context.state;
+  const outstanding = () => required.filter(pending);
+  const update = () => { if (active()) updated(selected); };
+  const plannedContexts = () => [...new Set([...required, ...(selected?.state && selected.rules ? [selected] : [])])];
+  const send = (next, counts) => {
+    const changed = stage !== next;
+    stage = next;
+    if (active()) progress({ work, stage, counts, remaining: outstanding().length, consistency,
+      selectedReady: selected?.status === 'available' || selected?.status === 'partial' });
+    if (changed) update();
+  };
+  function section() {
+    return { records, policy, policyFailure, final, consistency, work, stage };
   }
 
-  async function read(type, ids, context) {
+  async function read(type, ids) {
     const map = records[type];
-    const missing = entries(ids).filter(([key]) => !map.has(key));
+    const keys = entries(ids);
+    const missing = keys.filter(([key]) => !map.has(key));
+    const counts = { planned: keys.length, settled: keys.length - missing.length, present: 0, absent: 0, failed: 0, inFlight: 0 };
+    const count = record => {
+      if (record.Present) counts.present++;
+      else if (record.Unavailable) counts.failed++;
+      else counts.absent++;
+    };
+    for (const [key] of keys) if (map.has(key)) count(map.get(key)[1]);
     for (let offset = 0; offset < missing.length; offset += PAGE) {
-      if (!useful(context)) return false;
+      if (!valid()) return;
       const page = missing.slice(offset, offset + PAGE);
-      if (selected === context) phase('Membership available. Reading ' + STAGES[type] + ' · ' + (offset + page.length) + ' of ' + missing.length + ' requested records');
+      counts.inFlight = page.length;
+      send(type, { ...counts });
+      let found;
       try {
-        const reply = await call(() => useful(context),
-          client => client.membership_detail_page(version, { [type]: page.map(([, id]) => id) }));
-        if (!reply || !active()) return false;
+        const reply = await call(valid, client => client.membership_detail_page(version, { [type]: page.map(([, id]) => id) }));
+        if (!reply || !valid()) return;
         const response = result(reply);
         receipts.push({ type, response });
         if ('Err' in response.outcome) throw new Error(liveError(response.outcome.Err));
-        const found = response.outcome.Ok[type];
+        found = response.outcome.Ok[type];
         if (option(response.registry_version) !== version || found?.length !== page.length) {
-          throw new Error('Source page does not match the selected snapshot.');
+          throw new Error('Source page does not match the pinned snapshot.');
         }
         for (const record of found) {
           const stamp = record.Present?.stamp ?? record.Deleted ?? option(record.Unavailable?.stamp ?? []);
           if (stamp && stamp.mutation_version > version) throw new Error('A record is newer than the pinned version.');
         }
-        page.forEach(([key, id], index) => map.set(key, [id, found[index]]));
       } catch (error) {
-        if (!active()) return false;
-        page.forEach(([key, id]) => map.set(key, [id, { Unavailable: { stamp: [], reason: error.message } }]));
+        if (!valid()) return;
+        found = page.map(() => ({ Unavailable: { stamp: [], reason: error.message } }));
         receipts.push({ type, error: error.message, keys: page.map(([key]) => key) });
       }
+      page.forEach(([key, id], index) => {
+        map.set(key, [id, found[index]]);
+        count(found[index]);
+      });
+      counts.settled += page.length;
+      counts.inFlight = 0;
+      send(type, { ...counts });
+      update();
     }
-    return useful(context);
+  }
+
+  async function observePolicy() {
+    if (!token || policy || !valid()) return;
+    send('Policy');
+    try {
+      const reply = await call(valid, client => client.membership_target_topology(token, policyId === undefined ? [] : [policyId]));
+      if (!reply || !valid()) return;
+      const response = result(reply);
+      receipts.push({ type: 'Policy', response });
+      if ('Err' in response.outcome) throw new Error(liveError(response.outcome.Err));
+      if (option(response.registry_version) !== version) throw new Error('Policy context does not match the pinned Registry snapshot.');
+      policy = response.outcome.Ok;
+    } catch (error) {
+      if (valid()) policyFailure = error.message;
+    }
+    update();
   }
 
   async function calculate(context) {
     const evidence = comparisonEvidence(records, membership(context));
-    // These maps contain only records used by this comparison. Subsequent reads
-    // replace entries in the session store and cannot change this snapshot.
     const input = {
       registry_version: version, preview_revision: report.revision, subnet: context.subnet,
       before: context.before.members, after: context.state.members, kind: context.rules.kind,
       nodes: [...evidence.Nodes.values()], operators: [...evidence.Operators.values()],
       data_centers: [...evidence.DataCenters.values()],
     };
-    if (selected === context) phase('Checking the replicated comparison');
-    const relevant = () => useful(context);
-    const calculation = await call(relevant, client => compare(client, input, relevant));
-    if (!calculation || !valid()) return false;
-    context.calculation = { ...calculation, evidence };
-    context.failures = readFailures(evidence);
-    publish(context);
-    return true;
+    try {
+      const calculation = await call(valid, client => compare(client, input, valid, policy ? [token, policy.digest] : []));
+      if (!calculation || !valid()) return;
+      context.calculation = { ...calculation, evidence };
+      context.failures = readFailures(evidence);
+      context.status = context.failures.length ? 'partial' : 'available';
+    } catch (error) {
+      if (!valid()) return;
+      context.failures = [...readFailures(evidence), { reason: error.message }];
+      context.status = 'unavailable';
+    }
+    update();
   }
 
-  async function enrich(context) {
-    const scope = paired.filter(c => principal(c.subnet) === principal(context.subnet));
-    const ids = [context, ...scope].flatMap(membership);
-    if (!await read('Nodes', ids, context)) return;
-    const operators = entries(ids).flatMap(([key]) => present(records.Nodes.get(key))?.operator ?? []);
-    if (!await read('Operators', operators, context)) return;
-    const centers = entries(operators).map(([key]) => dcKey(records.Operators.get(key)))
-      .filter(key => key && new TextEncoder().encode(key).length <= 128);
-    // Publish a useful comparison while geography is still loading. Reusing a
-    // fully read store skips this intermediate calculation.
-    if (selected === context && !context.calculation && centers.some(key => !records.DataCenters.has(key))) {
-      try {
-        if (!await calculate(context)) return;
-      } catch (error) {
-        // The final input is different and gets its own single calculation.
-        context.failures = [{ reason: error.message }];
+  async function verifyLifecycle() {
+    if (!token || !valid()) return;
+    send('Lifecycle');
+    try {
+      const reply = await call(valid, client => client.finalize_membership_review(token));
+      if (!reply || !valid()) return;
+      const response = result(reply);
+      receipts.push({ type: 'Lifecycle', response });
+      if ('Err' in response.outcome) {
+        consistency = { blocked: 'ProposalChanged' in response.outcome.Err, reason: liveError(response.outcome.Err) };
+        return;
       }
+      if (option(response.registry_version) !== version) throw new Error('Governance recheck belongs to a different review.');
+      final = response.outcome.Ok;
+    } catch (error) {
+      if (valid()) consistency = { blocked: false, reason: error.message };
     }
-    if (!await read('DataCenters', centers, context)) return;
-    if (!await calculate(context)) return;
-    context.status = context.failures.length ? 'partial' : 'available';
   }
 
   function start() {
     if (running || !valid()) return;
-    running = (async () => {
-      while (valid()) {
-        const next = pending(selected) ? selected : paired.find(pending);
-        if (!next) break;
-        try {
-          await enrich(next);
-        } catch (error) {
-          const failures = readFailures(comparisonEvidence(records, membership(next)));
-          next.failures = [...failures, { reason: error.message }];
-          next.status = next.calculation ? 'partial' : 'unavailable';
-        }
-        publish(next);
-        if (selected && next !== selected && active()) updated(selected);
+    if (!plannedContexts().some(pending)) {
+      if (work === 'idle') { work = 'settled'; send('Blocked'); update(); }
+      return;
+    }
+    work = 'running';
+    final = undefined;
+    consistency = undefined;
+    const ids = plannedContexts().flatMap(membership);
+    send('Nodes');
+    const run = async () => {
+      await read('Nodes', ids);
+      if (!valid()) return;
+      const operators = entries(ids).flatMap(([key]) => present(records.Nodes.get(key))?.operator ?? []);
+      await read('Operators', operators);
+      if (!valid()) return;
+      const centers = entries(operators).map(([key]) => dcKey(records.Operators.get(key)))
+        .filter(key => key && new TextEncoder().encode(key).length <= 128);
+      await read('DataCenters', centers);
+      if (!valid()) return;
+      await observePolicy();
+      if (!valid()) return;
+      const comparisons = plannedContexts().filter(pending);
+      let settled = 0;
+      while (valid() && comparisons.some(pending)) {
+        const next = comparisons.includes(selected) && pending(selected) ? selected : comparisons.find(pending);
+        send('Comparison', { settled, planned: comparisons.length });
+        await calculate(next);
+        settled++;
       }
-    })().finally(() => { running = undefined; });
+      await verifyLifecycle();
+    };
+    running = run().catch(error => {
+      for (const context of plannedContexts().filter(pending)) context.status = 'unavailable';
+      consistency = { blocked: false, reason: error.message };
+    }).finally(() => {
+      running = undefined;
+      if (!active()) return;
+      if (stopped) {
+        work = 'stopped';
+        send('Stopped');
+      } else if (plannedContexts().some(pending) && !consistency?.blocked) {
+        start();
+        return;
+      } else {
+        const missing = plannedContexts().some(context => context.status !== 'available'
+          || context.calculation?.comparison.selected?.distances.unknown_nodes
+          || policy && !option(context.calculation?.target_rows ?? [])?.length
+          || option(context.calculation?.target_rows ?? [])?.some(row =>
+            ['ExceptionUnresolved', 'IdentityUnresolved', 'DataIncomplete'].includes(branch(row.assessment))))
+          || contexts.some(context => context.index && context.status === 'blocked')
+          || policyFailure || !option(policy?.motion ?? [])?.rule.length || policy?.nns_issue.length
+          || live.outcome.Ok.listed_subnets < (option(live.outcome.Ok.total_listed_subnets ?? []) ?? Infinity)
+          || !!consistency;
+        work = 'settled';
+        send(consistency?.blocked ? 'Blocked' : missing ? 'Gaps' : 'Finished');
+      }
+      update();
+    });
   }
 
   return {
     receipts,
+    section,
     select(context) {
       selected = context;
-      publish(context);
+      update();
       start();
     },
     stop() {
+      if (stopped || work === 'settled') return;
       stopped = true;
-      if (selected) publish(selected);
+      work = running ? 'stopping' : 'stopped';
+      send('Stopped');
+      update();
     },
     retry() {
-      if (!selected || !['partial', 'unavailable'].includes(selected.status)) return;
-      for (const { type, key } of selected.failures) {
-        if (records[type]?.get(key)?.[1].Unavailable) records[type].delete(key);
+      if (running || consistency?.blocked) return;
+      const retryPolicy = policyFailure || option(policy?.motion ?? [])?.retryable || policy?.nns_retryable;
+      const failures = readFailures(records);
+      const retryComparison = plannedContexts().some(context => context.status === 'unavailable');
+      if (!retryPolicy && !failures.length && !retryComparison && !consistency) return;
+      for (const { type, key } of failures) records[type].delete(key);
+      if (retryPolicy) { policy = undefined; policyFailure = undefined; }
+      for (const context of plannedContexts()) {
+        context.calculation = undefined;
+        context.status = 'pending';
       }
-      selected.status = 'pending';
       stopped = false;
-      publish(selected);
       start();
     },
-    settled: () => running ?? Promise.resolve(),
-    isStopped: () => stopped,
-    pendingOrders: () => paired.filter(pending).length,
+    async settled() { while (running) await running; },
   };
 }
 
-export const stageLabel = type => STAGES[type] ?? words(type);
+export const stageLabel = type => ({
+  ...STAGES, Policy: 'Target Topology policy and NNS role', Lifecycle: 'Final Governance check',
+})[type] ?? words(type);

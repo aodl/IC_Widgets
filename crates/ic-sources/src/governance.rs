@@ -65,6 +65,7 @@ impl ProposalInfo {
     pub fn executable(&self) -> Option<&ExecuteNnsFunction> {
         match self.proposal.as_ref()?.action.as_ref()? {
             Action::ExecuteNnsFunction(action) => Some(action),
+            Action::Motion { .. } => None,
         }
     }
 }
@@ -79,6 +80,7 @@ pub struct Proposal {
 #[derive(CandidType, Deserialize)]
 pub enum Action {
     ExecuteNnsFunction(ExecuteNnsFunction),
+    Motion { motion_text: String },
 }
 
 #[derive(CandidType, Deserialize)]
@@ -172,7 +174,7 @@ mod tests {
         #[derive(CandidType)]
         enum WiderAction {
             ExecuteNnsFunction(ExecuteNnsFunction),
-            Motion { motion_text: String },
+            Unsupported { value: String },
         }
         #[derive(CandidType)]
         struct WiderProposal {
@@ -195,8 +197,8 @@ mod tests {
             payload: vec![],
         }));
         assert!(decode_candid::<Proposal>(&known).unwrap().action.is_some());
-        let unknown = make(WiderAction::Motion {
-            motion_text: "test".into(),
+        let unknown = make(WiderAction::Unsupported {
+            value: "test".into(),
         });
         assert!(
             decode_candid::<Proposal>(&unknown)

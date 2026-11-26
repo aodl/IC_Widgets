@@ -6,12 +6,6 @@ const H = 620;
 const palette = { Removed: '#ad263f', Added: '#087748', Retained: '#315e80' };
 const signs = { Added: '+', Removed: '−', Retained: '•' };
 
-export function mapPopulation(members, mode) {
-  return members.filter(node =>
-    mode === 'Before' ? node.role !== 'Added' :
-    mode === 'After' ? node.role !== 'Removed' : true);
-}
-
 export function clusters(members, roles, project, radius = 31) {
   const points = [];
   for (const node of members) {
@@ -75,7 +69,6 @@ export function reviewMap(inspect, active) {
   let model;
   let emptyMessage;
   let selected = new Set();
-  let mode = 'Changes';
   let focusLabel = 'World';
   const canvas = el('canvas');
   canvas.width = W;
@@ -85,7 +78,7 @@ export function reviewMap(inspect, active) {
   const pins = styled('div', 'map-pins');
   const map = styled('div', 'map-frame', canvas, pins);
   map.setAttribute('role', 'group');
-  map.setAttribute('aria-label', 'Map of registered data centers. The Nodes view provides a text equivalent.');
+  map.setAttribute('aria-label', 'Map of registered data centers. Changed and unmapped nodes are also available as text.');
   map.tabIndex = -1;
   const caption = styled('p', 'map-coverage');
   const status = styled('p', 'status');
@@ -137,7 +130,7 @@ export function reviewMap(inspect, active) {
       ctx.stroke();
     }
 
-    const population = mapPopulation(model?.members ?? [], mode);
+    const population = model?.members ?? [];
     const viewWidth = map.clientWidth || Math.min(window.innerWidth, W);
     // Changed nodes seed clusters before retained nodes, so a retained point
     // cannot shift the marker away from the registered location of a change.
@@ -221,7 +214,8 @@ export function reviewMap(inspect, active) {
         (replacement ?? map).focus({ preventScroll: true });
       }
       caption.textContent = model
-        ? mode + ' · ' + population.length + (mode === 'Changes' ? ' distinct nodes · ' : ' members · ') + coverage
+        ? population.length + ' nodes across both states · ' + coverage
+          + (model.work === 'running' || model.work === 'stopping' || model.work === 'idle' ? ' so far' : '')
         : emptyMessage ?? 'Registered locations appear here as evidence becomes available.';
     } else {
       ctx.fillStyle = 'rgba(255,255,255,.96)';
@@ -232,8 +226,9 @@ export function reviewMap(inspect, active) {
       ctx.font = 'bold 21px sans-serif';
       ctx.fillText('Network Nexus · ' + model.ids.map(id => '#' + id).join(' + ') + ' · Registry ' + model.version, 24, 38, W - 48);
       ctx.font = '15px sans-serif';
-      ctx.fillText(model.subnet.split('-')[0] + ' · ' + model.scenario + ' · ' + model.stateLabel, 24, 60, W - 48);
-      ctx.fillText(mode + ' · ' + coverage + ' · ' + focusLabel + ' · ' + scale.toFixed(1) + '× · input ' + model.calculation.inputHash.slice(0, 12), 24, 80, W - 48);
+      ctx.fillText(model.subnet.split('-')[0] + ' · ' + model.scenario + ' · ' + model.stateLabel
+        + (model.source ? ' · Policy #' + model.source.id : ''), 24, 60, W - 48);
+      ctx.fillText(coverage + ' · ' + focusLabel + ' · ' + scale.toFixed(1) + '× · input ' + model.calculation.inputHash.slice(0, 12), 24, 80, W - 48);
       ctx.fillText('+ Added   − Removed   • Retained  |  ' +
         Object.keys(palette).map(role => roles.has(role) ? role : role + ' hidden').join(' · ') +
         '  |  ' + (population.length - mapped) + ' unmapped  |  Natural Earth', 24, H - 21, W - 48);
@@ -243,7 +238,8 @@ export function reviewMap(inspect, active) {
   function redrawUnmapped() {
     const open = unmapped.open;
     const focused = unmapped.contains(document.activeElement) ? document.activeElement : undefined;
-    const rows = mapPopulation(model?.members ?? [], mode).filter(node => !node.point);
+    const members = model?.members ?? [];
+    const rows = members.filter(node => !node.point);
     const summary = el('summary', 'Unmapped nodes (' + rows.length + ')');
     const buttons = rows.map(node => {
       const button = action(signs[node.role] + ' ' + node.label, () => inspect([node.id], node.label));
@@ -251,9 +247,9 @@ export function reviewMap(inspect, active) {
       return button;
     });
     unmapped.replaceChildren(summary, rows.length ? el('ul', rows.map((node, index) => el('li', buttons[index],
-      el('small', node.row[8] === '—' ? 'Registered coordinates unavailable' : node.row[8])))) : el('p', 'All displayed nodes have registered coordinates.'));
+      el('small', node.locationIssue)))) : el('p', 'All displayed nodes have registered coordinates.'));
     unmapped.open = open;
-    unmapped.hidden = !model?.members?.length;
+    unmapped.hidden = !rows.length;
     if (focused && !unmapped.hidden) {
       (buttons.find(button => button.dataset.node === focused.dataset.node) ?? summary).focus({ preventScroll: true });
     }
@@ -304,16 +300,6 @@ export function reviewMap(inspect, active) {
   });
   for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) map.addEventListener(name, () => { pointer = undefined; });
 
-  const modes = ['Changes', 'Before', 'After'].map(value => {
-    const control = action(value, () => {
-      mode = value;
-      for (const button of modes) button.setAttribute('aria-pressed', String(button === control));
-      draw();
-      redrawUnmapped();
-    });
-    control.setAttribute('aria-pressed', String(mode === value));
-    return control;
-  });
   const arrows = [['←', 'Pan west', -30, 0], ['↑', 'Pan north', 0, 30], ['↓', 'Pan south', 0, -30], ['→', 'Pan east', 30, 0]];
   const focus = action('Focus changes', focusChanges);
   const controls = styled('div', 'actions map-controls', action('World', () => {
@@ -354,8 +340,8 @@ export function reviewMap(inspect, active) {
       });
       return el('label', toggle, styled('span', 'map-symbol role-' + role.toLowerCase(), signs[role]), role);
     }));
-  const section = styled('section', 'map-section', styled('div', 'map-heading', el('h3', 'World map'),
-    styled('div', 'segmented', modes)), map, caption, controls, filters, unmapped, status);
+  const section = styled('section', 'map-section', styled('div', 'map-heading', el('h3', 'World map')),
+    map, caption, controls, filters, unmapped, status);
   if (typeof ResizeObserver === 'function') {
     const observer = new ResizeObserver(() => {
       if (!map.isConnected) observer.disconnect();
