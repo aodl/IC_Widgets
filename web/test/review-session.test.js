@@ -34,7 +34,7 @@ test('a shared-slot request settles before the latest eligible request is sent',
   assert.deepEqual(calls, ['accepted', 'latest']);
 });
 
-function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => false } = {}) {
+function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => false, finalize } = {}) {
   const recorded = [];
   const render = [];
   const updates = [];
@@ -50,6 +50,13 @@ function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => 
   const one = context(firstOrder, [b]);
   const two = context('BThenA', [a, b]);
   const client = {
+    membership_context_detail_page(_token, keys) {
+      return this.membership_detail_page(5n, keys);
+    },
+    membership_target_topology() {
+      return { Ok: { registry_version: [5n], outcome: { Ok: { digest: [], motion: [], nns_issue: [] } } } };
+    },
+    finalize_membership_review: finalize,
     async membership_detail_page(version, keys) {
       const [[kind, values]] = Object.entries(keys);
       recorded.push({ kind, values });
@@ -64,7 +71,8 @@ function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => 
   };
   const serialize = serializeCalls();
   const session = createReviewSession({
-    live: { outcome: { Ok: { report: { manifest: { registry_version: 5n }, revision: [9] } } } },
+    live: { outcome: { Ok: { review_context: finalize ? [[7]] : [],
+      report: { manifest: { registry_version: 5n }, revision: [9] } } } },
     contexts: [one, two], active: () => true, call: (active, run) => serialize(active, () => run(client)),
     compare: async (_, input) => {
       recorded.push({ kind: 'comparison', values: input.after });
@@ -130,6 +138,23 @@ test('retry targets failed metadata, keeps successful observations and copies ac
   assert.equal(one.status, 'available');
   assert.ok(old.DataCenters.get('known')[1].Unavailable);
   assert.ok(one.calculation.evidence.DataCenters.get('known')[1].Present);
+});
+
+test('a confirmed Governance change blocks later enrichment for the same preview', async () => {
+  const { session, recorded, one, two } = fixture({
+    finalize: async () => ({ Ok: { outcome: { Err: { ProposalChanged: { id: 7n } } } } }),
+  });
+  two.subnet = id('another subnet');
+  session.select(one);
+  await session.settled();
+  assert.equal(session.section().stage, 'Blocked');
+  assert.equal(session.section().consistency.blocked, true);
+  const calls = recorded.length;
+  session.select(two);
+  await session.settled();
+  assert.equal(recorded.length, calls);
+  assert.equal(session.section().stage, 'Blocked');
+  assert.equal(two.calculation, undefined);
 });
 
 test('stop waits for the accepted page and schedules no follow-up calls', async () => {

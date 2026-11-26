@@ -246,7 +246,7 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
   }
 
   function start() {
-    if (running || !valid()) return;
+    if (running || !valid() || consistency?.blocked) return;
     const scope = plannedContexts();
     if (!scope.some(pending) && !needsFinal) {
       if (work === 'idle') { work = 'settled'; send('Blocked'); update(); }

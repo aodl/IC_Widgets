@@ -42,10 +42,12 @@ function policyEvidence(model, state, policyId) {
   const motion = option(snapshot?.motion ?? []);
   const rule = option(motion?.rule ?? []);
   const stamp = option(snapshot?.nns_mutation_version ?? []);
+  const roleStatus = state.work === 'stopped' ? 'NNS role not loaded · Review stopped.'
+    : state.work === 'settled' ? 'NNS role evidence unavailable.' : 'NNS role evidence pending.';
   return el('div',
     el('p', model?.policyText ?? (policyId ? 'Policy motion #' + policyId : 'Configured pilot reference motion')),
     state.policyFailure ? el('p', state.policyFailure) : null,
-    stamp === undefined ? el('p', option(snapshot?.nns_issue ?? []) ?? 'NNS role evidence pending.')
+    stamp === undefined ? el('p', option(snapshot?.nns_issue ?? []) ?? roleStatus)
       : el('p', 'Registry nns_subnet_id · Mutation version ' + number(stamp), el('br'),
         el('code', principal(option(snapshot.nns_subnet)))),
     motion && el('div',

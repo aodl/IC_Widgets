@@ -10,7 +10,7 @@ gzip -n -c target/wasm32-unknown-unknown/release/nexus_reviewer.wasm > reviewer.
 cp canisters/reviewer/reviewer.did reviewer.did
 npm --prefix web ci
 DFX_NETWORK=ic CANISTER_ID_REVIEWER=s34gv-3qaaa-aaaar-qcifa-cai npm --prefix web run build
-tar --sort=name --format=ustar --mtime=@0 --owner=0 --group=0 --numeric-owner \
+tar --sort=name --format=ustar --mtime=@0 --owner=0 --group=0 --numeric-owner --mode='a=rX,u+w' \
   -C web/dist -cf - . | gzip -n > frontend-assets.tar.gz
 ```
 

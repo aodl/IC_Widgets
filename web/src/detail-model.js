@@ -202,7 +202,7 @@ export function reviewModel(live, context, evidence, section, policyId, local) {
     local ? 'Local replica review using fixture evidence.' : null,
   ].filter(Boolean);
   if (members.some(node => !node.point) && !running) notes.push('Some members lack usable registered coordinates.');
-  if (topology.some(row => row.missing)) notes.push('Recorded maxima use known groups only. Missing members can increase those maxima.');
+  if (topology.some(row => row.missing)) notes.push('Recorded groups count members with known evidence. Members with missing evidence may increase those counts.');
   if (section.outside) notes.push(section.outside + (section.outside === 1 ? ' affected subnet is' : ' affected subnets are') + ' outside the enriched scope.');
   if (topology.some(row => row.assessment === 'Identity unresolved')) notes.push('Registered country labels and owner names cannot establish canonical country or policy-defined DC provider identity.');
   const publishing = publishingEvidence(live, context, subnet, before, after);
@@ -214,7 +214,8 @@ export function reviewModel(live, context, evidence, section, policyId, local) {
     ids: Array.from(context.scenario.proposal_ids, String), previewRevision: hex(report.revision),
     governance: final ?? report.manifest.proposals, finalVerified: !!final && !previousAccepted && !consistency, work,
     previousAccepted, publishing,
-    gaps: !!consistency || partial || topology.some(row => !row.ready || row.missing || row.assessment.endsWith('unresolved') || row.assessment === 'Not assessed'),
+    gaps: section.stage === 'Gaps' || !!consistency || partial || topology.some(row => !row.ready || row.missing
+      || row.assessment.endsWith('unresolved') || row.assessment === 'Not assessed'),
   };
 }
 
