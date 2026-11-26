@@ -978,6 +978,14 @@ type SuccessfulHistory = record {
   raw_hash : blob;
   collected_at : nat64;
 };
+type TargetGroup = record {
+  breach : opt BreachChange;
+  after : opt nat32;
+  assessment : Assessment;
+  before_assessment : Assessment;
+  group : Group;
+  before : opt nat32;
+};
 type TargetMetric = variant {
   Size;
   RegisteredCountry;
@@ -988,12 +996,12 @@ type TargetMetric = variant {
 type TargetRow = record {
   metric : TargetMetric;
   breach : opt BreachChange;
+  groups : opt vec TargetGroup;
   after : opt nat32;
   assessment : Assessment;
   limit : nat32;
   before_assessment : Assessment;
-  // Largest known recorded group. Scope and missing records bound this
-  // quantity, while canonical identity may have additional ambiguity.
+  // Selected group for the compact overview. Full assessments follow.
   before : opt nat32;
   unknown_after : nat32;
   unknown_before : nat32;
@@ -1053,6 +1061,7 @@ service : (opt Sources) -> {
   finalize_membership_review : (blob) -> (Result_10);
   // Bounded replicated reads over completed reports. Generation remains controller-only.
   list_completed_reviews : () -> (vec CompletedReview);
+  membership_context_detail_page : (blob, DetailKeys) -> (Result_12);
   membership_detail_page : (nat64, DetailKeys) -> (Result_12);
   membership_review_page : (blob, nat32) -> (Result_7);
   membership_review_scope : (ScopeRequest) -> (Result_13);
