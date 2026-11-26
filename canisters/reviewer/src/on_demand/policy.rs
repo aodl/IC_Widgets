@@ -38,8 +38,6 @@ struct Context {
     policy: Option<PolicySnapshot>,
 }
 
-// Limits and scope conditions always come from the selected motion.
-const REFERENCE_MOTION: u64 = 143_190;
 const RECORD_LIMIT_PER_KIND: usize = 256;
 const CONTEXT_LIMIT: usize = 32;
 const CONTEXT_LIFETIME: u64 = 30 * 60 * SECOND;
@@ -71,6 +69,15 @@ pub struct PolicySnapshot {
     pub nns_issue: Option<String>,
     pub nns_retryable: bool,
     pub motion: Option<PolicyMotion>,
+}
+
+#[derive(Default, CandidType, Deserialize)]
+pub struct RegistryRole {
+    pub nns_subnet: Option<Principal>,
+    pub mutation_version: Option<u64>,
+    pub record: Option<Vec<u8>>,
+    pub issue: Option<String>,
+    pub retryable: bool,
 }
 
 #[derive(Clone, CandidType, Deserialize)]
@@ -249,11 +256,7 @@ pub(super) fn verify_context(token: Hash) -> Result<(), String> {
     with_context(token, |_| ())
 }
 
-pub(super) fn policy_for(
-    token: Hash,
-    digest: Hash,
-    input: &DetailComparisonInput,
-) -> Result<Option<PolicySnapshot>, String> {
+pub(super) fn verify_input(token: Hash, input: &DetailComparisonInput) -> Result<(), String> {
     with_context(token, |context| {
         if input.registry_version != context.version
             || input.preview_revision != context.revision
@@ -280,6 +283,17 @@ pub(super) fn policy_for(
         check_records(&context.records, centers, &input.data_centers, |id| {
             RecordKey::DataCenter(id.clone())
         })?;
+        Ok(())
+    })?
+}
+
+pub(super) fn policy_for(
+    token: Hash,
+    digest: Hash,
+    input: &DetailComparisonInput,
+) -> Result<Option<PolicySnapshot>, String> {
+    verify_input(token, input)?;
+    with_context(token, |context| {
         if digest == [0; 32] && context.policy.is_none() {
             return Ok(None);
         }
@@ -293,12 +307,59 @@ pub(super) fn policy_for(
     })?
 }
 
+async fn observe_role(request: &mut Request, registry: Principal, version: u64) -> RegistryRole {
+    let mut role = RegistryRole::default();
+    let result = match request
+        .one(
+            registry,
+            "get_value",
+            NNS_SUBNET_KEY.into(),
+            value_request_for_name(NNS_SUBNET_KEY, version),
+        )
+        .await
+    {
+        Ok(reply) => {
+            role.retryable = reply.body.is_err();
+            reply.body.and_then(|bytes| {
+                let value = decode_value_for_name(&bytes, NNS_SUBNET_KEY, version)?
+                    .ok_or("NNS role was not recorded at the pinned version")?;
+                let ValueContent::Inline(raw) = value.content else {
+                    return Err("Chunked NNS role is unsupported".into());
+                };
+                Ok((nns_subnet(&raw)?, value.version, raw))
+            })
+        }
+        Err(error) => {
+            role.retryable = true;
+            Err(format!("{error:?}"))
+        }
+    };
+    match result {
+        Ok((subnet, version, raw)) => {
+            role.nns_subnet = Some(subnet);
+            role.mutation_version = Some(version);
+            role.record = Some(raw);
+        }
+        Err(reason) => role.issue = Some(super::bounded_reason(reason)),
+    }
+    role
+}
+
+#[ic_cdk::update]
+async fn membership_registry_role(token: Hash) -> Result<LiveResponse<RegistryRole>, String> {
+    let version = with_context(token, |context| context.version)?;
+    let guard = RequestGuard::acquire()?;
+    let mut request = Request::new(guard.0);
+    request.version = Some(version);
+    let role = observe_role(&mut request, sources().registry, version).await;
+    Ok(request.finish(Ok(role)))
+}
+
 #[ic_cdk::update]
 async fn membership_target_topology(
     token: Hash,
     policy_id: Option<u64>,
 ) -> Result<LiveResponse<PolicySnapshot>, String> {
-    let policy_id = Some(policy_id.unwrap_or(REFERENCE_MOTION));
     if policy_id == Some(0) {
         return Err("Select a positive policy proposal ID.".into());
     }
@@ -319,42 +380,12 @@ async fn membership_target_topology(
         motion: None,
     });
     if read_role {
-        source.nns_issue = None;
-        source.nns_retryable = false;
-        match request
-            .one(
-                sources.registry,
-                "get_value",
-                NNS_SUBNET_KEY.into(),
-                value_request_for_name(NNS_SUBNET_KEY, version),
-            )
-            .await
-        {
-            Ok(reply) => {
-                source.nns_retryable = reply.body.is_err();
-                let decoded = reply.body.and_then(|bytes| {
-                    let value = decode_value_for_name(&bytes, NNS_SUBNET_KEY, version)?
-                        .ok_or("NNS role was not recorded at the pinned version")?;
-                    let ValueContent::Inline(raw) = value.content else {
-                        return Err("Chunked NNS role is unsupported".into());
-                    };
-                    let subnet = nns_subnet(&raw)?;
-                    Ok((subnet, value.version, raw))
-                });
-                match decoded {
-                    Ok((subnet, version, raw)) => {
-                        source.nns_subnet = Some(subnet);
-                        source.nns_mutation_version = Some(version);
-                        source.nns_record = Some(raw);
-                    }
-                    Err(reason) => source.nns_issue = Some(super::bounded_reason(reason)),
-                }
-            }
-            Err(error) => {
-                source.nns_retryable = true;
-                source.nns_issue = Some(format!("{error:?}"));
-            }
-        }
+        let role = observe_role(&mut request, sources.registry, version).await;
+        source.nns_subnet = role.nns_subnet;
+        source.nns_record = role.record;
+        source.nns_mutation_version = role.mutation_version;
+        source.nns_issue = role.issue;
+        source.nns_retryable = role.retryable;
     }
     if let Some(id) = policy_id
         && source

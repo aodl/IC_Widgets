@@ -21,7 +21,7 @@ Function 31 uses removal precedence for overlapping additions and removals after
 
 A linked Node Performance widget can adopt the selected Membership scenario's subnet and resolved node IDs as filters. It also accepts a subnet independently. It fetches management canister samples only when requested, preserves their timestamps, and displays sparse omissions explicitly. Metrics availability has no effect on the membership result.
 
-The clear review starts with a contextual preview. The browser reuses pinned records across the requested orders and steps, acquires the pinned NNS role and explicitly selected Governance policy motion, and submits each supported state for replicated calculation. The reviewer binds the observed policy to the caller and preview in one transient context. A final bounded Governance recheck occurs after the comparisons. Scope and evidence coverage remain visible alongside the completed work status. [Clear review](clear-review/README.md) · [Source manifest](clear-review/SOURCES.md)
+The clear review starts with a contextual preview. The browser reuses pinned records across the requested orders and steps, acquires the pinned NNS role, and submits each supported state for replicated factual calculation. The reviewer binds observed metadata to the caller and preview in one transient context. A final bounded Governance recheck occurs after the comparisons. Scope and evidence coverage remain visible alongside the completed work status. [Clear review](clear-review/README.md) · [Source manifest](clear-review/SOURCES.md)
 
 ## Evidence and request limits
 

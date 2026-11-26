@@ -49,10 +49,9 @@ try {
   const began = Date.now();
   await page.getByRole('button', { name: 'Review', exact: true }).click();
   await page.getByRole('heading', { name: 'World map' }).waitFor();
-  await page.getByText('40 members · +1 added · −1 removed', { exact: true }).waitFor();
-  await page.getByRole('list', { name: 'Review stages' }).getByText(/Membership · Ready/).waitFor();
+  await page.getByText('40 members · 39 retained · 1 incoming · 1 outgoing', { exact: true }).waitFor();
   const previewMs = Date.now() - began;
-  await page.locator('#report-status').getByText('Finished with gaps', { exact: true }).waitFor({ timeout: 120000 });
+  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });
   const reviewMs = Date.now() - began;
   const observedPhases = await page.evaluate(() => window.reviewPhases);
   const stageTime = prefix => {
@@ -60,29 +59,24 @@ try {
     assert.ok(index >= 0 && observedPhases[index + 1]);
     return Math.round(observedPhases[index + 1][1] - observedPhases[index][1]);
   };
-  const policyMs = stageTime('Locations and policy · Checking');
+  const roleMs = stageTime('Reading the pinned Registry role');
   const finalCheckMs = stageTime('Comparison · Checking Governance again');
   const elapsed = await page.locator('#review-elapsed').textContent();
   await page.waitForTimeout(1100);
   assert.equal(await page.locator('#review-elapsed').textContent(), elapsed);
   assert.equal(count('begin_membership_review'), 1);
   assert.equal(count('membership_context_detail_page'), 6);
-  assert.equal(count('membership_target_topology'), 1);
-  assert.equal(count('compare_membership_with_policy'), 1);
+  assert.equal(count('membership_target_topology'), 0);
+  assert.equal(count('compare_membership_context'), 1);
   assert.equal(count('finalize_membership_review'), 1);
-  await page.getByText(/1 of 96 listed subnets checked/).waitFor();
-  await page.getByText('41 nodes across both states · 41/41 mapped', { exact: true }).waitFor();
-  await page.locator('.topology-status').getByText('Compared with adopted motion #143190').waitFor();
+  await page.getByText(/assignments in the other 95 listed subnets were not checked/).waitFor();
+  await page.getByText(/41 nodes across both states · 41\/41 located/).waitFor();
   const topology = page.locator('.topology-card');
-  const measure = name => topology.getByRole('row').filter({ has: page.getByRole('button', { name, exact: true }) });
-  assert.match(await measure('Subnet size').textContent(), /40.*40 target.*Matches target/);
-  assert.match(await measure('Data center').textContent(), /3 \(\+1\).*1 cap.*Exception unresolved/);
-  assert.match(await measure('Registered DC owner').textContent(), /3 \(\+1\).*Identity unresolved/);
-  assert.match(await measure('Country label').textContent(), /3 cap.*Identity unresolved/);
-  assert.match(await measure('Data center').textContent(), /sh1.*zh2.*0 \(−1\).*Last member/);
-  assert.match(await measure('Registered DC owner').textContent(), /Digital Realty/);
-  assert.match(await measure('Node provider').textContent(), /Added and removed nodes share/);
-  assert.equal(await page.getByRole('button', { name: 'Before', exact: true }).count(), 0);
+  await topology.getByText(/No Target Topology limits have been assumed/).waitFor();
+  const group = name => topology.getByRole('button', { name, exact: true });
+  assert.match(await group('Data center · sh1').locator('xpath=ancestor::tr').textContent(), /2 → 3/);
+  assert.match(await group('Data center · zh2').locator('xpath=ancestor::tr').textContent(), /Last member.*1 → 0/);
+  assert.equal(await page.locator('.map-pin:visible').count(), 41);
 
   const positions = {};
   for (const [width, height] of [[1366, 900], [1024, 900], [390, 844], [320, 700]]) {
@@ -96,10 +90,10 @@ try {
   }
 
   await page.setViewportSize({ width: 1366, height: 900 });
-  const info = topology.getByRole('button', { name: 'About Data center' });
+  const info = topology.getByRole('button', { name: 'About Data center' }).first();
   await info.hover();
   await page.getByRole('tooltip').hover();
-  await page.getByRole('tooltip').getByText(/registered facility/).waitFor();
+  await page.getByRole('tooltip').getByText(/facility ID/).waitFor();
   await page.keyboard.press('Escape');
   assert.equal(await page.getByRole('tooltip').count(), 0);
   await info.focus();
@@ -108,12 +102,12 @@ try {
   await info.click();
   await page.getByRole('tooltip').waitFor();
   await page.keyboard.press('Escape');
-  const row = topology.getByRole('button', { name: 'Data center', exact: true });
+  const row = group('Data center · sh1');
   await row.focus();
   await page.keyboard.press('Enter');
   const inspector = page.locator('.inspector');
-  await inspector.getByText(/12 \(−1\) groups · Threshold 14 nodes/).waitFor();
-  await inspector.getByText(/7.5% \(\+2.5 percentage points\)/).waitFor();
+  await inspector.getByText(/Nakamoto coefficient.*13 → 12/).waitFor();
+  await inspector.getByText(/5% → 7.5%/).waitFor();
   assert.equal(await inspector.getByRole('button', { name: / · sh1 · Stockholm$/ }).count(), 3);
   assert.ok(await page.locator('.map-pin[aria-pressed=true]').count() > 0);
   await inspector.getByRole('button', { name: /kaoz3/ }).click();
@@ -123,14 +117,10 @@ try {
   await page.keyboard.press('Escape');
 
   await page.getByRole('button', { name: 'Sources & details', exact: true }).click();
-  await page.getByText('Policy and pinned Registry role', { exact: true }).click();
+  await page.locator('summary').filter({ hasText: /^Pinned Registry role$/ }).click();
   await page.getByText(/Registry nns_subnet_id · Mutation version 66,013/).waitFor();
-  const policyDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Download Governance policy reply' }).click();
-  await (await policyDownload).saveAs(resolve(output, '143190-governance.didbin'));
-  const policyHash = createHash('sha256').update(await readFile(resolve(output, '143190-governance.didbin'))).digest('hex');
-  assert.equal(policyHash, '9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053');
-  const sourceUsage = await inspector.locator('p').filter({ hasText: /source calls ·.* reply bytes|ms source stage ·.* instructions/ }).allTextContents();
+  await page.getByText('Source receipts and timings', { exact: true }).click();
+  const sourceUsage = await inspector.getByRole('table').last().innerText();
   await page.getByText('Method and exact inputs', { exact: true }).click();
   const inputDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download calculation input (Candid)' }).click();
@@ -146,15 +136,17 @@ try {
     await (await download).saveAs(resolve(output, name));
   }
   const md = await readFile(resolve(output, '144954-review.md'), 'utf8');
-  for (const fact of [hash, policyHash, 'Changed Nakamoto coefficients', 'Proposer comparison', 'zh2 0 (−1)', 'Digital Realty', 'Finished with gaps', '40 members', '3 (+1)', 'Exception unresolved', 'Assignment coverage 1 of 96']) {
+  for (const fact of [hash, 'Changed Nakamoto coefficients', 'Proposer comparison', 'zh2 | 1 → 0', 'Digital Realty',
+    'Data loading complete', '40 members', '2 → 3', 'assignments in the other 95 listed subnets were not checked']) {
     assert.ok(md.includes(fact), 'Markdown missing ' + fact);
   }
   const png = await readFile(resolve(output, '144954-map.png'));
-  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 620]);
+  assert.ok(png.readUInt32BE(16) >= 1080);
+  assert.ok(png.readUInt32BE(20) > 340);
 
   await page.locator('#open-performance').click();
   await page.getByText('Independent subnet scope.', { exact: true }).waitFor();
-  const agent = await HttpAgent.create({ host: 'http://127.0.0.1:4966', shouldFetchRootKey: true });
+  const agent = await HttpAgent.create({ host: 'http://127.0.0.1:' + port, shouldFetchRootKey: true });
   const subnet = (await agent.getSubnetIdFromCanister(reviewer)).toText();
   await page.getByLabel('Subnet principal').fill(subnet);
   await page.getByRole('button', { name: 'Read blockmaking samples' }).click();
@@ -162,7 +154,7 @@ try {
   assert.match(await page.locator('#performance-result').textContent(), /node_metrics_history/);
   assert.deepEqual(errors, []);
   assert.deepEqual(external, []);
-  console.log(JSON.stringify({ previewMs, reviewMs, policyMs, finalCheckMs, positions, hash, policyHash, sourceUsage,
+  console.log(JSON.stringify({ previewMs, reviewMs, roleMs, finalCheckMs, positions, hash, sourceUsage,
     methods: [...calls.values()], keyboardInspector: true, externalOrigins: external }, null, 2));
 } finally {
   await browser.close();

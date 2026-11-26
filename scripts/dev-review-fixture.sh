@@ -84,13 +84,31 @@ import sys
 
 source = Path(sys.argv[1]) / "tests/source-fixture/data/historical/replays.json"
 metadata = {row["id"]: row for row in json.loads(source.read_text())["replays"]}
+data = source.parent.parent
 cases = []
 for line in Path("cases.tsv").read_text().splitlines():
     _, reviewer, id = line.split("\t")
     row = metadata[id]
     principal = subprocess.check_output(["dfx", "canister", "id", "--network", "local", reviewer], text=True).strip()
+    registry = row["registry"]
+    capture = registry.get("capture")
+    times = sorted(record["at"] for record in json.loads((data / capture["file"]).read_text())["records"].values()) if capture else []
+    actions = []
+    for action in row["action_evidence"]:
+        at = action.get("observation_utc")
+        indexed = action.get("indexed_record")
+        if indexed:
+            receipt = (data / indexed).with_suffix(".receipt.json")
+            at = json.loads(receipt.read_text())["retrieved_at"]
+        actions.append(dict(id=action["proposal_id"], kind=action["kind"],
+                            at=at.replace("+00:00", "Z") if at else None))
+    kind, status = row["lifecycle"].split("-", 1)
+    lifecycle = ("Constructed " if kind == "constructed" else "Recorded ") + status.title() + " proposal"
     cases.append(dict(id=id, name=row["name"], purpose=row["purpose"], reviewer=principal, proposalIds=row["proposal_ids"],
-                      provenance=row["provenance"], failureReason=row.get("indexed_failure_reason")))
+                      provenance=row["provenance"], failureReason=row.get("indexed_failure_reason"),
+                      registryVersion=registry["version"], registryFrom=times[0] if times else None,
+                      registryTo=times[-1] if times else None, lifecycleLabel=lifecycle,
+                      roleSupplement=registry.get("synthetic_overlay"), actionEvidence=actions))
 Path("replays.json").write_text(json.dumps(dict(initial=sys.argv[2], cases=cases)) + "\n")
 PY
 reviewer=$(dfx canister id --network local reviewer)

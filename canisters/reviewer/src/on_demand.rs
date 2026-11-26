@@ -9,7 +9,7 @@ use std::{
 };
 
 pub use detail::{DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison};
-pub use policy::PolicySnapshot;
+pub use policy::{PolicySnapshot, RegistryRole};
 
 use candid::{CandidType, Principal, encode_one};
 use futures_util::future::join_all;

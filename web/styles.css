@@ -84,15 +84,19 @@ textarea { width: 100%; font: inherit; border: 1px solid #a9bac0; border-radius:
 .map-filters input { width: 1rem; height: 1rem; }
 .swatch { width: .8rem; height: .8rem; border-radius: 50%; display: inline-block; }
 .map-frame { position: relative; width: 100%; border: 1px solid #9db3ba; border-radius: .55rem; overflow: hidden; background: #e6f1f5; cursor: grab; }
-.map-frame canvas { display: block; width: 100%; height: auto; }
+.map-frame { height: clamp(340px, 44vw, 610px); }
+.map-frame canvas { display: block; width: 100%; height: 100%; }
 .map-pins { position: absolute; inset: 0; pointer-events: none; }
-.map-pin { position: absolute; transform: translate(-50%, -50%); width: 1.8rem; height: 1.8rem; padding: 0; border: 2px solid #fff; border-radius: 50%; color: #fff; line-height: 1; font-size: .79rem; box-shadow: 0 0 0 1px #24394266; pointer-events: auto; }
+.map-pin {
+  position: absolute; transform: translate(-50%, -50%); width: var(--pin-size); height: var(--pin-size); min-width: 0;
+  padding: 0; display: grid; place-content: center; border: 1.5px solid #fff; border-radius: 50%; color: #fff;
+  font-size: .94rem; line-height: 1; box-shadow: 0 0 0 1px #24394266; pointer-events: auto;
+}
 .map-pin:hover, .map-pin:focus-visible { z-index: 1; box-shadow: 0 0 0 3px #fff; }
 .map-selection { overflow-wrap: anywhere; padding: .55rem 0; }
 .map-selection ul { margin-block: .35rem; padding-left: 1.2rem; }
 @media (max-width: 38rem) {
   .markdown-fields { grid-template-columns: 1fr; }
-  .map-pin { width: 1.55rem; height: 1.55rem; }
 }
 
 /* Proposal review workspace */
@@ -130,7 +134,7 @@ main { padding-top: .85rem; }
 .review-controls select { min-height: 2rem; padding: .24rem .38rem; }
 .review-summary > span { margin-left: .8rem; color: var(--muted); }
 .review-summary ul { padding-left: 1.8rem; }
-.review-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: .9rem; align-items: start; }
+.review-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: .9rem; align-items: start; }
 .map-card, .findings-card { background: white; border: 1px solid var(--border); border-radius: .7rem; padding: .85rem; min-width: 0; }
 .map-section { margin: 0; }
 .map-heading h3 { margin: 0; font-size: 1rem; }
@@ -148,13 +152,13 @@ main { padding-top: .85rem; }
 .role-added { background: #d5eee2; color: #005b36; }
 .role-removed { background: #f9dfe5; color: #891c36; }
 .role-retained { background: #dce9f3; color: #214b6b; }
-.map-pin { background: #325b78; font-size: .72rem; min-width: 24px; min-height: 24px; }
-.map-pin:hover,.map-pin:focus-visible { background: #163e5c; z-index: 1; }
-.map-pin.changed-pin { background: #173445; z-index: 2; width: 2.1rem; height: 2.1rem; }
-.map-pin.changed-pin:hover,.map-pin.changed-pin:focus-visible { z-index: 3; }
-.map-pin[aria-pressed=true] { background: #173445; box-shadow: 0 0 0 3px #ec9a33; }
-.map-badges { display: flex; gap: .12rem; position: absolute; bottom: 67%; left: 50%; transform: translateX(-50%); }
-.map-badges span { border: 1px solid #fff; border-radius: .25rem; padding: .14rem .24rem; font-size: .7rem; font-weight: 800; white-space: nowrap; }
+.map-pin.role-retained { background: #315e80; }
+.map-pin.role-added { background: #087748; }
+.map-pin.role-removed { background: #ad263f; }
+.map-pin:is(.role-retained, .role-added, .role-removed) { color: #fff; }
+.map-pin[aria-pressed=true] { z-index: 1; box-shadow: 0 0 0 3px #ec9a33; }
+.map-facilities { color: #385563; font-size: .78rem; margin: .2rem 0; }
+.map-facilities:empty { display: none; }
 .findings-card { padding: .85rem; }
 .findings-card h3 { margin: .1rem 0 .6rem; font-size: 1.05rem; }
 .finding-card { border-top: 1px solid var(--border); padding: .45rem 0; }
@@ -191,7 +195,6 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   .masthead-row > .actions { gap: .45rem; }
   .review-controls select { width: auto; }
   .review-nav { gap: .24rem; }
-  .map-frame canvas { aspect-ratio: 1.8; }
 }
 
 @media (max-width: 38rem) {
@@ -230,20 +233,16 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
 .review-progress { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .7rem; margin-top: .4rem; }
 .review-progress progress { width: min(13rem, 100%); height: .85rem; accent-color: var(--teal); }
 #review-counts { color: var(--muted); font-size: .83rem; }
-.review-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
 .topology-card { min-width: 0; padding: .8rem; border: 1px solid var(--border); border-radius: .7rem; background: #fff; }
 .topology-card h3 { margin-bottom: .25rem; }
 .topology-card table { table-layout: fixed; font-size: .85rem; }
 .topology-card th, .topology-card td { padding: .38rem .25rem; overflow-wrap: anywhere; }
-.topology-card th:first-child { width: 34%; }
-.topology-card th:nth-child(2) { width: 17%; }
-.topology-card th:nth-child(3) { width: 20%; }
+.topology-card th:last-child { width: 32%; }
 .topology-card td small { display: block; line-height: 1.3; }
 .topology-card td > button:not(.metric-help-button) { text-align: left; color: #064951; text-decoration: underline; border: 0; padding: .12rem 0; }
 .topology-status { margin-block: .15rem .4rem; font-size: .84rem; }
 .delta-up { color: #086243; font-weight: 650; }
 .delta-down { color: #9b243e; font-weight: 650; }
-.assessment-warning { color: #744300; font-weight: 650; }
 .metric-help { display: inline-block; position: relative; vertical-align: middle; }
 .metric-help-button { display: inline-grid; place-content: center; padding: 0; width: 24px; min-height: 24px; border-radius: 50%; font-size: .78rem; color: #245365; }
 .metric-tooltip { position: fixed; z-index: 10; inset: auto max(.7rem, calc((100% - 34rem)/2)) .9rem; padding: .75rem; border-radius: .45rem; border: 1px solid #527282; background: #173341; color: #fff; font: .9rem/1.45 system-ui, sans-serif; box-shadow: 0 4px 18px #11223135; text-align: left; }
@@ -259,7 +258,7 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
 }
 @media (max-width: 38rem) {
   #search > label { flex: 1 1 6rem; max-width: 9rem; }
-  #search [name=second], #search [name=policy] { width: 100%; }
+  #search [name=second] { width: 100%; }
   #search > details[open] .controls { gap: .35rem; }
   .topology-card { padding: .5rem; }
   .topology-card table { font-size: .79rem; }
@@ -267,26 +266,12 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   .metric-tooltip { bottom: .55rem; }
 }
 
-#review-stages { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: .24rem; padding: 0; margin: 0; list-style: none; }
-#review-stages li { padding: .12rem .35rem; border-radius: .3rem; border: 1px solid #d4dce0; font-size: .73rem; color: var(--muted); }
-#review-stages .stage-active { color: #12446a; background: #edf6ff; border-color: #87b4d5; }
-#review-stages .stage-ready { color: #0b5547; background: #edf7f3; }
-#review-stages .stage-failed { color: #8a3824; background: #fff4eb; border-color: #d7a38d; }
-#review-stages .stage-stopped { color: #586368; background: #eef1f2; }
-.stage-check { display: none; }
 #report-status.review-finished, .inspector-readiness { font-weight: 700; color: #245365; }
 .measure-label { display: inline-flex; align-items: center; gap: .22rem; max-width: 100%; line-height: 1.25; }
 .measure-label > button, .topology-card td small button { border: 0; background: transparent; color: #064951; text-decoration: underline; text-align: left; padding: .12rem 0; }
 .measure-label > button { min-width: 0; overflow-wrap: anywhere; }
 .measure-label .metric-help { flex: 0 0 auto; }
-.group-label { color: var(--muted); margin-top: .15rem; }
-@media (max-width: 38rem) {
-  #review-stages { gap: .17rem; }
-  #review-stages li { padding: .08rem .23rem; font-size: .68rem; }
-}
 @media (max-width: 22rem) {
-  .stage-ready .stage-label { position: absolute; clip-path: inset(50%); height: 1px; width: 1px; overflow: hidden; }
-  .stage-check { display: inline; }
   #search { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .3rem; }
   #search > label { width: 100%; white-space: nowrap; }
   #search > details:not([open]) { grid-area: 1 / 3; }
@@ -298,11 +283,7 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   .coverage-notice { margin-block: .35rem; }
   .map-frame { margin-top: .35rem; }
   .topology-card table { font-size: .74rem; }
-  .topology-card th:first-child { width: 29%; }
-  .topology-card th:nth-child(2) { width: 16%; }
-  .topology-card th:nth-child(3) { width: 22%; }
   .topology-card th { overflow-wrap: normal; }
   .topology-card th .metric-help { display: block; width: max-content; }
-  .topology-card td:nth-child(3) { overflow-wrap: normal; font-size: .72rem; }
   .measure-label { flex-wrap: wrap; gap: .08rem .16rem; }
 }

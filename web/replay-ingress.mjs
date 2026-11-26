@@ -6,8 +6,8 @@ import { Cbor } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';
 
 const updates = new Set([
-  'begin_membership_review', 'membership_context_detail_page', 'membership_target_topology',
-  'compare_membership_with_policy', 'finalize_membership_review', 'node_performance_on_demand',
+  'begin_membership_review', 'membership_context_detail_page', 'membership_registry_role',
+  'compare_membership_context', 'finalize_membership_review', 'node_performance_on_demand',
 ]);
 const endpoint = /^\/api\/(v2|v3|v4)\/canister\/([a-z0-9-]+)\/(call|read_state)$/;
 const maxBody = 272 * 1024;

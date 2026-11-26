@@ -33,13 +33,13 @@ export function table(headers, rows) {
       el('tbody', rows.map(row => el('tr', row.map(cell => el('td', cell)))))));
 }
 
-export function sourceReceipts(result) {
+export function sourceReceipts(result, { replay = false } = {}) {
   const version = option(result.registry_version);
   return details('Source receipts',
     version === undefined ? null : el('p', `Pinned Registry version ${number(version)}`),
     el('p', `${number(result.usage.calls)} source calls · ${number(result.usage.source_bytes)} reply bytes`),
     el('p', `${number((result.usage.finished_at - result.usage.started_at) / 1_000_000n)} ms source stage · ${number(result.usage.instructions)} instructions · ${number(result.usage.peak_batch_reservation)} cycles peak batch reservation`),
-    table(['Observation', 'Source read', 'Observed at', 'Reply'], result.receipts.map(row => [
+    table(['Observation', 'Source read', replay ? 'Local replay delivery' : 'Observed at', 'Reply'], result.receipts.map(row => [
       row.id, el('span', row.method, ' ', el('code', row.item), el('br'), el('code', principal(row.source))),
       time(row.observed_at),
       option(row.reply_hash) ? el('code', hex(option(row.reply_hash))) : option(row.reject) ?? 'Unavailable',

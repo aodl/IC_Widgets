@@ -4,7 +4,7 @@ import { el, styled } from './view.js';
 
 const disclose = (label, ...contents) => el('details', el('summary', label), ...contents);
 
-export function markdownEditor(model, draft, exportMap) {
+export function markdownEditor(model, draft, map) {
   const vote = el('input');
   vote.value = draft.vote ?? '?';
   const tldr = el('textarea');
@@ -26,7 +26,7 @@ export function markdownEditor(model, draft, exportMap) {
   function update() {
     Object.assign(draft, { vote: vote.value, tldr: tldr.value });
     if (inputHash) draft.mapImage = { inputHash, url: mapImage.value };
-    raw.value = reviewMarkdown(model, { ...draft, mapImage: mapImage.value });
+    raw.value = reviewMarkdown(model, { ...draft, mapImage: mapImage.value, mapView: map.describe() });
     previewVote.replaceChildren(el('strong', 'VOTE'), ' ' + (vote.value.trim() || '?'));
     previewTldr.replaceChildren(el('strong', 'TLDR'), ' ' + tldr.value.trim());
   }
@@ -40,8 +40,9 @@ export function markdownEditor(model, draft, exportMap) {
   return styled('section', 'detail-section', el('h3', 'Review Markdown'),
     styled('div', 'markdown-fields', el('label', 'VOTE', vote), el('label', 'TLDR', tldr),
       el('label', 'Uploaded map image URL (optional)', mapImage)),
-    styled('div', 'actions', exportMap, action('Copy Markdown', async event => {
+    styled('div', 'actions', map.exportButton, action('Copy Markdown', async event => {
       const copyButton = event.currentTarget;
+      update();
       try {
         await navigator.clipboard.writeText(raw.value);
         status.textContent = 'Review Markdown copied.';
@@ -59,6 +60,9 @@ export function markdownEditor(model, draft, exportMap) {
           status.textContent = 'Select and copy the generated Markdown from the field.';
         }
       }
-    }), action('Download Markdown', () => saveFile('proposal-' + model.ids.join('-') + '-' + model.version + '-review.md', raw.value, 'text/markdown;charset=utf-8'))),
+    }), action('Download Markdown', () => {
+      update();
+      saveFile('proposal-' + model.ids.join('-') + '-' + model.version + '-review.md', raw.value, 'text/markdown;charset=utf-8');
+    })),
     status, disclose('Review preview', preview), disclose('Generated Markdown source', raw));
 }

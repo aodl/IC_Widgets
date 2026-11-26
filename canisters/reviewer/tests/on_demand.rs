@@ -739,6 +739,7 @@ fn voting_detail_replays_the_66013_registry() {
     use nexus_review_engine::{ANALYSIS_VERSION, Dimension, Group, Record};
     use nexus_reviewer::{
         DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison, PolicySnapshot,
+        RegistryRole,
     };
 
     assert!(enabled());
@@ -948,26 +949,41 @@ fn voting_detail_replays_the_66013_registry() {
             .contains("pinned Registry version")
     );
 
-    let policy = call::<Result<LiveResponse<PolicySnapshot>, String>>(
+    let role = call::<Result<LiveResponse<RegistryRole>, String>>(
+        &pic,
+        reviewer,
+        controller,
+        "membership_registry_role",
+        encode_one(token).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(role.registry_version, Some(66_013));
+    assert_eq!(role.usage.calls, 1);
+    assert_eq!(role.receipts[0].item, "nns_subnet_id");
+    assert_eq!(role.outcome.unwrap().nns_subnet, Some(subnet));
+    let no_motion = call::<Result<LiveResponse<PolicySnapshot>, String>>(
         &pic,
         reviewer,
         controller,
         "membership_target_topology",
         encode_args((token, None::<u64>)).unwrap(),
     )
-    .unwrap()
-    .outcome
     .unwrap();
-    assert_eq!(policy.motion.as_ref().unwrap().id, 143_190);
-    let digest = policy.digest;
-    let compare_context = |input, digest| {
-        let args = encode_args((input, token, digest)).unwrap();
+    assert!(
+        no_motion
+            .receipts
+            .iter()
+            .all(|row| row.method == "get_value")
+    );
+    assert!(no_motion.outcome.unwrap().motion.is_none());
+    let compare_context = |input, caller| {
+        let args = encode_args((input, token)).unwrap();
         let expected = sha256(&args);
         let comparison = call::<Result<LiveMembershipComparison, String>>(
             &pic,
             reviewer,
-            controller,
-            "compare_membership_with_policy",
+            caller,
+            "compare_membership_context",
             args,
         );
         if let Ok(result) = &comparison {
@@ -977,15 +993,16 @@ fn voting_detail_replays_the_66013_registry() {
     };
     let original = || decode_one::<DetailComparisonInput>(&full_args).unwrap();
     assert!(
-        compare_context(original(), digest)
+        compare_context(original(), controller)
             .unwrap()
             .target_rows
-            .is_some()
+            .is_none()
     );
     for alter in [
         |input: &mut DetailComparisonInput| input.kind += 1,
         |input: &mut DetailComparisonInput| input.after.reverse(),
         |input: &mut DetailComparisonInput| input.registry_version -= 1,
+        |input: &mut DetailComparisonInput| input.preview_revision[0] ^= 1,
         |input: &mut DetailComparisonInput| {
             input.nodes.pop_last();
         },
@@ -1004,9 +1021,9 @@ fn voting_detail_replays_the_66013_registry() {
     ] {
         let mut modified = original();
         alter(&mut modified);
-        assert!(compare_context(modified, digest).is_err());
+        assert!(compare_context(modified, controller).is_err());
     }
-    assert!(compare_context(original(), [7; 32]).is_err());
+    assert!(compare_context(original(), caller).is_err());
 
     let compare = |args: Vec<u8>| {
         let wall = Instant::now();

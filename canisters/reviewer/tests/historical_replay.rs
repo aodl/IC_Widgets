@@ -303,7 +303,7 @@ fn committed_replays_resolve_exact_subnet_and_boundary_cases() {
                 reviewer,
                 controller,
                 "membership_target_topology",
-                encode_args((token, None::<u64>)).unwrap(),
+                encode_args((token, Some(143_190u64))).unwrap(),
             )
             .unwrap();
             assert_eq!(policy.usage.calls, 2);

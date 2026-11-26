@@ -5,20 +5,14 @@ export const scenarioName = scenario => Array.from(scenario.proposal_ids, id => 
 export const calculationNote = 'The replicated calculation digest identifies the exact submitted evidence and scope. Source receipts identify the separate Registry and Governance observations.';
 export const thresholdNote = 'The Nakamoto coefficient counts the fewest largest groups that together exceed one third of the subnet. It requires complete recorded grouping. This statistic uses recorded labels and does not establish independent ownership.';
 export const geographyNote = 'The map uses registered data-center coordinates. They do not measure physical presence, health or latency. Region labels are split on commas and trimmed. No alias or country-equivalence conversion is applied.';
-export const policyApplicabilityNote = 'Current policy applicability and later amendments have not been verified.';
+export const criteriaNote = 'No Target Topology limits have been assumed. Apply the policy and exceptions relevant to your review.';
 const absent = 'Not recorded on-chain';
 
 export const metrics = {
-  Size: { label: 'Subnet size', help: 'The number of members in the selected state. A Target Topology size is an exact target.' },
-  DataCenter: { label: 'Data center', help: 'A registered facility. The named group is selected from the facility-level assessments.' },
-  RegisteredOwner: { label: 'Registered DC owner', help: 'The owner name declared in the Registry. The policy’s data-center provider is a separate identity for which this review has no verified mapping.' },
-  Provider: { label: 'Node provider', help: 'The provider principal registered for a node. A node provider can be distinct from the company that provides the facility.' },
-  RegisteredCountry: { label: 'Country label', help: 'The recorded country token in the Registry region string. The token does not establish canonical country identity.' },
-};
-export const assessments = {
-  MatchesTarget: 'Matches target', DiffersFromTarget: 'Differs from target', WithinLimit: 'Within limit', AtLimit: 'At limit',
-  ExceedsLimit: 'Exceeds limit', ExceptionUnresolved: 'Exception unresolved', IdentityUnresolved: 'Identity unresolved',
-  DataIncomplete: 'Data incomplete',
+  DataCenter: { label: 'Data center', help: 'The facility ID recorded for a node. Nodes with the same ID are counted together.' },
+  RegisteredOwner: { label: 'Registered owner name', help: 'The owner name stored for a data center. Matching names are grouped. This does not prove corporate independence.' },
+  Provider: { label: 'Node provider', help: 'The provider principal recorded for a node. The provider and data-center owner can be different.' },
+  RegisteredCountry: { label: 'Recorded country label', help: 'The country text in the registered location. Different spellings remain separate.' },
 };
 
 export function shortIds(ids) {
@@ -31,17 +25,24 @@ export function shortIds(ids) {
   }));
 }
 
-function signed(value) {
-  return (value < 0 ? '−' : '+') + Math.abs(value);
-}
-
-export function metricDelta(before, after, { percentage = false } = {}) {
-  if (after === undefined) return { value: absent, change: '', text: absent };
-  const rounded = value => Number(value.toFixed(percentage ? 2 : 0));
-  const value = rounded(after) + (percentage ? '%' : '');
-  const difference = before === undefined ? 0 : rounded(after - before);
-  const change = difference === 0 ? '' : signed(difference) + (percentage ? ' percentage points' : '');
-  return { value, change, direction: Math.sign(difference), text: change ? value + ' (' + change + ')' : value };
+export function metricDelta(before, after, { percentage = false, beforePartial = false, afterPartial = false } = {}) {
+  let places = percentage ? 2 : 0;
+  if (percentage && before !== after && before !== undefined && after !== undefined) {
+    while (places < 6 && before.toFixed(places) === after.toFixed(places)) places++;
+  }
+  const display = (value, partial) => value === undefined ? undefined
+    : (partial ? '≥' : '') + Number(value.toFixed(places)) + (percentage ? '%' : '');
+  const a = display(before, beforePartial);
+  const b = display(after, afterPartial);
+  if (a === undefined && b === undefined) return { text: 'Unavailable from recorded evidence' };
+  if (a === undefined) return { text: b + ' · Before unavailable' };
+  if (b === undefined) return { text: a + ' before · Proposed unavailable' };
+  if (a === b) return { text: before === after ? a : 'About ' + a + ' in both states', after: b };
+  return {
+    text: a + ' → ' + b, before: a, after: b, direction: Math.sign(after - before),
+    accessible: (beforePartial ? 'At least ' + a.slice(1) : a) + ' before, '
+      + (afterPartial ? 'at least ' + b.slice(1) : b) + ' proposed',
+  };
 }
 
 function recordState(record, missing, work) {
@@ -93,7 +94,6 @@ function groups(distribution) {
   })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
-const groupName = group => group.Principal ? principal(group.Principal) : group.RegisteredLabel;
 const coefficient = row => option(option(row?.greater_than_one_third ?? [])?.groups_to_reach ?? []);
 
 function publishingEvidence(live, context, subnet, before, after) {
@@ -121,116 +121,119 @@ function publishingEvidence(live, context, subnet, before, after) {
   return { changes, claims };
 }
 
-function policyDescription(policy, selectedId, subnet, running, failure) {
-  if (!policy) return failure ? 'Could not load policy evidence'
-    : running ? 'Waiting for policy evidence' : selectedId ? 'Policy evidence not loaded' : 'Reference policy evidence not loaded';
-  const motion = option(policy.motion);
-  if (!motion) return 'No policy motion selected';
-  if (option(motion.issue)) return 'Motion #' + motion.id + ' · ' + option(motion.issue);
-  if (!option(policy.nns_subnet)) return 'Motion #' + motion.id + ' · NNS role unresolved';
-  if (principal(option(policy.nns_subnet)) !== subnet) return 'Motion #' + motion.id + ' · This subnet’s policy role is unsupported';
-  return 'Compared with adopted motion #' + motion.id;
+export function compositionRows(before, after, sharedProvider) {
+  return Object.entries(metrics).flatMap(([key, definition]) => {
+    const old = before.get(key);
+    const next = after.get(key);
+    if (!old || !next) return [];
+    const prior = new Map(groups(old).map(item => [item.label, item.count]));
+    const proposed = new Map(groups(next).map(item => [item.label, item.count]));
+    const labels = [...new Set([...prior.keys(), ...proposed.keys()])];
+    const names = key === 'Provider' ? shortIds(labels) : new Map();
+    const largest = proposed.keys().next().value;
+    return labels.map(group => {
+      const a = prior.get(group) ?? (old.unknown ? undefined : 0);
+      const b = proposed.get(group) ?? (next.unknown ? undefined : 0);
+      const changed = (prior.get(group) ?? 0) !== (proposed.get(group) ?? 0);
+      const shared = key === 'Provider' && group === sharedProvider;
+      const last = key === 'DataCenter' && a > 0 && b === 0;
+      const note = last ? 'Last member leaves this subnet' : shared ? 'Incoming and outgoing nodes share this provider' : '';
+      return { key, group, groupLabel: names.get(group) ?? group, ...definition, a, b, old, next, changed, note,
+        delta: metricDelta(a, b, { beforePartial: !!old.unknown, afterPartial: !!next.unknown }),
+        featured: changed || group === largest || shared };
+    }).sort((a, b) => Number(b.changed) - Number(a.changed)
+      || (b.b ?? -1) - (a.b ?? -1) || a.group.localeCompare(b.group));
+  });
 }
 
-export function reviewModel(live, context, evidence, section, policyId, local) {
-  const { report, listed_subnets, total_listed_subnets } = live.outcome.Ok;
+export function assignmentCoverage(live, context) {
+  const { listed_subnets: checked, total_listed_subnets } = live.outcome.Ok;
+  const total = option(total_listed_subnets ?? []);
+  if (total === undefined) return 'Checked ' + checked + ' listed subnet memberships. Assignments outside that scope remain unverified.';
+  if (checked >= total) return 'Checked all ' + total + ' listed subnet memberships. Full execution validity remains unverified.';
+  const outside = total - checked;
+  const targeted = checked === 1 && context?.scenario.steps.some(step => step.requested.Add || step.requested.Change);
+  return (targeted ? 'Target subnet checked' : checked + ' of ' + total + ' listed subnets checked')
+    + '; assignments in the other ' + outside + ' listed ' + (outside === 1 ? 'subnet were' : 'subnets were') + ' not checked.';
+}
+
+export function reviewModel(live, context, evidence, section, replay) {
+  const { report } = live.outcome.Ok;
   const version = report.manifest.registry_version;
   const calculation = context.calculation;
   const comparison = calculation?.comparison;
   const selected = comparison?.selected ?? context.state;
   const subnet = principal(context.subnet);
-  const { policyFailure, final, consistency, work } = section;
-  const policy = calculation ? calculation.policy : section.policy;
+  const { final, consistency, work } = section;
   const previousAccepted = !!calculation && (context.status === 'pending' || context.status === 'stale');
-  const running = work === 'running' || work === 'idle' || work === 'stopping';
-  const partial = listed_subnets < (option(total_listed_subnets ?? []) ?? Infinity);
   const members = Object.entries({ Removed: selected.removed, Added: selected.added, Retained: selected.retained })
     .flatMap(([role, ids]) => ids.map(id => memberEvidence(evidence, principal(id), role, section)));
   const labels = shortIds(members.map(node => node.id));
   for (const node of members) node.label = labels.get(node.id);
   const count = metricDelta(context.before.member_count, selected.member_count).text;
-  const membership = count + ' members' + (selected.added.length ? ' · +' + selected.added.length + ' added' : '')
-    + (selected.removed.length ? ' · −' + selected.removed.length + ' removed' : '');
-  const target = new Map((option(calculation?.target_rows ?? []) ?? []).map(row => [branch(row.metric), row]));
+  const membership = count + ' ' + (selected.member_count === 1 ? 'member' : 'members') + ' · '
+    + selected.retained.length + ' retained · ' + selected.added.length + ' incoming · ' + selected.removed.length + ' outgoing';
   const before = new Map(comparison?.baseline.distributions.map(([key, row]) => [branch(key), row]));
   const after = new Map(comparison?.selected.distributions.map(([key, row]) => [branch(key), row]));
-  const source = option(policy?.motion ?? []);
-  const rule = option(source?.rule ?? []);
-  const policyText = policyDescription(policy, policyId, subnet, running, policyFailure);
   const incoming = members.filter(node => node.role === 'Added');
   const outgoing = members.filter(node => node.role === 'Removed');
   const sharedProvider = incoming.length === 1 && outgoing.length === 1 && incoming[0].provider
     && incoming[0].provider === outgoing[0].provider ? incoming[0].provider : undefined;
-  const topology = Object.entries(metrics).map(([key, definition]) => {
-    const row = target.get(key);
-    const old = before.get(key);
-    const next = after.get(key);
-    const groupRows = (option(row?.groups ?? []) ?? []).map(item => ({ ...item, label: groupName(item.group) }));
-    const beforeGroups = old ? groups(old) : [];
-    const afterGroups = next ? groups(next) : [];
-    const group = groupRows[0]?.label ?? afterGroups[0]?.label;
-    const groupLabels = key === 'Provider' ? shortIds([...afterGroups, ...beforeGroups].map(item => item.label)) : new Map();
-    const previous = key === 'Size' ? context.before.member_count : row ? option(row.before) : option(old?.largest ?? []);
-    const current = key === 'Size' ? selected.member_count : row ? option(row.after) : option(next?.largest ?? []);
-    const missing = next?.unknown ?? 0;
-    const ready = key === 'Size' || !!calculation;
-    const limit = !row ? '—' : key === 'Size' ? row.limit + ' target'
-      : (key === 'RegisteredOwner' ? 'DC provider · ' : '') + row.limit + ' cap'
-        + (key !== 'RegisteredCountry' && option(rule?.exception ?? []) ? ' · exception' : '');
-    return {
-      key, ...definition, old, next, previous, current, missing, ready, limit, group, groupRows,
-      groupLabel: groupLabels.get(group) ?? group, groupLabels,
-      sharedProvider: key === 'Provider' && sharedProvider ? { id: sharedProvider, label: groupLabels.get(sharedProvider) } : undefined,
-      departures: key === 'DataCenter' && next?.unknown === 0 ? beforeGroups.filter(item => !afterGroups.some(next => next.label === item.label))
-        .slice(0, 2).map(item => ({ label: item.label, delta: metricDelta(item.count, 0) })) : [],
-      delta: current === undefined && missing ? { value: 'Data incomplete', text: 'Data incomplete', change: '' } : metricDelta(previous, current),
-      evidence: ready ? (missing ? missing + ' members missing grouping evidence' : '')
-        : work === 'stopped' ? 'Not loaded · Review stopped'
-          : running ? (section.stage === 'DataCenters' && ['RegisteredOwner', 'RegisteredCountry'].includes(key)
-            ? 'Loading data centers' : 'Waiting for comparison') : 'Could not calculate',
-      assessment: row ? assessments[branch(row.assessment)]
-        : running ? 'Pending' : work === 'stopped' ? 'Not assessed · Review stopped' : 'Not assessed',
-      breach: option(row?.breach ?? []) && branch(option(row.breach)),
-      beforeGroups, groups: afterGroups,
-    };
-  }).sort((a, b) => priority(a) - priority(b));
-  const notes = [
-    'Registry snapshot ' + number(version) + '. Governance has separate observation times.',
-    'Assignment coverage ' + listed_subnets + ' of ' + (option(total_listed_subnets ?? []) ?? 'an unknown number of') + ' listed subnets.',
-    partial ? 'Assignments outside checked subnets remain unverified.' : null,
+  const composition = compositionRows(before, after, sharedProvider);
+  const coverage = assignmentCoverage(live, context);
+  const evidenceNotes = [];
+  const fields = { Nodes: 'node registration', Operators: 'operator and provider', DataCenters: 'data-center location and owner' };
+  const failedReads = Object.entries(evidence).flatMap(([type, entries]) => {
+    const failed = [...entries.values()].filter(([, row]) => row.Unavailable).length;
+    return failed ? [failed + ' ' + fields[type] + ' ' + (failed === 1 ? 'read failed' : 'reads failed') + '.'] : [];
+  });
+  evidenceNotes.push(...failedReads);
+  if (section.roleFailure || section.role?.retryable) evidenceNotes.push('The pinned NNS role could not be loaded.');
+  else if (section.role && !option(section.role.nns_subnet)) evidenceNotes.push(option(section.role.issue) ?? 'The pinned NNS role is unavailable.');
+  if (calculation && members.some(node => !node.point)) {
+    const missing = members.filter(node => !node.point).length;
+    evidenceNotes.push(missing + (missing === 1 ? ' node has' : ' nodes have') + ' no usable registered coordinates.');
+  }
+  if ([...before.values(), ...after.values()].some(row => row.unknown)) {
+    evidenceNotes.push('Some members lack grouping evidence. A partial count is a recorded minimum. An unrecorded group is zero only when grouping evidence is complete.');
+  }
+  if (section.outside) evidenceNotes.push(section.outside
+    + (section.outside === 1 ? ' affected subnet is' : ' affected subnets are') + ' outside the enriched scope.');
+  const notes = [coverage, ...evidenceNotes,
     'Proposed membership is conditional on the pinned evidence. Full execution validity remains unverified.',
-    consistency?.reason ?? null,
-    local,
-  ].filter(Boolean);
-  if (members.some(node => !node.point) && !running) notes.push('Some members lack usable registered coordinates.');
-  if (topology.some(row => row.missing)) notes.push('Recorded groups count members with known evidence. Members with missing evidence may increase those counts.');
-  if (section.outside) notes.push(section.outside + (section.outside === 1 ? ' affected subnet is' : ' affected subnets are') + ' outside the enriched scope.');
-  if (topology.some(row => row.assessment === 'Identity unresolved')) notes.push('Registered country labels and owner names cannot establish canonical country or policy-defined DC provider identity.');
-  if (source) notes.push(policyApplicabilityNote);
+    consistency?.reason].filter(Boolean);
   const publishing = publishingEvidence(live, context, subnet, before, after);
   return {
-    members, topology, membership, version, subnet, policyText, policy, rule, source, notes, calculation,
+    members, composition, membership, version, subnet, coverage, evidenceNotes, notes, calculation, replay,
     beforeCount: context.before.member_count, selectedCount: selected.member_count,
     scope: context.scenario, scenario: scenarioName(context.scenario),
     stateLabel: context.index ? 'After proposal #' + context.scenario.steps[context.index - 1].proposal : 'Registered baseline',
     ids: Array.from(context.scenario.proposal_ids, String), previewRevision: hex(report.revision),
     governance: final ?? report.manifest.proposals, finalVerified: !!final && !previousAccepted && !consistency, work,
     previousAccepted, publishing,
-    gaps: section.stage === 'Gaps' || !!consistency || partial || topology.some(row => !row.ready || row.missing
-      || row.assessment.endsWith('unresolved') || row.assessment === 'Not assessed'),
   };
 }
 
-function priority(row) {
-  if (row.breach === 'New') return 0;
-  if (row.breach === 'Worsened') return 1;
-  if (row.assessment === 'Exceeds limit') return 2;
-  if (row.assessment.endsWith('unresolved') || row.assessment === 'Data incomplete') return 3;
-  if (row.breach === 'Resolved') return 4;
-  return row.key === 'Size' ? 5 : 6;
+const utc = value => value ? value.replace('T', ' ').replace(/Z$/, ' UTC') : undefined;
+
+export function replayLabel(replay) {
+  return ['Historical replay', replay.lifecycleLabel, 'Registry ' + number(replay.registryVersion)].filter(Boolean).join(' · ');
 }
 
-export function governanceText(proposal) {
-  return '#' + proposal.id + ' ' + (lifecycle[proposal.lifecycle_status] ?? words(String(proposal.lifecycle_status)))
-    + ' observed ' + time(proposal.observed_at_nanos);
+export function replayRegistryText(replay) {
+  return replay.registryFrom ? 'Original Registry observations ' + utc(replay.registryFrom)
+    + ' to ' + utc(replay.registryTo) + '.' : 'Original Registry observation times unavailable for this replay.';
+}
+
+export function governanceText(proposal, replay, delivery = false) {
+  const status = lifecycle[proposal.lifecycle_status] ?? words(String(proposal.lifecycle_status));
+  if (!replay) return '#' + proposal.id + ' · ' + status + ' observed ' + time(proposal.observed_at_nanos);
+  const capture = replay.actionEvidence.find(row => row.id === String(proposal.id));
+  const when = utc(capture?.at);
+  const origin = capture?.kind === 'recorded-governance-reply' ? 'Original Governance observation'
+    : 'Original indexed observation';
+  const label = replay.lifecycleLabel?.startsWith('Constructed') ? 'Constructed status: ' : 'Recorded status: ';
+  return '#' + proposal.id + ' · ' + label + status + ' · '
+    + (when ? origin + ' ' + when : 'Original observation time unavailable')
+    + (delivery ? ' · Local replay served ' + time(proposal.observed_at_nanos) : '');
 }
