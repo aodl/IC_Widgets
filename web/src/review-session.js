@@ -2,7 +2,12 @@ import { compareMembership, liveError, result } from './client.js';
 import { branch, option, principal, words } from './view.js';
 
 const PAGE = 24;
+const NODE_BUDGET = 256;
 const STAGES = { Nodes: 'node registrations', Operators: 'registered operators and providers', DataCenters: 'registered locations' };
+export const reviewStages = {
+  Preview: 'Membership', Nodes: 'Nodes', Operators: 'Operators', DataCenters: 'Locations',
+  Policy: 'Policy', Comparison: 'Comparison', Lifecycle: 'Governance',
+};
 
 export function serializeCalls() {
   let tail = Promise.resolve();
@@ -74,9 +79,10 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
   const { report, review_context } = live.outcome.Ok;
   const token = option(review_context ?? []);
   const version = report.manifest.registry_version;
-  const required = contexts.filter(context => context.index && context.rules && context.state);
   const records = emptyEvidence();
+  const requested = new Set();
   const receipts = [];
+  const phases = { Preview: 'ready' };
   let selected;
   let running;
   let stopped = false;
@@ -86,24 +92,45 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
   let consistency;
   let work = 'idle';
   let stage;
+  let needsFinal = false;
 
   const valid = () => active() && !stopped;
   const pending = context => context?.status === 'pending' && context.rules && context.state;
-  const outstanding = () => required.filter(pending);
+  const supported = context => context?.index && context.rules && context.state;
   const update = () => { if (active()) updated(selected); };
-  const plannedContexts = () => [...new Set([...required, ...(selected?.state && selected.rules ? [selected] : [])])];
+  const plannedContexts = () => {
+    if (!supported(selected)) return [];
+    // Initial work stays in the selected subnet. The independent and ordered
+    // steps for that subnet share a single record graph.
+    return [selected, ...contexts.filter(context => context !== selected && supported(context)
+      && principal(context.subnet) === principal(selected.subnet))];
+  };
   const send = (next, counts) => {
     const changed = stage !== next;
     stage = next;
-    if (active()) progress({ work, stage, counts, remaining: outstanding().length, consistency,
+    if (next in reviewStages && (changed || phases[next] === undefined)) phases[next] = 'active';
+    if (active()) progress({ work, stage, counts, remaining: plannedContexts().filter(pending).length, consistency,
+      phases: { ...phases }, coverage: coverage(),
       selectedReady: selected?.status === 'available' || selected?.status === 'partial' });
     if (changed) update();
   };
   function section() {
-    return { records, policy, policyFailure, final, consistency, work, stage };
+    return { records, policy, policyFailure, final, consistency, work, stage, outside: outside() };
   }
 
-  async function read(type, ids) {
+  function outside() {
+    return new Set(contexts.filter(context => supported(context) && ['pending', 'outside'].includes(context.status))
+      .filter(context => work === 'settled' || !selected || principal(context.subnet) !== principal(selected.subnet))
+      .map(context => principal(context.subnet))).size;
+  }
+
+  function coverage() {
+    const evidence = Object.values(records).flatMap(map => [...map.values()].map(([, record]) => record));
+    return { absent: evidence.filter(record => record.Missing !== undefined || record.Deleted).length,
+      failed: evidence.filter(record => record.Unavailable).length, outside: outside() };
+  }
+
+  async function read(type, ids, inScope) {
     const map = records[type];
     const keys = entries(ids);
     const missing = keys.filter(([key]) => !map.has(key));
@@ -114,14 +141,17 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
       else counts.absent++;
     };
     for (const [key] of keys) if (map.has(key)) count(map.get(key)[1]);
+    send(type, { ...counts });
     for (let offset = 0; offset < missing.length; offset += PAGE) {
-      if (!valid()) return;
+      if (!inScope()) return;
       const page = missing.slice(offset, offset + PAGE);
       counts.inFlight = page.length;
       send(type, { ...counts });
       let found;
       try {
-        const reply = await call(valid, client => client.membership_detail_page(version, { [type]: page.map(([, id]) => id) }));
+        const arguments_ = { [type]: page.map(([, id]) => id) };
+        const reply = await call(inScope, client => token
+          ? client.membership_context_detail_page(token, arguments_) : client.membership_detail_page(version, arguments_));
         if (!reply || !valid()) return;
         const response = result(reply);
         receipts.push({ type, response });
@@ -136,7 +166,7 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
         }
       } catch (error) {
         if (!valid()) return;
-        found = page.map(() => ({ Unavailable: { stamp: [], reason: error.message } }));
+        found = page.map(() => ({ Unavailable: { stamp: [], reason: error.message }, unbound: true }));
         receipts.push({ type, error: error.message, keys: page.map(([key]) => key) });
       }
       page.forEach(([key, id], index) => {
@@ -148,6 +178,7 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
       send(type, { ...counts });
       update();
     }
+    phases[type] = counts.failed ? 'failed' : 'ready';
   }
 
   async function observePolicy() {
@@ -161,30 +192,32 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
       if ('Err' in response.outcome) throw new Error(liveError(response.outcome.Err));
       if (option(response.registry_version) !== version) throw new Error('Policy context does not match the pinned Registry snapshot.');
       policy = response.outcome.Ok;
+      phases.Policy = policy.nns_retryable || option(policy.motion)?.retryable ? 'failed' : 'ready';
     } catch (error) {
-      if (valid()) policyFailure = error.message;
+      if (valid()) { policyFailure = error.message; phases.Policy = 'failed'; }
     }
     update();
   }
 
   async function calculate(context) {
     const evidence = comparisonEvidence(records, membership(context));
+    const submitted = type => [...evidence[type].values()].filter(([, record]) => !record.unbound);
     const input = {
       registry_version: version, preview_revision: report.revision, subnet: context.subnet,
       before: context.before.members, after: context.state.members, kind: context.rules.kind,
-      nodes: [...evidence.Nodes.values()], operators: [...evidence.Operators.values()],
-      data_centers: [...evidence.DataCenters.values()],
+      nodes: submitted('Nodes'), operators: submitted('Operators'), data_centers: submitted('DataCenters'),
     };
     try {
-      const calculation = await call(valid, client => compare(client, input, valid, policy ? [token, policy.digest] : []));
+      const calculation = await call(valid, client => compare(client, input, valid,
+        token ? [token, policy?.digest ?? new Uint8Array(32)] : []));
       if (!calculation || !valid()) return;
-      context.calculation = { ...calculation, evidence };
+      context.calculation = { ...calculation, evidence, policy };
       context.failures = readFailures(evidence);
       context.status = context.failures.length ? 'partial' : 'available';
     } catch (error) {
       if (!valid()) return;
       context.failures = [...readFailures(evidence), { reason: error.message }];
-      context.status = 'unavailable';
+      context.status = context.calculation ? 'stale' : 'unavailable';
     }
     update();
   }
@@ -198,47 +231,73 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
       const response = result(reply);
       receipts.push({ type: 'Lifecycle', response });
       if ('Err' in response.outcome) {
-        consistency = { blocked: 'ProposalChanged' in response.outcome.Err, reason: liveError(response.outcome.Err) };
+        const error = response.outcome.Err;
+        const incompatible = error.InvalidEvidence && ['InvalidCapture', 'UnsupportedAction', 'MalformedPayload'].includes(branch(error.InvalidEvidence));
+        consistency = { blocked: 'ProposalChanged' in error || !!incompatible, reason: liveError(error) };
+        phases.Lifecycle = 'failed';
         return;
       }
       if (option(response.registry_version) !== version) throw new Error('Governance recheck belongs to a different review.');
       final = response.outcome.Ok;
+      phases.Lifecycle = 'ready';
     } catch (error) {
-      if (valid()) consistency = { blocked: false, reason: error.message };
+      if (valid()) { consistency = { blocked: false, reason: error.message }; phases.Lifecycle = 'failed'; }
     }
   }
 
   function start() {
     if (running || !valid()) return;
-    if (!plannedContexts().some(pending)) {
+    const scope = plannedContexts();
+    if (!scope.some(pending) && !needsFinal) {
       if (work === 'idle') { work = 'settled'; send('Blocked'); update(); }
       return;
     }
     work = 'running';
     final = undefined;
     consistency = undefined;
-    const ids = plannedContexts().flatMap(membership);
-    send('Nodes');
+    const comparisons = [];
+    const ids = [];
+    const accepted = new Set(requested);
+    for (const context of scope) {
+      if (!pending(context)) continue;
+      const additions = entries(membership(context)).filter(([key]) => !accepted.has(key));
+      if (comparisons.length >= 6 || accepted.size + additions.length > NODE_BUDGET) {
+        context.status = 'outside';
+        continue;
+      }
+      for (const [key] of additions) accepted.add(key);
+      comparisons.push(context);
+      ids.push(...membership(context));
+    }
+    for (const key of accepted) requested.add(key);
+    // A lifecycle-only retry preserves the accepted calculation and skips reads.
+    const checkOnly = needsFinal && !comparisons.length;
+    const subnet = selected?.subnet;
+    const inScope = () => valid() && !!selected && principal(selected.subnet) === principal(subnet);
+    needsFinal = false;
     const run = async () => {
-      await read('Nodes', ids);
-      if (!valid()) return;
+      if (checkOnly) return verifyLifecycle();
+      if (!comparisons.length) return;
+      await read('Nodes', ids, inScope);
+      if (!inScope()) return;
       const operators = entries(ids).flatMap(([key]) => present(records.Nodes.get(key))?.operator ?? []);
-      await read('Operators', operators);
-      if (!valid()) return;
+      await read('Operators', operators, inScope);
+      if (!inScope()) return;
       const centers = entries(operators).map(([key]) => dcKey(records.Operators.get(key)))
         .filter(key => key && new TextEncoder().encode(key).length <= 128);
-      await read('DataCenters', centers);
-      if (!valid()) return;
+      await read('DataCenters', centers, inScope);
+      if (!inScope()) return;
       await observePolicy();
-      if (!valid()) return;
-      const comparisons = plannedContexts().filter(pending);
+      if (!inScope()) return;
       let settled = 0;
-      while (valid() && comparisons.some(pending)) {
+      while (inScope() && comparisons.some(pending)) {
         const next = comparisons.includes(selected) && pending(selected) ? selected : comparisons.find(pending);
         send('Comparison', { settled, planned: comparisons.length });
         await calculate(next);
         settled++;
       }
+      if (!inScope()) return;
+      phases.Comparison = comparisons.some(row => ['stale', 'unavailable'].includes(row.status)) ? 'failed' : 'ready';
       await verifyLifecycle();
     };
     running = run().catch(error => {
@@ -249,6 +308,7 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
       if (!active()) return;
       if (stopped) {
         work = 'stopped';
+        for (const name of Object.keys(reviewStages)) if (!phases[name] || phases[name] === 'active') phases[name] = 'stopped';
         send('Stopped');
       } else if (plannedContexts().some(pending) && !consistency?.blocked) {
         start();
@@ -260,11 +320,12 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
           || option(context.calculation?.target_rows ?? [])?.some(row =>
             ['ExceptionUnresolved', 'IdentityUnresolved', 'DataIncomplete'].includes(branch(row.assessment))))
           || contexts.some(context => context.index && context.status === 'blocked')
+          || outside() || contexts.some(context => context.status === 'outside')
           || policyFailure || !option(policy?.motion ?? [])?.rule.length || policy?.nns_issue.length
           || live.outcome.Ok.listed_subnets < (option(live.outcome.Ok.total_listed_subnets ?? []) ?? Infinity)
           || !!consistency;
         work = 'settled';
-        send(consistency?.blocked ? 'Blocked' : missing ? 'Gaps' : 'Finished');
+        send(consistency?.blocked ? 'Blocked' : consistency ? 'Provisional' : missing ? 'Gaps' : 'Finished');
       }
       update();
     });
@@ -288,15 +349,15 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
     retry() {
       if (running || consistency?.blocked) return;
       const retryPolicy = policyFailure || option(policy?.motion ?? [])?.retryable || policy?.nns_retryable;
-      const failures = readFailures(records);
-      const retryComparison = plannedContexts().some(context => context.status === 'unavailable');
+      const affected = plannedContexts();
+      const failures = affected.flatMap(context => readFailures(comparisonEvidence(records, membership(context))));
+      const retryComparison = affected.some(context => ['stale', 'unavailable'].includes(context.status));
       if (!retryPolicy && !failures.length && !retryComparison && !consistency) return;
       for (const { type, key } of failures) records[type].delete(key);
       if (retryPolicy) { policy = undefined; policyFailure = undefined; }
-      for (const context of plannedContexts()) {
-        context.calculation = undefined;
-        context.status = 'pending';
-      }
+      if (retryPolicy || failures.length || retryComparison) {
+        for (const context of affected) if (context.status !== 'outside') context.status = 'pending';
+      } else needsFinal = true;
       stopped = false;
       start();
     },

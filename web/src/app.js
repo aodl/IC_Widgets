@@ -2,7 +2,7 @@ import { connect, identity, liveError, result } from './client.js';
 import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
 import { reviewMap } from './review-map.js';
-import { reviewContexts, serializeCalls } from './review-session.js';
+import { reviewContexts, reviewStages, serializeCalls } from './review-session.js';
 import { el, option, sourceReceipts, styled } from './view.js';
 
 const search = document.querySelector('#search');
@@ -14,6 +14,7 @@ const access = document.querySelector('#pilot-access');
 const progressRow = document.querySelector('#review-progress');
 const progressBar = progressRow.querySelector('progress');
 const progressCounts = document.querySelector('#review-counts');
+const stageList = document.querySelector('#review-stages');
 document.querySelector('#local-notice').hidden = !LOCAL_REPLICA;
 const browserPrincipal = document.querySelector('#browser-principal');
 browserPrincipal.textContent = identity.getPrincipal().toText();
@@ -67,17 +68,33 @@ const phases = {
   Policy: 'Locations and policy · Checking the selected policy and Registry role',
   Comparison: 'Comparison · Calculating supported states',
   Lifecycle: 'Comparison · Checking Governance again',
-  Finished: 'Finished', Gaps: 'Finished with gaps', Blocked: 'Could not produce a review', Stopped: 'Stopped',
+  Finished: 'Finished', Gaps: 'Finished with gaps', Provisional: 'Provisional · Governance check failed',
+  Blocked: 'Could not produce a review', Stopped: 'Stopped',
 };
 
-function status({ work, stage, counts, reason, remaining, selectedReady }) {
+function status({ work, stage, counts, reason, remaining, selectedReady, phases: stages, coverage }) {
   const working = work === 'running' || work === 'stopping';
   const label = work === 'stopping' ? 'Stopping · Waiting for an accepted call to settle' : phases[stage];
   const message = [label, reason].filter(Boolean).join(' · ');
   if (reportStatus.textContent !== message) reportStatus.textContent = message;
   reportStatus.classList.toggle('error', stage === 'Blocked');
+  reportStatus.classList.toggle('review-finished', ['Finished', 'Gaps', 'Provisional'].includes(stage));
   stop.hidden = work !== 'running';
-  progressRow.hidden = !working;
+  progressRow.hidden = false;
+  progressBar.hidden = !working;
+  const readiness = stages ?? { Preview: stage === 'Preview' ? 'active' : stage === 'Blocked' ? 'failed' : 'stopped' };
+  stageList.replaceChildren(...Object.entries(reviewStages).map(([key, title]) => {
+    const state = readiness[key] ?? (work === 'settled' || work === 'stopped' ? 'stopped' : 'pending');
+    const stateLabel = { ready: 'Ready', active: 'Active', pending: 'Pending', failed: 'Failed', stopped: 'Stopped' }[state];
+    const item = styled('li', 'stage-' + state, title, styled('span', 'stage-label', ' · ' + stateLabel));
+    if (state === 'ready') {
+      const mark = styled('span', 'stage-check', ' ✓');
+      mark.setAttribute('aria-hidden', 'true');
+      item.append(mark);
+    }
+    if (state === 'active') item.setAttribute('aria-current', 'step');
+    return item;
+  }));
   progressBar.setAttribute('aria-label', label ?? 'Current review phase');
   if (counts?.planned) {
     progressBar.max = counts.planned;
@@ -85,7 +102,11 @@ function status({ work, stage, counts, reason, remaining, selectedReady }) {
   } else progressBar.removeAttribute('value');
   const tally = counts?.planned ? counts.settled + ' of ' + counts.planned + (stage === 'Comparison' ? ' comparisons settled'
     : ' records settled · ' + counts.present + ' present · ' + counts.absent + ' absent · ' + counts.failed + ' failed') : '';
-  progressCounts.textContent = tally + (stage === 'Comparison' && selectedReady && remaining ? ' · Selected comparison is ready' : '');
+  progressCounts.textContent = tally + (stage === 'Comparison' && selectedReady && remaining ? ' · Selected comparison is ready' : '')
+    || (coverage && !working ? [coverage.absent ? coverage.absent + ' records absent' : '',
+      coverage.failed ? coverage.failed + ' record reads failed' : '',
+      coverage.outside ? coverage.outside + (coverage.outside === 1 ? ' affected subnet outside the enriched scope' : ' affected subnets outside the enriched scope')
+        : ''].filter(Boolean).join(' · ') : '');
   const tick = () => {
     if (request) {
       const running = request.segment === undefined ? 0 : Date.now() - request.segment;

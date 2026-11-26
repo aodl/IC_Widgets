@@ -320,7 +320,11 @@ pub(crate) fn summarize(
     }
 }
 
-fn distribution(groups: BTreeMap<Group, u32>, total: u32, conventional: bool) -> Distribution {
+pub(crate) fn distribution(
+    groups: BTreeMap<Group, u32>,
+    total: u32,
+    conventional: bool,
+) -> Distribution {
     let mut counts: Vec<_> = groups.values().copied().collect();
     counts.sort_unstable_by(|a, b| b.cmp(a));
     let known = counts.iter().sum::<u32>();

@@ -1,5 +1,5 @@
 import { calculationNote, geographyNote, governanceText } from './detail-model.js';
-import { hex, option, time, words } from './view.js';
+import { branch, hex, option, time, words } from './view.js';
 
 function escape(text) {
   return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -20,18 +20,29 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } =
     '# Proposal ' + model.ids.map(id => '#' + id).join(' + ') + ' Review',
     '**VOTE**: ' + (vote.trim() || '?'),
     ('**TLDR**: ' + tldr.trim()).trimEnd(),
-    model.gaps ? '**Finished with gaps**' : '**Finished**',
+    !model.finalVerified ? '**Provisional · Final Governance verification unavailable**' : model.gaps ? '**Finished with gaps**' : '**Finished**',
     escape(model.scenario + ' · ' + model.stateLabel + ' · Registry ' + model.version),
     'Subnet `' + model.subnet + '`',
     model.membership,
     '## Target Topology',
     escape(model.policyText),
     markdownTable({ headers: ['Measure', 'Proposed', 'Rule', 'Assessment'],
-      rows: model.topology.map(row => [row.label, (row.ready ? row.delta.text : row.evidence)
+      rows: model.topology.map(row => [row.label + (row.groupLabel ? ' · ' + row.groupLabel : ''), (row.ready ? row.delta.text : row.evidence)
         + (row.ready && row.evidence ? ' · ' + row.evidence : ''), row.limit,
-      row.assessment + (row.breach ? ' · ' + words(row.breach) + ' breach' : '')]) }),
+      row.assessment + (row.breach ? ' · ' + (row.breach === 'Improved' ? 'Improved, still exceeds the cap' : words(row.breach) + ' breach') : '')]) }),
     model.rule ? 'Adopted clause\n\n`' + model.rule.clause.replaceAll('`', '') + '`' : null,
     option(model.rule?.exception ?? []) ? escape(option(model.rule.exception)) : null,
+    model.topology.flatMap(row => [
+      ...(row.departures ?? []).map(group => '- ' + escape(group.label) + ' ' + group.delta.text + ' · Last member leaves this subnet.'),
+      row.sharedProvider ? '- The incoming and outgoing nodes share recorded provider `' + row.sharedProvider.id + '`.' : null,
+      ...(row.groupRows ?? []).slice(1).filter(group => group.breach.length).slice(0, 3).map(group =>
+        '- ' + escape(group.label) + ' · ' + words(branch(group.breach[0])) + ' breach.'),
+    ]).filter(Boolean).join('\n'),
+    model.publishing?.changes.length ? '## Changed Nakamoto coefficients\n\n'
+      + markdownTable({ headers: ['Grouping', 'Groups needed'], rows: model.publishing.changes }) : null,
+    model.publishing?.claims.length ? '## Proposer comparison\n\n'
+      + 'These claims use the proposal’s stated groupings. Country comparisons use recorded Registry labels.\n\n'
+      + markdownTable({ headers: ['Grouping', 'Proposer', 'Replicated calculation', 'Comparison'], rows: model.publishing.claims }) : null,
     '## Membership evidence',
     model.members.filter(node => node.role !== 'Retained').map(node => '- ' + node.role + ' `' + node.id + '`'
       + (node.dc ? ' · ' + escape(node.dc) : '') + (node.region ? ' · ' + escape(node.region) : '')).join('\n'),

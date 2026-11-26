@@ -1,5 +1,8 @@
 //! One transient review context for the current browser request.
-use std::{cell::RefCell, collections::BTreeSet};
+use std::{
+    cell::RefCell,
+    collections::{BTreeMap, BTreeSet},
+};
 
 use candid::{CandidType, Principal, encode_one};
 use ic_cdk::api::{msg_caller, time};
@@ -7,6 +10,7 @@ use nexus_domain::{Hash, sha256};
 use nexus_ic_sources::{
     decode_candid,
     governance::{Action, ProposalInfo},
+    projection::RecordKey,
     registry::{
         NNS_SUBNET_KEY, ValueContent, decode_value_for_name, nns_subnet, value_request_for_name,
     },
@@ -15,7 +19,8 @@ use nexus_review_engine::{NnsTarget, ProposalEvidence, Review, parse_nns_target}
 use serde::Deserialize;
 
 use super::{
-    DetailComparisonInput, LiveResponse, Request, RequestGuard, check_proposal, proposals,
+    DetailComparisonInput, LiveResponse, Request, RequestGuard, SubnetRules, check_proposal,
+    proposals,
 };
 use crate::{Sources, store};
 
@@ -25,8 +30,28 @@ struct Context {
     revision: Hash,
     version: u64,
     states: BTreeSet<Hash>,
+    kinds: BTreeMap<Principal, i32>,
+    members: BTreeSet<Principal>,
+    reads: BTreeMap<RecordKey, u8>,
+    records: BTreeMap<RecordKey, BoundRecord>,
     proposals: Vec<ProposalEvidence>,
     policy: Option<PolicySnapshot>,
+}
+
+// Pilot selection. Limits and scope conditions always come from the motion.
+const PILOT_REFERENCE_MOTION: u64 = 143_190;
+const RECORD_LIMIT_PER_KIND: usize = 256;
+
+pub(super) struct BoundRecord {
+    digest: Hash,
+    next: Option<RecordKey>,
+}
+
+pub(super) fn bind_record<T: CandidType>(record: &T, next: Option<RecordKey>) -> BoundRecord {
+    BoundRecord {
+        digest: sha256(&encode_one(record).expect("observed record")),
+        next,
+    }
 }
 
 thread_local! {
@@ -68,7 +93,7 @@ fn state_id(subnet: Principal, before: &[Principal], after: &[Principal]) -> Has
     sha256(&candid::encode_args((subnet, before, after)).expect("review membership identity"))
 }
 
-pub(super) fn begin(report: &Review) -> Hash {
+pub(super) fn begin(report: &Review, rules: &[SubnetRules]) -> Hash {
     let caller = msg_caller();
     let token =
         sha256(&candid::encode_args((caller, time(), report.revision)).expect("review token"));
@@ -89,10 +114,105 @@ pub(super) fn begin(report: &Review) -> Hash {
         revision: report.revision,
         version: report.manifest.registry_version,
         states,
+        kinds: rules.iter().map(|row| (row.subnet, row.kind)).collect(),
+        members: report
+            .scenarios
+            .iter()
+            .flat_map(|scenario| scenario.subnets.values())
+            .flat_map(|view| {
+                std::iter::once(&view.baseline).chain(view.after_steps.iter().flatten())
+            })
+            .flat_map(|state| state.members.iter().copied())
+            .collect(),
+        reads: BTreeMap::new(),
+        records: BTreeMap::new(),
         proposals: report.manifest.proposals.clone(),
         policy: None,
     }));
     token
+}
+
+pub(super) fn admit_details(token: Hash, keys: &[RecordKey]) -> Result<u64, String> {
+    let version = with_context(token, |context| {
+        for key in keys {
+            let allowed = match key {
+                RecordKey::Node(id) => context.members.contains(id),
+                _ => context
+                    .records
+                    .values()
+                    .any(|record| record.next.as_ref() == Some(key)),
+            };
+            if !allowed {
+                return Err("Detail key is outside the accepted review graph.");
+            }
+            if context.reads.get(key).copied().unwrap_or(0) >= 2 {
+                return Err("Retry limit reached for this detail key.");
+            }
+        }
+        let kind = std::mem::discriminant(&keys[0]);
+        let used = context
+            .reads
+            .keys()
+            .filter(|key| std::mem::discriminant(*key) == kind)
+            .count();
+        let new = keys
+            .iter()
+            .filter(|key| !context.reads.contains_key(*key))
+            .count();
+        if used + new > RECORD_LIMIT_PER_KIND {
+            return Err("Detail budget exhausted for this review.");
+        }
+        Ok(context.version)
+    })??;
+    CONTEXT.with_borrow_mut(|context| {
+        let reads = &mut context.as_mut().expect("validated context").reads;
+        for key in keys {
+            *reads.entry(key.clone()).or_default() += 1;
+        }
+    });
+    Ok(version)
+}
+
+pub(super) fn retain_details(
+    token: Hash,
+    records: impl IntoIterator<Item = (RecordKey, BoundRecord)>,
+) {
+    if with_context(token, |_| ()).is_ok() {
+        CONTEXT.with_borrow_mut(|context| {
+            context
+                .as_mut()
+                .expect("validated context")
+                .records
+                .extend(records)
+        });
+    }
+}
+
+fn check_records<K: Ord, T: CandidType>(
+    observed: &BTreeMap<RecordKey, BoundRecord>,
+    keys: BTreeSet<RecordKey>,
+    submitted: &BTreeMap<K, T>,
+    key_for: impl Fn(&K) -> RecordKey,
+) -> Result<BTreeSet<RecordKey>, String> {
+    let expected = keys
+        .iter()
+        .filter_map(|key| observed.get(key).map(|record| (key, record)))
+        .collect::<BTreeMap<_, _>>();
+    if submitted.len() != expected.len()
+        || submitted.iter().any(|(key, value)| {
+            expected
+                .get(&key_for(key))
+                .is_none_or(|record| record.digest != bind_record(value, None).digest)
+        })
+    {
+        return Err(
+            "Submitted detail evidence does not match the accepted Registry observations.".into(),
+        );
+    }
+    Ok(expected
+        .values()
+        .filter_map(|record| record.next.clone())
+        .collect())
 }
 
 fn with_context<T>(token: Hash, read: impl FnOnce(&Context) -> T) -> Result<T, String> {
@@ -109,21 +229,42 @@ pub(super) fn policy_for(
     token: Hash,
     digest: Hash,
     input: &DetailComparisonInput,
-) -> Result<PolicySnapshot, String> {
+) -> Result<Option<PolicySnapshot>, String> {
     with_context(token, |context| {
         if input.registry_version != context.version
             || input.preview_revision != context.revision
+            || context.kinds.get(&input.subnet) != Some(&input.kind)
             || !context
                 .states
                 .contains(&state_id(input.subnet, &input.before, &input.after))
         {
             return Err("Comparison does not match a state in the pinned preview.".into());
         }
+        let nodes = input
+            .before
+            .iter()
+            .chain(&input.after)
+            .copied()
+            .map(RecordKey::Node)
+            .collect();
+        let operators = check_records(&context.records, nodes, &input.nodes, |id| {
+            RecordKey::Node(*id)
+        })?;
+        let centers = check_records(&context.records, operators, &input.operators, |id| {
+            RecordKey::Operator(*id)
+        })?;
+        check_records(&context.records, centers, &input.data_centers, |id| {
+            RecordKey::DataCenter(id.clone())
+        })?;
+        if digest == [0; 32] && context.policy.is_none() {
+            return Ok(None);
+        }
         context
             .policy
             .as_ref()
             .filter(|snapshot| snapshot.digest == digest)
             .cloned()
+            .map(Some)
             .ok_or_else(|| "Selected policy observation is unavailable for this review.".into())
     })?
 }
@@ -134,6 +275,7 @@ async fn membership_target_topology(
     policy_id: Option<u64>,
 ) -> Result<LiveResponse<PolicySnapshot>, String> {
     let guard = RequestGuard::acquire()?;
+    let policy_id = Some(policy_id.unwrap_or(PILOT_REFERENCE_MOTION));
     if policy_id == Some(0) {
         return Err("Select a positive policy proposal ID.".into());
     }

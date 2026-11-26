@@ -213,12 +213,14 @@ async fn preview(ids: Vec<u64>, contextual: bool) -> Result<LiveResponse<LiveRev
     } else {
         Sources::canonical()
     };
-    let outcome = review(&mut request, sources, &ids).await;
-    let mut reply = request.finish(outcome);
-    if contextual && let Ok(review) = &mut reply.outcome {
-        review.review_context = Some(policy::begin(&review.report));
+    let mut outcome = review(&mut request, sources, &ids).await;
+    if contextual && let Ok(review) = &mut outcome {
+        review.review_context = Some(policy::begin(
+            &review.report,
+            review.subnet_rules.as_deref().unwrap_or_default(),
+        ));
     }
-    Ok(reply)
+    Ok(request.finish(outcome))
 }
 
 #[ic_cdk::update]

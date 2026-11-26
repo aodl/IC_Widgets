@@ -39,9 +39,6 @@ try {
   const count = method => [...calls.values()].filter(value => value === method).length;
   await page.goto(url);
   await page.locator('input[name=first]').fill('144954');
-  await page.getByText('Review options', { exact: true }).click();
-  await page.getByLabel('Target Topology motion ID').fill('143190');
-  await page.getByText('Review options', { exact: true }).click();
   const principal = (await page.locator('#browser-principal').textContent()).trim();
   assert.match(dfx('canister', 'call', '--network', 'local', 'reviewer', 'set_on_demand_caller',
     '(opt principal "' + principal + '")'), /Ok/);
@@ -54,6 +51,7 @@ try {
   await page.getByRole('button', { name: 'Review', exact: true }).click();
   await page.getByRole('heading', { name: 'World map' }).waitFor();
   await page.getByText('40 members · +1 added · −1 removed', { exact: true }).waitFor();
+  await page.getByRole('list', { name: 'Review stages' }).getByText(/Membership · Ready/).waitFor();
   const previewMs = Date.now() - began;
   await page.locator('#report-status').getByText('Finished with gaps', { exact: true }).waitFor({ timeout: 120000 });
   const reviewMs = Date.now() - began;
@@ -69,7 +67,7 @@ try {
   await page.waitForTimeout(1100);
   assert.equal(await page.locator('#review-elapsed').textContent(), elapsed);
   assert.equal(count('begin_membership_review'), 1);
-  assert.equal(count('membership_detail_page'), 6);
+  assert.equal(count('membership_context_detail_page'), 6);
   assert.equal(count('membership_target_topology'), 1);
   assert.equal(count('compare_membership_with_policy'), 1);
   assert.equal(count('finalize_membership_review'), 1);
@@ -79,9 +77,12 @@ try {
   const topology = page.locator('.topology-card');
   const measure = name => topology.getByRole('row').filter({ has: page.getByRole('button', { name, exact: true }) });
   assert.match(await measure('Subnet size').textContent(), /40.*40 target.*Matches target/);
-  assert.match(await measure('Largest data center').textContent(), /3 \(\+1\).*1 cap.*Exception unresolved/);
-  assert.match(await measure('Largest registered DC owner group').textContent(), /3 \(\+1\).*Identity unresolved/);
-  assert.match(await measure('Largest registered country-label group').textContent(), /3 cap.*Identity unresolved/);
+  assert.match(await measure('Data center').textContent(), /3 \(\+1\).*1 cap.*Exception unresolved/);
+  assert.match(await measure('Registered DC owner').textContent(), /3 \(\+1\).*Identity unresolved/);
+  assert.match(await measure('Country label').textContent(), /3 cap.*Identity unresolved/);
+  assert.match(await measure('Data center').textContent(), /sh1.*zh2.*0 \(−1\).*Last member/);
+  assert.match(await measure('Registered DC owner').textContent(), /Digital Realty/);
+  assert.match(await measure('Node provider').textContent(), /Added and removed nodes share/);
   assert.equal(await page.getByRole('button', { name: 'Before', exact: true }).count(), 0);
 
   const positions = {};
@@ -89,17 +90,17 @@ try {
     await page.setViewportSize({ width, height });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Overflow at ' + width);
     positions[width] = Math.round(await page.locator('canvas').evaluate(canvas => canvas.getBoundingClientRect().top + scrollY));
-    assert.ok(positions[width] < height, 'Map starts below viewport at ' + width);
     if ([1366, 390, 320].includes(width)) {
       await page.screenshot({ path: resolve(output, '144954-' + width + '.png'), fullPage: true });
     }
+    assert.ok(positions[width] < height, 'Map starts at ' + positions[width] + 'px in a ' + width + '×' + height + ' viewport');
   }
 
   await page.setViewportSize({ width: 1366, height: 900 });
-  const info = topology.getByRole('button', { name: 'About Largest data center' });
+  const info = topology.getByRole('button', { name: 'About Data center' });
   await info.hover();
   await page.getByRole('tooltip').hover();
-  await page.getByRole('tooltip').getByText(/same facility/).waitFor();
+  await page.getByRole('tooltip').getByText(/registered facility/).waitFor();
   await page.keyboard.press('Escape');
   assert.equal(await page.getByRole('tooltip').count(), 0);
   await info.focus();
@@ -108,7 +109,7 @@ try {
   await info.click();
   await page.getByRole('tooltip').waitFor();
   await page.keyboard.press('Escape');
-  const row = topology.getByRole('button', { name: 'Largest data center', exact: true });
+  const row = topology.getByRole('button', { name: 'Data center', exact: true });
   await row.focus();
   await page.keyboard.press('Enter');
   const inspector = page.locator('.inspector');
@@ -146,7 +147,7 @@ try {
     await (await download).saveAs(resolve(output, name));
   }
   const md = await readFile(resolve(output, '144954-review.md'), 'utf8');
-  for (const fact of [hash, policyHash, 'Finished with gaps', '40 members', '3 (+1)', 'Exception unresolved', 'Assignment coverage 1 of 96']) {
+  for (const fact of [hash, policyHash, 'Changed Nakamoto coefficients', 'Proposer comparison', 'zh2 0 (−1)', 'Digital Realty', 'Finished with gaps', '40 members', '3 (+1)', 'Exception unresolved', 'Assignment coverage 1 of 96']) {
     assert.ok(md.includes(fact), 'Markdown missing ' + fact);
   }
   const png = await readFile(resolve(output, '144954-map.png'));

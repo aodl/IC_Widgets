@@ -277,3 +277,31 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   .topology-card th, .topology-card td { padding: .28rem .22rem; }
   .metric-tooltip { bottom: .55rem; }
 }
+
+#review-stages { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: .24rem; padding: 0; margin: 0; list-style: none; }
+#review-stages li { padding: .12rem .35rem; border-radius: .3rem; border: 1px solid #d4dce0; font-size: .73rem; color: var(--muted); }
+#review-stages .stage-active { color: #12446a; background: #edf6ff; border-color: #87b4d5; }
+#review-stages .stage-ready { color: #0b5547; background: #edf7f3; }
+#review-stages .stage-failed { color: #8a3824; background: #fff4eb; border-color: #d7a38d; }
+#review-stages .stage-stopped { color: #586368; background: #eef1f2; }
+.stage-check { display: none; }
+#report-status.review-finished, .inspector-readiness { font-weight: 700; color: #245365; }
+.measure-label { display: inline-flex; align-items: center; gap: .22rem; max-width: 100%; line-height: 1.25; }
+.measure-label > button, .topology-card td small button { border: 0; background: transparent; color: #064951; text-decoration: underline; text-align: left; padding: .12rem 0; }
+.measure-label > button { min-width: 0; overflow-wrap: anywhere; }
+.measure-label .metric-help { flex: 0 0 auto; }
+.group-label { color: var(--muted); margin-top: .15rem; }
+@media (max-width: 38rem) {
+  #review-stages { gap: .17rem; }
+  #review-stages li { padding: .08rem .23rem; font-size: .68rem; }
+}
+@media (max-width: 22rem) {
+  .stage-ready .stage-label { position: absolute; clip-path: inset(50%); height: 1px; width: 1px; overflow: hidden; }
+  .stage-check { display: inline; }
+  #search > label { max-width: 5.7rem; }
+  #search > details:not([open]) summary { font-size: .84rem; }
+  .review-header { margin-bottom: .45rem; }
+  .proposal-meta { gap: .17rem .55rem; }
+  .coverage-notice { margin-block: .35rem; }
+  .map-frame { margin-top: .35rem; }
+}

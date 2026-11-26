@@ -2,7 +2,7 @@
 use candid::CandidType;
 use serde::Deserialize;
 
-use crate::{Dimension, Distribution, MembershipComparison};
+use crate::{Dimension, Distribution, Group, MembershipComparison};
 
 const TABLE: [&str; 7] = [
     "Subnet Type",
@@ -161,8 +161,7 @@ pub enum BreachChange {
 pub struct TargetRow {
     pub metric: TargetMetric,
     pub limit: u32,
-    /// Largest known recorded group. Scope and missing records bound this
-    /// quantity, while canonical identity may have additional ambiguity.
+    /// Selected group for the compact overview. Full assessments follow.
     pub before: Option<u32>,
     pub after: Option<u32>,
     pub unknown_before: u32,
@@ -170,6 +169,29 @@ pub struct TargetRow {
     pub before_assessment: Assessment,
     pub assessment: Assessment,
     pub breach: Option<BreachChange>,
+    pub groups: Option<Vec<TargetGroup>>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct TargetGroup {
+    pub group: Group,
+    pub before: Option<u32>,
+    pub after: Option<u32>,
+    pub before_assessment: Assessment,
+    pub assessment: Assessment,
+    pub breach: Option<BreachChange>,
+}
+
+impl TargetMetric {
+    fn assess(self, observed: u32, unknown: u32, limit: u32, exception: bool) -> Assessment {
+        if matches!(self, Self::RegisteredCountry | Self::RegisteredOwner) {
+            return Assessment::IdentityUnresolved;
+        }
+        match assess_cap(observed, unknown, limit) {
+            Assessment::ExceedsLimit if exception => Assessment::ExceptionUnresolved,
+            result => result,
+        }
+    }
 }
 
 pub fn assess_target(target: &NnsTarget, comparison: &MembershipComparison) -> Vec<TargetRow> {
@@ -194,6 +216,7 @@ pub fn assess_target(target: &NnsTarget, comparison: &MembershipComparison) -> V
         before_assessment: exact(before.member_count),
         assessment: exact(after.member_count),
         breach: None,
+        groups: None,
     }];
     for (metric, dimension, limit) in [
         (Provider, Dimension::Provider, target.group_cap),
@@ -209,50 +232,108 @@ pub fn assess_target(target: &NnsTarget, comparison: &MembershipComparison) -> V
             target.country_cap,
         ),
     ] {
-        let a = &before.distributions[&dimension];
-        let b = &after.distributions[&dimension];
-        let assess = |row: &Distribution| {
-            if matches!(metric, RegisteredCountry | RegisteredOwner) {
-                return IdentityUnresolved;
-            }
-            // Without membership evidence for the exception class, even a
-            // large registered group may be permitted under the cited clause.
-            if target.exception.is_some() {
-                return ExceptionUnresolved;
-            }
-            assess_cap(row.largest, row.unknown, limit)
-        };
-        let (prior, next) = (assess(a), assess(b));
-        let breach = match (prior, next) {
-            (ExceedsLimit, ExceedsLimit) if a.unknown == 0 && b.unknown == 0 => {
-                match b.largest.cmp(&a.largest) {
-                    std::cmp::Ordering::Greater => Some(BreachChange::Worsened),
-                    std::cmp::Ordering::Equal => Some(BreachChange::Unchanged),
-                    std::cmp::Ordering::Less => Some(BreachChange::Improved),
-                }
-            }
-            (ExceedsLimit, AtLimit | WithinLimit) => Some(BreachChange::Resolved),
-            (AtLimit | WithinLimit, ExceedsLimit) => Some(BreachChange::New),
-            _ => None,
-        };
-        rows.push(TargetRow {
+        rows.push(assess_distribution(
             metric,
             limit,
-            before: a.largest,
-            after: b.largest,
-            unknown_before: a.unknown,
-            unknown_after: b.unknown,
-            before_assessment: prior,
-            assessment: next,
-            breach,
-        });
+            target.exception.is_some(),
+            &before.distributions[&dimension],
+            &after.distributions[&dimension],
+        ));
     }
     rows
 }
 
-fn assess_cap(known: Option<u32>, unknown: u32, cap: u32) -> Assessment {
+fn assess_distribution(
+    metric: TargetMetric,
+    limit: u32,
+    exception: bool,
+    before: &Distribution,
+    after: &Distribution,
+) -> TargetRow {
+    use std::collections::BTreeSet;
+    let assess = |observed, unknown| metric.assess(observed, unknown, limit, exception);
+    let mut groups = before
+        .groups
+        .keys()
+        .chain(after.groups.keys())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .map(|key| {
+            let a = before.groups.get(key).copied().unwrap_or(0);
+            let b = after.groups.get(key).copied().unwrap_or(0);
+            let prior = assess(a, before.unknown);
+            let next = assess(b, after.unknown);
+            TargetGroup {
+                group: key.clone(),
+                before: (a != 0 || before.unknown == 0).then_some(a),
+                after: (b != 0 || after.unknown == 0).then_some(b),
+                before_assessment: prior,
+                assessment: next,
+                breach: breach_change(prior, next, (a, before.unknown), (b, after.unknown)),
+            }
+        })
+        .collect::<Vec<_>>();
+    groups.sort_by_key(|group| {
+        let delta = i64::from(group.after.unwrap_or(0)) - i64::from(group.before.unwrap_or(0));
+        let importance = match (group.breach, group.assessment) {
+            (Some(BreachChange::New), _) => 0,
+            (Some(BreachChange::Worsened), _) => 1,
+            (_, Assessment::ExceedsLimit) => 2,
+            (
+                _,
+                Assessment::ExceptionUnresolved
+                | Assessment::IdentityUnresolved
+                | Assessment::DataIncomplete,
+            ) => 3,
+            (Some(BreachChange::Resolved), _) => 4,
+            _ => 5,
+        };
+        (
+            importance,
+            std::cmp::Reverse(delta),
+            std::cmp::Reverse(group.after),
+        )
+    });
+    let representative = groups.first();
+    TargetRow {
+        metric,
+        limit,
+        before: representative.and_then(|group| group.before),
+        after: representative.and_then(|group| group.after),
+        unknown_before: before.unknown,
+        unknown_after: after.unknown,
+        before_assessment: representative.map_or_else(
+            || assess(0, before.unknown),
+            |group| group.before_assessment,
+        ),
+        assessment: representative
+            .map_or_else(|| assess(0, after.unknown), |group| group.assessment),
+        breach: representative.and_then(|group| group.breach),
+        groups: Some(groups),
+    }
+}
+
+fn breach_change(
+    prior: Assessment,
+    next: Assessment,
+    (a, unknown_a): (u32, u32),
+    (b, unknown_b): (u32, u32),
+) -> Option<BreachChange> {
     use Assessment::*;
-    let lower = known.unwrap_or(0);
+    match (prior, next) {
+        (WithinLimit | AtLimit, ExceedsLimit) => Some(BreachChange::New),
+        (ExceedsLimit, WithinLimit | AtLimit) => Some(BreachChange::Resolved),
+        (ExceedsLimit, ExceedsLimit) if b > a + unknown_a => Some(BreachChange::Worsened),
+        (ExceedsLimit, ExceedsLimit) if b + unknown_b < a => Some(BreachChange::Improved),
+        (ExceedsLimit, ExceedsLimit) if unknown_a == 0 && unknown_b == 0 => {
+            Some(BreachChange::Unchanged)
+        }
+        _ => None,
+    }
+}
+
+fn assess_cap(lower: u32, unknown: u32, cap: u32) -> Assessment {
+    use Assessment::*;
     let upper = lower + unknown;
     if lower > cap {
         ExceedsLimit
@@ -295,10 +376,78 @@ mod tests {
 
     #[test]
     fn partial_bounds_require_an_upper_bound_for_compliance() {
-        assert_eq!(assess_cap(Some(4), 10, 3), Assessment::ExceedsLimit);
-        assert_eq!(assess_cap(Some(2), 2, 3), Assessment::DataIncomplete);
-        assert_eq!(assess_cap(None, 4, 3), Assessment::DataIncomplete);
-        assert_eq!(assess_cap(Some(1), 1, 3), Assessment::WithinLimit);
-        assert_eq!(assess_cap(Some(3), 1, 3), Assessment::DataIncomplete);
+        assert_eq!(assess_cap(4, 10, 3), Assessment::ExceedsLimit);
+        assert_eq!(assess_cap(2, 2, 3), Assessment::DataIncomplete);
+        assert_eq!(assess_cap(0, 4, 3), Assessment::DataIncomplete);
+        assert_eq!(assess_cap(1, 1, 3), Assessment::WithinLimit);
+        assert_eq!(assess_cap(3, 1, 3), Assessment::DataIncomplete);
+    }
+    #[test]
+    fn unchanged_maximum_does_not_hide_new_group_breach_and_exception_is_conditional() {
+        use crate::topology::distribution;
+        use Assessment::*;
+        let state = |counts: &[(&str, u32)]| {
+            distribution(
+                counts
+                    .iter()
+                    .map(|(key, count)| (Group::RegisteredLabel((*key).into()), *count))
+                    .collect(),
+                counts.iter().map(|(_, count)| count).sum(),
+                true,
+            )
+        };
+        let before = state(&[
+            ("largest", 5),
+            ("new", 1),
+            ("better", 4),
+            ("resolved", 3),
+            ("worse", 3),
+            ("ordinary", 2),
+        ]);
+        let after = state(&[
+            ("largest", 5),
+            ("new", 3),
+            ("better", 3),
+            ("resolved", 1),
+            ("worse", 4),
+            ("ordinary", 2),
+        ]);
+        let normal = assess_distribution(TargetMetric::DataCenter, 2, false, &before, &after);
+        let groups = normal.groups.unwrap();
+        assert_eq!(groups[0].group, Group::RegisteredLabel("new".into()));
+        let changes: Vec<_> = ["new", "worse", "largest", "better", "resolved", "ordinary"]
+            .iter()
+            .map(|key| {
+                groups
+                    .iter()
+                    .find(|group| group.group == Group::RegisteredLabel((*key).into()))
+                    .unwrap()
+                    .breach
+            })
+            .collect();
+        use BreachChange::*;
+        assert_eq!(
+            changes,
+            [
+                Some(New),
+                Some(Worsened),
+                Some(Unchanged),
+                Some(Improved),
+                Some(Resolved),
+                None
+            ]
+        );
+        let exception = assess_distribution(TargetMetric::DataCenter, 2, true, &before, &after);
+        let groups = exception.groups.unwrap();
+        let assessment = |key: &str| {
+            groups
+                .iter()
+                .find(|group| group.group == Group::RegisteredLabel(key.into()))
+                .unwrap()
+                .assessment
+        };
+        assert_eq!(assessment("ordinary"), AtLimit);
+        assert_eq!(assessment("resolved"), WithinLimit);
+        assert_eq!(assessment("new"), ExceptionUnresolved);
     }
 }

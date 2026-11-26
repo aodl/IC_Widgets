@@ -68,12 +68,15 @@ fn exact_deployed_module_preserves_paused_checkpoint_on_upgrade() {
         pic.topology().get_app_subnets()[0],
     );
     let expected_old = sha256(&old);
+    let deployed = std::env::var("NEXUS_REHEARSAL_MODULE_SHA256").unwrap_or_else(|_| {
+        "cf4eae5eaa8b56adf2c78cc6a7ec0af5cc9648db69cbccfb17d92e48da1dc1c3".into()
+    });
     assert_eq!(
         expected_old
             .iter()
             .map(|value| format!("{value:02x}"))
             .collect::<String>(),
-        "cf4eae5eaa8b56adf2c78cc6a7ec0af5cc9648db69cbccfb17d92e48da1dc1c3"
+        deployed
     );
     let expected_new = sha256(&new);
     pic.install_canister(

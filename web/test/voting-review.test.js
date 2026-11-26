@@ -8,7 +8,7 @@ test('Markdown uses the accepted topology rows and escapes registered labels', (
   const model = {
     ids: ['144954'], version: 66013n, subnet: 'tdb26', membership: '40 members · +1 added · −1 removed',
     stateLabel: 'After proposal #144954', scenario: 'Proposal #144954', previewRevision: '00', governance: [],
-    policyText: 'Compared with adopted motion #143190', gaps: true, members: [], notes: ['Evidence is scoped'],
+    policyText: 'Compared with adopted motion #143190', finalVerified: true, gaps: true, members: [], notes: ['Evidence is scoped'],
     topology: [{ label: 'Site | <b>A</b>', ready: true, delta: metricDelta(2, 3), limit: '1 cap · exception', assessment: 'Exception unresolved' }],
   };
   const result = reviewMarkdown(model, { vote: 'Adopt', tldr: 'Written by the reviewer', mapImage: 'https://example.test/map.png' });
@@ -19,6 +19,7 @@ test('Markdown uses the accepted topology rows and escapes registered labels', (
   assert.ok(result.includes('1 cap · exception'));
   assert.ok(result.includes('3 (+1)'));
   assert.ok(result.includes('Site \\| &lt;b&gt;A&lt;/b&gt;'));
+  assert.match(reviewMarkdown({ ...model, finalVerified: false }), /Provisional · Final Governance verification unavailable/);
   assert.ok(!reviewMarkdown(model, { mapImage: 'javascript:alert(1)' }).includes('javascript:'));
 });
 

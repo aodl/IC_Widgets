@@ -38,11 +38,10 @@ async function test(name, fixture, run) {
     const { content } = Cbor.decode(new Uint8Array(request.postDataBuffer()));
     requests.set(Buffer.from(requestIdOf(content)).toString('hex'), content);
   });
-  const send = async (id, second = '', policy = '143190') => {
+  const send = async (id, second = '') => {
     await page.locator('input[name=first]').fill(String(id));
     await page.getByText('Review options', { exact: true }).click();
     await page.locator('input[name=second]').fill(second);
-    await page.locator('input[name=policy]').fill(policy);
     await page.getByText('Review options', { exact: true }).click();
     await page.getByRole('button', { name: 'Review', exact: true }).click();
   };
@@ -51,7 +50,11 @@ async function test(name, fixture, run) {
     await page.goto('http://' + frontend + '.localhost:4966');
     const principal = (await page.locator('#browser-principal').textContent()).trim();
     assert.match(localCall('reviewer', 'set_on_demand_caller', '(opt principal "' + principal + '")'), /Ok/);
-    await run(page, send, count);
+    const nodeReads = () => [...requests.values()].filter(row => row.method_name === 'membership_context_detail_page').reduce((sum, row) => {
+      const [, keys] = IDL.decode(methods.membership_context_detail_page.argTypes, row.arg);
+      return sum + (keys.Nodes?.length ?? 0);
+    }, 0);
+    await run(page, send, count, nodeReads);
     assert.deepEqual(errors, []);
     results.push(name);
     console.log('PASS ' + name);
@@ -66,8 +69,8 @@ async function holdPage(page, accepts) {
   let held = false;
   await page.route(/\/api\/v4\/canister\/[^/]+\/call$/, async route => {
     const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
-    if (held || content.method_name !== 'membership_detail_page') return route.continue();
-    const [, keys] = IDL.decode(methods.membership_detail_page.argTypes, content.arg);
+    if (held || content.method_name !== 'membership_context_detail_page') return route.continue();
+    const [, keys] = IDL.decode(methods.membership_context_detail_page.argTypes, content.arg);
     if (!accepts(keys)) return route.continue();
     held = true;
     const response = await route.fetch();
@@ -87,8 +90,10 @@ try {
       await send(144954);
       await hold.dispatched;
       await page.locator('#review-counts').getByText(/^0 of 39 records settled/).waitFor();
+      await page.getByText(/41 locations pending/).waitFor();
+      assert.equal(await page.getByText(/Unmapped nodes/).isVisible(), false);
       await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-      await page.getByRole('button', { name: 'Largest registered DC owner group', exact: true }).click();
+      await page.getByRole('button', { name: 'Registered DC owner', exact: true }).click();
       const panel = page.locator('.inspector');
       await panel.getByText('Loading data centers', { exact: true }).waitFor();
       await panel.getByRole('button', { name: 'Close details' }).click();
@@ -140,7 +145,7 @@ try {
     }
     await status(page).getByText(/Could not produce a review.*999999.*unavailable/).waitFor();
     assert.equal(count('begin_membership_review'), 2);
-    assert.equal(count('membership_detail_page'), 1);
+    assert.equal(count('membership_context_detail_page'), 1);
   });
 
   await test('Failed metadata stays distinct from absence and retries only the failed key', 2, async (page, send, count) => {
@@ -148,12 +153,19 @@ try {
     await finished(page);
     await page.locator('.changed-nodes').getByRole('button', { name: /kaoz3/ }).click();
     await page.locator('.inspector').getByText(/Could not load.*withheld optional/).first().waitFor();
-    const pages = count('membership_detail_page');
+    const pages = count('membership_context_detail_page');
     mode(0);
-    await page.getByRole('button', { name: 'Retry failed evidence', exact: true }).click();
+    const hold = await holdPage(page, key => 'DataCenters' in key);
+    try {
+      await page.getByRole('button', { name: 'Retry failed evidence', exact: true }).click();
+      await hold.dispatched;
+      await page.getByText('Previous accepted comparison · Retry in progress', { exact: true }).waitFor();
+      await page.getByText('41 nodes across both states · 38/41 mapped', { exact: true }).waitFor();
+      assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+    } finally { hold.release(); }
     await finished(page);
     await page.getByText('41 nodes across both states · 41/41 mapped', { exact: true }).waitFor();
-    assert.equal(count('membership_detail_page'), pages + 1);
+    assert.equal(count('membership_context_detail_page'), pages + 1);
     assert.equal(count('membership_target_topology'), 1);
     assert.equal(count('begin_membership_review'), 1);
   });
@@ -161,7 +173,7 @@ try {
   await test('Required membership conflict blocks the review before enrichment', 3, async (page, send, count) => {
     await send(144954);
     await status(page).getByText(/Could not produce a review.*conflicting/).waitFor();
-    assert.equal(count('membership_detail_page'), 0);
+    assert.equal(count('membership_context_detail_page'), 0);
     assert.equal(await page.getByText(/40 members · \+1 added/).count(), 0);
   });
 
@@ -169,7 +181,7 @@ try {
     await send(144954);
     await status(page).getByText('Could not produce a review', { exact: true }).waitFor();
     await page.getByText(/historical before-state is unavailable/).waitFor();
-    assert.equal(count('membership_detail_page'), 0);
+    assert.equal(count('membership_context_detail_page'), 0);
     assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
   });
 
@@ -191,6 +203,62 @@ try {
     assert.equal(await page.getByText(/40 members · \+1 added/).count(), 0);
   });
 
+  await test('A failed final Governance read remains provisional and retries only verification', 0, async (page, send, count) => {
+    let failed = false;
+    await page.route(/\/api\/v4\/canister\/[^/]+\/call$/, route => {
+      const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
+      if (!failed && content.method_name === 'finalize_membership_review') {
+        failed = true;
+        mode(6);
+      }
+      return route.continue();
+    });
+    await send(144954);
+    await status(page).getByText('Provisional · Governance check failed', { exact: true }).waitFor({ timeout: 120000 });
+    await page.getByText(/Provisional.*Temporary fixture Governance failure/).waitFor();
+    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+    const pages = count('membership_context_detail_page');
+    mode(0);
+    await page.getByRole('button', { name: 'Retry failed evidence', exact: true }).click();
+    await finished(page);
+    assert.equal(count('membership_context_detail_page'), pages);
+    assert.equal(count('compare_membership_with_policy'), 1);
+    assert.equal(count('finalize_membership_review'), 2);
+  });
+
+  await test('An incompatible final action invalidates the comparison', 0, async (page, send) => {
+    let changed = false;
+    await page.route(/\/api\/v4\/canister\/[^/]+\/call$/, route => {
+      const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
+      if (!changed && content.method_name === 'finalize_membership_review') {
+        changed = true;
+        mode(7);
+      }
+      return route.continue();
+    });
+    await send(144954);
+    await status(page).getByText('Could not produce a review', { exact: true }).waitFor({ timeout: 120000 });
+    await page.getByText(/unsupported action/).waitFor();
+    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+    assert.equal(await page.getByText(/40 members · \+1 added/).count(), 0);
+  });
+
+  await test('Multi-subnet review enriches the selected subnet first within one record budget', 5, async (page, send, count, nodeReads) => {
+    localCall('fixture', 'set_registry_mode', '(1 : nat8)');
+    localCall('fixture', 'prepare_direct_registry');
+    localCall('fixture', 'enable_proposal_fixture');
+    await send(91);
+    await finished(page);
+    assert.equal(nodeReads(), 50);
+    assert.equal(count('compare_membership_with_policy'), 1);
+    await page.getByText(/1 affected subnet outside the enriched scope/).waitFor();
+    await page.getByLabel('Subnet', { exact: true }).selectOption({ index: 1 });
+    await finished(page);
+    assert.equal(nodeReads(), 100);
+    assert.equal(count('compare_membership_with_policy'), 2);
+    assert.equal(count('membership_target_topology'), 1);
+  });
+
   await test('Both orders and intermediate states settle with shared records', 5, async (page, send, count) => {
     localCall('fixture', 'set_registry_mode', '(1 : nat8)');
     localCall('fixture', 'prepare_direct_registry');
@@ -199,7 +267,7 @@ try {
     await finished(page);
     assert.equal(count('compare_membership_with_policy'), 6);
     assert.equal(count('finalize_membership_review'), 1);
-    const pages = count('membership_detail_page');
+    const pages = count('membership_context_detail_page');
     const order = page.getByLabel('Proposal order');
     const step = page.getByLabel('Membership state');
     await order.selectOption('AThenB');
@@ -214,7 +282,7 @@ try {
     const markdown = await page.getByLabel('Generated Markdown', { exact: true }).inputValue();
     assert.match(markdown, /Proposal #92 then Proposal #93/);
     assert.doesNotMatch(markdown, /Order A assessment/);
-    assert.equal(count('membership_detail_page'), pages);
+    assert.equal(count('membership_context_detail_page'), pages);
     await page.locator('#open-performance').click();
     await page.getByLabel('Performance scope').selectOption('follow');
     await page.getByLabel('Node filter').selectOption('affected');

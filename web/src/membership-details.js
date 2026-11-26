@@ -1,4 +1,4 @@
-import { calculationNote, geographyNote, governanceText, groupKey, lifecycle, metrics, metricDelta, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
+import { assessments, calculationNote, geographyNote, governanceText, groupKey, lifecycle, metrics, metricDelta, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
 import { markdownEditor } from './review-export.js';
 import { help } from './review-help.js';
 import { action, saveFile } from './review-map.js';
@@ -31,6 +31,8 @@ function deltaNode(delta) {
     ? styled('span', delta.direction > 0 ? 'delta-up' : 'delta-down', ' (' + delta.change + ')') : null);
 }
 
+const breachLabel = change => change === 'Improved' ? 'Improved · still exceeds the cap' : words(change) + ' breach';
+
 function nodeButton(node, click) {
   return action([roleNames[node.role], node.label, node.dc, node.region?.split(',')[2]?.trim()].filter(Boolean).join(' · '), click);
 }
@@ -41,7 +43,7 @@ function policyEvidence(model, state, policyId) {
   const rule = option(motion?.rule ?? []);
   const stamp = option(snapshot?.nns_mutation_version ?? []);
   return el('div',
-    el('p', model?.policyText ?? (policyId ? 'Policy motion #' + policyId : 'No policy motion selected')),
+    el('p', model?.policyText ?? (policyId ? 'Policy motion #' + policyId : 'Configured pilot reference motion')),
     state.policyFailure ? el('p', state.policyFailure) : null,
     stamp === undefined ? el('p', option(snapshot?.nns_issue ?? []) ?? 'NNS role evidence pending.')
       : el('p', 'Registry nns_subnet_id · Mutation version ' + number(stamp), el('br'),
@@ -199,7 +201,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     if (inspection?.type === 'nodes') return inspection.ids;
     if ((inspection?.type === 'metric' || inspection?.type === 'group') && model) {
       const row = model.topology.find(row => row.key === inspection.key);
-      const group = inspection.group ?? row?.groups[0]?.label;
+      const group = inspection.group ?? row?.group;
       const previousOnly = group && !row.groups.some(item => item.label === group);
       return (group ? model.members.filter(node => node.role !== (previousOnly ? 'Added' : 'Removed') && groupKey(node, row.key) === group)
         : model.members.filter(node => row?.key === 'Size' && node.role !== 'Retained')).map(node => node.id);
@@ -232,31 +234,37 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
 
   function metricDetails(row) {
     if (!row.ready) return el('p', row.evidence);
-    const options = [...new Set([...row.groups, ...row.beforeGroups].map(group => group.label))];
+    const options = [...new Set([...row.groupRows, ...row.groups, ...row.beforeGroups].map(group => group.label))];
     const majorityBefore = option(row.old?.greater_than_one_third ?? []);
     const majorityAfter = option(row.next?.greater_than_one_third ?? []);
     const groupsCurrent = option(majorityAfter?.groups_to_reach ?? []);
     const label = row.key === 'Provider' ? shortIds(options) : new Map();
-    const selectedGroup = inspection.group;
+    const selectedGroup = inspection.group ?? row.group;
+    const selectedAssessment = row.groupRows.find(group => group.label === selectedGroup);
     const a = selectedGroup ? groupCount(row.beforeGroups, row.old?.unknown, selectedGroup) : row.previous;
     const b = selectedGroup ? groupCount(row.groups, row.missing, selectedGroup) : row.current;
     const share = row.key !== 'Size' && b !== undefined && model.selectedCount
       ? metricDelta(a === undefined || !model.beforeCount ? undefined : 100 * a / model.beforeCount,
         100 * b / model.selectedCount, { percentage: true }) : undefined;
-    return el('div', el('p', row.help), el('p', row.delta.text + ' · Previous ' + (row.previous ?? 'unrecorded')),
-      el('p', row.assessment + (row.evidence ? ' · ' + row.evidence : '')),
-      share ? el('p', (selectedGroup ? 'Recorded group share ' : 'Largest recorded group share '), deltaNode(share)) : null,
-      row.breach ? el('p', 'Breach change · ' + words(row.breach)) : null,
+    const selectedBreach = option(selectedAssessment?.breach ?? []);
+    const status = selectedAssessment ? assessments[branch(selectedAssessment.assessment)] : row.assessment;
+    return el('div', el('p', row.help), el('p', selectedGroup ? (label.get(selectedGroup) ?? selectedGroup) + ' · ' : '', deltaNode(metricDelta(a, b))),
+      el('p', status + (row.evidence ? ' · ' + row.evidence : '')),
+      share ? el('p', 'Recorded group share ', deltaNode(share)) : null,
+      selectedBreach ? el('p', breachLabel(branch(selectedBreach))) : null,
       groupsCurrent !== undefined ? el('p', 'Nakamoto coefficient ',
         help('Nakamoto coefficient', thresholdNote), ' · ',
-        metricDelta(option(majorityBefore?.groups_to_reach ?? []), groupsCurrent).text,
+        deltaNode(metricDelta(option(majorityBefore?.groups_to_reach ?? []), groupsCurrent)),
         ' groups · Threshold ' + majorityAfter.nodes_required + ' nodes') : null,
       options.length ? disclosure('Recorded groups (' + options.length + ')',
-        table(['Group', 'Members'], options.map(group => {
+        table(['Group', 'Members', 'Assessment'], options.map(group => {
           const prior = groupCount(row.beforeGroups, row.old?.unknown, group);
           const current = groupCount(row.groups, row.missing, group);
+          const assessment = row.groupRows.find(item => item.label === group);
+          const change = option(assessment?.breach ?? []);
           return [action(label.get(group) ?? group, () => inspect({ type: 'group', key: row.key, group })),
-            current === undefined ? 'Data incomplete' : deltaNode(metricDelta(prior, current))];
+            current === undefined ? 'Data incomplete' : deltaNode(metricDelta(prior, current)),
+            assessment ? assessments[branch(assessment.assessment)] + (change ? ' · ' + breachLabel(branch(change)) : '') : 'Not assessed'];
         }))) : null);
   }
 
@@ -283,7 +291,10 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       content = [first, nodes.length ? el('div', el('h4', 'Selected members'),
         styled('div', 'actions', nodes.map(node => nodeButton(node, () => inspect([node.id], node.label))))) : null];
     }
-    replace(inspector, styled('div', 'inspector-heading', heading, action('Close details', close)), content);
+    const readiness = ({ Finished: 'Finished', Gaps: 'Finished with gaps', Provisional: 'Provisional · Governance check failed',
+      Stopped: state.work === 'stopping' ? 'Stopping' : 'Stopped', Blocked: 'Review blocked' })[state.stage] ?? 'Review in progress';
+    replace(inspector, styled('div', 'inspector-heading', heading, action('Close details', close)),
+      styled('p', 'inspector-readiness', readiness), content);
   }
 
   function render() {
@@ -293,7 +304,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     const evidence = canSimulate ? selected.calculation?.evidence ?? comparisonEvidence(state.records,
       [...selected.before.members, ...selected.state.members]) : undefined;
     model = canSimulate ? reviewModel(live, selected, evidence, state, policyId, local) : undefined;
-    const policyLine = model?.policyText ?? (source ? 'Motion #' + source.id : policyId ? 'Motion #' + policyId + ' selected' : 'No policy motion selected');
+    const policyLine = model?.policyText ?? (source ? 'Motion #' + source.id : policyId ? 'Motion #' + policyId + ' selected' : 'Configured pilot reference motion');
     const title = (option(body.proposal_text ?? []) ?? []).map(row => option(row.title)).filter(Boolean).join(' · ');
     replace(contextLine, title ? el('span', title) : null,
       el('span', (state.final ?? proposals).map(governanceText).join(' · ')));
@@ -306,7 +317,6 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     replace(limit, el('strong', partial ? 'Assignment checks are partial' : 'Scoped execution checks'),
       ' · ' + checked + ' of ' + (total ?? 'an unknown number of') + ' listed subnets checked. ',
       partial ? 'Assignments elsewhere remain unverified.' : 'Full execution validity remains unverified.',
-      el('span', ' · ' + policyLine),
       model?.topology.some(row => row.assessment.endsWith('unresolved')) ? el('span', ' · Some policy checks remain unresolved.') : null);
     const changed = model?.members.filter(node => node.role !== 'Retained') ?? [];
     const historical = proposals.some(proposal => proposal.lifecycle_status === 4 || proposal.executed_at_seconds.length);
@@ -316,22 +326,31 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
         help('Registry snapshot', 'The version used for every Registry record in this review. Governance has its own observation times.')) : null,
       changed.length ? styled('div', 'actions changed-nodes', changed.map(node => nodeButton(node, () => inspect([node.id], node.label)))) : null,
       historical ? el('p', 'Governance observed execution. The historical before-state is unavailable.') : null,
-      state.consistency?.reason ? el('p', state.consistency.reason) : null);
+      state.consistency?.reason ? el('p', state.consistency.blocked ? state.consistency.reason
+        : 'Provisional · ' + state.consistency.reason) : null,
+      model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
+      selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
     topologyStatus.textContent = policyLine;
     topology.setAttribute('aria-busy', String(state.work === 'running' || state.work === 'stopping'));
     const rows = model?.topology ?? [];
     replace(tableBody, rows.length ? rows.map(row => el('tr',
-      el('td', action(row.label, () => inspect({ type: 'metric', key: row.key })), ' ', help(row.label, metrics[row.key].help)),
+      el('td', styled('span', 'measure-label', action(row.label, () => inspect({ type: 'metric', key: row.key })), help(row.label, metrics[row.key].help)),
+        row.groupLabel ? styled('small', 'group-label', row.groupLabel) : null,
+        row.departures.map(group => el('small', action(group.label, () => inspect({ type: 'group', key: row.key, group: group.label })),
+          ' · ', deltaNode(group.delta), ' · Last member leaves this subnet')),
+        row.sharedProvider ? el('small', 'Added and removed nodes share ', action(row.sharedProvider.label ?? row.sharedProvider.id,
+          () => inspect({ type: 'group', key: row.key, group: row.sharedProvider.id }))) : null),
       el('td', row.ready ? [deltaNode(row.delta), row.evidence ? el('small', row.evidence) : null] : row.evidence),
       el('td', row.limit), el('td',
         styled('span', row.assessment.endsWith('unresolved') || row.assessment === 'Exceeds limit' ? 'assessment-warning' : '', row.assessment),
-        row.breach ? el('small', words(row.breach) + ' breach') : null)))
+        row.breach ? el('small', breachLabel(row.breach)) : null,
+        row.groupRows.slice(1).some(group => group.breach.length) ? el('small', 'Additional group changes in details') : null)))
       : el('tr', Object.assign(el('td', 'A proposed membership state is unavailable.'), { colSpan: 4 })));
     map.update(model, selectionIds(), state.consistency?.blocked ? 'Review blocked · Governance changed'
       : 'Map unavailable · Required membership evidence');
     exportReview.disabled = !model?.calculation || !model.finalVerified || state.work !== 'settled';
     retry.hidden = state.work !== 'settled' || !!state.consistency?.blocked || !(readFailures(state.records).length
-      || state.policyFailure || source?.retryable || state.policy?.nns_retryable || state.consistency || selected?.status === 'unavailable');
+      || state.policyFailure || source?.retryable || state.policy?.nns_retryable || state.consistency || ['stale', 'unavailable'].includes(selected?.status));
     if (inspection) renderInspector();
   }
 

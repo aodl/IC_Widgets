@@ -581,7 +581,7 @@ fn voting_detail_replays_the_66013_registry() {
 
     use nexus_review_engine::{ANALYSIS_VERSION, Dimension, Group, Record};
     use nexus_reviewer::{
-        DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison,
+        DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison, PolicySnapshot,
     };
 
     assert!(enabled());
@@ -617,10 +617,18 @@ fn voting_detail_replays_the_66013_registry() {
         "load_voting_reference",
         encode_args(()).unwrap(),
     );
-    let response = review(&pic, reviewer, controller, &[144_954]);
+    let response = call::<Result<LiveResponse<LiveReview>, String>>(
+        &pic,
+        reviewer,
+        controller,
+        "begin_membership_review",
+        encode_one(vec![144_954u64]).unwrap(),
+    )
+    .unwrap();
     assert_eq!(response.registry_version, Some(66_013));
     assert_eq!(response.usage.calls, 9);
     let preview = response.outcome.unwrap();
+    let token = preview.review_context.unwrap();
     assert_eq!(
         (preview.listed_subnets, preview.total_listed_subnets),
         (1, Some(96))
@@ -670,8 +678,8 @@ fn voting_detail_replays_the_66013_registry() {
             .update_call(
                 reviewer,
                 controller,
-                "membership_detail_page",
-                encode_args((66_013u64, keys)).unwrap(),
+                "membership_context_detail_page",
+                encode_args((token, keys)).unwrap(),
             )
             .unwrap();
         let response = decode_one::<Result<LiveResponse<DetailRecords>, String>>(&raw)
@@ -801,6 +809,66 @@ fn voting_detail_replays_the_66013_registry() {
             .unwrap()
             .contains("pinned Registry version")
     );
+
+    let policy = call::<Result<LiveResponse<PolicySnapshot>, String>>(
+        &pic,
+        reviewer,
+        controller,
+        "membership_target_topology",
+        encode_args((token, None::<u64>)).unwrap(),
+    )
+    .unwrap()
+    .outcome
+    .unwrap();
+    assert_eq!(policy.motion.as_ref().unwrap().id, 143_190);
+    let digest = policy.digest;
+    let compare_context = |input, digest| {
+        let args = encode_args((input, token, digest)).unwrap();
+        let expected = sha256(&args);
+        let comparison = call::<Result<LiveMembershipComparison, String>>(
+            &pic,
+            reviewer,
+            controller,
+            "compare_membership_with_policy",
+            args,
+        );
+        if let Ok(result) = &comparison {
+            assert_eq!(result.input_hash, expected);
+        }
+        comparison
+    };
+    let original = || decode_one::<DetailComparisonInput>(&full_args).unwrap();
+    assert!(
+        compare_context(original(), digest)
+            .unwrap()
+            .target_rows
+            .is_some()
+    );
+    for alter in [
+        |input: &mut DetailComparisonInput| input.kind += 1,
+        |input: &mut DetailComparisonInput| input.after.reverse(),
+        |input: &mut DetailComparisonInput| input.registry_version -= 1,
+        |input: &mut DetailComparisonInput| {
+            input.nodes.pop_last();
+        },
+        |input: &mut DetailComparisonInput| {
+            let Record::Present { value, .. } = input.data_centers.get_mut("sh1").unwrap() else {
+                panic!()
+            };
+            value.registered_owner.push_str(" forged");
+        },
+        |input: &mut DetailComparisonInput| {
+            let Record::Present { stamp, .. } = input.data_centers.get_mut("sh1").unwrap() else {
+                panic!()
+            };
+            stamp.mutation_version = 1;
+        },
+    ] {
+        let mut modified = original();
+        alter(&mut modified);
+        assert!(compare_context(modified, digest).is_err());
+    }
+    assert!(compare_context(original(), [7; 32]).is_err());
 
     let compare = |args: Vec<u8>| {
         let wall = Instant::now();

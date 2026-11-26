@@ -13,4 +13,4 @@ pub use simulation::*;
 pub use target_topology::*;
 pub use topology::*;
 
-pub const ANALYSIS_VERSION: u16 = 4;
+pub const ANALYSIS_VERSION: u16 = 5;

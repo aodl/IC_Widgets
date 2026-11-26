@@ -500,9 +500,18 @@ export const idlFactory = ({ IDL }) => {
     'DiffersFromTarget' : IDL.Null,
     'AtLimit' : IDL.Null,
   });
+  const TargetGroup = IDL.Record({
+    'breach' : IDL.Opt(BreachChange),
+    'after' : IDL.Opt(IDL.Nat32),
+    'assessment' : Assessment,
+    'before_assessment' : Assessment,
+    'group' : Group,
+    'before' : IDL.Opt(IDL.Nat32),
+  });
   const TargetRow = IDL.Record({
     'metric' : TargetMetric,
     'breach' : IDL.Opt(BreachChange),
+    'groups' : IDL.Opt(IDL.Vec(TargetGroup)),
     'after' : IDL.Opt(IDL.Nat32),
     'assessment' : Assessment,
     'limit' : IDL.Nat32,
@@ -1191,6 +1200,11 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'list_completed_reviews' : IDL.Func([], [IDL.Vec(CompletedReview)], []),
+    'membership_context_detail_page' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), DetailKeys],
+        [Result_12],
+        [],
+      ),
     'membership_detail_page' : IDL.Func(
         [IDL.Nat64, DetailKeys],
         [Result_12],

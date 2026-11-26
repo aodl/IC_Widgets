@@ -203,6 +203,7 @@ export function reviewMap(inspect, active) {
       }
     }
     const mapped = population.filter(node => node.point).length;
+    const pending = population.filter(node => node.locationPending).length;
     const coverage = mapped + '/' + population.length + ' mapped';
     if (!exportImage) {
       const focused = document.activeElement?.dataset.marker;
@@ -215,7 +216,7 @@ export function reviewMap(inspect, active) {
       }
       caption.textContent = model
         ? population.length + ' nodes across both states · ' + coverage
-          + (model.work === 'running' || model.work === 'stopping' || model.work === 'idle' ? ' so far' : '')
+          + (pending ? ' · ' + pending + ' locations pending' : '')
         : emptyMessage ?? 'Registered locations appear here as evidence becomes available.';
     } else {
       ctx.fillStyle = 'rgba(255,255,255,.96)';
@@ -239,7 +240,7 @@ export function reviewMap(inspect, active) {
     const open = unmapped.open;
     const focused = unmapped.contains(document.activeElement) ? document.activeElement : undefined;
     const members = model?.members ?? [];
-    const rows = members.filter(node => !node.point);
+    const rows = members.filter(node => !node.point && !node.locationPending);
     const summary = el('summary', 'Unmapped nodes (' + rows.length + ')');
     const buttons = rows.map(node => {
       const button = action(signs[node.role] + ' ' + node.label, () => inspect([node.id], node.label));

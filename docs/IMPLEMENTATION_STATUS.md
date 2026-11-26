@@ -2,7 +2,7 @@
 
 ## Clear review and Target Topology
 
-Membership reports settlement counts and keeps a persistent work state. The map and the selected Target Topology comparison share one inspector. Analysis version 4 preserves registered geography tokens and evaluates the supported NNS rules from an explicitly selected Governance motion. The pinned Registry establishes the NNS role, and Governance is checked again after enrichment. [Local walkthrough and source scope](clear-review/README.md)
+Membership reports settlement counts and keeps a persistent work state. The map and the selected Target Topology comparison share one inspector. Analysis version 5 preserves registered geography tokens and evaluates the supported NNS rules from an explicitly selected Governance motion. The pinned Registry establishes the NNS role, and Governance is checked again after enrichment. [Local walkthrough and source scope](clear-review/README.md)
 
 ## On-demand membership and performance
 
