@@ -73,16 +73,16 @@ Upload the map PNG to include it in the report.
 
 ## Provenance
 
-- #144954 Open observed 2026-11-26 13:02:32.584 UTC · Payload SHA-256 `f2875737ce603f9f03b65366f23abd880fdba50e42e7f685ee2dbfb3815db37b`
+- #144954 Open observed 2026-11-26 13:20:05.361 UTC · Payload SHA-256 `f2875737ce603f9f03b65366f23abd880fdba50e42e7f685ee2dbfb3815db37b`
 
 Governance checked after the selected comparisons.
 
-Policy motion #143190 observed 2026-11-26 13:02:30.954 UTC · Reply SHA-256 `9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053`.
+Policy motion #143190 observed 2026-11-26 13:20:03.403 UTC · Reply SHA-256 `9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053`.
 
-Policy evidence digest `317fa3a8534fea0f74ceff586990d7839d3d14f44e3cdc5217a78550a7e1a83a`.
+Policy evidence digest `353d9668c530ab14d385290872b5efe65ca4b3dea18e9aff37fe107c4905c97a`.
 
-Membership preview revision `1290fdee1655df13d11e4aa87382f65ee0c17577652198728a287dc9edce271a`.
+Membership preview revision `8354148e011de2c725d1694e7c84b377d5e5fdf074475f9004218fc50646d93d`.
 
-Calculation input SHA-256 `13e1f6ec3714dbad53115ecb87c8170f37b4b7300c60457cea77b8b424da5efe` · analysis v5.
+Calculation input SHA-256 `c0f4e5ab9f9c0c164d5c413e164303c52216b2f7c15b92bd4e539d0263ce115c` · analysis v5.
 
 The replicated calculation digest identifies the exact submitted evidence and scope. Source receipts identify the separate Registry and Governance observations.

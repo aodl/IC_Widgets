@@ -128,8 +128,10 @@ fn committed_replays_resolve_exact_subnet_and_boundary_cases() {
         pic.update_call(reviewer, controller, method, encode_args(()).unwrap())
             .unwrap()
     };
-    let collector = checkpoint("collection_status");
+    // Reading the Registry status initializes its stable indexes in a fresh
+    // canister. Sample the collector's page count after that read.
     let registry = checkpoint("registry_status");
+    let collector = checkpoint("collection_status");
     let mut completed = BTreeSet::new();
 
     for row in cases {

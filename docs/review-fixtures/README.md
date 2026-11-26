@@ -58,7 +58,18 @@ The starter pack’s discovery experiments used identical filters across pages a
 ## Browser captures
 
 - [Recorded NNS replacement on desktop](artifacts/recorded-desktop.png) and [at 390 pixels](artifacts/recorded-mobile.png)
-- [A held location request](artifacts/loading-locations.png) and [an executed proposal](artifacts/executed-terminal.png)
+- [A held location request](artifacts/loading-locations.png), [missing coordinates after settlement](artifacts/missing-locations.png) and [an executed proposal](artifacts/executed-terminal.png)
+- [The removal-first intermediate state](artifacts/constructed-intermediate.png)
 - [Exported Markdown](artifacts/recorded-review.md), [exact calculation input](artifacts/recorded-calculation.didbin) and [checksums](artifacts/SHA256SUMS)
+
+The six-case replay walkthrough and eleven existing browser scenarios passed. The recorded review matched the exported calculation digest and showed 41 mapped points across both membership states. Holding a reply kept the coordinates in the pending count. The missing shared coordinates left 38 of 41 points mapped after settlement. Returning to the calculated subnet reused its comparison and delayed export until final Governance verification. The replay walkthrough attempted zero nonlocal requests.
+
+The focused PocketIC matrix passed all 23 named cases and preserved the Registry and collection checkpoints. These measurements cover its preview update after loading the fixture. They use local PocketIC pricing and exclude policy comparison and browser enrichment.
+
+| Case | Source calls | Reply bytes | Reviewer instructions | PocketIC cycles |
+|---|---:|---:|---:|---:|
+| 144954 recorded Open at Registry 66,013 | 9 | 30,793 | 36,128,255 | 128,718,875 |
+| Separate 85612 and 85622 at synthetic Registry 100 | 11 | 3,106 | 22,032,297 | 97,848,001 |
+| 144909 rejected as an unsupported Membership action | 1 | 815 | 841,775 | 20,313,676 |
 
 The upstream contracts used here are pinned source semantics. The deployed Registry versions that executed these historical proposals remain unverified. [Governance numeric functions](https://github.com/dfinity/ic/blob/ec91fdf7729bcac13251f12d27014ac3e944ffb3/rs/nns/governance/proto/ic_nns_governance/pb/v1/governance.proto) · [Function 13](https://github.com/dfinity/ic/blob/ec91fdf7729bcac13251f12d27014ac3e944ffb3/rs/registry/canister/src/mutations/do_remove_nodes_from_subnet.rs) · [Function 31](https://github.com/dfinity/ic/blob/ec91fdf7729bcac13251f12d27014ac3e944ffb3/rs/registry/canister/src/mutations/do_change_subnet_membership.rs) · [Boundary add](https://github.com/dfinity/ic/blob/00e4d8e3ee6081c1862e6119d63cffa76bd4af3d/rs/registry/canister/src/mutations/do_add_api_boundary_nodes.rs) · [Boundary removal](https://github.com/dfinity/ic/blob/00e4d8e3ee6081c1862e6119d63cffa76bd4af3d/rs/registry/canister/src/mutations/do_remove_api_boundary_nodes.rs) · [Boundary invariants, including optional IPv4](https://github.com/dfinity/ic/blob/00e4d8e3ee6081c1862e6119d63cffa76bd4af3d/rs/registry/canister/src/invariants/api_boundary_node.rs)
