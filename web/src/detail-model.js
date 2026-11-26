@@ -144,6 +144,7 @@ function dimension(key, before, after, beforeCount, afterCount) {
     + (changes.length > 4 ? '; and ' + (changes.length - 4) + ' more' : '') : 'Known group counts unchanged';
   return {
     key, before, after, label: names[key], changes,
+    labels: shortIds(['Provider', 'Operator'].includes(key) ? rows.map(row => row.label) : []),
     summary: [names[key], formatPair(a.size, b.size), formatPair(largest(before, beforeCount), largest(after, afterCount)),
       formatPair(formatThreshold(before, 'greater_than_one_third'), formatThreshold(after, 'greater_than_one_third')),
       change, formatPair(formatThreshold(before, 'fault_budget_plus_one'), formatThreshold(after, 'fault_budget_plus_one')),
@@ -194,7 +195,8 @@ function reviewFindings(dimensions, members, beforeCount, afterCount) {
   const matched = new Set();
   const shifts = [];
   const metric = (row, change) => ({
-    name: row.label, value: change.label, before: change.was, after: change.now,
+    name: row.label, value: change.label, label: row.labels.get(change.label) ?? change.label,
+    before: change.was, after: change.now,
     beforeShare: share(change.was, beforeCount), afterShare: share(change.now, afterCount),
     coefficient: [coefficient(row.before), coefficient(row.after)],
     points: beforeCount && afterCount ? 100 * (change.now / afterCount - change.was / beforeCount) : undefined,
@@ -287,10 +289,13 @@ export function reviewModel(live, scenario, subnet, state, rules, comparison, ev
   ];
   const labels = shortIds(members.map(node => node.id));
   for (const node of members) node.label = labels.get(node.id);
-  const membership = view.baseline.member_count + ' → ' + selected.member_count + ' members'
-    + ' (' + selected.added.length + ' added, ' + selected.removed.length + ' removed, ' + selected.retained.length + ' retained)';
+  const baseline = state.label === 'Baseline';
+  const membership = baseline ? 'Registered baseline · ' + view.baseline.member_count + ' members'
+    : view.baseline.member_count + ' → ' + selected.member_count + ' members'
+      + ' (' + selected.added.length + ' added, ' + selected.removed.length + ' removed, ' + selected.retained.length + ' retained)';
   const notes = [
-    'Hypothetical membership. Full execution validity remains unverified.',
+    baseline ? 'Registered baseline at the pinned Registry version.'
+      : 'Hypothetical membership. Full execution validity remains unverified.',
     'Membership evidence checked ' + checked + ' of ' + scope + ' listed subnets.',
   ];
   if (scope === unknown || checked < scope) notes.push('Assignments outside the checked subnets remain unverified.');

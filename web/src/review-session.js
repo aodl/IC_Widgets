@@ -39,6 +39,26 @@ export function readFailures(evidence) {
 
 const membership = context => [...context.before.members, ...context.state.members];
 
+export function affectedNodes(context, scope) {
+  if (!scope) return [];
+  const subnet = principal(context.subnet);
+  const view = context.scenario.subnets.find(([id]) => principal(id) === subnet)[1];
+  const touched = new Set();
+  let previous = new Set(view.baseline.members.map(principal));
+  for (const [index, { requested }] of context.scenario.steps.entries()) {
+    const directed = requested.Add ?? requested.Change;
+    const requestedHere = directed && principal(directed.subnet) === subnet
+      ? [...(directed.nodes ?? directed.add), ...(directed.remove ?? [])]
+      : (requested.Remove?.nodes ?? []).filter(node => previous.has(principal(node)));
+    for (const node of requestedHere) touched.add(principal(node));
+    const state = option(view.after_steps[index]);
+    if (!state) continue;
+    for (const node of [...state.added, ...state.removed]) touched.add(principal(node));
+    previous = new Set(state.members.map(principal));
+  }
+  return scope.nodes.filter(node => touched.has(principal(node)));
+}
+
 export function reviewContexts(report, rules) {
   return report.scenarios.flatMap(scenario => scenario.subnets.flatMap(([subnet, view]) =>
     [view.baseline, ...view.after_steps.map(option)].map((state, index) => ({
@@ -61,6 +81,7 @@ export function createReviewSession({ live, contexts, active, call, updated, pha
   let stopped = false;
   const valid = () => active() && !stopped;
   const pending = c => c?.status === 'pending' && c.rules && c.state;
+  const useful = context => valid() && (selected === context || paired.includes(context) && !pending(selected));
 
   function publish(context) {
     if (active() && selected === context) updated(context);
@@ -70,11 +91,11 @@ export function createReviewSession({ live, contexts, active, call, updated, pha
     const map = records[type];
     const missing = entries(ids).filter(([key]) => !map.has(key));
     for (let offset = 0; offset < missing.length; offset += PAGE) {
-      if (!valid() || selected !== context && pending(selected)) return false;
+      if (!useful(context)) return false;
       const page = missing.slice(offset, offset + PAGE);
       if (selected === context) phase('Membership available. Reading ' + STAGES[type] + ' · ' + (offset + page.length) + ' of ' + missing.length + ' requested records');
       try {
-        const reply = await call(() => valid() && (selected === context || !pending(selected)),
+        const reply = await call(() => useful(context),
           client => client.membership_detail_page(version, { [type]: page.map(([, id]) => id) }));
         if (!reply || !active()) return false;
         const response = result(reply);
@@ -95,7 +116,7 @@ export function createReviewSession({ live, contexts, active, call, updated, pha
         receipts.push({ type, error: error.message, keys: page.map(([key]) => key) });
       }
     }
-    return valid();
+    return useful(context);
   }
 
   async function calculate(context) {
@@ -109,7 +130,7 @@ export function createReviewSession({ live, contexts, active, call, updated, pha
       data_centers: [...evidence.DataCenters.values()],
     };
     if (selected === context) phase('Checking the replicated comparison');
-    const relevant = () => valid() && (selected === context || !pending(selected));
+    const relevant = () => useful(context);
     const calculation = await call(relevant, client => compare(client, input, relevant));
     if (!calculation || !valid()) return false;
     context.calculation = { ...calculation, evidence };

@@ -147,6 +147,10 @@ try {
     assert.equal(count('membership_detail_page'), 0);
     await page.getByRole('button', { name: 'Export review', exact: true }).click();
     assert.equal(await page.getByLabel('Generated Markdown', { exact: true }).count(), 0);
+    await page.getByLabel('Membership state').selectOption('0');
+    await page.getByText(/Registered baseline · \d+ members/).waitFor();
+    await page.getByText(/actual historical before-state is unavailable here.*pinned Registry snapshot/).waitFor();
+    await page.getByText(/^Analysis loaded/, { exact: false }).waitFor({ timeout: 120000 });
   });
 
   await test('Both proposal orders and intermediate states share source evidence', 5, async (page, send, count) => {
@@ -175,6 +179,16 @@ try {
     assert.doesNotMatch(b, /Order A assessment/);
     assert.equal(count('membership_detail_page'), pages);
     assert.equal(count('review_on_demand'), 1);
+
+    await page.getByRole('navigation', { name: 'Review views' }).getByRole('button', { name: 'Performance', exact: true }).click();
+    await page.getByLabel('Performance scope').selectOption('follow');
+    await page.getByLabel('Node filter').selectOption('affected');
+    await page.locator('#performance-context').getByText(/Proposal #92 then Proposal #93.*2 nodes\./).waitFor();
+    await page.getByLabel('Node filter').selectOption('selected');
+    await page.locator('#performance-context').getByText(/49 nodes\./).waitFor();
+    await order.selectOption('AThenB');
+    await step.selectOption('1');
+    await page.locator('#performance-context').getByText(/Proposal #93 then Proposal #92.*51 nodes\./).waitFor();
   });
 
   console.log(JSON.stringify({ scenarios: results }, null, 2));

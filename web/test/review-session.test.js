@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createReviewSession, serializeCalls } from '../src/review-session.js';
+import { affectedNodes, createReviewSession, serializeCalls } from '../src/review-session.js';
 import { shortIds } from '../src/detail-model.js';
 
 const deferred = () => {
@@ -34,7 +34,7 @@ test('a shared-slot request settles before the latest eligible request is sent',
   assert.deepEqual(calls, ['accepted', 'latest']);
 });
 
-function fixture({ firstPage, comparison, reject = () => false } = {}) {
+function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => false } = {}) {
   const recorded = [];
   const render = [];
   const a = id('node-a');
@@ -46,7 +46,7 @@ function fixture({ firstPage, comparison, reject = () => false } = {}) {
     key: order, scenario: { id: { [order]: null } }, subnet, index: 1, rules: { kind: 2 },
     before: { members: [a] }, state: { members }, status: 'pending', failures: [],
   });
-  const one = context('AThenB', [b]);
+  const one = context(firstOrder, [b]);
   const two = context('BThenA', [a, b]);
   const client = {
     async membership_detail_page(version, keys) {
@@ -94,6 +94,27 @@ test('switching orders during a source page prioritizes the selected order and r
   session.select(one);
   await session.settled();
   assert.equal(recorded.length, calls);
+});
+
+test('selecting a cached state leaves no queued reads for an obsolete independent context', async () => {
+  const hold = deferred();
+  const began = deferred();
+  const { session, recorded, one, two } = fixture({ firstOrder: 'A', firstPage: () => {
+    began.resolve();
+    return hold.promise;
+  } });
+  two.status = 'available';
+  session.select(one);
+  await began.promise;
+  session.select(two);
+  hold.resolve();
+  await session.settled();
+  assert.deepEqual(recorded.map(row => row.kind), ['Nodes']);
+
+  session.select(one);
+  await session.settled();
+  assert.equal(one.status, 'available');
+  assert.equal(recorded.filter(row => row.kind === 'Nodes').length, 1);
 });
 
 test('retry targets failed metadata, keeps successful observations and copies accepted inputs', async () => {
@@ -144,4 +165,24 @@ test('shortened principals remain distinct when both ends collide', () => {
   const labels = shortIds(ids);
   assert.notEqual(labels.get(ids[0]), labels.get(ids[1]));
   assert.ok(ids.every(key => labels.get(key).includes('…')));
+});
+
+test('the affected Performance scope includes transient nodes but excludes untouched members and other subnets', () => {
+  const [retained, outgoing, incoming, unrelated, subnet, otherSubnet] =
+    ['retained', 'outgoing', 'incoming', 'unrelated', 'subnet', 'other subnet'].map(id);
+  const baseline = { members: [retained, outgoing] };
+  const context = { subnet, scenario: {
+    steps: [
+      { requested: { Change: { subnet, add: [incoming], remove: [outgoing] } } },
+      { requested: { Remove: { nodes: [incoming, unrelated] } } },
+      { requested: { Add: { subnet: otherSubnet, nodes: [unrelated] } } },
+    ],
+    subnets: [[subnet, { baseline, after_steps: [
+      [{ members: [retained, incoming], added: [incoming], removed: [outgoing] }],
+      [{ members: [retained], added: [], removed: [outgoing] }],
+      [],
+    ] }]],
+  } };
+  assert.deepEqual(affectedNodes(context, { nodes: [retained, outgoing, incoming, unrelated] }), [outgoing, incoming]);
+  assert.deepEqual(affectedNodes(context, undefined), []);
 });

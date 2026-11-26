@@ -70,7 +70,7 @@ export function saveFile(name, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function reviewMap(inspect) {
+export function reviewMap(inspect, active) {
   const roles = new Set(Object.keys(palette));
   let model;
   let emptyMessage;
@@ -84,7 +84,9 @@ export function reviewMap(inspect) {
   const ctx = canvas.getContext('2d');
   const pins = styled('div', 'map-pins');
   const map = styled('div', 'map-frame', canvas, pins);
+  map.setAttribute('role', 'group');
   map.setAttribute('aria-label', 'Map of registered data centers. The Nodes view provides a text equivalent.');
+  map.tabIndex = -1;
   const caption = styled('p', 'map-coverage');
   const status = styled('p', 'status');
   status.setAttribute('role', 'status');
@@ -162,6 +164,10 @@ export function reviewMap(inspect) {
         ctx.strokeStyle = '#315e80';
         ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cluster.x, cluster.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#315e80';
+        ctx.fill();
       }
       if (exportImage) {
         ctx.beginPath();
@@ -208,7 +214,12 @@ export function reviewMap(inspect) {
     if (!exportImage) {
       const focused = document.activeElement?.dataset.marker;
       pins.replaceChildren(...buttons);
-      if (focused) buttons.find(button => button.dataset.marker === focused)?.focus({ preventScroll: true });
+      if (focused) {
+        const priorNodes = new Set(focused.split(','));
+        const replacement = buttons.find(button => button.dataset.marker === focused)
+          ?? buttons.find(button => button.dataset.marker.split(',').some(node => priorNodes.has(node)));
+        (replacement ?? map).focus({ preventScroll: true });
+      }
       caption.textContent = model
         ? mode + ' · ' + population.length + (mode === 'Changes' ? ' distinct nodes · ' : ' members · ') + coverage
         : emptyMessage ?? 'Registered locations appear here as evidence becomes available.';
@@ -231,13 +242,21 @@ export function reviewMap(inspect) {
 
   function redrawUnmapped() {
     const open = unmapped.open;
+    const focused = unmapped.contains(document.activeElement) ? document.activeElement : undefined;
     const rows = mapPopulation(model?.members ?? [], mode).filter(node => !node.point);
-    unmapped.replaceChildren(el('summary', 'Unmapped nodes (' + rows.length + ')'),
-      rows.length ? el('ul', rows.map(node => el('li',
-        action(signs[node.role] + ' ' + node.label, () => inspect([node.id], node.label)),
-        el('small', node.row[8] === '—' ? 'Registered coordinates unavailable' : node.row[8])))) : el('p', 'All displayed nodes have registered coordinates.'));
+    const summary = el('summary', 'Unmapped nodes (' + rows.length + ')');
+    const buttons = rows.map(node => {
+      const button = action(signs[node.role] + ' ' + node.label, () => inspect([node.id], node.label));
+      button.dataset.node = node.id;
+      return button;
+    });
+    unmapped.replaceChildren(summary, rows.length ? el('ul', rows.map((node, index) => el('li', buttons[index],
+      el('small', node.row[8] === '—' ? 'Registered coordinates unavailable' : node.row[8])))) : el('p', 'All displayed nodes have registered coordinates.'));
     unmapped.open = open;
     unmapped.hidden = !model?.members?.length;
+    if (focused && !unmapped.hidden) {
+      (buttons.find(button => button.dataset.node === focused.dataset.node) ?? summary).focus({ preventScroll: true });
+    }
   }
 
   function pan(dx, dy) {
@@ -309,7 +328,7 @@ export function reviewMap(inspect) {
     return control;
   }));
   const exportButton = action('Export map PNG', () => {
-    if (!model?.calculation) return;
+    if (!active() || !model?.calculation) return;
     const exported = model;
     const name = 'network-nexus-' + model.ids.join('-') + '-' + model.version + '.png';
     const image = el('canvas');
@@ -319,7 +338,7 @@ export function reviewMap(inspect) {
     image.getContext('2d').drawImage(canvas, 0, 0);
     draw();
     image.toBlob(blob => {
-      if (model !== exported) return;
+      if (!active() || model !== exported) return;
       if (blob) saveFile(name, blob, 'image/png');
       status.textContent = blob ? 'Map exported with this view and review scope.' : 'Map export failed.';
     });

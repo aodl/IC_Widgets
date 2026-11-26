@@ -111,6 +111,7 @@ main { padding-top: .85rem; }
 .masthead button { background: transparent; border-color: #657d88; padding: .3rem .7rem; font-size: .9rem; }
 .masthead summary { font-size: .9rem; padding: .35rem 0; }
 #pilot-access { margin: 0; }
+#pilot-access:not([open]) .access-panel { display: none; }
 .access-panel {
   position: absolute; z-index: 5; right: max(1rem, calc((100% - 82rem) / 2));
   width: min(22rem, calc(100% - 2rem)); color: #182c3d; background: #fff;
@@ -159,8 +160,9 @@ main { padding-top: .85rem; }
 .role-removed { background: #f9dfe5; color: #891c36; }
 .role-retained { background: #dce9f3; color: #214b6b; }
 .map-pin { background: #325b78; font-size: .72rem; min-width: 24px; min-height: 24px; }
-.map-pin:hover,.map-pin:focus-visible { background: #163e5c; z-index: 3; }
+.map-pin:hover,.map-pin:focus-visible { background: #163e5c; z-index: 1; }
 .map-pin.changed-pin { background: #173445; z-index: 2; width: 2.1rem; height: 2.1rem; }
+.map-pin.changed-pin:hover,.map-pin.changed-pin:focus-visible { z-index: 3; }
 .map-pin[aria-pressed=true] { background: #173445; box-shadow: 0 0 0 3px #ec9a33; }
 .map-badges { display: flex; gap: .12rem; position: absolute; bottom: 67%; left: 50%; transform: translateX(-50%); }
 .map-badges span { border: 1px solid #fff; border-radius: .25rem; padding: .14rem .24rem; font-size: .7rem; font-weight: 800; white-space: nowrap; }
@@ -221,7 +223,10 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
 }
 
 @media (max-width: 22rem) {
-  .masthead-row strong { white-space: normal; }
-  .masthead-row > .actions { flex-wrap: wrap; justify-content: flex-end; }
-  .masthead summary { white-space: normal; }
+  .masthead-row { gap: .35rem; }
+  .masthead-row strong { font-size: .88rem; line-height: 1.12; white-space: normal; }
+  .masthead-row > .actions { flex-shrink: 0; gap: .35rem; }
+  .masthead button, .masthead summary { font-size: .74rem; }
+  .map-heading h3 { font-size: .88rem; white-space: nowrap; }
+  .segmented button { font-size: .8rem; padding-inline: .35rem; }
 }

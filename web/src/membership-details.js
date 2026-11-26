@@ -1,7 +1,7 @@
 import { calculationNote, geographyNote, groupMembers, lifecycle, proposalUrl, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
 import { markdownEditor } from './review-export.js';
 import { action, saveFile } from './review-map.js';
-import { createReviewSession, emptyEvidence, stageLabel } from './review-session.js';
+import { affectedNodes, createReviewSession, emptyEvidence, stageLabel } from './review-session.js';
 import { branch, el, hex, number, option, principal, sourceReceipts, styled, table, time, words } from './view.js';
 
 const modes = ['Nodes', 'Concentration', 'Claims', 'Evidence', 'Export review', 'Performance'];
@@ -58,9 +58,16 @@ function stepSummary(context) {
 function detailBlock(live, context, session, model) {
   const { report, assignments, listed_subnets } = live.outcome.Ok;
   const manifest = report.manifest;
-  const labels = { MissingAtBaseline: 'Expected absence if the key is optional', Unavailable: 'Evidence unavailable',
-    Deleted: 'Record deleted', Present: 'Record present' };
+  const labels = { Unavailable: 'Evidence unavailable', Deleted: 'Record deleted', Present: 'Record present' };
   const calc = model?.calculation;
+  const findingRows = context?.scenario.steps.flatMap(step => step.findings.map(row => [
+    '#' + step.proposal, words(branch(row.severity)), words(branch(row.code)),
+    row.nodes.map(principal).join(', ') || '—', row.subnets.map(principal).join(', ') || '—',
+    row.registry.map(key => {
+      const kind = branch(key);
+      return [words(kind), key[kind]?.toText?.() ?? key[kind]].filter(value => value != null).join(' ');
+    }).join(', ') || '—',
+  ])) ?? [];
   const refs = manifest.registry.map(([key, evidence]) => {
     const tag = branch(key);
     const kind = branch(evidence);
@@ -73,6 +80,7 @@ function detailBlock(live, context, session, model) {
     ];
   });
   return el('div', el('h3', 'Coverage and provenance'),
+    el('p', 'Pinned Registry version ' + number(manifest.registry_version)),
     el('p', 'Checked ' + number(listed_subnets) + ' of ' + (option(live.outcome.Ok.total_listed_subnets ?? []) ?? 'an unknown number of') +
       ' listed subnet memberships. Membership, hardware and API-boundary checks apply to the captured scope.'),
     context?.failures.length ? el('ul', context.failures.map(item => el('li',
@@ -84,6 +92,8 @@ function detailBlock(live, context, session, model) {
         NodeAbsent: 'Node record absent at baseline',
       })[branch(item)],
     ]))),
+    findingRows.length ? disclosure('Simulation findings',
+      table(['Proposal', 'Severity', 'Finding', 'Nodes', 'Subnets', 'Registry keys'], findingRows)) : null,
     disclosure('Method and exact inputs', el('p', thresholdNote), el('p', geographyNote), el('p', calculationNote),
       el('p', 'Preview revision ', el('code', hex(report.revision))),
       manifest.proposals.map(proposal => el('p', '#' + proposal.id + ' payload ', el('code', hex(proposal.payload_hash)),
@@ -92,7 +102,7 @@ function detailBlock(live, context, session, model) {
         el('p', 'Calculation input SHA-256 ', el('code', calc.inputHash)),
         action('Download calculation input (Candid)', () => saveFile('calculation-' + calc.inputHash + '.didbin', calc.bytes, 'application/octet-stream'))) : null),
     disclosure('Registry references', table(['Kind', 'Key', 'Evidence', 'Mutation', 'Observation'], refs)),
-    disclosure('Source receipts and timings', sourceReceipts(live),
+    disclosure('Review session source receipts and timings', sourceReceipts(live),
       session.receipts.map(({ type, response, error, keys }) => response
         ? disclosure(stageLabel(type), sourceReceipts(response))
         : el('p', stageLabel(type) + ' · ' + error, el('br'), el('code', keys.join(', '))))));
@@ -143,12 +153,17 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     renderPane();
     if (moveFocus) nav.querySelector('[aria-pressed=true]')?.focus({ preventScroll: true });
   }
+
+  function showEvidence() {
+    show('Evidence', true);
+    nav.scrollIntoView({ block: 'nearest' });
+  }
   for (const view of modes) nav.append(action(view, () => show(view)));
   scopeLimit.append(styled('strong', 'coverage-heading',
     option(total_listed_subnets ?? []) === listed_subnets ? 'Scoped execution checks' : 'Assignment checks are partial'),
   ' · Checked ' + listed_subnets + ' of ' + (option(total_listed_subnets ?? []) ?? 'an unknown number of') + ' listed subnets. ',
   option(total_listed_subnets ?? []) === listed_subnets ? 'Full execution validity remains unverified. ' : 'Incoming assignments elsewhere remain unverified. ',
-  action('Coverage', () => { show('Evidence', true); nav.scrollIntoView({ block: 'nearest' }); }));
+  action('Coverage', showEvidence));
 
   function choose(next, resetSelection = true) {
     current = next;
@@ -159,7 +174,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     }
     const scope = current && live.outcome.Ok.scopes.find(row => branch(row.scenario) === branch(current.scenario.id) &&
       principal(row.subnet) === principal(current.subnet));
-    performance.scope(current?.state ? { context: current, scope, version } : undefined);
+    performance.scope(current?.state ? { context: current, affected: affectedNodes(current, scope), version } : undefined);
     session.select(next);
     if (!next) render(undefined);
   }
@@ -218,14 +233,14 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     map.highlight(ids);
     if (document.activeElement?.dataset.marker) trigger = document.activeElement;
     renderInspector();
-    if (moveFocus) inspector.querySelector('h3')?.focus({ preventScroll: true });
+    if (moveFocus) inspector.querySelector('h3')?.focus();
   }
 
   function closeInspector() {
     selection = undefined;
     inspector.hidden = true;
-    if (trigger?.isConnected) trigger.focus({ preventScroll: true });
-    else overview.querySelector('button')?.focus({ preventScroll: true });
+    if (trigger?.isConnected) trigger.focus();
+    else overview.querySelector('button')?.focus();
     map.highlight([]);
   }
   inspector.addEventListener('keydown', event => {
@@ -267,7 +282,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     }
     replace(inspector, styled('div', 'inspector-heading', title, action('Close details', closeInspector)),
       el('p', rows.length + (rows.length === 1 ? ' node' : ' nodes') + ' selected. Subnet totals and review exports keep the full selected state.'),
-      ...content);
+      ...content, action('Evidence for this comparison', showEvidence));
   }
 
   function findingCard(finding) {
@@ -275,9 +290,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     item.className = 'finding-select';
     return styled('article', 'finding-card', item, el('p', finding.explanation),
       finding.metrics.length ? el('ul', finding.metrics.map(metric => {
-        const value = metric.value.length > 34 ? shortIds([metric.value]).get(metric.value) : metric.value;
         const [before, after] = metric.coefficient;
-        return el('li', metric.name + ' ' + value + ' · ' + metric.before + ' → ' + metric.after,
+        return el('li', metric.name + ' ' + metric.label + ' · ' + metric.before + ' → ' + metric.after,
           finding.kind !== 'last-member' && before !== undefined && after !== undefined && before !== after
             ? ' · coefficient ' + before + ' → ' + after : '');
       })) : null);
@@ -291,9 +305,10 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       model.calculation = next.calculation;
       if (local) model.notes.unshift('Local replica review. Observation times describe the local reads.');
     }
-    const historical = proposals.some(row => row.lifecycle_status === 4 || row.executed_at_seconds.length);
-    const blocking = (next?.scenario.steps ?? scenario?.steps ?? []).flatMap(step => step.findings)
-      .filter(row => 'Error' in row.severity);
+    const historical = proposals.some(row => scenario?.proposal_ids.includes(row.id) &&
+      (row.lifecycle_status === 4 || row.executed_at_seconds.length));
+    const blockers = scenario?.steps.flatMap((step, index) => step.findings.filter(row => 'Error' in row.severity)
+      .map(row => ({ step, index, row }))) ?? [];
     const placement = model?.placement ?? [];
     const removed = placement.find(node => node.role === 'Removed');
     const added = placement.find(node => node.role === 'Added');
@@ -302,9 +317,10 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       el('strong', model ? model.membership : 'Simulation unavailable'),
       removed && added && placement.length === 2 ? el('span', 'Registered replacement · ' + location(removed) + ' → ' + location(added)) : null,
       historical ? styled('p', 'notice warning', 'Governance observed execution. The actual historical before-state is unavailable here.' +
-        (next?.state && next.index ? ' This comparison uses the selected Registry snapshot.' : '')) : null,
-      blocking.length ? styled('ul', 'notice warning', blocking.map(row => el('li',
-        'Blocking simulation finding · ' + words(branch(row.code)) + (option(row.proposal) ? ' · #' + option(row.proposal) : '')))) : null);
+        (next?.state ? ' This view uses the pinned Registry snapshot.' : '')) : null,
+      blockers.length ? styled('ul', 'notice warning', blockers.map(({ step, index, row }) => el('li',
+        (next?.state && index >= next.index ? 'Later step blocked' : 'Simulation blocked') +
+        ' · #' + step.proposal + ' · ' + words(branch(row.code))))) : null);
     const orders = report.findings.some(row => 'DifferentIntermediateStates' in row.code);
     const primaryFindings = model?.findings.filter(row => ['size', 'concentration', 'last-member'].includes(row.kind)) ?? [];
     const quiet = model?.findings.filter(row => row.kind === 'context') ?? [];
@@ -313,9 +329,14 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       orders ? styled('p', 'order-note', 'The two orders have different intermediate memberships. Inspect each step with the proposal order and membership controls.') : null,
       session.pendingOrders() ? styled('p', 'muted', session.pendingOrders() + ' order comparisons still pending.') : null,
       ...key.map(findingCard),
-      !key.length ? el('p', model?.calculation ? 'No primary concentration or membership findings.' :
+      !key.length ? el('p', model?.calculation ? 'No primary finding in the available membership and group evidence.' :
         next?.state ? 'Membership is available. Registered group findings appear as comparisons arrive.' : 'Required membership evidence did not establish a resulting state.') : null,
-      model?.findings.length ? action('All consequences', () => { show('Concentration', true); nav.scrollIntoView({ block: 'nearest' }); }) : null,
+      model?.findings.length ? action('All consequences', () => {
+        show('Concentration');
+        const list = pane.querySelector('.all-consequences');
+        list.open = true;
+        list.querySelector('summary').focus();
+      }) : null,
       next?.calculation && model.members.some(node => !node.point) ? el('p', model.members.filter(node => !node.point).length + ' nodes lack usable registered coordinates in Changes. Other figures retain their stated coverage.') : null,
       retry);
     retry.hidden = !['partial', 'unavailable'].includes(next?.status);
@@ -331,8 +352,9 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     if (next?.status === 'partial') phase('Some evidence unavailable. Showing the last accepted calculation.', comparing);
     if (next?.status === 'unavailable') phase('Detailed comparison unavailable. Membership is available.', comparing);
     if (next?.status === 'blocked' || !next?.rules) phase('Detailed comparison unavailable for this state.', comparing);
-    if (next?.status === 'pending' && next.rules && !session.isStopped()) {
-      phase(next.calculation ? 'Membership available. Continuing the selected comparison.' :
+    if (next?.status === 'pending' && next.rules) {
+      if (session.isStopped()) phase('Review stopped. Select Review to start a new run.', false);
+      else phase(next.calculation ? 'Membership available. Continuing the selected comparison.' :
         'Membership available. Preparing the selected comparison.', true);
     }
   }
@@ -359,10 +381,17 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
         list.length ? disclosure('All ' + list.length + ' nodes in Changes', styled('div', 'node-list', list.map(node => nodeCard(node)))) : null,
         disclosure('Requested payload and simulation steps', stepSummary(current)));
     } else if (selectedView === 'Claims') {
+      const statements = option(proposal_text ?? []) ?? [];
+      const departures = model?.findings.filter(row => row.kind === 'last-member') ?? [];
       replace(pane, el('h3', 'Proposer claims'),
         el('p', 'These claims are compared with registered facts where the selected scenario supports it. Physical decommissioning and health remain unverified.'),
+        statements.map(row => {
+          const motivation = row.summary.match(/^\s*Motivation:[ \t]*([^\r\n]+)/mi)?.[1]?.trim();
+          return motivation ? el('p', el('strong', 'Proposal #' + row.id + ' motivation'), ' · ', el('q', motivation)) : null;
+        }),
+        departures.length ? el('ul', departures.map(row => el('li', row.title + '. ' + row.explanation))) : null,
         lookup('Proposer claims and independent calculation') ? renderTable(lookup('Proposer claims and independent calculation')) : null,
-        (option(proposal_text ?? []) ?? []).map(row => disclosure('Proposal #' + row.id + ' statement',
+        statements.map(row => disclosure('Proposal #' + row.id + ' statement',
           styled('pre', 'claim-text', row.summary), row.truncated ? el('p', 'The captured statement was truncated.') : null)));
     } else if (selectedView === 'Concentration') {
       const summary = lookup('Decentralisation and concentration');
@@ -374,13 +403,14 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       replace(pane, el('h3', 'Concentration'),
         summary ? renderTable(showFaultBudget ? summary : { headers: summary.headers.filter((_, i) => i !== 5),
           rows: summary.rows.map(row => row.filter((_, i) => i !== 5)) }) : el('p', 'No accepted comparison yet.'),
-        model?.findings.length ? disclosure('All consequences (' + model.findings.length + ')', ...model.findings.map(findingCard)) : null,
+        model?.findings.length ? Object.assign(disclosure('All consequences (' + model.findings.length + ')',
+          ...model.findings.map(findingCard)), { className: 'all-consequences' }) : null,
         ...(model?.dimensions ?? []).map(dimension => disclosure(dimension.label + ' distribution', el('p', dimension.note),
           table(dimension.table.headers, dimension.table.rows.map(([group, ...cells]) => {
             const key = group.label ?? group;
             const ids = groupMembers(model.members, dimension.key, key).map(node => node.id);
-            return [ids.length ? action(key.length > 34 ? shortIds([key]).get(key) : key,
-              () => inspect(ids, words(dimension.key) + ' · ' + (key.length > 34 ? shortIds([key]).get(key) : key))) : key, ...cells];
+            const label = dimension.labels.get(key) ?? key;
+            return [ids.length ? action(label, () => inspect(ids, dimension.label + ' · ' + label)) : label, ...cells];
           })))),
         lookup('Geographic distances') ? disclosure('Geographic distances', el('p', geographyNote), renderTable(lookup('Geographic distances'))) : null);
     } else {

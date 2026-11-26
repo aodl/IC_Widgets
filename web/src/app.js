@@ -101,7 +101,7 @@ search.addEventListener('submit', event => {
   current = undefined;
   performance.scope(undefined);
   performance.visible(false);
-  const map = reviewMap((...args) => current?.inspect(...args));
+  const map = reviewMap((...args) => current?.inspect(...args), active);
   const mapHost = map.section;
   map.update();
   reportContainer.replaceChildren(styled('div', 'workspace waiting-workspace',

@@ -75,7 +75,8 @@ try {
         .slice(0, 12).map(node => `${node.tagName}.${node.className} ${node.getBoundingClientRect().right}`)];
     });
     assert.deepEqual(overflow, [], `Page content overflows at ${width}px`);
-    positions[width] = Math.round((await map.locator('canvas').boundingBox()).y);
+    positions[width] = Math.round(await map.locator('canvas').evaluate(canvas => canvas.getBoundingClientRect().top + scrollY));
+    assert.ok(positions[width] < height, `The map starts below the first viewport at ${width}px (${positions[width]}px)`);
     if (width === 1366 || width === 390) {
       await page.screenshot({ path: resolve(output, '144954-' + (width === 1366 ? 'desktop' : 'mobile') + '.png'), fullPage: true });
     }
@@ -87,6 +88,10 @@ try {
   const inspector = page.locator('.inspector');
   await inspector.getByText(/3 nodes selected/).waitFor();
   assert.equal(await inspector.locator('.node-card').count(), 3);
+  assert.ok(await inspector.getByRole('heading').evaluate(heading => {
+    const rect = heading.getBoundingClientRect();
+    return document.activeElement === heading && rect.top >= 0 && rect.bottom <= innerHeight;
+  }));
   await inspector.getByRole('button', { name: /Details · kaoz3/ }).focus();
   await page.keyboard.press('Enter');
   assert.match(await inspector.getByLabel('Full node principal').inputValue(), /^kaoz3-.*-4qe$/);
@@ -109,7 +114,13 @@ try {
   await inspector.getByText(/3 nodes selected/).waitFor();
   assert.match(await owner.textContent(), /39 → 38/);
   await inspector.getByRole('button', {name:'Close details'}).click();
+  await page.getByRole('button', { name: 'All consequences', exact: true }).click();
+  assert.ok(await page.locator('.all-consequences').evaluate(details => details.open && details.contains(document.activeElement)));
+  await page.getByRole('button', { name: 'Claims', exact: true }).click();
+  await page.getByText('Decommissioning of DC zh2', { exact: true }).waitFor();
+  await page.locator('.review-pane').getByText(/Last zh2 member leaves.*Zurich 2 → 1/).waitFor();
   await page.getByRole('button', { name: 'Coverage', exact: true }).click();
+  await page.locator('.review-pane > div > p').filter({ hasText: /^Pinned Registry version 66,013$/ }).waitFor();
   const sourceUsage = await page.locator('.review-pane p').filter({
     hasText: /source calls ·.* reply bytes|ms source stage ·.* instructions/,
   }).allTextContents();
@@ -165,7 +176,7 @@ try {
   await page.getByRole('navigation', {name:'Review views'}).getByRole('button', {name:'Performance',exact:true}).click();
   await page.getByLabel('Performance scope').selectOption('follow');
   await page.getByLabel('Node filter').selectOption('incoming');
-  await page.getByText(/After #144954 · Registry 66,013 · 1 nodes/).waitFor();
+  await page.getByText(/After #144954 · Registry 66,013 · 1 node\./).waitFor();
   await phase.selectOption('0');
   await page.getByText(/Baseline · Registry 66,013 · 0 nodes/).waitFor();
   await page.getByLabel('Performance scope').selectOption('independent');
@@ -175,11 +186,33 @@ try {
   await page.getByRole('button', { name: 'Read blockmaking samples' }).click();
   await page.locator('#performance-result').getByText('Source receipts', { exact: true }).waitFor();
   assert.match(await page.locator('#performance-result').textContent(), /node_metrics_history/);
+
+  await page.getByRole('button', { name: 'Export review', exact: true }).click();
+  await page.evaluate(() => {
+    const toBlob = HTMLCanvasElement.prototype.toBlob;
+    const click = HTMLAnchorElement.prototype.click;
+    window.pngDownloads = 0;
+    HTMLAnchorElement.prototype.click = function () {
+      if (this.download.endsWith('.png')) window.pngDownloads++;
+      return click.call(this);
+    };
+    HTMLCanvasElement.prototype.toBlob = function (complete, ...args) {
+      toBlob.call(this, blob => { window.finishPngExport = () => complete(blob); }, ...args);
+    };
+  });
+  await page.getByRole('button', { name: 'Export map PNG' }).click();
+  await page.waitForFunction(() => typeof window.finishPngExport === 'function');
+  await page.locator('input[name=first]').fill('999999');
+  await review.click();
+  await page.getByRole('heading', { name: 'Proposal #999999' }).waitFor();
+  assert.equal(await page.evaluate(() => { window.finishPngExport(); return window.pngDownloads; }), 0);
+  await page.getByText(/Simulation unavailable.*999999/).waitFor();
+  assert.equal(await page.getByLabel('VOTE', { exact: true }).count(), 0);
   assert.deepEqual(errors, []);
   assert.ok([...hosts].every(host => host.endsWith('localhost') || host === '127.0.0.1'));
   console.log(JSON.stringify({ previewMs, reviewMs, positions, hash, mobileNoOverflow: true,
     detailPages: count('membership_detail_page'), sourceUsage, keyboardInspector: true,
-    exportConsistent: true, independentPerformance: true }, null, 2));
+    exportConsistent: true, supersededPngDiscarded: true, independentPerformance: true }, null, 2));
 } finally {
   await browser.close();
 }
