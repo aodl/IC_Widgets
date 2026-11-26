@@ -96,7 +96,8 @@ fn review(
 #[test]
 #[ignore = "run through scripts/test-m0.sh to build Wasms and start PocketIC"]
 fn public_sessions_are_isolated_and_share_a_finite_work_budget() {
-    use nexus_reviewer::{DetailKeys, DetailRecords, ProposalEvidence};
+    use nexus_review_engine::ProposalEvidence;
+    use nexus_reviewer::{DetailKeys, DetailRecords};
 
     assert!(enabled());
     let pic = PocketIcBuilder::new()
@@ -141,17 +142,16 @@ fn public_sessions_are_isolated_and_share_a_finite_work_budget() {
     };
     let registry = checkpoint("registry_status");
     let collector = checkpoint("collection_status");
-    assert!(
+    assert!(matches!(
         call::<Result<nexus_reviewer::CollectionStatus, String>>(
             &pic,
             reviewer,
             a,
             "collection_status",
             encode_args(()).unwrap()
-        )
-        .unwrap_err()
-        .contains("controller required")
-    );
+        ),
+        Err(reason) if reason.contains("controller required")
+    ));
     let begin = |caller| {
         call::<Reply>(
             &pic,
