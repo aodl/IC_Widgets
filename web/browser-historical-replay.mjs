@@ -52,6 +52,12 @@ const select = async name => {
   await page.getByText(metadata.purpose, { exact: true }).waitFor();
 };
 const capture = name => page.screenshot({ path: resolve(output, name + '.png'), fullPage: true });
+const resize = async (width, height) => {
+  await page.setViewportSize({ width, height });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  assert.ok(documentWidth <= width, 'Viewport ' + width + 'px overflows to ' + documentWidth + 'px');
+};
 const mapChecks = [];
 const checkHitTargets = async () => {
   await page.locator('.map-frame').scrollIntoViewIfNeeded();
@@ -93,6 +99,7 @@ try {
   await page.getByText('40 members · 39 retained · 1 incoming · 1 outgoing', { exact: true }).waitFor();
   await page.getByText(/Target subnet checked; assignments in the other 95 listed subnets were not checked/).waitFor();
   await page.getByText(/41 nodes across both states · 41\/41 located · 41 shown/).waitFor();
+  await page.locator('#local-notice').getByText(/Historical replay · Recorded Open proposal · Registry 66,013/).waitFor();
   await page.getByText(/Recorded status: Open · Original Governance observation 2026-11-25 13:08:13.589 UTC/).waitFor();
   await page.getByText(/No Target Topology limits have been assumed/).waitFor();
   assert.equal(await page.getByRole('columnheader', { name: /^(Rule|Assessment)$/ }).count(), 0);
@@ -123,8 +130,7 @@ try {
   await page.getByRole('button', { name: 'World', exact: true }).click();
   await checkHitTargets();
   await capture('recorded-desktop');
-  await page.setViewportSize({ width: 390, height: 844 });
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await resize(390, 844);
   const sh1 = page.locator('.map-pin[aria-label*=" · sh1 · "]:visible');
   assert.equal(await sh1.count(), 3);
   await checkHitTargets();
@@ -138,8 +144,7 @@ try {
     await page.getByRole('button', { name: 'Close details' }).click();
   }
   await incoming.focus();
-  await page.setViewportSize({ width: 320, height: 700 });
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await resize(320, 700);
   assert.equal(await page.evaluate(() => document.activeElement.dataset.marker), incomingId);
   await checkHitTargets();
   await marker('removed').tap();
@@ -158,14 +163,30 @@ try {
   await page.getByRole('checkbox', { name: /Retained/ }).uncheck();
   assert.equal(await marker('retained').count(), 0);
   const markdown = (await download('Download Markdown', 'recorded-review.md')).toString('utf8');
+  await page.evaluate(() => {
+    const clipboard = navigator.clipboard;
+    const write = clipboard.writeText.bind(clipboard);
+    clipboard.writeText = async value => {
+      await write(value);
+      window.copiedReview = value;
+    };
+    const exec = document.execCommand.bind(document);
+    document.execCommand = (command, ...args) => {
+      const field = document.activeElement;
+      const selected = field.value?.slice(field.selectionStart, field.selectionEnd);
+      const copied = exec(command, ...args);
+      if (copied && command === 'copy') window.copiedReview = selected;
+      return copied;
+    };
+  });
   await page.getByRole('button', { name: 'Copy Markdown' }).click();
   await page.getByText('Review Markdown copied.', { exact: true }).waitFor();
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), markdown);
+  assert.equal(await page.evaluate(() => window.copiedReview), markdown);
   assert.ok(markdown.includes(digest));
   assert.match(markdown, /Recorded status: Open.*Original Governance observation 2026-11-25 13:08:13\.589 UTC.*Local replay served/);
   assert.match(markdown, /Original Registry observations/);
   assert.match(markdown, /Synthetic NNS-role supplement/);
-  assert.match(markdown, /Filter: Outgoing, Incoming/);
+  assert.match(markdown, /Filter: Incoming, Outgoing/);
   assert.doesNotMatch(markdown, /Matches target|Exception unresolved|Identity unresolved|143190/);
   const png = await download('Export map PNG', 'recorded-map.png');
   const checkPixels = await page.evaluate(async base64 => {

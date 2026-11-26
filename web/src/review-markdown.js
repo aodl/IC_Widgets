@@ -1,5 +1,5 @@
 import { calculationNote, criteriaNote, geographyNote, governanceText, replayLabel, replayRegistryText } from './detail-model.js';
-import { hex } from './view.js';
+import { hex, number } from './view.js';
 
 function escape(text) {
   return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -23,7 +23,7 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '', ma
     '**VOTE**: ' + (vote.trim() || '?'),
     ('**TLDR**: ' + tldr.trim()).trimEnd(),
     !model.finalVerified ? '**Provisional · Final Governance verification unavailable**' : '**Data loading complete**',
-    escape(model.scenario + ' · ' + model.stateLabel + ' · Registry ' + model.version),
+    escape(model.scenario + ' · ' + model.stateLabel + ' · Registry ' + number(model.version)),
     'Subnet `' + model.subnet + '`',
     model.membership,
     '## Subnet composition',

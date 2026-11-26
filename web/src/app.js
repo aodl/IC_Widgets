@@ -22,7 +22,7 @@ if (FIXTURE_REPLAY && activeReplay) {
   const selector = el('select', replays.cases.map(row => Object.assign(el('option', row.name), { value: row.id })));
   selector.value = activeReplay.id;
   const label = el('label', 'Replay scenario', selector);
-  label.className = 'local-note';
+  label.className = 'local-note replay-selector';
   notice.after(label, styled('p', 'local-note replay-purpose', activeReplay.purpose));
   selector.addEventListener('change', () => {
     const next = new URL(location.href);

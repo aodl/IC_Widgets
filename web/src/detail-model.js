@@ -217,7 +217,7 @@ export function reviewModel(live, context, evidence, section, replay) {
 const utc = value => value ? value.replace('T', ' ').replace(/Z$/, ' UTC') : undefined;
 
 export function replayLabel(replay) {
-  return ['Historical replay', replay.lifecycleLabel, 'Registry ' + number(replay.registryVersion)].filter(Boolean).join(' · ');
+  return ['Historical replay', replay.lifecycleLabel, 'Registry ' + number(BigInt(replay.registryVersion))].filter(Boolean).join(' · ');
 }
 
 export function replayRegistryText(replay) {

@@ -1,6 +1,6 @@
 import { action, saveFile } from './review-map.js';
 import { reviewMarkdown } from './review-markdown.js';
-import { el, styled } from './view.js';
+import { el, number, styled } from './view.js';
 
 const disclose = (label, ...contents) => el('details', el('summary', label), ...contents);
 
@@ -34,7 +34,7 @@ export function markdownEditor(model, draft, map) {
   update();
 
   const preview = styled('article', 'markdown-preview', el('h4', 'Proposal ' + model.ids.map(id => '#' + id).join(' + ') + ' Review'),
-    previewVote, previewTldr, el('p', model.membership), el('p', model.scenario + ' · ' + model.stateLabel + ' · Registry ' + model.version),
+    previewVote, previewTldr, el('p', model.membership), el('p', model.scenario + ' · ' + model.stateLabel + ' · Registry ' + number(model.version)),
     el('ul', model.notes.map(note => el('li', note))),
     el('p', 'Use the exported PNG and the forum’s image upload to include the map.'));
   return styled('section', 'detail-section', el('h3', 'Review Markdown'),

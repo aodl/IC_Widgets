@@ -18,7 +18,11 @@ const localCall = (canister, method, args = '()') => dfx('canister', 'call', '--
 const frontend = dfx('canister', 'id', '--network', 'local', 'frontend');
 const reviewer = dfx('canister', 'id', '--network', 'local', 'reviewer');
 const config = JSON.parse(await readFile(resolve(project, 'dfx.json'), 'utf8'));
-const port = config.networks?.local?.bind?.split(':').at(-1) ?? '4966';
+const port = config.networks?.local?.bind?.match(/^127\.0\.0\.1:(\d+)$/)?.[1];
+const reviewerWasm = config.canisters?.reviewer?.wasm;
+if (!port || config.networks.local.type !== 'ephemeral' || !reviewerWasm) {
+  throw new Error('An isolated loopback reviewer with a local Wasm is required.');
+}
 const methods = idlFactory({ IDL }).fieldsAsObject();
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
 const mode = value => localCall('fixture', 'set_voting_review_fixture', '(' + value + ' : nat8)');
@@ -30,6 +34,8 @@ const gate = () => {
 const results = [];
 
 async function test(name, fixture, run) {
+  // Case budgets are independent. Reset transient work counters only in this disposable replica.
+  dfx('canister', 'install', '--network', 'local', '--mode', 'upgrade', '--upgrade-unchanged', '--wasm', reviewerWasm, 'reviewer');
   mode(fixture);
   const page = await browser.newPage({ viewport: { width: 1024, height: 900 } });
   const requests = new Map();
@@ -78,7 +84,9 @@ async function holdPage(page, accepts) {
     await release.settled;
     return route.fulfill({ response });
   });
-  return { dispatched: dispatched.settled, release: release.release };
+  const diagnosed = page.locator('#report-status').getByText(/Data loading complete|Could not produce a review/).waitFor({ timeout: 45000 })
+    .then(async () => { throw new Error('The requested page never started. ' + await page.locator('.coverage-notice').textContent()); });
+  return { dispatched: Promise.race([dispatched.settled, diagnosed]), release: release.release };
 }
 const status = page => page.locator('#report-status');
 const finished = page => status(page).getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });

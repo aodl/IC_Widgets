@@ -112,6 +112,8 @@ main { padding-top: .85rem; }
 .masthead-row, .map-heading, .inspector-heading { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .masthead button { color: #f1f8f8; background: transparent; border-color: #657d88; padding: .3rem .7rem; font-size: .9rem; }
 .local-note { font-size: .82rem; color: var(--muted); margin: 0 0 .4rem; }
+.replay-selector { grid-template-columns: minmax(0, 1fr); }
+.replay-selector select { min-width: 0; width: min(100%, 24rem); }
 .replay-purpose { margin-top: .25rem; }
 .terminal-outcome { overflow-wrap: anywhere; }
 .terminal-outcome article + article { border-top: 1px solid var(--border); padding-top: .75rem; }
