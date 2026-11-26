@@ -19,29 +19,29 @@ export function mountPerformance(call) {
   let following = false;
 
   function presetNodes() {
-    const { context, scope } = review;
+    const { context, affected } = review;
     return ({
       incoming: context.state.added,
       outgoing: context.state.removed,
       selected: context.state.members,
-      affected: scope?.nodes,
+      affected,
     })[preset.value];
   }
 
   function applyScope() {
     generation++;
     output.replaceChildren();
-    const nodes = following && review ? presetNodes() : undefined;
     if (following && review) subnetField.value = principal(review.context.subnet);
     subnetField.readOnly = following;
     choices.hidden = !following;
     const affected = preset.querySelector('[value=affected]');
-    affected.disabled = following && !review?.scope?.nodes.length;
+    affected.disabled = following && !review?.affected.length;
     if (affected.disabled && preset.value === 'affected') preset.value = 'selected';
+    const nodes = following && review ? presetNodes() : undefined;
     summary.textContent = !following ? 'Independent subnet scope.' : !review ? 'Following review. Waiting for a resolved membership state.'
       : scenarioName(review.context.scenario) + ' · ' + (review.context.index ? 'After #' + review.context.scenario.steps[review.context.index - 1].proposal : 'Baseline')
-        + ' · Registry ' + number(review.version) + ' · ' + number((nodes ?? presetNodes())?.length ?? 0) + ' nodes.';
-    submit.disabled = following && (!review || !presetNodes()?.length);
+        + ' · Registry ' + number(review.version) + ' · ' + number(nodes.length) + (nodes.length === 1 ? ' node.' : ' nodes.');
+    submit.disabled = following && !nodes?.length;
     status.textContent = submit.disabled ? 'Choose a populated membership filter or use independent scope.' : '';
   }
 

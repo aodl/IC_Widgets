@@ -263,30 +263,11 @@ pub fn registered_geography(region: &str) -> (Option<&str>, Option<&str>) {
     let Some((continent, country)) = parts.next().zip(parts.next()) else {
         return (None, None);
     };
-    let continent = match continent
-        .trim()
-        .to_ascii_lowercase()
-        .replace([' ', '-'], "_")
-        .as_str()
-    {
-        "af" | "africa" => Some("AF"),
-        "an" | "antarctica" => Some("AN"),
-        "as" | "asia" => Some("AS"),
-        "eu" | "europe" => Some("EU"),
-        "na" | "north_america" => Some("NA"),
-        "oc" | "oceania" => Some("OC"),
-        "sa" | "south_america" => Some("SA"),
-        _ => None,
-    };
-    let country = country.trim().to_ascii_uppercase();
-    let country = if country == "UK" { "GB" } else { &country };
-    let country = include_str!("../data/country-codes.txt")
-        .lines()
-        .find_map(|row| {
-            let (alpha2, alpha3) = row.split_once(' ').expect("pinned country code pair");
-            (country == alpha2 || country == alpha3).then_some(alpha2)
-        });
-    (continent, country)
+    let (continent, country) = (continent.trim(), country.trim());
+    (
+        (!continent.is_empty()).then_some(continent),
+        (!country.is_empty()).then_some(country),
+    )
 }
 
 pub(crate) fn summarize(
@@ -339,7 +320,11 @@ pub(crate) fn summarize(
     }
 }
 
-fn distribution(groups: BTreeMap<Group, u32>, total: u32, conventional: bool) -> Distribution {
+pub(crate) fn distribution(
+    groups: BTreeMap<Group, u32>,
+    total: u32,
+    conventional: bool,
+) -> Distribution {
     let mut counts: Vec<_> = groups.values().copied().collect();
     counts.sort_unstable_by(|a, b| b.cmp(a));
     let known = counts.iter().sum::<u32>();

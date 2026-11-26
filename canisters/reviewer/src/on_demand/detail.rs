@@ -6,13 +6,13 @@ use ic_cdk::api::{canister_liquid_cycle_balance, msg_arg_data, performance_count
 use nexus_domain::{Hash, sha256};
 use nexus_ic_sources::projection::RecordKey;
 use nexus_review_engine::{
-    ANALYSIS_VERSION, DataCenter, MembershipComparison, Node, Operator, Record, TopologyEvidence,
-    compare_membership, data_center_key,
+    ANALYSIS_VERSION, DataCenter, MembershipComparison, Node, Operator, Record, TargetRow,
+    TopologyEvidence, assess_target, compare_membership, data_center_key,
 };
 use serde::Deserialize;
 
 use super::{
-    LiveError, LiveResponse, NODE_LIMIT, Request, RequestGuard, registry::Resolver,
+    LiveError, LiveResponse, NODE_LIMIT, Request, RequestGuard, policy, registry::Resolver,
     require_on_demand_caller,
 };
 use crate::{Sources, budget::FLOOR, review_records, store};
@@ -54,6 +54,7 @@ pub struct LiveMembershipComparison {
     pub input_hash: Hash,
     pub analysis_version: u16,
     pub instructions: u64,
+    pub target_rows: Option<Vec<TargetRow>>,
 }
 
 fn valid_keys<T: Ord>(keys: &[T]) -> bool {
@@ -67,6 +68,62 @@ async fn membership_detail_page(
     keys: DetailKeys,
 ) -> Result<LiveResponse<DetailRecords>, String> {
     let guard = RequestGuard::acquire()?;
+    validate(&keys)?;
+    if version == 0 {
+        return Err("Select one pinned Registry version.".into());
+    }
+    Ok(page(&guard, version, keys).await)
+}
+
+#[ic_cdk::update]
+async fn membership_context_detail_page(
+    token: Hash,
+    keys: DetailKeys,
+) -> Result<LiveResponse<DetailRecords>, String> {
+    let guard = RequestGuard::acquire()?;
+    validate(&keys)?;
+    let record_keys: Vec<_> = match &keys {
+        DetailKeys::Nodes(ids) => ids.iter().copied().map(RecordKey::Node).collect(),
+        DetailKeys::Operators(ids) => ids.iter().copied().map(RecordKey::Operator).collect(),
+        DetailKeys::DataCenters(ids) => ids.iter().cloned().map(RecordKey::DataCenter).collect(),
+    };
+    let version = policy::admit_details(token, &record_keys)?;
+    let response = page(&guard, version, keys).await;
+    if let Ok(rows) = &response.outcome {
+        let observations: Vec<_> = match rows {
+            DetailRecords::Nodes(rows) => rows
+                .iter()
+                .map(|row| {
+                    policy::bind_record(
+                        row,
+                        row.value()
+                            .and_then(|node| node.operator)
+                            .map(RecordKey::Operator),
+                    )
+                })
+                .collect(),
+            DetailRecords::Operators(rows) => rows
+                .iter()
+                .map(|row| {
+                    policy::bind_record(
+                        row,
+                        row.value()
+                            .and_then(|operator| data_center_key(&operator.data_center))
+                            .map(RecordKey::DataCenter),
+                    )
+                })
+                .collect(),
+            DetailRecords::DataCenters(rows) => rows
+                .iter()
+                .map(|row| policy::bind_record(row, None))
+                .collect(),
+        };
+        policy::retain_details(token, record_keys.into_iter().zip(observations));
+    }
+    Ok(response)
+}
+
+fn validate(keys: &DetailKeys) -> Result<(), String> {
     let valid = match &keys {
         DetailKeys::Nodes(ids) | DetailKeys::Operators(ids) => {
             valid_keys(ids) && ids.iter().all(|id| !id.as_slice().is_empty())
@@ -78,9 +135,14 @@ async fn membership_detail_page(
                     .all(|id| id.len() <= 128 && data_center_key(id).as_ref() == Some(id))
         }
     };
-    if version == 0 || !valid {
-        return Err("select one pinned Registry version and 1 to 24 distinct record keys".into());
+    if valid {
+        Ok(())
+    } else {
+        Err("Select 1 to 24 distinct Registry record keys.".into())
     }
+}
+
+async fn page(guard: &RequestGuard, version: u64, keys: DetailKeys) -> LiveResponse<DetailRecords> {
     let mut request = Request::new(guard.0);
     request.version = Some(version);
     let sources = if cfg!(feature = "local-fixtures") {
@@ -89,7 +151,7 @@ async fn membership_detail_page(
         Sources::canonical()
     };
     let outcome = read(&mut request, sources.registry, version, keys).await;
-    Ok(request.finish(outcome))
+    request.finish(outcome)
 }
 
 async fn read(
@@ -153,6 +215,29 @@ fn compare_membership_details(
     input: DetailComparisonInput,
 ) -> Result<LiveMembershipComparison, String> {
     let _guard = RequestGuard::acquire()?;
+    calculate(input)
+}
+
+#[ic_cdk::update(guard = "comparison_ingress")]
+fn compare_membership_with_policy(
+    input: DetailComparisonInput,
+    token: Hash,
+    policy_digest: Hash,
+) -> Result<LiveMembershipComparison, String> {
+    let _guard = RequestGuard::acquire()?;
+    let rule = policy::policy_for(token, policy_digest, &input)?
+        .filter(|policy| policy.nns_subnet == Some(input.subnet))
+        .and_then(|policy| policy.motion)
+        .and_then(|motion| motion.rule);
+    let mut result = calculate(input)?;
+    if let Some(rule) = rule {
+        result.target_rows = Some(assess_target(&rule, &result.comparison));
+        result.instructions = performance_counter(0);
+    }
+    Ok(result)
+}
+
+fn calculate(input: DetailComparisonInput) -> Result<LiveMembershipComparison, String> {
     if canister_liquid_cycle_balance() < FLOOR {
         return Err("insufficient liquid cycles for comparison".into());
     }
@@ -202,5 +287,6 @@ fn compare_membership_details(
         input_hash: sha256(&msg_arg_data()),
         analysis_version: ANALYSIS_VERSION,
         instructions: performance_counter(0),
+        target_rows: None,
     })
 }

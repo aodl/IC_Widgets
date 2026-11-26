@@ -9,6 +9,16 @@ type Assembled = record {
   bytes : nat32;
   "record" : opt RecordSummary;
 };
+type Assessment = variant {
+  IdentityUnresolved;
+  MatchesTarget;
+  ExceedsLimit;
+  WithinLimit;
+  ExceptionUnresolved;
+  DataIncomplete;
+  DiffersFromTarget;
+  AtLimit;
+};
 type Assignment = variant {
   UnknownNode;
   Replica : principal;
@@ -17,6 +27,7 @@ type Assignment = variant {
   Incomplete : text;
   Conflict : record { replicas : vec principal; api_boundary : bool };
 };
+type BreachChange = variant { New; Unchanged; Worsened; Improved; Resolved };
 type CandidateAssignment = variant {
   UnknownOutsideListedSubnets;
   NodeAbsent;
@@ -246,6 +257,7 @@ type LiveMembershipComparison = record {
   instructions : nat64;
   // Hash of the exact Candid argument bytes received by this update.
   input_hash : blob;
+  target_rows : opt vec TargetRow;
   analysis_version : nat16;
 };
 type LivePerformance = record {
@@ -267,19 +279,31 @@ type LiveReceipt = record {
 type LiveResponse = record {
   registry_version : opt nat64;
   usage : LiveUsage;
-  outcome : Result_7;
+  outcome : Result_2;
   receipts : vec LiveReceipt;
 };
 type LiveResponse_1 = record {
   registry_version : opt nat64;
   usage : LiveUsage;
-  outcome : Result_15;
+  outcome : Result_9;
   receipts : vec LiveReceipt;
 };
 type LiveResponse_2 = record {
   registry_version : opt nat64;
   usage : LiveUsage;
-  outcome : Result_32;
+  outcome : Result_11;
+  receipts : vec LiveReceipt;
+};
+type LiveResponse_3 = record {
+  registry_version : opt nat64;
+  usage : LiveUsage;
+  outcome : Result_14;
+  receipts : vec LiveReceipt;
+};
+type LiveResponse_4 = record {
+  registry_version : opt nat64;
+  usage : LiveUsage;
+  outcome : Result_21;
   receipts : vec LiveReceipt;
 };
 type LiveReview = record {
@@ -291,6 +315,7 @@ type LiveReview = record {
   scopes : vec LiveScope;
   // Listed subnet memberships actually checked.
   listed_subnets : nat32;
+  review_context : opt blob;
   proposal_text : opt vec ProposalText;
 };
 type LiveScope = record {
@@ -374,6 +399,14 @@ type MetricsRosterStatus = record {
   error : opt text;
   eligible_count : nat32;
   unsupported : vec principal;
+};
+type NnsTarget = record {
+  clause : text;
+  exception : opt text;
+  size : nat32;
+  country_cap : nat32;
+  group_cap : nat32;
+  sev_designated : bool;
 };
 type Node = record {
   operator : opt principal;
@@ -476,6 +509,25 @@ type Policy = record {
   warn_on_largest_share_increase : bool;
   version : nat16;
   concentration_rule : ConcentrationRule;
+};
+type PolicyMotion = record {
+  id : nat64;
+  raw : opt blob;
+  status : opt int32;
+  rule : opt NnsTarget;
+  issue : opt text;
+  raw_hash : opt blob;
+  retryable : bool;
+  observed_at : opt nat64;
+};
+type PolicySnapshot = record {
+  nns_retryable : bool;
+  nns_record : opt blob;
+  nns_issue : opt text;
+  digest : blob;
+  motion : opt PolicyMotion;
+  nns_mutation_version : opt nat64;
+  nns_subnet : opt principal;
 };
 type Position = record { latitude : float32; longitude : float32 };
 type ProbeBudget = record { migrated_from_m0 : bool; usage : Usage };
@@ -673,40 +725,44 @@ type RegistryStatus = record {
 type ReplyPage = record { bytes : blob; next_offset : opt nat32 };
 type Result = variant { Ok : ReviewJob; Err : text };
 type Result_1 = variant { Ok; Err : text };
-type Result_10 = variant { Ok : MetricConflictPage; Err : text };
-type Result_11 = variant { Ok : MetricRows; Err : text };
-type Result_12 = variant { Ok : MetricPage; Err : text };
-type Result_13 = variant { Ok : MetricsRosterStatus; Err : text };
-type Result_14 = variant { Ok : SubnetCollection; Err : text };
-type Result_15 = variant { Ok : LivePerformance; Err : LiveError };
-type Result_16 = variant { Ok : LiveResponse_1; Err : text };
-type Result_17 = variant { Ok : ProbeBudget; Err : text };
-type Result_18 = variant { Ok : Receipt; Err : text };
-type Result_19 = variant { Ok : Status; Err : text };
-type Result_2 = variant { Ok : CollectionStatus; Err : text };
-type Result_20 = variant { Ok : MembershipAction; Err : text };
-type Result_21 = variant { Ok : ProposalCapture; Err : text };
-type Result_22 = variant { Ok : CapturePage; Err : text };
-type Result_23 = variant { Ok : ProposalStatus; Err : text };
-type Result_24 = variant { Ok : PerformancePage; Err : text };
-type Result_25 = variant { Ok : Review; Err : text };
-type Result_26 = variant { Ok : Assignment; Err : text };
-type Result_27 = variant { Ok : KeyPage; Err : text };
-type Result_28 = variant { Ok : ProviderPage; Err : text };
-type Result_29 = variant { Ok : RecordAt; Err : text };
-type Result_3 = variant { Ok : LiveMembershipComparison; Err : text };
-type Result_30 = variant { Ok : RegistryStatus; Err : text };
-type Result_31 = variant { Ok : blob; Err : text };
-type Result_32 = variant { Ok : LiveReview; Err : LiveError };
-type Result_33 = variant { Ok : LiveResponse_2; Err : text };
-type Result_34 = variant { Ok : SourceObservation; Err : text };
-type Result_35 = variant { Ok : nat64; Err : text };
-type Result_4 = variant { Ok : DiscoveryStatus; Err : text };
-type Result_5 = variant { Ok : ReplyPage; Err : text };
-type Result_6 = variant { Ok : EvidenceManifest; Err : text };
-type Result_7 = variant { Ok : DetailRecords; Err : LiveError };
-type Result_8 = variant { Ok : LiveResponse; Err : text };
-type Result_9 = variant { Ok : ScopePage; Err : text };
+type Result_10 = variant { Ok : LiveResponse_1; Err : text };
+type Result_11 = variant { Ok : DetailRecords; Err : LiveError };
+type Result_12 = variant { Ok : LiveResponse_2; Err : text };
+type Result_13 = variant { Ok : ScopePage; Err : text };
+type Result_14 = variant { Ok : PolicySnapshot; Err : LiveError };
+type Result_15 = variant { Ok : LiveResponse_3; Err : text };
+type Result_16 = variant { Ok : MetricConflictPage; Err : text };
+type Result_17 = variant { Ok : MetricRows; Err : text };
+type Result_18 = variant { Ok : MetricPage; Err : text };
+type Result_19 = variant { Ok : MetricsRosterStatus; Err : text };
+type Result_2 = variant { Ok : LiveReview; Err : LiveError };
+type Result_20 = variant { Ok : SubnetCollection; Err : text };
+type Result_21 = variant { Ok : LivePerformance; Err : LiveError };
+type Result_22 = variant { Ok : LiveResponse_4; Err : text };
+type Result_23 = variant { Ok : ProbeBudget; Err : text };
+type Result_24 = variant { Ok : Receipt; Err : text };
+type Result_25 = variant { Ok : Status; Err : text };
+type Result_26 = variant { Ok : MembershipAction; Err : text };
+type Result_27 = variant { Ok : ProposalCapture; Err : text };
+type Result_28 = variant { Ok : CapturePage; Err : text };
+type Result_29 = variant { Ok : ProposalStatus; Err : text };
+type Result_3 = variant { Ok : LiveResponse; Err : text };
+type Result_30 = variant { Ok : PerformancePage; Err : text };
+type Result_31 = variant { Ok : Review; Err : text };
+type Result_32 = variant { Ok : Assignment; Err : text };
+type Result_33 = variant { Ok : KeyPage; Err : text };
+type Result_34 = variant { Ok : ProviderPage; Err : text };
+type Result_35 = variant { Ok : RecordAt; Err : text };
+type Result_36 = variant { Ok : RegistryStatus; Err : text };
+type Result_37 = variant { Ok : blob; Err : text };
+type Result_38 = variant { Ok : SourceObservation; Err : text };
+type Result_39 = variant { Ok : nat64; Err : text };
+type Result_4 = variant { Ok : CollectionStatus; Err : text };
+type Result_5 = variant { Ok : LiveMembershipComparison; Err : text };
+type Result_6 = variant { Ok : DiscoveryStatus; Err : text };
+type Result_7 = variant { Ok : ReplyPage; Err : text };
+type Result_8 = variant { Ok : EvidenceManifest; Err : text };
+type Result_9 = variant { Ok : vec ProposalEvidence; Err : LiveError };
 type Review = record {
   hypothetical_executed : opt bool;
   scenarios : vec Scenario;
@@ -922,6 +978,34 @@ type SuccessfulHistory = record {
   raw_hash : blob;
   collected_at : nat64;
 };
+type TargetGroup = record {
+  breach : opt BreachChange;
+  after : opt nat32;
+  assessment : Assessment;
+  before_assessment : Assessment;
+  group : Group;
+  before : opt nat32;
+};
+type TargetMetric = variant {
+  Size;
+  RegisteredCountry;
+  RegisteredOwner;
+  DataCenter;
+  Provider;
+};
+type TargetRow = record {
+  metric : TargetMetric;
+  breach : opt BreachChange;
+  groups : opt vec TargetGroup;
+  after : opt nat32;
+  assessment : Assessment;
+  limit : nat32;
+  before_assessment : Assessment;
+  // Selected group for the compact overview. Full assessments follow.
+  before : opt nat32;
+  unknown_after : nat32;
+  unknown_before : nat32;
+};
 type Threshold = record {
   nodes_required : nat32;
   // Populated only with full coverage.
@@ -959,53 +1043,60 @@ type Work = variant {
 service : (opt Sources) -> {
   advance_membership_review : (blob) -> (Result);
   authorize_verification : (nat64, Limits) -> (Result_1);
+  begin_membership_review : (vec nat64) -> (Result_3);
   capture_proposal : (nat64) -> (Result_1);
-  collection_status : () -> (Result_2);
+  collection_status : () -> (Result_4);
   // Replicated calculation over caller-supplied evidence. The scoped preview
   // and source receipts provide the scenario and Registry observations.
-  compare_membership_details : (DetailComparisonInput) -> (Result_3);
+  compare_membership_details : (DetailComparisonInput) -> (Result_5);
+  compare_membership_with_policy : (DetailComparisonInput, blob, blob) -> (
+      Result_5,
+    );
   configure_collection : (opt Limits) -> (Result_1);
   configure_collection_storage : (opt nat64) -> (Result_1);
   configure_registry_limits : (RegistryLimits) -> (Result_1);
-  discovery_status : () -> (Result_4);
-  evidence_bytes : (blob, nat32) -> (Result_5);
-  evidence_manifest : (opt nat64, vec nat64) -> (Result_6);
+  discovery_status : () -> (Result_6);
+  evidence_bytes : (blob, nat32) -> (Result_7);
+  evidence_manifest : (opt nat64, vec nat64) -> (Result_8);
+  finalize_membership_review : (blob) -> (Result_10);
   // Bounded replicated reads over completed reports. Generation remains controller-only.
   list_completed_reviews : () -> (vec CompletedReview);
-  membership_detail_page : (nat64, DetailKeys) -> (Result_8);
-  membership_review_page : (blob, nat32) -> (Result_5);
-  membership_review_scope : (ScopeRequest) -> (Result_9);
+  membership_context_detail_page : (blob, DetailKeys) -> (Result_12);
+  membership_detail_page : (nat64, DetailKeys) -> (Result_12);
+  membership_review_page : (blob, nat32) -> (Result_7);
+  membership_review_scope : (ScopeRequest) -> (Result_13);
   membership_review_status : (blob) -> (Result);
-  metric_conflicts : (principal, nat64, opt blob) -> (Result_10);
-  metric_sample_rows : (principal, nat64, opt principal) -> (Result_11);
-  metric_samples : (principal, nat64, nat64, opt nat64) -> (Result_12);
-  metrics_roster : () -> (Result_13);
-  metrics_status : (principal) -> (Result_14);
+  membership_target_topology : (blob, opt nat64) -> (Result_15);
+  metric_conflicts : (principal, nat64, opt blob) -> (Result_16);
+  metric_sample_rows : (principal, nat64, opt principal) -> (Result_17);
+  metric_samples : (principal, nat64, nat64, opt nat64) -> (Result_18);
+  metrics_roster : () -> (Result_19);
+  metrics_status : (principal) -> (Result_20);
   node_performance_on_demand : (principal, nat64, opt vec principal) -> (
-      Result_16,
+      Result_22,
     );
-  probe_budget : (nat64) -> (Result_17);
-  probe_receipt : (nat64, nat32) -> (Result_18);
-  probe_reply : (nat64, nat32, nat32) -> (Result_5);
-  probe_status : (nat64) -> (Result_19);
-  proposal_action : (nat64, opt nat64) -> (Result_20);
-  proposal_archive : (nat64, opt nat64) -> (Result_21);
-  proposal_history : (nat64, opt nat64) -> (Result_22);
-  proposal_status : (nat64) -> (Result_23);
-  read_membership_performance : (PerformanceRequest) -> (Result_24);
-  read_membership_review : (blob) -> (Result_25);
-  registry_assignment : (nat64, principal) -> (Result_26);
-  registry_keys : (nat64, opt text) -> (Result_27);
-  registry_provider : (nat64, principal, opt text) -> (Result_28);
-  registry_record : (nat64, RecordKey) -> (Result_29);
-  registry_status : () -> (Result_30);
-  request_membership_review : (ReviewRequest) -> (Result_31);
+  probe_budget : (nat64) -> (Result_23);
+  probe_receipt : (nat64, nat32) -> (Result_24);
+  probe_reply : (nat64, nat32, nat32) -> (Result_7);
+  probe_status : (nat64) -> (Result_25);
+  proposal_action : (nat64, opt nat64) -> (Result_26);
+  proposal_archive : (nat64, opt nat64) -> (Result_27);
+  proposal_history : (nat64, opt nat64) -> (Result_28);
+  proposal_status : (nat64) -> (Result_29);
+  read_membership_performance : (PerformanceRequest) -> (Result_30);
+  read_membership_review : (blob) -> (Result_31);
+  registry_assignment : (nat64, principal) -> (Result_32);
+  registry_keys : (nat64, opt text) -> (Result_33);
+  registry_provider : (nat64, principal, opt text) -> (Result_34);
+  registry_record : (nat64, RecordKey) -> (Result_35);
+  registry_status : () -> (Result_36);
+  request_membership_review : (ReviewRequest) -> (Result_37);
   retry_registry : () -> (Result_1);
-  review_on_demand : (vec nat64) -> (Result_33);
+  review_on_demand : (vec nat64) -> (Result_3);
   // One optional browser principal for a local or explicitly approved pilot.
   // The principal is cleared on upgrade and receives no controller permissions.
   set_on_demand_caller : (opt principal) -> (Result_1);
-  source_observation : (nat64) -> (Result_34);
-  start_probe : (ProbeRequest) -> (Result_35);
-  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_35);
+  source_observation : (nat64) -> (Result_38);
+  start_probe : (ProbeRequest) -> (Result_39);
+  start_probe_with_limits : (ProbeRequest, Limits) -> (Result_39);
 }

@@ -4,7 +4,7 @@ Enter one or two NNS proposal IDs and select **Review**. The browser starts memb
 
 Performance can read blockmaking samples for an independent subnet or follow the selected review with a named node filter. Changing the linked review scope clears its previous performance result. Sample times and sparse source rows are visible.
 
-See [map-first acceptance](../docs/map-first-review/README.md) for the browser setup and the uncoached review worksheet.
+See [Clear review and Target Topology](../docs/clear-review/README.md) for the current review options, recorded example and uncoached worksheet.
 
 ## Local proof of concept
 

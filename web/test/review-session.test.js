@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createReviewSession, serializeCalls } from '../src/review-session.js';
+import { affectedNodes, createReviewSession, serializeCalls } from '../src/review-session.js';
 import { shortIds } from '../src/detail-model.js';
 
 const deferred = () => {
@@ -34,9 +34,10 @@ test('a shared-slot request settles before the latest eligible request is sent',
   assert.deepEqual(calls, ['accepted', 'latest']);
 });
 
-function fixture({ firstPage, comparison, reject = () => false } = {}) {
+function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => false, finalize } = {}) {
   const recorded = [];
   const render = [];
+  const updates = [];
   const a = id('node-a');
   const b = id('node-b');
   const provider = id('provider');
@@ -46,9 +47,16 @@ function fixture({ firstPage, comparison, reject = () => false } = {}) {
     key: order, scenario: { id: { [order]: null } }, subnet, index: 1, rules: { kind: 2 },
     before: { members: [a] }, state: { members }, status: 'pending', failures: [],
   });
-  const one = context('AThenB', [b]);
+  const one = context(firstOrder, [b]);
   const two = context('BThenA', [a, b]);
   const client = {
+    membership_context_detail_page(_token, keys) {
+      return this.membership_detail_page(5n, keys);
+    },
+    membership_target_topology() {
+      return { Ok: { registry_version: [5n], outcome: { Ok: { digest: [], motion: [], nns_issue: [] } } } };
+    },
+    finalize_membership_review: finalize,
     async membership_detail_page(version, keys) {
       const [[kind, values]] = Object.entries(keys);
       recorded.push({ kind, values });
@@ -63,16 +71,17 @@ function fixture({ firstPage, comparison, reject = () => false } = {}) {
   };
   const serialize = serializeCalls();
   const session = createReviewSession({
-    live: { outcome: { Ok: { report: { manifest: { registry_version: 5n }, revision: [9] } } } },
+    live: { outcome: { Ok: { review_context: finalize ? [[7]] : [],
+      report: { manifest: { registry_version: 5n }, revision: [9] } } } },
     contexts: [one, two], active: () => true, call: (active, run) => serialize(active, () => run(client)),
     compare: async (_, input) => {
       recorded.push({ kind: 'comparison', values: input.after });
       await comparison?.();
       return { inputHash: input.after.length + '-' + input.data_centers.length, comparison: {} };
     },
-    updated: ctx => render.push(ctx.key), phase() {},
+    updated: ctx => render.push(ctx?.key), progress: state => updates.push(state),
   });
-  return { session, recorded, render, one, two };
+  return { session, recorded, render, updates, one, two };
 }
 
 test('switching orders during a source page prioritizes the selected order and reuses its evidence', async () => {
@@ -96,6 +105,23 @@ test('switching orders during a source page prioritizes the selected order and r
   assert.equal(recorded.length, calls);
 });
 
+test('progress counts settled records and stays active until both ordered comparisons settle', async () => {
+  const hold = deferred();
+  const began = deferred();
+  const { session, updates, one } = fixture({ firstPage: () => {
+    began.resolve();
+    return hold.promise;
+  } });
+  session.select(one);
+  await began.promise;
+  assert.deepEqual(updates.at(-1).counts, { planned: 2, settled: 0, present: 0, absent: 0, failed: 0, inFlight: 2 });
+  hold.resolve();
+  await session.settled();
+  assert.ok(updates.some(state => state.stage === 'Nodes' && state.counts?.settled === 2));
+  assert.ok(updates.some(state => state.stage === 'Comparison' && state.remaining === 1 && state.work === 'running'));
+  assert.equal(updates.at(-1).work, 'settled');
+});
+
 test('retry targets failed metadata, keeps successful observations and copies accepted inputs', async () => {
   let fails = true;
   const { session, recorded, one } = fixture({ reject: kind => fails && kind === 'DataCenters' });
@@ -108,10 +134,27 @@ test('retry targets failed metadata, keeps successful observations and copies ac
   const before = recorded.length;
   session.retry();
   await session.settled();
-  assert.deepEqual(recorded.slice(before).map(row => row.kind), ['DataCenters', 'comparison']);
+  assert.deepEqual(recorded.slice(before).map(row => row.kind), ['DataCenters', 'comparison', 'comparison']);
   assert.equal(one.status, 'available');
   assert.ok(old.DataCenters.get('known')[1].Unavailable);
   assert.ok(one.calculation.evidence.DataCenters.get('known')[1].Present);
+});
+
+test('a confirmed Governance change blocks later enrichment for the same preview', async () => {
+  const { session, recorded, one, two } = fixture({
+    finalize: async () => ({ Ok: { outcome: { Err: { ProposalChanged: { id: 7n } } } } }),
+  });
+  two.subnet = id('another subnet');
+  session.select(one);
+  await session.settled();
+  assert.equal(session.section().stage, 'Blocked');
+  assert.equal(session.section().consistency.blocked, true);
+  const calls = recorded.length;
+  session.select(two);
+  await session.settled();
+  assert.equal(recorded.length, calls);
+  assert.equal(session.section().stage, 'Blocked');
+  assert.equal(two.calculation, undefined);
 });
 
 test('stop waits for the accepted page and schedules no follow-up calls', async () => {
@@ -121,8 +164,10 @@ test('stop waits for the accepted page and schedules no follow-up calls', async 
   session.select(one);
   await began.promise;
   session.stop();
+  assert.equal(session.section().work, 'stopping');
   hold.resolve();
   await session.settled();
+  assert.equal(session.section().work, 'stopped');
   assert.deepEqual(recorded.map(row => row.kind), ['Nodes']);
 });
 
@@ -136,7 +181,7 @@ test('stop leaves an accepted comparison out of the stopped workspace', async ()
   hold.resolve();
   await session.settled();
   assert.equal(one.calculation, undefined);
-  assert.deepEqual(recorded.map(row => row.kind), ['Nodes', 'Operators', 'comparison']);
+  assert.deepEqual(recorded.map(row => row.kind), ['Nodes', 'Operators', 'DataCenters', 'comparison']);
 });
 
 test('shortened principals remain distinct when both ends collide', () => {
@@ -144,4 +189,24 @@ test('shortened principals remain distinct when both ends collide', () => {
   const labels = shortIds(ids);
   assert.notEqual(labels.get(ids[0]), labels.get(ids[1]));
   assert.ok(ids.every(key => labels.get(key).includes('…')));
+});
+
+test('the affected Performance scope includes transient nodes but excludes untouched members and other subnets', () => {
+  const [retained, outgoing, incoming, unrelated, subnet, otherSubnet] =
+    ['retained', 'outgoing', 'incoming', 'unrelated', 'subnet', 'other subnet'].map(id);
+  const baseline = { members: [retained, outgoing] };
+  const context = { subnet, scenario: {
+    steps: [
+      { requested: { Change: { subnet, add: [incoming], remove: [outgoing] } } },
+      { requested: { Remove: { nodes: [incoming, unrelated] } } },
+      { requested: { Add: { subnet: otherSubnet, nodes: [unrelated] } } },
+    ],
+    subnets: [[subnet, { baseline, after_steps: [
+      [{ members: [retained, incoming], added: [incoming], removed: [outgoing] }],
+      [{ members: [retained], added: [], removed: [outgoing] }],
+      [],
+    ] }]],
+  } };
+  assert.deepEqual(affectedNodes(context, { nodes: [retained, outgoing, incoming, unrelated] }), [outgoing, incoming]);
+  assert.deepEqual(affectedNodes(context, undefined), []);
 });

@@ -135,6 +135,7 @@ fn list(request: ListRequest) -> ListResponse {
 thread_local! {
     static DEMO_PROPOSAL: std::cell::RefCell<Option<(u64, Vec<u8>)>> = const { std::cell::RefCell::new(None) };
     static VOTING_REGISTRY: std::cell::RefCell<Option<VotingRegistry>> = const { std::cell::RefCell::new(None) };
+    static VOTING_GOVERNANCE_FAILURE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 struct VotingRegistry {
@@ -145,8 +146,32 @@ struct VotingRegistry {
 #[ic_cdk::update]
 fn load_voting_reference() {
     assert!(ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()));
-    let (version, rows): (u64, Vec<(String, Vec<u8>)>) =
+    VOTING_GOVERNANCE_FAILURE.set(false);
+    let (version, mut rows): (u64, Vec<(String, Vec<u8>)>) =
         candid::decode_args(include_bytes!("../data/144954/registry.didbin")).unwrap();
+    use nexus_ic_sources::registry::wire::types::v1::{PrincipalId, SubnetId};
+    let target = rows
+        .iter()
+        .find_map(|(key, _)| key.strip_prefix("subnet_record_tdb26-"))
+        .map(|suffix| Principal::from_text(format!("tdb26-{suffix}")).unwrap())
+        .unwrap();
+    rows.push((
+        "nns_subnet_id".into(),
+        HighCapacityRegistryGetValueResponse {
+            error: None,
+            version,
+            timestamp_nanoseconds: 0,
+            content: Some(high_capacity_registry_get_value_response::Content::Value(
+                SubnetId {
+                    principal_id: Some(PrincipalId {
+                        raw: target.as_slice().to_vec(),
+                    }),
+                }
+                .encode_to_vec(),
+            )),
+        }
+        .encode_to_vec(),
+    ));
     VOTING_REGISTRY.set(Some(VotingRegistry {
         version,
         replies: rows
@@ -167,6 +192,7 @@ fn set_voting_review_fixture(mode: u8) {
         assert!(ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()));
         VOTING_REGISTRY.set(None);
         DEMO_PROPOSAL.set(None);
+        VOTING_GOVERNANCE_FAILURE.set(false);
         return;
     }
     load_voting_reference();
@@ -216,15 +242,22 @@ fn set_voting_review_fixture(mode: u8) {
                 *reply = outer.encode_to_vec();
             }
         }),
-        4 => {
+        4 | 7 => {
             let mut captured: Option<ProposalInfo> =
                 candid::decode_one(include_bytes!("../data/144954/governance.didbin")).unwrap();
             let proposal = captured.as_mut().unwrap();
-            proposal.status = 4;
-            proposal.executed_timestamp_seconds = proposal.proposal_timestamp_seconds + 60;
-            proposal.decided_timestamp_seconds = Some(proposal.executed_timestamp_seconds);
+            if mode == 4 {
+                proposal.status = 4;
+                proposal.executed_timestamp_seconds = proposal.proposal_timestamp_seconds + 60;
+                proposal.decided_timestamp_seconds = Some(proposal.executed_timestamp_seconds);
+            } else {
+                proposal.proposal.as_mut().unwrap().action = Some(Action::Motion {
+                    motion_text: "Fixture changed action".into(),
+                });
+            }
             set_demo_proposal(144_954, encode_one(captured).unwrap());
         }
+        6 => VOTING_GOVERNANCE_FAILURE.set(true),
         _ => panic!("unknown reference fixture"),
     }
 }
@@ -242,6 +275,13 @@ fn set_demo_proposal(id: u64, reply: Vec<u8>) {
 
 #[ic_cdk::query(manual_reply = true)]
 fn get_proposal_info(id: u64) {
+    if id == 144_954 && VOTING_GOVERNANCE_FAILURE.get() {
+        ic_cdk::trap("Temporary fixture Governance failure");
+    }
+    if id == 143_190 {
+        msg_reply(include_bytes!("../data/143190/governance.didbin"));
+        return;
+    }
     if DEMO_PROPOSAL.with_borrow(|capture| {
         if let Some((expected, bytes)) = capture
             && *expected == id

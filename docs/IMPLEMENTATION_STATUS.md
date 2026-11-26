@@ -1,5 +1,9 @@
 # Implementation status
 
+## Clear review and Target Topology
+
+Membership reports settlement counts and keeps a persistent work state. The map and the selected Target Topology comparison share one inspector. Analysis version 5 preserves registered geography tokens and evaluates the supported NNS rules from an explicitly selected Governance motion. The pinned Registry establishes the NNS role, and Governance is checked again after enrichment. [Local walkthrough and source scope](clear-review/README.md)
+
 ## On-demand membership and performance
 
 Membership now resolves the target subnets and proposal-candidate records at a pinned Registry version. An untargeted removal still resolves every listed subnet membership. The result identifies the checked and total listed subnet counts and distinguishes known assignments from unknown assignments. The same simulation calculates both execution orders and retains the final Governance recheck. Node Performance can use the preview's scope as a filter. [Architecture](ARCHITECTURE.md) · [Local use](../web/README.md)

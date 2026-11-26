@@ -30,13 +30,25 @@
     <section class="search-shell" aria-label="Review a proposal">
       <form id="search">
         <label>Proposal ID <input name="first" inputmode="numeric" pattern="[0-9]+" maxlength="20" required></label>
-        <label>Second proposal ID <small>(optional)</small> <input name="second" inputmode="numeric" pattern="[0-9]+" maxlength="20"></label>
         <button class="primary">Review</button>
         <button type="button" id="stop-review" hidden>Stop</button>
+        <details id="review-options">
+          <summary>Review options</summary>
+          <div class="controls">
+            <label>Second proposal ID <input name="second" inputmode="numeric" pattern="[0-9]+" maxlength="20"></label>
+            <label>Reference motion override <input name="policy" inputmode="numeric" pattern="[0-9]+" maxlength="20"></label>
+          </div>
+        </details>
       </form>
+      <p id="search-error" class="error status" role="alert"></p>
       <div class="status-row">
         <p id="report-status" class="status" role="status"></p>
         <p id="review-elapsed" class="muted" aria-hidden="true"></p>
+      </div>
+      <div id="review-progress" class="review-progress" hidden>
+        <ol id="review-stages" aria-label="Review stages"></ol>
+        <progress aria-label="Current review phase"></progress>
+        <span id="review-counts"></span>
       </div>
     </section>
     <div id="report"></div>

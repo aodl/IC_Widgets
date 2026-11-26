@@ -10,7 +10,7 @@ pub const MAX_RECORD_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_PAGE_MUTATIONS: u32 = 40_000;
 pub const DECODER_REVISION: &str = "m1.2-registry";
 
-#[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RecordKey {
     SubnetList,
     Subnet(Principal),

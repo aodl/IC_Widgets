@@ -1,22 +1,34 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { markdownTable, reviewMarkdown } from '../src/review-markdown.js';
+import { reviewMarkdown } from '../src/review-markdown.js';
+import { metricDelta } from '../src/detail-model.js';
 import { clusters } from '../src/review-map.js';
 
-test('Markdown uses shared factual rows and safely escapes source table data', () => {
-  const fact = { title: 'Decentralisation and concentration', headers: ['Dimension', 'Value'],
-    rows: [['Registered owner', '13 / 14 nodes → 12 / 14 nodes'], [{ label: 'Site | <b>A</b>', url: 'https://example.test/site' }, 3]] };
-  const model = { ids: ['144954'], version: 66013n, subnet: 'tdb26', subnetLink: { url: 'https://example.test/subnet' },
-    membership: '40 → 40 members', stateLabel: 'After proposal #144954', scenario: 'A independently',
-    consequences: [], notes: ['Evidence is scoped'], dimensions: [], tables: [fact], payloads: [] };
+test('Markdown uses the accepted topology rows and escapes registered labels', () => {
+  const model = {
+    ids: ['144954'], version: 66013n, subnet: 'tdb26', membership: '40 members · +1 added · −1 removed',
+    stateLabel: 'After proposal #144954', scenario: 'Proposal #144954', previewRevision: '00', governance: [],
+    policyText: 'Compared with adopted motion #143190', finalVerified: true, gaps: true, members: [], notes: ['Evidence is scoped'],
+    topology: [{ label: 'Site | <b>A</b>', ready: true, delta: metricDelta(2, 3), limit: '1 cap · exception', assessment: 'Exception unresolved' }],
+  };
   const result = reviewMarkdown(model, { vote: 'Adopt', tldr: 'Written by the reviewer', mapImage: 'https://example.test/map.png' });
   assert.match(result, /^# Proposal #144954 Review/);
   assert.match(result, /\*\*VOTE\*\*: Adopt/);
   assert.match(result, /\*\*TLDR\*\*: Written by the reviewer/);
-  assert.match(result, /\[\!|!\[Registry data-center map\]/);
-  assert.ok(result.includes(markdownTable(fact)));
+  assert.match(result, /Finished with gaps/);
+  assert.ok(result.includes('1 cap · exception'));
+  assert.ok(result.includes('3 (+1)'));
   assert.ok(result.includes('Site \\| &lt;b&gt;A&lt;/b&gt;'));
+  assert.match(reviewMarkdown({ ...model, finalVerified: false }), /Provisional · Final Governance verification unavailable/);
   assert.ok(!reviewMarkdown(model, { mapImage: 'javascript:alert(1)' }).includes('javascript:'));
+});
+
+test('delta formatting preserves signs and percentage-point units without repeated values or negative zero', () => {
+  assert.equal(metricDelta(28, 28).text, '28');
+  assert.equal(metricDelta(13, 12).text, '12 (−1)');
+  assert.equal(metricDelta(5, 7.5, { percentage: true }).text, '7.5% (+2.5 percentage points)');
+  assert.equal(metricDelta(5.001, 5, { percentage: true }).text, '5%');
+  assert.equal(metricDelta(2, undefined).text, 'Not recorded on-chain');
 });
 
 test('overlapping sites preserve their distinct roles and omit unknown and filtered nodes', () => {

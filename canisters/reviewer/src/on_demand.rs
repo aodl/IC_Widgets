@@ -1,10 +1,12 @@
 //! Bounded, request-local source reads. No archive or collector participates.
 mod detail;
+mod policy;
 mod registry;
 
 use std::{cell::Cell, collections::BTreeSet};
 
 pub use detail::{DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison};
+pub use policy::PolicySnapshot;
 
 use candid::{CandidType, Principal, encode_one};
 use futures_util::future::join_all;
@@ -113,6 +115,7 @@ pub struct LiveReview {
     pub scopes: Vec<LiveScope>,
     pub proposal_text: Option<Vec<ProposalText>>,
     pub subnet_rules: Option<Vec<SubnetRules>>,
+    pub review_context: Option<Hash>,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -191,6 +194,15 @@ impl Drop for RequestGuard {
 
 #[ic_cdk::update]
 async fn review_on_demand(ids: Vec<u64>) -> Result<LiveResponse<LiveReview>, String> {
+    preview(ids, false).await
+}
+
+#[ic_cdk::update]
+async fn begin_membership_review(ids: Vec<u64>) -> Result<LiveResponse<LiveReview>, String> {
+    preview(ids, true).await
+}
+
+async fn preview(ids: Vec<u64>, contextual: bool) -> Result<LiveResponse<LiveReview>, String> {
     let guard = RequestGuard::acquire()?;
     if !(1..=2).contains(&ids.len()) || ids.contains(&0) || (ids.len() == 2 && ids[0] == ids[1]) {
         return Err("select one or two distinct positive proposal IDs".into());
@@ -201,7 +213,13 @@ async fn review_on_demand(ids: Vec<u64>) -> Result<LiveResponse<LiveReview>, Str
     } else {
         Sources::canonical()
     };
-    let outcome = review(&mut request, sources, &ids).await;
+    let mut outcome = review(&mut request, sources, &ids).await;
+    if contextual && let Ok(review) = &mut outcome {
+        review.review_context = Some(policy::begin(
+            &review.report,
+            review.subnet_rules.as_deref().unwrap_or_default(),
+        ));
+    }
     Ok(request.finish(outcome))
 }
 
@@ -260,18 +278,7 @@ async fn review(
     for ((before, _), (after, _)) in initial.iter().zip(&current) {
         let before = &before.evidence;
         let after = &after.evidence;
-        if before.lifecycle_status != after.lifecycle_status
-            || before.executed_at_seconds != after.executed_at_seconds
-            || before.proposed_at_seconds != after.proposed_at_seconds
-            || before.function != after.function
-            || before.payload_hash != after.payload_hash
-        {
-            return Err(LiveError::ProposalChanged {
-                id: after.id,
-                status: after.lifecycle_status,
-                observation: after.observation,
-            });
-        }
+        check_proposal(before, after)?;
     }
     let subnet_rules = baseline
         .subnets
@@ -314,7 +321,24 @@ async fn review(
         scopes,
         proposal_text: Some(proposal_text),
         subnet_rules: Some(subnet_rules),
+        review_context: None,
     })
+}
+
+fn check_proposal(before: &ProposalEvidence, after: &ProposalEvidence) -> Result<(), LiveError> {
+    if before.lifecycle_status != after.lifecycle_status
+        || before.executed_at_seconds != after.executed_at_seconds
+        || before.proposed_at_seconds != after.proposed_at_seconds
+        || before.function != after.function
+        || before.payload_hash != after.payload_hash
+    {
+        return Err(LiveError::ProposalChanged {
+            id: after.id,
+            status: after.lifecycle_status,
+            observation: after.observation,
+        });
+    }
+    Ok(())
 }
 
 async fn proposals(

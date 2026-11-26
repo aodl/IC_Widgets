@@ -15,7 +15,7 @@ mod store;
 use candid::Principal;
 use nexus_domain::{Hash, MembershipAction};
 pub use nexus_ic_sources::projection::RecordKey;
-use nexus_review_engine::Review;
+use nexus_review_engine::{ProposalEvidence, Review};
 
 pub use budget::{Limits, Stop, Usage};
 pub use diagnostics::{ProbeBudget, ReplyPage, Status};
@@ -32,6 +32,7 @@ pub use model::{Observation, ProbeRequest, Receipt, Sources};
 pub use on_demand::{
     CandidateAssignment, DetailComparisonInput, DetailKeys, DetailRecords, LiveError,
     LiveMembershipComparison, LivePerformance, LiveReceipt, LiveResponse, LiveReview, LiveUsage,
+    PolicySnapshot,
 };
 pub use registry_sync::{
     Assignment, KeyPage, ProviderPage, RecordAt, RecordEvidence, RegistryBlock, RegistryLimit,

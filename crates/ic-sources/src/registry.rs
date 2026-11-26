@@ -22,6 +22,16 @@ pub const MAX_CHUNKS: usize = 4;
 pub const MAX_RECORD_BYTES: usize = 6 * 1024 * 1024;
 pub const MAX_STAGED_MUTATIONS: u32 = 8192;
 pub const MISSING_KEY: &str = "network_nexus_m0_missing_key";
+pub const NNS_SUBNET_KEY: &str = "nns_subnet_id";
+
+pub fn nns_subnet(bytes: &[u8]) -> Result<Principal, String> {
+    let id = wire::types::v1::SubnetId::decode(bytes).map_err(|error| error.to_string())?;
+    let raw = id.principal_id.ok_or("NNS subnet ID has no principal")?.raw;
+    if raw.is_empty() {
+        return Err("NNS subnet principal is empty".into());
+    }
+    Principal::try_from_slice(&raw).map_err(|error| error.to_string())
+}
 
 #[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
 pub enum Key {
