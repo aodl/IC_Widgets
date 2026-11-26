@@ -6,13 +6,39 @@ Start the ordinary Network Nexus frontend and reviewer against committed local i
 ./scripts/dev-review-fixture.sh --case nns-144954-recorded-open
 ```
 
-Open the printed URL and click **Review**. The **Replay scenario** menu switches between preloaded contexts and fills the proposal IDs. Wait for the new page before clicking **Review**. The replay uses the same staged review, map, policy comparison and export as the ordinary application. Each menu entry has an isolated local reviewer and source-canister instance. Switching pages supersedes the old browser session and never changes another case’s records.
+Open the printed URL and click **Review**. The **Replay scenario** menu switches between preloaded contexts, fills the proposal IDs and shows the purpose of the selected case. Wait for the new page before clicking **Review**. The replay uses the same staged review, map, policy comparison and export as the ordinary application. Each menu entry has an isolated local reviewer and source-canister instance. Switching pages supersedes the old browser session and never changes another case’s records. Executed, Rejected and Failed cases open a recorded outcome with source receipts. A membership comparison and its export require a supported prospective state.
 
 The launcher defaults to port 4971. Use `--port PORT` for a separate project or add `--single` to provision only the starting case. Use the printed `dfx stop` command to stop the isolated replica. Starting again creates a fresh project under `.local/review-fixtures.*`. Once stopped, the specific printed project directory can be removed.
 
 Provision the pinned Rust toolchain, Wasm target, DFX 0.31, `codex_local` identity, Protobuf compiler, `candid-extractor` 0.1.6 and Node dependencies before going offline. Run `dfx cache install`, `cargo fetch --locked` and `npm --prefix web ci` during setup. The launcher builds with `cargo --offline`, uses caching across selections, and requires the existing DFX runtime. If `POCKET_IC_BIN` is configured, it checks for the prepared 14.0.0 executable. Browser replay uses the DFX-bundled local replica. Focused Rust integration tests use the separately prepared PocketIC server.
 
 The browser signs its local updates with a fresh in-memory identity. The launcher uses a reviewer feature that accepts these identities only when Governance and Registry both point to the same explicit noncanonical fixture source. Ordinary local-fixture tests still exercise the pilot admission path. The production build rejects source overrides, the fixture loader requires a local controller, and the production frontend bundle excludes the menu and corpus.
+
+## Browser access to the Azure VM
+
+1. On the VM, start the launcher from the Network Nexus checkout and wait for the `Open http://…localhost:4971/` line. The replica gateway binds to `127.0.0.1:4971`.
+2. On your computer, keep an SSH tunnel open through your existing authenticated VM route. For a VPN or jump-host SSH alias, use the command below with that alias.
+
+   ```bash
+   ssh -N -T -o ExitOnForwardFailure=yes -o GatewayPorts=no -L 127.0.0.1:4971:127.0.0.1:4971 AZURE_SSH_ALIAS
+   ```
+
+3. Open the exact canister-specific `*.localhost:4971` URL printed by the launcher. The hostname identifies the frontend canister to the local gateway. Both endpoints of the SSH forward use loopback. [OpenSSH forwarding](https://man.openbsd.org/ssh)
+
+If your VM uses an existing Azure Bastion with native-client support, run the following on your computer in two terminals. Sign in with the account authorized for that VM, substitute the Bastion and VM details from Azure, and use the existing VM SSH login. Verify the VM's SSH host key as for a direct connection. [Azure Bastion native-client tunnel](https://learn.microsoft.com/en-us/azure/bastion/connect-vm-native-client-linux#connect-to-a-vm---tunnel-command)
+
+```bash
+az login
+az network bastion tunnel --name BASTION_NAME --resource-group BASTION_RESOURCE_GROUP --target-resource-id VM_RESOURCE_ID --resource-port 22 --port 2222
+```
+
+```bash
+ssh -p 2222 -N -T -o ExitOnForwardFailure=yes -o GatewayPorts=no -L 127.0.0.1:4971:127.0.0.1:4971 VM_USER@127.0.0.1
+```
+
+Use Ctrl+C to close the workstation tunnel. To stop the replica, run the command printed by the launcher on the VM. To restart, run the launcher again and use its new URL. Reopen the SSH forward if the port changed or the tunnel was closed. Keep the replica, the forwarded port and the management endpoints on loopback. Development replay assets also require a loopback browser origin.
+
+Verification covered the VM's loopback listener, the exact canister hostname and the SSH client's loopback forwarding configuration. Workstation sign-in uses your existing Azure network route and credentials.
 
 ## Evidence matrix
 
@@ -32,6 +58,10 @@ The [catalogue](../../tests/source-fixture/data/catalogue.json) indexes 25 exact
 Synthetic data-center coordinates and provider associations are local constructions. An explicitly missing key and an uncaptured key use different wire outcomes. Synthetic versions 99 and 100 exercise older record mutations at the pinned version. The chunk cases use byte-addressed synthetic data, with an explicitly corrupted variant. The recorded policy reply for #143190 is a selected reference. Current policy applicability and later amendments remain unverified.
 
 The original 144954 Governance reply was observed at 13:08:13.589 UTC on 25 November 2026. The separate policy reply was observed at 07:24:41.619 UTC on 26 November. PocketIC starts from the manifest clock and advances deterministically. Interactive replica receipt times are local observations. Both paths preserve original source payload timestamps and replay provenance.
+
+## Boundary Node follow-up
+
+The launcher, versioned evidence resolution, action dispatch, Registry record parsing, progress, inspector and export provenance can serve a future Boundary workflow. A Boundary review needs its own pool membership rules. It will have to verify candidate eligibility, role record updates, execution order and Boundary-specific version deployments. Removing an API Boundary role concerns the boundary record. Registry node removal is a separate operation. The fixture corpus already exercises these distinctions alongside the recorded Boundary outcomes.
 
 ## Verification commands
 
@@ -58,11 +88,12 @@ The starter pack’s discovery experiments used identical filters across pages a
 ## Browser captures
 
 - [Recorded NNS replacement on desktop](artifacts/recorded-desktop.png) and [at 390 pixels](artifacts/recorded-mobile.png)
-- [A held location request](artifacts/loading-locations.png), [missing coordinates after settlement](artifacts/missing-locations.png) and [an executed proposal](artifacts/executed-terminal.png)
+- [A held location request](artifacts/loading-locations.png) and [missing coordinates after settlement](artifacts/missing-locations.png)
+- Terminal outcomes for [Executed](artifacts/executed-terminal.png), [Rejected](artifacts/rejected-terminal.png) and [Failed](artifacts/failed-terminal.png)
 - [The removal-first intermediate state](artifacts/constructed-intermediate.png)
 - [Exported Markdown](artifacts/recorded-review.md), [exact calculation input](artifacts/recorded-calculation.didbin) and [checksums](artifacts/SHA256SUMS)
 
-The six-case replay walkthrough and eleven existing browser scenarios passed. The recorded review matched the exported calculation digest and showed 41 mapped points across both membership states. Holding a reply kept the coordinates in the pending count. The missing shared coordinates left 38 of 41 points mapped after settlement. Returning to the calculated subnet reused its comparison and delayed export until final Governance verification. The replay walkthrough attempted zero nonlocal requests.
+The eight-case replay walkthrough, eleven existing browser scenarios and fifteen frontend unit tests passed. The recorded review matched the exported calculation digest and showed 41 mapped nodes across both membership states. Holding a reply kept the coordinates in the pending count. The missing shared coordinates left 38 of 41 nodes mapped after settlement. Returning to the calculated subnet reused its comparison and delayed export until final Governance verification. Executed, Rejected and Failed outcomes showed source receipts and skipped enrichment. The replay walkthrough attempted zero nonlocal requests. A production build test also rejected a replay manifest.
 
 The focused PocketIC matrix passed all 23 named cases and preserved the Registry and collection checkpoints. These measurements cover its preview update after loading the fixture. They use local PocketIC pricing and exclude policy comparison and browser enrichment.
 

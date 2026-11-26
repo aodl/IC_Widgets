@@ -16,7 +16,7 @@
         "recorded-open"
       ],
       "support": "local-resolver",
-      "purpose": "NNS replacement",
+      "purpose": "Replay the recorded NNS replacement and inspect its map, policy checks, and export.",
       "action_evidence": [
         {
           "proposal_id": "144954",
@@ -81,7 +81,7 @@
         "recorded-open"
       ],
       "support": "local-resolver",
-      "purpose": "Evidence arrives slowly",
+      "purpose": "Watch the staged progress while location evidence arrives slowly.",
       "action_evidence": [
         {
           "proposal_id": "144954",
@@ -146,7 +146,7 @@
         "recorded-open"
       ],
       "support": "local-resolver",
-      "purpose": "Metadata missing",
+      "purpose": "See how a missing location changes map coverage without blocking the review.",
       "action_evidence": [
         {
           "proposal_id": "144954",
@@ -211,7 +211,7 @@
         "recorded-open"
       ],
       "support": "local-resolver",
-      "purpose": "Location request fails",
+      "purpose": "Distinguish a rejected location request from a missing location.",
       "action_evidence": [
         {
           "proposal_id": "144954",
@@ -276,7 +276,7 @@
         "recorded-open"
       ],
       "support": "local-resolver",
-      "purpose": "Open then executed",
+      "purpose": "Exercise the final Governance check when a proposal executes during enrichment.",
       "action_evidence": [
         {
           "proposal_id": "144954",
@@ -346,7 +346,7 @@
         "recorded-open"
       ],
       "support": "local-resolver",
-      "purpose": "Final Governance read fails",
+      "purpose": "Exercise retry after a failed final Governance read.",
       "action_evidence": [
         {
           "proposal_id": "144954",
@@ -411,7 +411,7 @@
         "indexed-executed"
       ],
       "support": "local-resolver",
-      "purpose": "Executed proposal",
+      "purpose": "Inspect the recorded execution outcome and its historical evidence limit.",
       "action_evidence": [
         {
           "proposal_id": "144954",
@@ -471,7 +471,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Two in, two out",
+      "purpose": "Compare two incoming and two outgoing nodes in one proposed change.",
       "action_evidence": [
         {
           "proposal_id": "144940",
@@ -564,7 +564,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Three nodes added",
+      "purpose": "Inspect membership growth when a change has additions only.",
       "action_evidence": [
         {
           "proposal_id": "135053",
@@ -653,7 +653,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Six nodes removed",
+      "purpose": "Inspect membership reduction when a change has removals only.",
       "action_evidence": [
         {
           "proposal_id": "142931",
@@ -754,7 +754,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Four additions and one removal",
+      "purpose": "Check net membership growth when additions and removals differ.",
       "action_evidence": [
         {
           "proposal_id": "132483",
@@ -848,7 +848,7 @@
         "indexed-rejected"
       ],
       "support": "local-resolver",
-      "purpose": "Rejected proposal",
+      "purpose": "Inspect the recorded voting outcome and the unavailable membership comparison.",
       "action_evidence": [
         {
           "proposal_id": "139792",
@@ -917,7 +917,7 @@
       },
       "provenance": "Synthetic Registry 100 · Indexed rejected",
       "fault": null,
-      "menu": false,
+      "menu": true,
       "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
       "replay_clock_unix_seconds": "1795696512"
     },
@@ -936,7 +936,7 @@
         "indexed-failed"
       ],
       "support": "local-resolver",
-      "purpose": "Failed proposal",
+      "purpose": "Inspect the recorded execution failure and its indexed error.",
       "action_evidence": [
         {
           "proposal_id": "140988",
@@ -1004,7 +1004,7 @@
       },
       "provenance": "Synthetic Registry 100 · Indexed failed",
       "fault": null,
-      "menu": false,
+      "menu": true,
       "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
       "replay_clock_unix_seconds": "1795696512",
       "indexed_failure_reason": "Error executing ExecuteNnsFunction proposal. Error Code: 5. Rejection message: IC0503: Error from Canister rwlgt-iiaaa-aaaaa-aaaaa-cai: Canister called `ic0.trap` with message: 'Panicked at 'Nodes that should be removed do not belong to the provided subnet.', rs/registry/canister/src/mutations/do_change_subnet_membership.rs:38:13'.\nConsider gracefully handling failures from this canister or altering the canister to handle exceptions. See documentation: https://internetcomputer.org/docs/current/references/execution-errors#trapped-explicitly"
@@ -1024,7 +1024,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Outgoing node absent",
+      "purpose": "Check the error when the outgoing node is absent from the named subnet.",
       "action_evidence": [
         {
           "proposal_id": "140988",
@@ -1113,7 +1113,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Separate add/remove proposals",
+      "purpose": "Switch between both orders and examine their intermediate membership states.",
       "action_evidence": [
         {
           "proposal_id": "85612",
@@ -1204,7 +1204,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Untargeted removals in one subnet",
+      "purpose": "Resolve an untargeted removal from the single fixture subnet that contains the requested nodes.",
       "action_evidence": [
         {
           "proposal_id": "132102",
@@ -1290,7 +1290,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Untargeted removals across two subnets",
+      "purpose": "Switch subnets while enriching the effects of an untargeted removal.",
       "action_evidence": [
         {
           "proposal_id": "132102",
@@ -1383,7 +1383,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Untargeted removals with no matches",
+      "purpose": "Check an untargeted removal with no matching subnet membership.",
       "action_evidence": [
         {
           "proposal_id": "132102",
@@ -1466,7 +1466,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Untargeted removals with an uncaptured listed subnet",
+      "purpose": "Check how missing subnet evidence blocks resolution of an untargeted removal.",
       "action_evidence": [
         {
           "proposal_id": "132102",
@@ -1555,7 +1555,7 @@
         "constructed-adopted"
       ],
       "support": "local-resolver",
-      "purpose": "Adopted lifecycle variant",
+      "purpose": "Review a constructed Adopted lifecycle before execution.",
       "action_evidence": [
         {
           "proposal_id": "135053",
@@ -1644,7 +1644,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Chunked location",
+      "purpose": "Verify location evidence assembled from recorded fixture chunks.",
       "action_evidence": [
         {
           "proposal_id": "135053",
@@ -1744,7 +1744,7 @@
         "constructed-open"
       ],
       "support": "local-resolver",
-      "purpose": "Corrupt location chunk",
+      "purpose": "Verify that a corrupt chunk causes a location read failure.",
       "action_evidence": [
         {
           "proposal_id": "135053",
@@ -1844,7 +1844,7 @@
         "indexed-executed"
       ],
       "support": "production-unsupported",
-      "purpose": "Explicit unsupported Membership action",
+      "purpose": "Verify explicit unsupported Membership dispatch for a Boundary software deployment.",
       "action_evidence": [
         {
           "proposal_id": "144909",

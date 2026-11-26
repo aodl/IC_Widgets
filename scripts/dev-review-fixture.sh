@@ -71,11 +71,9 @@ trap 'dfx stop' ERR
 dfx canister create --all --network local
 while IFS=$'\t' read -r fixture_name reviewer_name id; do
     fixture=$(dfx canister id --network local "$fixture_name")
-    dfx build --network local "$fixture_name"
-    dfx build --network local "$reviewer_name"
-    dfx canister install --network local "$fixture_name"
-    dfx canister call --network local "$fixture_name" load_review_case "(\"$id\")"
-    dfx canister install --network local "$reviewer_name" \
+    dfx canister install --network local --wasm fixture.wasm "$fixture_name"
+    dfx canister call --network local --candid fixture.did "$fixture_name" load_review_case "(\"$id\")"
+    dfx canister install --network local --wasm reviewer.wasm "$reviewer_name" \
         --argument "(opt record { governance = principal \"$fixture\"; registry = principal \"$fixture\" })"
 done < cases.tsv
 python3 - "$root" "$case_id" <<'PY'
@@ -91,7 +89,7 @@ for line in Path("cases.tsv").read_text().splitlines():
     _, reviewer, id = line.split("\t")
     row = metadata[id]
     principal = subprocess.check_output(["dfx", "canister", "id", "--network", "local", reviewer], text=True).strip()
-    cases.append(dict(id=id, name=row["name"], reviewer=principal, proposalIds=row["proposal_ids"],
+    cases.append(dict(id=id, name=row["name"], purpose=row["purpose"], reviewer=principal, proposalIds=row["proposal_ids"],
                       provenance=row["provenance"], failureReason=row.get("indexed_failure_reason")))
 Path("replays.json").write_text(json.dumps(dict(initial=sys.argv[2], cases=cases)) + "\n")
 PY
@@ -102,4 +100,5 @@ dfx deploy --network local frontend
 frontend=$(dfx canister id --network local frontend)
 trap - ERR
 echo "Open http://$frontend.localhost:$port/"
+echo "From your computer, forward 127.0.0.1:$port to 127.0.0.1:$port on the VM over SSH."
 echo "Stop with (cd '$project' && DFX_IDENTITY=codex_local dfx stop)."

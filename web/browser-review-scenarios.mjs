@@ -181,10 +181,11 @@ try {
 
   await test('An executed proposal does not imply a historical baseline', 4, async (page, send, count) => {
     await send(144954);
-    await status(page).getByText('Could not produce a review', { exact: true }).waitFor();
+    await status(page).getByText('Proposal outcome recorded', { exact: true }).waitFor();
     await page.getByText(/historical before-state is unavailable/).waitFor();
     assert.equal(count('membership_context_detail_page'), 0);
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+    assert.equal(await page.getByRole('button', { name: 'Export review', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('heading', { name: 'Target Topology' }).count(), 0);
   });
 
   await test('The final Governance check blocks a result when the proposal executes during enrichment', 0, async (page, send, count) => {

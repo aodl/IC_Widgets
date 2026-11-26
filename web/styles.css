@@ -122,6 +122,9 @@ main { padding-top: .85rem; }
 .access-panel button { color: #182c3d; }
 .access-panel > :last-child:empty { display: none; }
 .local-note { font-size: .82rem; color: var(--muted); margin: 0 0 .4rem; }
+.replay-purpose { margin-top: .25rem; }
+.terminal-outcome { overflow-wrap: anywhere; }
+.terminal-outcome article + article { border-top: 1px solid var(--border); padding-top: .75rem; }
 .search-shell { padding: .2rem 0 .55rem; }
 #search { display: flex; align-items: end; gap: .55rem; }
 #search label { font-size: .87rem; }

@@ -46,6 +46,7 @@ const select = async name => {
   await page.getByText(/Development replay/).waitFor();
   const metadata = data.cases.find(row => row.id === name);
   assert.equal(await page.locator('input[name=first]').inputValue(), metadata.proposalIds[0]);
+  await page.getByText(metadata.purpose, { exact: true }).waitFor();
 };
 const capture = name => page.screenshot({ path: resolve(output, name + '.png'), fullPage: true });
 const download = async (button, filename) => {
@@ -114,11 +115,27 @@ try {
   await page.locator('.review-summary').getByText(/2 \(−1\) members/).waitFor();
   await capture('constructed-intermediate');
 
-  await select('nns-144954-executed');
-  await review();
-  await page.getByText(/historical before-state is unavailable/).waitFor();
-  assert.ok(await exportButton().isDisabled());
-  await capture('executed-terminal');
+  for (const [name, label, note] of [
+    ['nns-144954-executed', 'Executed', /historical before-state is unavailable/],
+    ['rejected-139792', 'Rejected', /proposal ended at the vote/],
+    ['failed-140988', 'Failed', /recorded an execution error/],
+  ]) {
+    const detailCalls = count('membership_context_detail_page');
+    await select(name);
+    await review();
+    const outcome = page.locator('.terminal-outcome');
+    await outcome.getByText(label, { exact: true }).waitFor();
+    await outcome.getByText(note).waitFor();
+    assert.equal(await exportButton().count(), 0);
+    assert.equal(await page.locator('.review-grid, .topology-card').count(), 0);
+    assert.equal(count('membership_context_detail_page'), detailCalls);
+    if (label === 'Failed') {
+      await outcome.getByText('Indexed execution error', { exact: true }).click();
+      await outcome.getByText(/Nodes that should be removed do not belong/).waitFor();
+    }
+    if (label === 'Executed') await outcome.getByText(/Execution recorded at 2026-11-26 07:45:57 UTC/).waitFor();
+    await capture(label.toLowerCase() + '-terminal');
+  }
 
   await select('nns-144954-missing-gps');
   let showPending;
@@ -191,7 +208,8 @@ try {
 
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  const summary = { cases: ['recorded', 'multiple changes', 'paired orders', 'executed terminal', 'held locations', 'subnet A→B→A'],
+  const summary = { cases: ['recorded', 'multiple changes', 'paired orders', 'executed terminal', 'rejected terminal',
+    'failed terminal', 'held locations', 'subnet A→B→A'],
     recordedDigest: digest, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log(JSON.stringify(summary, null, 2));

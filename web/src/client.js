@@ -8,6 +8,10 @@ import { hex } from './view.js';
 export const identity = Ed25519KeyIdentity.generate();
 
 export const replays = typeof FIXTURE_REPLAY === 'undefined' ? null : FIXTURE_REPLAY;
+if (typeof FIXTURE_REPLAY !== 'undefined' && FIXTURE_REPLAY
+    && !['127.0.0.1', '[::1]', 'localhost'].includes(location.hostname) && !location.hostname.endsWith('.localhost')) {
+  throw new Error('Development replay requires a loopback origin.');
+}
 export const activeReplay = replays && (replays.cases.find(row => row.id === new URLSearchParams(location.search).get('case'))
   ?? replays.cases.find(row => row.id === replays.initial));
 
