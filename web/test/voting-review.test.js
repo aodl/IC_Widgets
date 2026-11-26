@@ -9,7 +9,12 @@ test('Markdown uses the accepted topology rows and escapes registered labels', (
     ids: ['144954'], version: 66013n, subnet: 'tdb26', membership: '40 members · +1 added · −1 removed',
     stateLabel: 'After proposal #144954', scenario: 'Proposal #144954', previewRevision: '00', governance: [],
     policyText: 'Compared with adopted motion #143190', finalVerified: true, gaps: true, members: [], notes: ['Evidence is scoped'],
-    topology: [{ label: 'Site | <b>A</b>', ready: true, delta: metricDelta(2, 3), limit: '1 cap · exception', assessment: 'Exception unresolved' }],
+    topology: [{
+      label: 'Site | <b>A</b>', ready: true, delta: metricDelta(2, 3), limit: '1 cap · exception', assessment: 'Exception unresolved',
+      groupRows: Array.from({ length: 6 }, (_, index) => ({
+        label: 'Group ' + index, breach: index === 5 ? [] : [{ New: null }], assessment: { ExceedsLimit: null },
+      })),
+    }],
   };
   const result = reviewMarkdown(model, { vote: 'Adopt', tldr: 'Written by the reviewer', mapImage: 'https://example.test/map.png' });
   assert.match(result, /^# Proposal #144954 Review/);
@@ -19,6 +24,7 @@ test('Markdown uses the accepted topology rows and escapes registered labels', (
   assert.ok(result.includes('1 cap · exception'));
   assert.ok(result.includes('3 (+1)'));
   assert.ok(result.includes('Site \\| &lt;b&gt;A&lt;/b&gt;'));
+  for (let index = 1; index <= 5; index++) assert.ok(result.includes(' · Group ' + index + ' · '));
   assert.match(reviewMarkdown({ ...model, finalVerified: false }), /Provisional · Final Governance verification unavailable/);
   assert.ok(!reviewMarkdown(model, { mapImage: 'javascript:alert(1)' }).includes('javascript:'));
 });

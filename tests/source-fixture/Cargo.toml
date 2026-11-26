@@ -13,6 +13,8 @@ ic-cdk.workspace = true
 prost.workspace = true
 nexus-domain.workspace = true
 nexus-ic-sources.workspace = true
+serde.workspace = true
+serde_json = "=1.0.154"
 
 [features]
 slow-governance = []

@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 local-fixtures = []
+fixture-browser = ["local-fixtures"]
 
 [dependencies]
 candid.workspace = true
@@ -24,3 +25,4 @@ nexus-ic-sources.workspace = true
 [dev-dependencies]
 prost.workspace = true
 pocket-ic.workspace = true
+serde_json = "=1.0.154"

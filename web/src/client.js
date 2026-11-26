@@ -7,13 +7,21 @@ import { hex } from './view.js';
 // The browser keeps this pilot identity in memory and displays only its principal.
 export const identity = Ed25519KeyIdentity.generate();
 
+export const replays = typeof FIXTURE_REPLAY === 'undefined' ? null : FIXTURE_REPLAY;
+if (typeof FIXTURE_REPLAY !== 'undefined' && FIXTURE_REPLAY
+    && !['127.0.0.1', '[::1]', 'localhost'].includes(location.hostname) && !location.hostname.endsWith('.localhost')) {
+  throw new Error('Development replay requires a loopback origin.');
+}
+export const activeReplay = replays && (replays.cases.find(row => row.id === new URLSearchParams(location.search).get('case'))
+  ?? replays.cases.find(row => row.id === replays.initial));
+
 export async function connect() {
   const agent = await HttpAgent.create({
     host: LOCAL_REPLICA ? window.location.origin : 'https://icp-api.io',
     shouldFetchRootKey: LOCAL_REPLICA,
     identity,
   });
-  return Actor.createActor(idlFactory, { agent, canisterId: REVIEWER_ID });
+  return Actor.createActor(idlFactory, { agent, canisterId: activeReplay?.reviewer ?? REVIEWER_ID });
 }
 
 export function result(reply) {

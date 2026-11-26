@@ -5,6 +5,7 @@ export const scenarioName = scenario => Array.from(scenario.proposal_ids, id => 
 export const calculationNote = 'The replicated calculation digest identifies the exact submitted evidence and scope. Source receipts identify the separate Registry and Governance observations.';
 export const thresholdNote = 'The Nakamoto coefficient counts the fewest largest groups that together exceed one third of the subnet. It requires complete recorded grouping. This statistic uses recorded labels and does not establish independent ownership.';
 export const geographyNote = 'The map uses registered data-center coordinates. They do not measure physical presence, health or latency. Region labels are split on commas and trimmed. No alias or country-equivalence conversion is applied.';
+export const policyApplicabilityNote = 'Current policy applicability and later amendments have not been verified.';
 const absent = 'Not recorded on-chain';
 
 export const metrics = {
@@ -199,12 +200,13 @@ export function reviewModel(live, context, evidence, section, policyId, local) {
     partial ? 'Assignments outside checked subnets remain unverified.' : null,
     'Proposed membership is conditional on the pinned evidence. Full execution validity remains unverified.',
     consistency?.reason ?? null,
-    local ? 'Local replica review using fixture evidence.' : null,
+    local,
   ].filter(Boolean);
   if (members.some(node => !node.point) && !running) notes.push('Some members lack usable registered coordinates.');
   if (topology.some(row => row.missing)) notes.push('Recorded groups count members with known evidence. Members with missing evidence may increase those counts.');
   if (section.outside) notes.push(section.outside + (section.outside === 1 ? ' affected subnet is' : ' affected subnets are') + ' outside the enriched scope.');
   if (topology.some(row => row.assessment === 'Identity unresolved')) notes.push('Registered country labels and owner names cannot establish canonical country or policy-defined DC provider identity.');
+  if (source) notes.push(policyApplicabilityNote);
   const publishing = publishingEvidence(live, context, subnet, before, after);
   return {
     members, topology, membership, version, subnet, policyText, policy, rule, source, notes, calculation,

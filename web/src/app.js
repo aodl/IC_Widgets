@@ -1,8 +1,9 @@
-import { connect, identity, liveError, result } from './client.js';
+import { activeReplay, connect, identity, liveError, replays, result } from './client.js';
 import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
 import { reviewMap } from './review-map.js';
 import { reviewContexts, reviewStages, serializeCalls } from './review-session.js';
+import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
 import { el, option, sourceReceipts, styled } from './view.js';
 
 const search = document.querySelector('#search');
@@ -15,7 +16,24 @@ const progressRow = document.querySelector('#review-progress');
 const progressBar = progressRow.querySelector('progress');
 const progressCounts = document.querySelector('#review-counts');
 const stageList = document.querySelector('#review-stages');
-document.querySelector('#local-notice').hidden = !LOCAL_REPLICA;
+const notice = document.querySelector('#local-notice');
+notice.hidden = !LOCAL_REPLICA;
+if (FIXTURE_REPLAY && activeReplay) {
+  notice.textContent = 'Development replay · ' + activeReplay.provenance;
+  access.hidden = true;
+  const selector = el('select', replays.cases.map(row => Object.assign(el('option', row.name), { value: row.id })));
+  selector.value = activeReplay.id;
+  const label = el('label', 'Replay scenario', selector);
+  label.className = 'local-note';
+  notice.after(label, styled('p', 'local-note replay-purpose', activeReplay.purpose));
+  selector.addEventListener('change', () => {
+    const next = new URL(location.href);
+    next.searchParams.set('case', selector.value);
+    location.assign(next);
+  });
+  search.elements.first.value = activeReplay.proposalIds[0];
+  search.elements.second.value = activeReplay.proposalIds[1] ?? '';
+}
 const browserPrincipal = document.querySelector('#browser-principal');
 browserPrincipal.textContent = identity.getPrincipal().toText();
 document.querySelector('#copy-principal').addEventListener('click', async () => {
@@ -69,7 +87,7 @@ const phases = {
   Comparison: 'Comparison · Calculating supported states',
   Lifecycle: 'Comparison · Checking Governance again',
   Finished: 'Finished', Gaps: 'Finished with gaps', Provisional: 'Provisional · Governance check failed',
-  Blocked: 'Could not produce a review', Stopped: 'Stopped',
+  Observed: 'Proposal outcome recorded', Blocked: 'Could not produce a review', Stopped: 'Stopped',
 };
 
 function status({ work, stage, counts, reason, remaining, selectedReady, phases: stages, coverage }) {
@@ -78,9 +96,9 @@ function status({ work, stage, counts, reason, remaining, selectedReady, phases:
   const message = [label, reason].filter(Boolean).join(' · ');
   if (reportStatus.textContent !== message) reportStatus.textContent = message;
   reportStatus.classList.toggle('error', stage === 'Blocked');
-  reportStatus.classList.toggle('review-finished', ['Finished', 'Gaps', 'Provisional'].includes(stage));
+  reportStatus.classList.toggle('review-finished', ['Finished', 'Gaps', 'Provisional', 'Observed'].includes(stage));
   stop.hidden = work !== 'running';
-  progressRow.hidden = false;
+  progressRow.hidden = stage === 'Observed';
   progressBar.hidden = !working;
   const readiness = stages ?? { Preview: stage === 'Preview' ? 'active' : stage === 'Blocked' ? 'failed' : 'stopped' };
   stageList.replaceChildren(...Object.entries(reviewStages).map(([key, title]) => {
@@ -187,9 +205,23 @@ search.addEventListener('submit', event => {
         return;
       }
       const body = live.outcome.Ok;
+      const proposals = body.report.manifest.proposals;
+      if (proposals.length && proposals.every(terminalOutcome)) {
+        const titles = option(body.proposal_text ?? []) ?? [];
+        const indexedFailure = FIXTURE_REPLAY && activeReplay?.proposalIds.length === 1 ? activeReplay.failureReason : undefined;
+        reportContainer.replaceChildren(styled('section', 'card terminal-outcome',
+          proposals.map(proposal => terminalSummary(proposal,
+            option(titles.find(row => row.id === proposal.id)?.title ?? []),
+            FIXTURE_REPLAY && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined)),
+          sourceReceipts(live)));
+        status({ work: 'settled', stage: 'Observed' });
+        return;
+      }
       const contexts = reviewContexts(body.report, option(body.subnet_rules ?? []) ?? []);
       current = mountReviewWorkspace({ live, contexts, map, mapHost, active, call: remote,
-        policyId, progress: state => { if (active()) status(state); }, performance, local: LOCAL_REPLICA });
+        policyId, progress: state => { if (active()) status(state); }, performance,
+        local: FIXTURE_REPLAY && activeReplay ? 'Development replay · ' + activeReplay.provenance
+          : LOCAL_REPLICA ? 'Local replica review using fixture evidence.' : undefined });
       reportContainer.replaceChildren(current.section);
       current.start();
     } catch (error) {

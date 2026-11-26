@@ -42,4 +42,14 @@ jobs:
           diff -u web/src/reviewer.did.js .local/reviewer.did.js
           npm --prefix web ci
           npm --prefix web test
-          npm --prefix web run build
+          DFX_NETWORK=ic npm --prefix web run build
+          if DFX_NETWORK=ic NEXUS_REPLAY_MANIFEST=../tests/source-fixture/data/historical/replays.json \
+              npm --prefix web run build > .local/replay-production-build.log 2>&1; then
+            echo 'The production build accepted a replay manifest.'
+            exit 1
+          fi
+          grep -Fq 'Replay assets require the local network' .local/replay-production-build.log
+          if grep -rqE 'Replay scenario|Development replay|nns-144954|ic-api\.internetcomputer\.org' web/dist; then
+            echo 'Development replay controls or external acquisition leaked into the production bundle.'
+            exit 1
+          fi

@@ -7,6 +7,7 @@ Network Nexus is an Internet Computer application for reviewing NNS Subnet Membe
 - [Input inventory](docs/MATERIALS.md)
 - [Legacy parity and source mapping](docs/PARITY.md)
 - [Subnet Membership widget and local build](web/README.md)
+- [Offline historical Membership reviews](docs/review-fixtures/README.md)
 - [Pinned source manifest](docs/SOURCES.md)
 - [M1 evidence contracts](docs/EVIDENCE.md)
 - [Budget, recovery and deployment operations](docs/OPERATIONS.md)

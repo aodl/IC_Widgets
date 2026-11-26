@@ -1,0 +1,1916 @@
+{
+  "schema_version": 1,
+  "replays": [
+    {
+      "id": "nns-144954-recorded-open",
+      "name": "NNS replacement",
+      "proposal_ids": [
+        "144954"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "captured-with-overlay",
+        "recorded-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Replay the recorded NNS replacement and inspect its map, policy checks, and export.",
+      "action_evidence": [
+        {
+          "proposal_id": "144954",
+          "kind": "recorded-governance-reply",
+          "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+          "observation_utc": "2026-11-25T13:08:13.589Z",
+          "method": "get_proposal_info",
+          "reference": {
+            "file": "144954/governance.didbin",
+            "sha256": "92cc11a832f1c5c044ac4d0f11f81694e8598dce73824656b670f6a28503b07f"
+          }
+        }
+      ],
+      "registry": {
+        "kind": "captured-with-overlay",
+        "version": "66013",
+        "reference": {
+          "file": "144954/registry.didbin",
+          "sha256": "0165faa80112b89ce5fa3fcd0e7aa7c5cd5c478c1154b5f637eb97a4c9b238dc"
+        },
+        "capture": {
+          "file": "144954/capture.json",
+          "sha256": "0f8eb06a85bcf48c6048d7579e8e7deebb6bc2b73e24602ee1335bfa168818ab"
+        },
+        "synthetic_overlay": "nns_subnet_id set to the recorded target principal",
+        "role_binding": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "coverage": "1 of 96 listed subnet membership records",
+        "chunks": []
+      },
+      "lifecycle": "recorded-open",
+      "replay_clock_utc": "2026-11-25T13:08:13.589Z",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Captured Registry 66,013 with a synthetic NNS role · Recorded Open reply",
+      "fault": null,
+      "menu": true,
+      "limits": "Selected Registry keys only; no exact execution snapshot or full execution validity established.",
+      "replay_clock_unix_seconds": "1795612093"
+    },
+    {
+      "id": "nns-144954-slow-locations",
+      "name": "Evidence arrives slowly",
+      "proposal_ids": [
+        "144954"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "captured-with-overlay",
+        "recorded-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Watch the staged progress while location evidence arrives slowly.",
+      "action_evidence": [
+        {
+          "proposal_id": "144954",
+          "kind": "recorded-governance-reply",
+          "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+          "observation_utc": "2026-11-25T13:08:13.589Z",
+          "method": "get_proposal_info",
+          "reference": {
+            "file": "144954/governance.didbin",
+            "sha256": "92cc11a832f1c5c044ac4d0f11f81694e8598dce73824656b670f6a28503b07f"
+          }
+        }
+      ],
+      "registry": {
+        "kind": "captured-with-overlay",
+        "version": "66013",
+        "reference": {
+          "file": "144954/registry.didbin",
+          "sha256": "0165faa80112b89ce5fa3fcd0e7aa7c5cd5c478c1154b5f637eb97a4c9b238dc"
+        },
+        "capture": {
+          "file": "144954/capture.json",
+          "sha256": "0f8eb06a85bcf48c6048d7579e8e7deebb6bc2b73e24602ee1335bfa168818ab"
+        },
+        "synthetic_overlay": "nns_subnet_id set to the recorded target principal",
+        "role_binding": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "coverage": "1 of 96 listed subnet membership records",
+        "chunks": []
+      },
+      "lifecycle": "recorded-open",
+      "replay_clock_utc": "2026-11-25T13:08:13.589Z",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Captured Registry 66,013 with a synthetic NNS role · Recorded Open reply · Test variant slow locations",
+      "fault": "slow-locations",
+      "menu": true,
+      "limits": "Selected Registry keys only; no exact execution snapshot or full execution validity established.",
+      "replay_clock_unix_seconds": "1795612093"
+    },
+    {
+      "id": "nns-144954-missing-gps",
+      "name": "Metadata missing",
+      "proposal_ids": [
+        "144954"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "captured-with-overlay",
+        "recorded-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "See how a missing location changes map coverage without blocking the review.",
+      "action_evidence": [
+        {
+          "proposal_id": "144954",
+          "kind": "recorded-governance-reply",
+          "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+          "observation_utc": "2026-11-25T13:08:13.589Z",
+          "method": "get_proposal_info",
+          "reference": {
+            "file": "144954/governance.didbin",
+            "sha256": "92cc11a832f1c5c044ac4d0f11f81694e8598dce73824656b670f6a28503b07f"
+          }
+        }
+      ],
+      "registry": {
+        "kind": "captured-with-overlay",
+        "version": "66013",
+        "reference": {
+          "file": "144954/registry.didbin",
+          "sha256": "0165faa80112b89ce5fa3fcd0e7aa7c5cd5c478c1154b5f637eb97a4c9b238dc"
+        },
+        "capture": {
+          "file": "144954/capture.json",
+          "sha256": "0f8eb06a85bcf48c6048d7579e8e7deebb6bc2b73e24602ee1335bfa168818ab"
+        },
+        "synthetic_overlay": "nns_subnet_id set to the recorded target principal",
+        "role_binding": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "coverage": "1 of 96 listed subnet membership records",
+        "chunks": []
+      },
+      "lifecycle": "recorded-open",
+      "replay_clock_utc": "2026-11-25T13:08:13.589Z",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Captured Registry 66,013 with a synthetic NNS role · Recorded Open reply · Test variant missing gps",
+      "fault": "missing-gps",
+      "menu": true,
+      "limits": "Selected Registry keys only; no exact execution snapshot or full execution validity established.",
+      "replay_clock_unix_seconds": "1795612093"
+    },
+    {
+      "id": "nns-144954-location-reject",
+      "name": "Location request fails",
+      "proposal_ids": [
+        "144954"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "captured-with-overlay",
+        "recorded-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Distinguish a rejected location request from a missing location.",
+      "action_evidence": [
+        {
+          "proposal_id": "144954",
+          "kind": "recorded-governance-reply",
+          "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+          "observation_utc": "2026-11-25T13:08:13.589Z",
+          "method": "get_proposal_info",
+          "reference": {
+            "file": "144954/governance.didbin",
+            "sha256": "92cc11a832f1c5c044ac4d0f11f81694e8598dce73824656b670f6a28503b07f"
+          }
+        }
+      ],
+      "registry": {
+        "kind": "captured-with-overlay",
+        "version": "66013",
+        "reference": {
+          "file": "144954/registry.didbin",
+          "sha256": "0165faa80112b89ce5fa3fcd0e7aa7c5cd5c478c1154b5f637eb97a4c9b238dc"
+        },
+        "capture": {
+          "file": "144954/capture.json",
+          "sha256": "0f8eb06a85bcf48c6048d7579e8e7deebb6bc2b73e24602ee1335bfa168818ab"
+        },
+        "synthetic_overlay": "nns_subnet_id set to the recorded target principal",
+        "role_binding": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "coverage": "1 of 96 listed subnet membership records",
+        "chunks": []
+      },
+      "lifecycle": "recorded-open",
+      "replay_clock_utc": "2026-11-25T13:08:13.589Z",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Captured Registry 66,013 with a synthetic NNS role · Recorded Open reply · Test variant location reject",
+      "fault": "location-reject",
+      "menu": false,
+      "limits": "Selected Registry keys only; no exact execution snapshot or full execution validity established.",
+      "replay_clock_unix_seconds": "1795612093"
+    },
+    {
+      "id": "nns-144954-open-then-executed",
+      "name": "Open then executed",
+      "proposal_ids": [
+        "144954"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "captured-with-overlay",
+        "recorded-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Exercise the final Governance check when a proposal executes during enrichment.",
+      "action_evidence": [
+        {
+          "proposal_id": "144954",
+          "kind": "recorded-governance-reply",
+          "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+          "observation_utc": "2026-11-25T13:08:13.589Z",
+          "method": "get_proposal_info",
+          "reference": {
+            "file": "144954/governance.didbin",
+            "sha256": "92cc11a832f1c5c044ac4d0f11f81694e8598dce73824656b670f6a28503b07f"
+          }
+        }
+      ],
+      "registry": {
+        "kind": "captured-with-overlay",
+        "version": "66013",
+        "reference": {
+          "file": "144954/registry.didbin",
+          "sha256": "0165faa80112b89ce5fa3fcd0e7aa7c5cd5c478c1154b5f637eb97a4c9b238dc"
+        },
+        "capture": {
+          "file": "144954/capture.json",
+          "sha256": "0f8eb06a85bcf48c6048d7579e8e7deebb6bc2b73e24602ee1335bfa168818ab"
+        },
+        "synthetic_overlay": "nns_subnet_id set to the recorded target principal",
+        "role_binding": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "coverage": "1 of 96 listed subnet membership records",
+        "chunks": []
+      },
+      "lifecycle": "recorded-open",
+      "replay_clock_utc": "2026-11-25T13:08:13.589Z",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Captured Registry 66,013 with a synthetic NNS role · Recorded Open reply · Test variant open then executed",
+      "fault": "open-then-executed",
+      "menu": false,
+      "limits": "Selected Registry keys only; no exact execution snapshot or full execution validity established.",
+      "replay_clock_unix_seconds": "1795612093",
+      "transition": {
+        "source": "historical/raw/api/144954.json",
+        "trigger": "controller activates phase fault",
+        "after": "indexed-executed"
+      }
+    },
+    {
+      "id": "nns-144954-final-governance-failure",
+      "name": "Final Governance read fails",
+      "proposal_ids": [
+        "144954"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "captured-with-overlay",
+        "recorded-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Exercise retry after a failed final Governance read.",
+      "action_evidence": [
+        {
+          "proposal_id": "144954",
+          "kind": "recorded-governance-reply",
+          "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+          "observation_utc": "2026-11-25T13:08:13.589Z",
+          "method": "get_proposal_info",
+          "reference": {
+            "file": "144954/governance.didbin",
+            "sha256": "92cc11a832f1c5c044ac4d0f11f81694e8598dce73824656b670f6a28503b07f"
+          }
+        }
+      ],
+      "registry": {
+        "kind": "captured-with-overlay",
+        "version": "66013",
+        "reference": {
+          "file": "144954/registry.didbin",
+          "sha256": "0165faa80112b89ce5fa3fcd0e7aa7c5cd5c478c1154b5f637eb97a4c9b238dc"
+        },
+        "capture": {
+          "file": "144954/capture.json",
+          "sha256": "0f8eb06a85bcf48c6048d7579e8e7deebb6bc2b73e24602ee1335bfa168818ab"
+        },
+        "synthetic_overlay": "nns_subnet_id set to the recorded target principal",
+        "role_binding": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "coverage": "1 of 96 listed subnet membership records",
+        "chunks": []
+      },
+      "lifecycle": "recorded-open",
+      "replay_clock_utc": "2026-11-25T13:08:13.589Z",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Captured Registry 66,013 with a synthetic NNS role · Recorded Open reply · Test variant final governance recheck fails",
+      "fault": "final-governance-recheck-fails",
+      "menu": false,
+      "limits": "Selected Registry keys only; no exact execution snapshot or full execution validity established.",
+      "replay_clock_unix_seconds": "1795612093"
+    },
+    {
+      "id": "nns-144954-executed",
+      "name": "Executed proposal",
+      "proposal_ids": [
+        "144954"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "captured-with-overlay",
+        "indexed-executed"
+      ],
+      "support": "local-resolver",
+      "purpose": "Inspect the recorded execution outcome and its historical evidence limit.",
+      "action_evidence": [
+        {
+          "proposal_id": "144954",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/144954.json"
+        }
+      ],
+      "registry": {
+        "kind": "captured-with-overlay",
+        "version": "66013",
+        "reference": {
+          "file": "144954/registry.didbin",
+          "sha256": "0165faa80112b89ce5fa3fcd0e7aa7c5cd5c478c1154b5f637eb97a4c9b238dc"
+        },
+        "capture": {
+          "file": "144954/capture.json",
+          "sha256": "0f8eb06a85bcf48c6048d7579e8e7deebb6bc2b73e24602ee1335bfa168818ab"
+        },
+        "synthetic_overlay": "nns_subnet_id set to the recorded target principal",
+        "role_binding": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "coverage": "1 of 96 listed subnet membership records",
+        "chunks": []
+      },
+      "lifecycle": "indexed-executed",
+      "replay_clock_utc": "2026-11-25T13:08:13.589Z",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Captured Registry 66,013 with a synthetic NNS role · Indexed executed",
+      "fault": null,
+      "menu": true,
+      "limits": "Selected Registry keys only; no exact execution snapshot or full execution validity established.",
+      "replay_clock_unix_seconds": "1795612093"
+    },
+    {
+      "id": "multiple-changes",
+      "name": "Two in, two out",
+      "proposal_ids": [
+        "144940"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Compare two incoming and two outgoing nodes in one proposed change.",
+      "action_evidence": [
+        {
+          "proposal_id": "144940",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/144940.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "yinp6-35cfo-wgcd2-oc4ty-2kqpf-t4dul-rfk33-fsq3r-mfmua-m2ngh-jqe"
+        ],
+        "subnets": {
+          "yinp6-35cfo-wgcd2-oc4ty-2kqpf-t4dul-rfk33-fsq3r-mfmua-m2ngh-jqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba",
+            "kwylh-u7itt-vwqn3-vskq4-ftpcm-kgyqr-23ibw-tgbw2-jfg64-fqwi6-oae",
+            "rp2ka-fxcyf-ghmgv-rgi3q-ugpxs-t2xfv-an2zj-yjzfk-kkpuu-pbha5-5qe"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_jsnfc-hogin-macy3-lfird-pfijz-d5jcg-woonn-sbtgx-gzh5h-jjvst-yae",
+            "node_record_kwylh-u7itt-vwqn3-vskq4-ftpcm-kgyqr-23ibw-tgbw2-jfg64-fqwi6-oae",
+            "node_record_lr6qv-kty5w-b6qye-6nog2-leujy-6szil-3toje-lykox-oxgce-z6zik-kqe",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "node_record_rp2ka-fxcyf-ghmgv-rgi3q-ugpxs-t2xfv-an2zj-yjzfk-kkpuu-pbha5-5qe",
+            "subnet_list",
+            "subnet_record_yinp6-35cfo-wgcd2-oc4ty-2kqpf-t4dul-rfk33-fsq3r-mfmua-m2ngh-jqe"
+          ],
+          "absent": [
+            "api_boundary_node_jsnfc-hogin-macy3-lfird-pfijz-d5jcg-woonn-sbtgx-gzh5h-jjvst-yae",
+            "api_boundary_node_kwylh-u7itt-vwqn3-vskq4-ftpcm-kgyqr-23ibw-tgbw2-jfg64-fqwi6-oae",
+            "api_boundary_node_lr6qv-kty5w-b6qye-6nog2-leujy-6szil-3toje-lykox-oxgce-z6zik-kqe",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "api_boundary_node_rp2ka-fxcyf-ghmgv-rgi3q-ugpxs-t2xfv-an2zj-yjzfk-kkpuu-pbha5-5qe",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "three-added",
+      "name": "Three nodes added",
+      "proposal_ids": [
+        "135053"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Inspect membership growth when a change has additions only.",
+      "action_evidence": [
+        {
+          "proposal_id": "135053",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/135053.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+        ],
+        "subnets": {
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_engai-flho6-5z6nk-4eirk-ozvgk-z73wc-bgayv-lbnls-djvfe-lheum-jae",
+            "node_record_mvoup-lc62d-qskas-hm2zf-fahj7-jxr62-q7abb-evmok-p7rq5-yqr3l-sqe",
+            "node_record_nrz3y-3qhvi-mhz6v-zlvpg-wvwn3-fsmom-wtkla-p67ly-fgsl2-sf5g4-bae",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "subnet_list",
+            "subnet_record_uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+          ],
+          "absent": [
+            "api_boundary_node_engai-flho6-5z6nk-4eirk-ozvgk-z73wc-bgayv-lbnls-djvfe-lheum-jae",
+            "api_boundary_node_mvoup-lc62d-qskas-hm2zf-fahj7-jxr62-q7abb-evmok-p7rq5-yqr3l-sqe",
+            "api_boundary_node_nrz3y-3qhvi-mhz6v-zlvpg-wvwn3-fsmom-wtkla-p67ly-fgsl2-sf5g4-bae",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "six-removed",
+      "name": "Six nodes removed",
+      "proposal_ids": [
+        "142931"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Inspect membership reduction when a change has removals only.",
+      "action_evidence": [
+        {
+          "proposal_id": "142931",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/142931.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "3zsyy-cnoqf-tvlun-ymf55-tkpca-ox7uw-kfxoh-7khwq-2gz43-wafem-lqe"
+        ],
+        "subnets": {
+          "3zsyy-cnoqf-tvlun-ymf55-tkpca-ox7uw-kfxoh-7khwq-2gz43-wafem-lqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba",
+            "eihqt-opds6-5r7xa-hr32z-k2xoa-bh4l4-65kld-v7gk3-bplt5-vmsw2-mqe",
+            "ezsx4-peoff-6kofj-yz6vt-gc42v-iugvx-vit2r-edy37-qv4bt-ivcxy-kae",
+            "g5s3p-l63zo-lsigy-5u4t5-476io-5m62n-5qmuo-pjgv5-pnq4n-uhxhp-7qe",
+            "lemsa-bnpvg-zzzcq-6uwar-njtds-byn3n-zcb7v-du25b-tktfx-32gc5-zae",
+            "rumwa-ihvrd-kqzmq-4ainw-birq6-2y4v7-sbqyx-lw3vm-osdhm-nh5hl-cae",
+            "vou34-3jw7y-l2tah-tssac-y5xop-3x3q4-z2ivi-gvmoc-amv7t-akkbz-vae"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_eihqt-opds6-5r7xa-hr32z-k2xoa-bh4l4-65kld-v7gk3-bplt5-vmsw2-mqe",
+            "node_record_ezsx4-peoff-6kofj-yz6vt-gc42v-iugvx-vit2r-edy37-qv4bt-ivcxy-kae",
+            "node_record_g5s3p-l63zo-lsigy-5u4t5-476io-5m62n-5qmuo-pjgv5-pnq4n-uhxhp-7qe",
+            "node_record_lemsa-bnpvg-zzzcq-6uwar-njtds-byn3n-zcb7v-du25b-tktfx-32gc5-zae",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "node_record_rumwa-ihvrd-kqzmq-4ainw-birq6-2y4v7-sbqyx-lw3vm-osdhm-nh5hl-cae",
+            "node_record_vou34-3jw7y-l2tah-tssac-y5xop-3x3q4-z2ivi-gvmoc-amv7t-akkbz-vae",
+            "subnet_list",
+            "subnet_record_3zsyy-cnoqf-tvlun-ymf55-tkpca-ox7uw-kfxoh-7khwq-2gz43-wafem-lqe"
+          ],
+          "absent": [
+            "api_boundary_node_eihqt-opds6-5r7xa-hr32z-k2xoa-bh4l4-65kld-v7gk3-bplt5-vmsw2-mqe",
+            "api_boundary_node_ezsx4-peoff-6kofj-yz6vt-gc42v-iugvx-vit2r-edy37-qv4bt-ivcxy-kae",
+            "api_boundary_node_g5s3p-l63zo-lsigy-5u4t5-476io-5m62n-5qmuo-pjgv5-pnq4n-uhxhp-7qe",
+            "api_boundary_node_lemsa-bnpvg-zzzcq-6uwar-njtds-byn3n-zcb7v-du25b-tktfx-32gc5-zae",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "api_boundary_node_rumwa-ihvrd-kqzmq-4ainw-birq6-2y4v7-sbqyx-lw3vm-osdhm-nh5hl-cae",
+            "api_boundary_node_vou34-3jw7y-l2tah-tssac-y5xop-3x3q4-z2ivi-gvmoc-amv7t-akkbz-vae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "unequal-change",
+      "name": "Four additions and one removal",
+      "proposal_ids": [
+        "132483"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Check net membership growth when additions and removals differ.",
+      "action_evidence": [
+        {
+          "proposal_id": "132483",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/132483.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae"
+        ],
+        "subnets": {
+          "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba",
+            "xsntz-cuxb5-c3xmg-vuzwb-2wsb6-jbfpj-jh6du-ynics-ziore-t7bpp-4ae"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_jlifv-mddo3-zfwdc-x2wmu-xklbj-dai3i-3pvjy-j4hqm-sarqr-fhkq6-zae",
+            "node_record_mhfef-zbxsl-rocpc-ovqeh-jg3ct-7nvmi-gzpnm-xjmm4-uekgj-rquls-uqe",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "node_record_u3ahx-ft3kq-pzlkr-imzus-aeqxm-cirqv-ymehh-xzctz-os4ud-3a74m-vae",
+            "node_record_w7v5s-nethv-crfsc-zzq5e-gibjz-dmmyp-mrl6e-vkvid-g56eh-iilcm-eqe",
+            "node_record_xsntz-cuxb5-c3xmg-vuzwb-2wsb6-jbfpj-jh6du-ynics-ziore-t7bpp-4ae",
+            "subnet_list",
+            "subnet_record_pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae"
+          ],
+          "absent": [
+            "api_boundary_node_jlifv-mddo3-zfwdc-x2wmu-xklbj-dai3i-3pvjy-j4hqm-sarqr-fhkq6-zae",
+            "api_boundary_node_mhfef-zbxsl-rocpc-ovqeh-jg3ct-7nvmi-gzpnm-xjmm4-uekgj-rquls-uqe",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "api_boundary_node_u3ahx-ft3kq-pzlkr-imzus-aeqxm-cirqv-ymehh-xzctz-os4ud-3a74m-vae",
+            "api_boundary_node_w7v5s-nethv-crfsc-zzq5e-gibjz-dmmyp-mrl6e-vkvid-g56eh-iilcm-eqe",
+            "api_boundary_node_xsntz-cuxb5-c3xmg-vuzwb-2wsb6-jbfpj-jh6du-ynics-ziore-t7bpp-4ae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "rejected-139792",
+      "name": "Rejected proposal",
+      "proposal_ids": [
+        "139792"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "indexed-rejected"
+      ],
+      "support": "local-resolver",
+      "purpose": "Inspect the recorded voting outcome and the unavailable membership comparison.",
+      "action_evidence": [
+        {
+          "proposal_id": "139792",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/139792.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "x33ed-h457x-bsgyx-oqxqf-6pzwv-wkhzr-rm2j3-npodi-purzm-n66cg-gae"
+        ],
+        "subnets": {
+          "x33ed-h457x-bsgyx-oqxqf-6pzwv-wkhzr-rm2j3-npodi-purzm-n66cg-gae": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba",
+            "ct3c3-aaohu-xben4-mbsjf-evtcb-bvf4i-qax6r-i4lm2-tcn6j-ybqpz-wae"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_6t4ow-hnyxb-uwfsz-bn5ig-zfvl7-igyuh-uvdgo-4qw4j-hjwhw-zlrqo-4qe",
+            "node_record_ct3c3-aaohu-xben4-mbsjf-evtcb-bvf4i-qax6r-i4lm2-tcn6j-ybqpz-wae",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "subnet_list",
+            "subnet_record_x33ed-h457x-bsgyx-oqxqf-6pzwv-wkhzr-rm2j3-npodi-purzm-n66cg-gae"
+          ],
+          "absent": [
+            "api_boundary_node_6t4ow-hnyxb-uwfsz-bn5ig-zfvl7-igyuh-uvdgo-4qw4j-hjwhw-zlrqo-4qe",
+            "api_boundary_node_ct3c3-aaohu-xben4-mbsjf-evtcb-bvf4i-qax6r-i4lm2-tcn6j-ybqpz-wae",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "indexed-rejected",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Indexed rejected",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "failed-140988",
+      "name": "Failed proposal",
+      "proposal_ids": [
+        "140988"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "indexed-failed"
+      ],
+      "support": "local-resolver",
+      "purpose": "Inspect the recorded execution failure and its indexed error.",
+      "action_evidence": [
+        {
+          "proposal_id": "140988",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/140988.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "xok3w-cnepj-fg6aa-cjitt-uoxod-4ddsy-nc7dq-zwudz-o6jar-rzstb-gqe"
+        ],
+        "subnets": {
+          "xok3w-cnepj-fg6aa-cjitt-uoxod-4ddsy-nc7dq-zwudz-o6jar-rzstb-gqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "node_record_qpt6h-7m7xq-4crv7-pml2g-2jsxx-vxgv4-eka6d-hq4xj-73u5v-bsaki-zae",
+            "node_record_wfzdp-xnf52-wewkk-lmzil-uvgwq-nxkfg-cqngr-rgotz-okcuv-frnu4-7ae",
+            "subnet_list",
+            "subnet_record_xok3w-cnepj-fg6aa-cjitt-uoxod-4ddsy-nc7dq-zwudz-o6jar-rzstb-gqe"
+          ],
+          "absent": [
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "api_boundary_node_qpt6h-7m7xq-4crv7-pml2g-2jsxx-vxgv4-eka6d-hq4xj-73u5v-bsaki-zae",
+            "api_boundary_node_wfzdp-xnf52-wewkk-lmzil-uvgwq-nxkfg-cqngr-rgotz-okcuv-frnu4-7ae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "indexed-failed",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Indexed failed",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512",
+      "indexed_failure_reason": "Error executing ExecuteNnsFunction proposal. Error Code: 5. Rejection message: IC0503: Error from Canister rwlgt-iiaaa-aaaaa-aaaaa-cai: Canister called `ic0.trap` with message: 'Panicked at 'Nodes that should be removed do not belong to the provided subnet.', rs/registry/canister/src/mutations/do_change_subnet_membership.rs:38:13'.\nConsider gracefully handling failures from this canister or altering the canister to handle exceptions. See documentation: https://internetcomputer.org/docs/current/references/execution-errors#trapped-explicitly"
+    },
+    {
+      "id": "invalid-140988",
+      "name": "Outgoing node absent",
+      "proposal_ids": [
+        "140988"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Check the error when the outgoing node is absent from the named subnet.",
+      "action_evidence": [
+        {
+          "proposal_id": "140988",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/140988.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "xok3w-cnepj-fg6aa-cjitt-uoxod-4ddsy-nc7dq-zwudz-o6jar-rzstb-gqe"
+        ],
+        "subnets": {
+          "xok3w-cnepj-fg6aa-cjitt-uoxod-4ddsy-nc7dq-zwudz-o6jar-rzstb-gqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "node_record_qpt6h-7m7xq-4crv7-pml2g-2jsxx-vxgv4-eka6d-hq4xj-73u5v-bsaki-zae",
+            "node_record_wfzdp-xnf52-wewkk-lmzil-uvgwq-nxkfg-cqngr-rgotz-okcuv-frnu4-7ae",
+            "subnet_list",
+            "subnet_record_xok3w-cnepj-fg6aa-cjitt-uoxod-4ddsy-nc7dq-zwudz-o6jar-rzstb-gqe"
+          ],
+          "absent": [
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "api_boundary_node_qpt6h-7m7xq-4crv7-pml2g-2jsxx-vxgv4-eka6d-hq4xj-73u5v-bsaki-zae",
+            "api_boundary_node_wfzdp-xnf52-wewkk-lmzil-uvgwq-nxkfg-cqngr-rgotz-okcuv-frnu4-7ae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": false,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "separate-add-remove",
+      "name": "Separate add/remove proposals",
+      "proposal_ids": [
+        "85612",
+        "85622"
+      ],
+      "function_ids": [
+        2,
+        13
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Switch between both orders and examine their intermediate membership states.",
+      "action_evidence": [
+        {
+          "proposal_id": "85612",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/85612.json"
+        },
+        {
+          "proposal_id": "85622",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/85622.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "snjp4-xlbw4-mnbog-ddwy6-6ckfd-2w5a2-eipqo-7l436-pxqkh-l6fuv-vae"
+        ],
+        "subnets": {
+          "snjp4-xlbw4-mnbog-ddwy6-6ckfd-2w5a2-eipqo-7l436-pxqkh-l6fuv-vae": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "4ewfb-v3af2-scna2-uubvi-btd22-gzndc-g2fl7-6za7r-xgscp-vbxig-pqe"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_4ewfb-v3af2-scna2-uubvi-btd22-gzndc-g2fl7-6za7r-xgscp-vbxig-pqe",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "node_record_rvrxw-i7jkz-rwcxa-2c5ob-of5fd-vwcgg-kv23w-trjxp-zlf2c-sm4bd-mae",
+            "subnet_list",
+            "subnet_record_snjp4-xlbw4-mnbog-ddwy6-6ckfd-2w5a2-eipqo-7l436-pxqkh-l6fuv-vae"
+          ],
+          "absent": [
+            "api_boundary_node_4ewfb-v3af2-scna2-uubvi-btd22-gzndc-g2fl7-6za7r-xgscp-vbxig-pqe",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "api_boundary_node_rvrxw-i7jkz-rwcxa-2c5ob-of5fd-vwcgg-kv23w-trjxp-zlf2c-sm4bd-mae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "untargeted-one-subnet",
+      "name": "Untargeted removals in one subnet",
+      "proposal_ids": [
+        "132102"
+      ],
+      "function_ids": [
+        13
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Resolve an untargeted removal from the single fixture subnet that contains the requested nodes.",
+      "action_evidence": [
+        {
+          "proposal_id": "132102",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/132102.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "jb5gg-trifi-ba"
+        ],
+        "subnets": {
+          "jb5gg-trifi-ba": [
+            "p7tb4-iibfi-ba",
+            "ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "node_record_zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "node_record_zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae",
+            "subnet_list",
+            "subnet_record_jb5gg-trifi-ba"
+          ],
+          "absent": [
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "api_boundary_node_zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "api_boundary_node_zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": false,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "untargeted-two-subnets",
+      "name": "Untargeted removals across two subnets",
+      "proposal_ids": [
+        "132102"
+      ],
+      "function_ids": [
+        13
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Switch subnets while enriching the effects of an untargeted removal.",
+      "action_evidence": [
+        {
+          "proposal_id": "132102",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/132102.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "jb5gg-trifi-ba",
+          "jg4as-6jjfi-ba"
+        ],
+        "subnets": {
+          "jb5gg-trifi-ba": [
+            "p7tb4-iibfi-ba",
+            "ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe"
+          ],
+          "jg4as-6jjfi-ba": [
+            "pwqka-6acfi-ba",
+            "zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "2 synthetic listed subnet records supplied out of 2",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "node_record_ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "node_record_zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "node_record_zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae",
+            "subnet_list",
+            "subnet_record_jb5gg-trifi-ba",
+            "subnet_record_jg4as-6jjfi-ba"
+          ],
+          "absent": [
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "api_boundary_node_ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "api_boundary_node_zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "api_boundary_node_zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "untargeted-no-matches",
+      "name": "Untargeted removals with no matches",
+      "proposal_ids": [
+        "132102"
+      ],
+      "function_ids": [
+        13
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Check an untargeted removal with no matching subnet membership.",
+      "action_evidence": [
+        {
+          "proposal_id": "132102",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/132102.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "jb5gg-trifi-ba"
+        ],
+        "subnets": {
+          "jb5gg-trifi-ba": [
+            "p7tb4-iibfi-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "node_record_zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "node_record_zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae",
+            "subnet_list",
+            "subnet_record_jb5gg-trifi-ba"
+          ],
+          "absent": [
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "api_boundary_node_zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "api_boundary_node_zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": false,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "untargeted-incomplete",
+      "name": "Untargeted removals with an uncaptured listed subnet",
+      "proposal_ids": [
+        "132102"
+      ],
+      "function_ids": [
+        13
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Check how missing subnet evidence blocks resolution of an untargeted removal.",
+      "action_evidence": [
+        {
+          "proposal_id": "132102",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/132102.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "jb5gg-trifi-ba",
+          "jg4as-6jjfi-ba"
+        ],
+        "subnets": {
+          "jb5gg-trifi-ba": [
+            "p7tb4-iibfi-ba",
+            "ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 2",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "node_record_zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "node_record_zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae",
+            "subnet_list",
+            "subnet_record_jb5gg-trifi-ba"
+          ],
+          "absent": [
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_ylm4h-mc2vy-vmwvf-g2qhn-36rbw-5cunq-wpj2j-ttofo-xc27c-vfdh7-aae",
+            "api_boundary_node_zpjxp-c6l3m-x54lj-47zz5-dpy6u-lpdkt-hc7pp-gdfuu-i4i7i-jpp4w-lqe",
+            "api_boundary_node_zppi4-egu2x-ylkfm-fttld-d5v43-wq7zs-hnszi-6plxh-6ol3h-ibceq-xae",
+            "nns_subnet_id"
+          ],
+          "uncaptured": [
+            "subnet_record_jg4as-6jjfi-ba"
+          ]
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle",
+      "fault": null,
+      "menu": false,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "three-added-adopted",
+      "name": "Adopted lifecycle variant",
+      "proposal_ids": [
+        "135053"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-adopted"
+      ],
+      "support": "local-resolver",
+      "purpose": "Review a constructed Adopted lifecycle before execution.",
+      "action_evidence": [
+        {
+          "proposal_id": "135053",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/135053.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+        ],
+        "subnets": {
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_engai-flho6-5z6nk-4eirk-ozvgk-z73wc-bgayv-lbnls-djvfe-lheum-jae",
+            "node_record_mvoup-lc62d-qskas-hm2zf-fahj7-jxr62-q7abb-evmok-p7rq5-yqr3l-sqe",
+            "node_record_nrz3y-3qhvi-mhz6v-zlvpg-wvwn3-fsmom-wtkla-p67ly-fgsl2-sf5g4-bae",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "subnet_list",
+            "subnet_record_uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+          ],
+          "absent": [
+            "api_boundary_node_engai-flho6-5z6nk-4eirk-ozvgk-z73wc-bgayv-lbnls-djvfe-lheum-jae",
+            "api_boundary_node_mvoup-lc62d-qskas-hm2zf-fahj7-jxr62-q7abb-evmok-p7rq5-yqr3l-sqe",
+            "api_boundary_node_nrz3y-3qhvi-mhz6v-zlvpg-wvwn3-fsmom-wtkla-p67ly-fgsl2-sf5g4-bae",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-adopted",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed adopted",
+      "fault": null,
+      "menu": false,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "three-added-chunked-location",
+      "name": "Chunked location",
+      "proposal_ids": [
+        "135053"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Verify location evidence assembled from recorded fixture chunks.",
+      "action_evidence": [
+        {
+          "proposal_id": "135053",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/135053.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+        ],
+        "subnets": {
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [
+          {
+            "record": "data_center_record_fixture-0",
+            "encoding": "32-byte pieces addressed by SHA-256",
+            "fault": null,
+            "sha256": [
+              "cdf440669d87bccdacd0112abd6a0d94965e3470850f0161de6c60789b13b177",
+              "1386a05e54edd25940b8047b98ce4a2c3a7ca0e75f4a253edaa63b2fda3b3b58",
+              "cdd347ce35aff705f430e50ab94cb1da89df520f07e45b70d109e104257586b1"
+            ]
+          }
+        ],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_engai-flho6-5z6nk-4eirk-ozvgk-z73wc-bgayv-lbnls-djvfe-lheum-jae",
+            "node_record_mvoup-lc62d-qskas-hm2zf-fahj7-jxr62-q7abb-evmok-p7rq5-yqr3l-sqe",
+            "node_record_nrz3y-3qhvi-mhz6v-zlvpg-wvwn3-fsmom-wtkla-p67ly-fgsl2-sf5g4-bae",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "subnet_list",
+            "subnet_record_uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+          ],
+          "absent": [
+            "api_boundary_node_engai-flho6-5z6nk-4eirk-ozvgk-z73wc-bgayv-lbnls-djvfe-lheum-jae",
+            "api_boundary_node_mvoup-lc62d-qskas-hm2zf-fahj7-jxr62-q7abb-evmok-p7rq5-yqr3l-sqe",
+            "api_boundary_node_nrz3y-3qhvi-mhz6v-zlvpg-wvwn3-fsmom-wtkla-p67ly-fgsl2-sf5g4-bae",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle · Test variant chunked location",
+      "fault": "chunked-location",
+      "menu": false,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "three-added-corrupt-chunk",
+      "name": "Corrupt location chunk",
+      "proposal_ids": [
+        "135053"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "constructed-open"
+      ],
+      "support": "local-resolver",
+      "purpose": "Verify that a corrupt chunk causes a location read failure.",
+      "action_evidence": [
+        {
+          "proposal_id": "135053",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/135053.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+        ],
+        "subnets": {
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [
+          {
+            "record": "data_center_record_fixture-0",
+            "encoding": "32-byte pieces addressed by SHA-256",
+            "fault": "corrupt-chunk",
+            "sha256": [
+              "cdf440669d87bccdacd0112abd6a0d94965e3470850f0161de6c60789b13b177",
+              "1386a05e54edd25940b8047b98ce4a2c3a7ca0e75f4a253edaa63b2fda3b3b58",
+              "cdd347ce35aff705f430e50ab94cb1da89df520f07e45b70d109e104257586b1"
+            ]
+          }
+        ],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_engai-flho6-5z6nk-4eirk-ozvgk-z73wc-bgayv-lbnls-djvfe-lheum-jae",
+            "node_record_mvoup-lc62d-qskas-hm2zf-fahj7-jxr62-q7abb-evmok-p7rq5-yqr3l-sqe",
+            "node_record_nrz3y-3qhvi-mhz6v-zlvpg-wvwn3-fsmom-wtkla-p67ly-fgsl2-sf5g4-bae",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "subnet_list",
+            "subnet_record_uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+          ],
+          "absent": [
+            "api_boundary_node_engai-flho6-5z6nk-4eirk-ozvgk-z73wc-bgayv-lbnls-djvfe-lheum-jae",
+            "api_boundary_node_mvoup-lc62d-qskas-hm2zf-fahj7-jxr62-q7abb-evmok-p7rq5-yqr3l-sqe",
+            "api_boundary_node_nrz3y-3qhvi-mhz6v-zlvpg-wvwn3-fsmom-wtkla-p67ly-fgsl2-sf5g4-bae",
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Registry 100 · Constructed Open lifecycle · Test variant corrupt location chunk",
+      "fault": "corrupt-chunk",
+      "menu": false,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "boundary-software-144909",
+      "name": "Boundary software deployment",
+      "proposal_ids": [
+        "144909"
+      ],
+      "function_ids": [
+        47
+      ],
+      "tags": [
+        "boundary",
+        "unsupported",
+        "indexed-executed"
+      ],
+      "support": "production-unsupported",
+      "purpose": "Verify explicit unsupported Membership dispatch for a Boundary software deployment.",
+      "action_evidence": [
+        {
+          "proposal_id": "144909",
+          "kind": "fixture-candid-from-indexed-payload",
+          "encoder_revision": "1",
+          "indexed_record": "historical/raw/api/144909.json"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+        ],
+        "subnets": {
+          "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe": [
+            "p7tb4-iibfi-ba",
+            "pwqka-6acfi-ba",
+            "prrmu-tydfi-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_p7tb4-iibfi-ba",
+            "node_record_prrmu-tydfi-ba",
+            "node_record_pwqka-6acfi-ba",
+            "subnet_list",
+            "subnet_record_uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+          ],
+          "absent": [
+            "api_boundary_node_p7tb4-iibfi-ba",
+            "api_boundary_node_prrmu-tydfi-ba",
+            "api_boundary_node_pwqka-6acfi-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "indexed-executed",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Boundary software action · Indexed Executed observation",
+      "fault": null,
+      "menu": false,
+      "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
+      "replay_clock_unix_seconds": "1795696512"
+    }
+  ]
+}

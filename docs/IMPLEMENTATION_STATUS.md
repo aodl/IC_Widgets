@@ -1,5 +1,9 @@
 # Implementation status
 
+## Historical review fixtures
+
+The local launcher serves the ordinary frontend and reviewer with a named scenario selector. It uses the recorded 144954 snapshot and indexed actions adapted to explicit synthetic Registry and lifecycle cases. Boundary actions have offline payload coverage. [Setup and evidence matrix](review-fixtures/README.md)
+
 ## Clear review and Target Topology
 
 Membership reports settlement counts and keeps a persistent work state. The map and the selected Target Topology comparison share one inspector. Analysis version 5 preserves registered geography tokens and evaluates the supported NNS rules from an explicitly selected Governance motion. The pinned Registry establishes the NNS role, and Governance is checked again after enrichment. [Local walkthrough and source scope](clear-review/README.md)

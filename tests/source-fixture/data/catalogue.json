@@ -1,0 +1,1014 @@
+{
+  "schema_version": 1,
+  "source_date": "2026-11-26T12:35:12.361552+00:00",
+  "function_source": "https://github.com/dfinity/ic/blob/ec91fdf7729bcac13251f12d27014ac3e944ffb3/rs/nns/governance/proto/ic_nns_governance/pb/v1/governance.proto",
+  "functions": [
+    {
+      "id": 1,
+      "name": "CreateSubnet"
+    },
+    {
+      "id": 2,
+      "name": "AddNodeToSubnet"
+    },
+    {
+      "id": 6,
+      "name": "RecoverSubnet"
+    },
+    {
+      "id": 13,
+      "name": "RemoveNodesFromSubnet"
+    },
+    {
+      "id": 18,
+      "name": "RemoveNodes"
+    },
+    {
+      "id": 31,
+      "name": "ChangeSubnetMembership"
+    },
+    {
+      "id": 43,
+      "name": "AddApiBoundaryNodes"
+    },
+    {
+      "id": 44,
+      "name": "RemoveApiBoundaryNodes"
+    },
+    {
+      "id": 46,
+      "name": "UpdateApiBoundaryNodesVersion"
+    },
+    {
+      "id": 47,
+      "name": "DeployGuestosToSomeApiBoundaryNodes"
+    },
+    {
+      "id": 56,
+      "name": "SplitSubnet"
+    },
+    {
+      "id": 57,
+      "name": "DeleteSubnet"
+    },
+    {
+      "id": 59,
+      "name": "MergeSubnets"
+    }
+  ],
+  "proposals": [
+    {
+      "proposal_id": "144954",
+      "function_id": 31,
+      "function_name": "ChangeSubnetMembership",
+      "title": "Replace a node in subnet tdb26",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "membership-action",
+      "purpose": [
+        "Established project regression: 1-for-1 NNS replacement; test Executed lifecycle and a separately labelled prospective replay."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/144954",
+        "observation_utc": "2026-11-26T12:20:58.232417+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "144954"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/144954.json",
+        "receipt": "historical/raw/api/144954.receipt.json",
+        "sha256": "fdbdf64ad57eb037e9d1ccfa4601a70c4178cd1f41aa71bafaca47c30a7d9dce",
+        "receipt_sha256": "dd7839371ec4b68a478e22db6662e521236b0a2d0ab4f0bb4d42de593edfe4d1"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "144940",
+      "function_id": 31,
+      "function_name": "ChangeSubnetMembership",
+      "title": "Replace nodes in subnet yinp6",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "membership-action",
+      "purpose": [
+        "Two additions and two removals in one action; changed-node map and list handling."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/144940",
+        "observation_utc": "2026-11-26T12:22:52.591315+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "144940"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/144940.json",
+        "receipt": "historical/raw/api/144940.receipt.json",
+        "sha256": "8d46fd8f553681827195f28aa98cbecda16a32cdb0cb9b76f6e5fe264bae0887",
+        "receipt_sha256": "3fe125d8431671ee24a83c9d35f559cf8cadd14faba245adc9186e03b54d9f91"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "135053",
+      "function_id": 31,
+      "function_name": "ChangeSubnetMembership",
+      "title": "Resize subnet uzr34",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "membership-action",
+      "purpose": [
+        "Function 31 with an empty removal list; three additions, conditional net +3."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/135053",
+        "observation_utc": "2026-11-26T12:22:52.571376+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "135053"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/135053.json",
+        "receipt": "historical/raw/api/135053.receipt.json",
+        "sha256": "229554194841e5ead581d2a753410fc6bf13f5c24f7d8176a318ec660ab275d5",
+        "receipt_sha256": "f4179b481edd148de7d12974a0890b10b45552e6d9e8f9717f2f0f491d86bbac"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results.",
+        "Add/remove count difference is conditional arithmetic, not verification of historical member counts or execution validity."
+      ]
+    },
+    {
+      "proposal_id": "142931",
+      "function_id": 31,
+      "function_name": "ChangeSubnetMembership",
+      "title": "Resize the Swiss Subnet for the SEV migration (wave 1)",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "membership-action",
+      "purpose": [
+        "Function 31 with an empty addition list; six removals, conditional net -6. Proposer claims 13 to 7; no historical roster verified."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/142931",
+        "observation_utc": "2026-11-26T12:22:58.327721+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "142931"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/142931.json",
+        "receipt": "historical/raw/api/142931.receipt.json",
+        "sha256": "8a1fb20178f03b56832b6f363d673f1ca6a0ec14ee02c3f102be56dd66d7b4cc",
+        "receipt_sha256": "c0fe2edf53cc4f59dfba3d68482899e4e553f2ea5b1d9d9bbada1e87f8309cf5"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results.",
+        "Add/remove count difference is conditional arithmetic, not verification of historical member counts or execution validity."
+      ]
+    },
+    {
+      "proposal_id": "132483",
+      "function_id": 31,
+      "function_name": "ChangeSubnetMembership",
+      "title": "Replace nodes in subnet pzp6e",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "membership-action",
+      "purpose": [
+        "Four additions and one removal; conditional net +3. Never assume replacements preserve subnet size."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/132483",
+        "observation_utc": "2026-11-26T12:22:58.323458+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "132483"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/132483.json",
+        "receipt": "historical/raw/api/132483.receipt.json",
+        "sha256": "2c5ea1a64ea082fbbc2150b7159edeac9da875fb4aa07aa14bafc44683c18fc7",
+        "receipt_sha256": "e38c34b156e9291a484f0f16b99e090a0e57b79c3546f639a0efa49cd154ae93"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results.",
+        "Add/remove count difference is conditional arithmetic, not verification of historical member counts or execution validity."
+      ]
+    },
+    {
+      "proposal_id": "85612",
+      "function_id": 2,
+      "function_name": "AddNodeToSubnet",
+      "title": "Replace a node in subnet snjp4",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "membership-action",
+      "purpose": [
+        "Function 2 add-only member of documented two-proposal replacement pair with 85622."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/85612",
+        "observation_utc": "2026-11-26T12:22:58.201931+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "85612"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/85612.json",
+        "receipt": "historical/raw/api/85612.receipt.json",
+        "sha256": "e76bd390478a8f02b5ec6f72087578a446811b1108d88e199f1dcff1528a662a",
+        "receipt_sha256": "7a22709fd12b6a189b4bcb7390bc205fad436d9e61bd7d6a646dc2c159d354f3"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "85622",
+      "function_id": 13,
+      "function_name": "RemoveNodesFromSubnet",
+      "title": "Replace a node in subnet snjp4",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "membership-action",
+      "purpose": [
+        "Function 13 removal member of documented pair with 85612; target must be resolved from Registry, never copied from its title."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/85622",
+        "observation_utc": "2026-11-26T12:23:02.684406+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "85622"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/85622.json",
+        "receipt": "historical/raw/api/85622.receipt.json",
+        "sha256": "4896b516baf6732403793efdd30e21ee9b93ed235835da8d41299b8cd5fdd7a6",
+        "receipt_sha256": "1d111a96a33e7e8a6661cbc087e932452588f5dd5fed1e672fddc0977dd0136a"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results.",
+        "Function 13 supplies no subnet ID; actual affected subnet(s) require an appropriate Registry snapshot."
+      ]
+    },
+    {
+      "proposal_id": "140988",
+      "function_id": 31,
+      "function_name": "ChangeSubnetMembership",
+      "title": "Replace a node in subnet xok3w",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "FAILED",
+      "support": "membership-action",
+      "purpose": [
+        "Failed execution: recorded error says removed nodes did not belong to target subnet; do not display proposed effect as executed."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/140988",
+        "observation_utc": "2026-11-26T12:23:02.719273+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "140988"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/140988.json",
+        "receipt": "historical/raw/api/140988.receipt.json",
+        "sha256": "b500ce480a3e0ce6ef8e66adac101a02e77871c4332848d028a512de3ae0cffa",
+        "receipt_sha256": "5d0e61d5575c26a4b52dbd695754f77a400a99174c45f2232af2b86e4ebb8824"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "139792",
+      "function_id": 31,
+      "function_name": "ChangeSubnetMembership",
+      "title": "Replace a node in subnet x33ed",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "REJECTED",
+      "support": "membership-action",
+      "purpose": [
+        "Rejected one-for-one action; no executed effect. Useful terminal-lifecycle UI fixture."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/139792",
+        "observation_utc": "2026-11-26T12:23:02.707407+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "139792"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/139792.json",
+        "receipt": "historical/raw/api/139792.receipt.json",
+        "sha256": "801b8048d475aeb0d81788ab3c4f0ce5c303becb078bbaa2c3983123186c7e86",
+        "receipt_sha256": "5721de0e3152fbe3fe51faba3bec5e1960e2296792462b158f1ff282d18b2391"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "132102",
+      "function_id": 13,
+      "function_name": "RemoveNodesFromSubnet",
+      "title": "Remove nodes: [ylm4h, zpjxp, zppi4] from their assigned subnets",
+      "tags": [
+        "subnet",
+        "core"
+      ],
+      "indexed_status": "REJECTED",
+      "support": "membership-action",
+      "purpose": [
+        "Rejected three-node function 13 payload with no subnet ID. Historical subnet assignments not verified; supports decoder and synthetic multi-subnet-scope tests only until a historical Registry baseline is captured."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/132102",
+        "observation_utc": "2026-11-26T12:23:06.339426+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "132102"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/132102.json",
+        "receipt": "historical/raw/api/132102.receipt.json",
+        "sha256": "deb917f9a8b22defe96096c6b8c89def152b49f500b77a39c5fbf630b7fa2e98",
+        "receipt_sha256": "a630e44adce38eecfebc285da3efbc57565c8426eb8a0df1addee61fe4157fae"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results.",
+        "Function 13 supplies no subnet ID; actual affected subnet(s) require an appropriate Registry snapshot.",
+        "Three requested nodes do not prove three affected subnets, or more than one; multi-subnet test distribution must be synthetic unless independently captured."
+      ]
+    },
+    {
+      "proposal_id": "142743",
+      "function_id": 1,
+      "function_name": "CreateSubnet",
+      "title": "Creating a new SEV-enabled (TEE) subnet",
+      "tags": [
+        "subnet",
+        "extended"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "catalogue-only",
+      "purpose": [
+        "Seven-node SEV-enabled application subnet creation, no subnet_id_override; separate workflow from replacement."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/142743",
+        "observation_utc": "2026-11-26T12:23:06.347289+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "142743"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/142743.json",
+        "receipt": "historical/raw/api/142743.receipt.json",
+        "sha256": "6abf746c10f9e3c4c974cd8f259ce780be16fbf0f044893df4f8241475766229",
+        "receipt_sha256": "84f0a028feb53ea5865299d9bf0089022356b7399103201f544bee72886dc887"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "144939",
+      "function_id": 31,
+      "function_name": "ChangeSubnetMembership",
+      "title": "Replace a node in subnet fuqsr",
+      "tags": [
+        "subnet",
+        "extended"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "membership-action",
+      "purpose": [
+        "Removes kaoz3 from fuqsr before 144954 adds it to NNS. Both exact payload overlap and proposer-stated dependency; historical all-subnet assignment validity still unverified."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/144939",
+        "observation_utc": "2026-11-26T12:22:52.607122+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "144939"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/144939.json",
+        "receipt": "historical/raw/api/144939.receipt.json",
+        "sha256": "bf07b2aa9b58cdf55f4f3626733acbaa41202035477f82e6094aaf2d20975f4c",
+        "receipt_sha256": "0ff697e3f6aa3c49b37ebf0e633d2806337012e80c44e1b975c7bd5552ef173f"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "144681",
+      "function_id": 6,
+      "function_name": "RecoverSubnet",
+      "title": "Update recovery CatchUp Package of subnet: re2t4 to height: 50115000",
+      "tags": [
+        "subnet",
+        "extended"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "catalogue-only",
+      "purpose": [
+        "Recovery payload supplies seven replacement nodes. Recovery is not a simple add/remove action."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/144681",
+        "observation_utc": "2026-11-26T12:23:06.367132+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "144681"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/144681.json",
+        "receipt": "historical/raw/api/144681.receipt.json",
+        "sha256": "faf6513f78d408a97b7332f0ea26d256931ce6899f70b16cbb7154412b193f4c",
+        "receipt_sha256": "12b8e6732d6a98b09ace31731765e2738df5f5b1f9b1967be1ce29caabf84d35"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "143100",
+      "function_id": 6,
+      "function_name": "RecoverSubnet",
+      "title": "Update recovery CatchUp Package of subnet: re2t4 to height: 31083500",
+      "tags": [
+        "subnet",
+        "extended"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "catalogue-only",
+      "purpose": [
+        "Recovery payload has replacement_nodes null; must not manufacture a membership change."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/143100",
+        "observation_utc": "2026-11-26T12:23:09.967320+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "143100"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/143100.json",
+        "receipt": "historical/raw/api/143100.receipt.json",
+        "sha256": "683d079ded6ba4ce0f2ade6a54cdabed84af8fc376ff9a54759e43dd494103a7",
+        "receipt_sha256": "40fe4108713b7c9391fa4ec37ee052042304abfce1e4db37651bbf3f0bc6be5a"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "144850",
+      "function_id": 57,
+      "function_name": "DeleteSubnet",
+      "title": "Delete subnet 3zsyy",
+      "tags": [
+        "subnet",
+        "extended"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "catalogue-only",
+      "purpose": [
+        "DeleteSubnet removes 3zsyy; membership release and record deletion differ from a simple node removal."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/144850",
+        "observation_utc": "2026-11-26T12:23:09.971102+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "144850"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/144850.json",
+        "receipt": "historical/raw/api/144850.receipt.json",
+        "sha256": "e6fdb6ebf789ddf9047f0f4723d849a231172d2df8f3707e4b0a1674d4ac681d",
+        "receipt_sha256": "51451816d3b3f6216b532cea1b6c0d1d84ad68b61098e48dfc4a05417e2a724c"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "144865",
+      "function_id": 18,
+      "function_name": "RemoveNodes",
+      "title": "Remove the seven nodes of the retired Swiss subnet 3zsyy",
+      "tags": [
+        "subnet",
+        "extended"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "catalogue-only",
+      "purpose": [
+        "Seven registry-node removals after 3zsyy retirement; function 18 is not RemoveNodesFromSubnet."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/144865",
+        "observation_utc": "2026-11-26T12:23:09.975724+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "144865"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/144865.json",
+        "receipt": "historical/raw/api/144865.receipt.json",
+        "sha256": "d58fa0aebfed57c25c0ec89eaec3e41727757e5ec582fb64f2c94a3da226e44f",
+        "receipt_sha256": "27a3d4379e4f84e87248f0a87d671ff39cccf37b8399abaa0dee28f8e2de2dd0"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results."
+      ]
+    },
+    {
+      "proposal_id": "48615",
+      "function_id": 1,
+      "function_name": "CreateSubnet",
+      "title": "Create new application subnet",
+      "tags": [
+        "subnet",
+        "extended"
+      ],
+      "indexed_status": "FAILED",
+      "support": "catalogue-only",
+      "purpose": [
+        "Failed 2022 CreateSubnet payload, older field shape and indexed failure_reason null; do not invent reason."
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/48615",
+        "observation_utc": "2026-11-26T12:23:13.540306+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "48615"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/48615.json",
+        "receipt": "historical/raw/api/48615.receipt.json",
+        "sha256": "2a9553988cd5f7d79c2e327f47c87597579abeceddca36018d6f7384e1da53cc",
+        "receipt_sha256": "b293fe45c1fcacff210a7026a7b130c8f76fb6967b35540c0ccd58dfd20073bd"
+      },
+      "limits": [
+        "Indexed decoded payload only; direct Governance reply and original executable Candid bytes were not captured by this research.",
+        "No historical Registry baseline or proposal-to-Registry-version mapping was verified.",
+        "Proposal-summary metadata and concentration figures are proposer claims, not expected results.",
+        "Indexed status is FAILED but failure_reason is null; retain an unknown reason."
+      ]
+    },
+    {
+      "proposal_id": "130714",
+      "function_id": 43,
+      "function_name": "AddApiBoundaryNodes",
+      "title": "Add 2 API boundary node(s)",
+      "tags": [
+        "api_boundary",
+        "boundary_membership"
+      ],
+      "indexed_status": "FAILED",
+      "support": "boundary-payload-only",
+      "purpose": [
+        "failed execution retained distinctly from rejected",
+        "exact mistyped version retained",
+        "no membership outcome asserted from terminal payload"
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/130714",
+        "observation_utc": "2026-11-26T12:22:47.774830+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "130714"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/130714.json",
+        "receipt": "historical/raw/api/130714.receipt.json",
+        "sha256": "fe0cac1287ac0154cbbcce029adf9fcb5dfcb3a2519c1e73f1724af054dbc923",
+        "receipt_sha256": "3616f6e2dde2471d712100a769c4be526662df7b4e93ba48bfa7c72b31b52e2d"
+      },
+      "limits": [
+        "Indexed decoded payload; no direct Governance wire reply acquired in this research.",
+        "No historical Registry baseline or complete historical boundary roster acquired.",
+        "Proposer summary claims are not independent expected calculations."
+      ]
+    },
+    {
+      "proposal_id": "134902",
+      "function_id": 43,
+      "function_name": "AddApiBoundaryNodes",
+      "title": "Add 17 API boundary node(s)",
+      "tags": [
+        "api_boundary",
+        "boundary_membership"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "boundary-payload-only",
+      "purpose": [
+        "17-node add stresses maps and grouping",
+        "summary claims 3-to-20 fleet growth remain claims until historical roster proven"
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/134902",
+        "observation_utc": "2026-11-26T12:23:05.791441+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "134902"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/134902.json",
+        "receipt": "historical/raw/api/134902.receipt.json",
+        "sha256": "aacf68fb46fb5c51f796a5c781874328b932d4bac88d0908daf79e4114785d02",
+        "receipt_sha256": "d25dffda77d6171a32bf1743060a9a5595b329dffdb58a2300dc9e93be617c1d"
+      },
+      "limits": [
+        "Indexed decoded payload; no direct Governance wire reply acquired in this research.",
+        "No historical Registry baseline or complete historical boundary roster acquired.",
+        "Proposer summary claims are not independent expected calculations."
+      ]
+    },
+    {
+      "proposal_id": "134993",
+      "function_id": 43,
+      "function_name": "AddApiBoundaryNodes",
+      "title": "Add 3 API boundary node(s)",
+      "tags": [
+        "api_boundary",
+        "boundary_membership"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "boundary-payload-only",
+      "purpose": [
+        "three-node addition in explicitly linked replacement pair134993+134994",
+        "independent and both-order simulations from one fixture baseline"
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/134993",
+        "observation_utc": "2026-11-26T12:23:05.799190+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "134993"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/134993.json",
+        "receipt": "historical/raw/api/134993.receipt.json",
+        "sha256": "6600babb9ccfc0e3a09ff189836c2ca6a2f7fa1476e30ef7b4e7feb464c4c10f",
+        "receipt_sha256": "fb606ddf5344f6b97c753173ec9c5e8f060951d35d3dcea498577943e1d815ba"
+      },
+      "limits": [
+        "Indexed decoded payload; no direct Governance wire reply acquired in this research.",
+        "No historical Registry baseline or complete historical boundary roster acquired.",
+        "Proposer summary claims are not independent expected calculations."
+      ]
+    },
+    {
+      "proposal_id": "134994",
+      "function_id": 44,
+      "function_name": "RemoveApiBoundaryNodes",
+      "title": "Remove 3 API boundary node(s)",
+      "tags": [
+        "api_boundary",
+        "boundary_membership"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "boundary-payload-only",
+      "purpose": [
+        "three-node removal in explicitly linked replacement pair134993+134994",
+        "membership type distinguished from removal of registered hardware"
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/134994",
+        "observation_utc": "2026-11-26T12:23:09.592282+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "134994"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/134994.json",
+        "receipt": "historical/raw/api/134994.receipt.json",
+        "sha256": "1c6e60e2f13afa7eaaa5f8527e336258f9abd9a98e54e71846cd069728fb180a",
+        "receipt_sha256": "f5498fb0e785ebe56207a89da206fc793f9d3e5234144da14d055d49b2d885f9"
+      },
+      "limits": [
+        "Indexed decoded payload; no direct Governance wire reply acquired in this research.",
+        "No historical Registry baseline or complete historical boundary roster acquired.",
+        "Proposer summary claims are not independent expected calculations."
+      ]
+    },
+    {
+      "proposal_id": "135310",
+      "function_id": 43,
+      "function_name": "AddApiBoundaryNodes",
+      "title": "Add 2 API boundary node(s)",
+      "tags": [
+        "api_boundary",
+        "boundary_membership"
+      ],
+      "indexed_status": "REJECTED",
+      "support": "boundary-payload-only",
+      "purpose": [
+        "rejected add; no applied state fabricated",
+        "two candidates sharing reported provider and data center: verify only using source-backed metadata"
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/135310",
+        "observation_utc": "2026-11-26T12:23:05.779538+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "135310"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/135310.json",
+        "receipt": "historical/raw/api/135310.receipt.json",
+        "sha256": "948e9dff75a6e6c5d28285aa3f10ac9a9c7c572bdf27e227c7436093d113f8d5",
+        "receipt_sha256": "ca6ad6281a12e88c216ecf837d0ac9230e275c18f844bc028afd30eae13c5712"
+      },
+      "limits": [
+        "Indexed decoded payload; no direct Governance wire reply acquired in this research.",
+        "No historical Registry baseline or complete historical boundary roster acquired.",
+        "Proposer summary claims are not independent expected calculations."
+      ]
+    },
+    {
+      "proposal_id": "140279",
+      "function_id": 44,
+      "function_name": "RemoveApiBoundaryNodes",
+      "title": "Remove 1 API boundary node(s)",
+      "tags": [
+        "api_boundary",
+        "boundary_membership"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "boundary-payload-only",
+      "purpose": [
+        "one-node remove linked to add140280",
+        "lower proposal ID executed later: timestamps determine observed order"
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/140279",
+        "observation_utc": "2026-11-26T12:23:09.592137+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "140279"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/140279.json",
+        "receipt": "historical/raw/api/140279.receipt.json",
+        "sha256": "40c71fd2065191bbfd45084286a6eb9fa16e86430fe927e1fdccee65f5a38cf2",
+        "receipt_sha256": "d4a01bcd5091ccbedb73b7d792230827b8bb6d282698ede022009343dd93b292"
+      },
+      "limits": [
+        "Indexed decoded payload; no direct Governance wire reply acquired in this research.",
+        "No historical Registry baseline or complete historical boundary roster acquired.",
+        "Proposer summary claims are not independent expected calculations."
+      ]
+    },
+    {
+      "proposal_id": "140280",
+      "function_id": 43,
+      "function_name": "AddApiBoundaryNodes",
+      "title": "Add 1 API boundary node",
+      "tags": [
+        "api_boundary",
+        "boundary_membership"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "boundary-payload-only",
+      "purpose": [
+        "one-node add linked to remove140279",
+        "summary uses past-tense removal but add executed before removal"
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/140280",
+        "observation_utc": "2026-11-26T12:23:09.575792+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "140280"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/140280.json",
+        "receipt": "historical/raw/api/140280.receipt.json",
+        "sha256": "b301ba248e7c77486e120971c779e426a097cce83c040c92812cb9e30578f25e",
+        "receipt_sha256": "964d53e00d2b9b6f08bfa3ad0809675dcc52171b548edb226bd3c304100b954e"
+      },
+      "limits": [
+        "Indexed decoded payload; no direct Governance wire reply acquired in this research.",
+        "No historical Registry baseline or complete historical boundary roster acquired.",
+        "Proposer summary claims are not independent expected calculations."
+      ]
+    },
+    {
+      "proposal_id": "144909",
+      "function_id": 47,
+      "function_name": "DeployGuestosToSomeApiBoundaryNodes",
+      "title": "Update 3 API boundary node(s) to replica version 5c2c0c5",
+      "tags": [
+        "api_boundary",
+        "boundary_control"
+      ],
+      "indexed_status": "EXECUTED",
+      "support": "boundary-payload-only",
+      "purpose": [
+        "negative control: identical node_ids+version shape to addition, different action",
+        "software update must never change membership"
+      ],
+      "evidence": {
+        "kind": "offchain-index-capture",
+        "source": "https://ic-api.internetcomputer.org/api/v3/proposals/144909",
+        "observation_utc": "2026-11-26T12:23:13.492067+00:00",
+        "request": {
+          "method": "GET",
+          "proposal_id": "144909"
+        },
+        "trust": "Indexed HTTPS response; no IC certification established",
+        "raw": "historical/raw/api/144909.json",
+        "receipt": "historical/raw/api/144909.receipt.json",
+        "sha256": "0539b56a18d2a40e2fdce8f462caaa8c3f76e6e910b1d17c6672e16a66ee79f5",
+        "receipt_sha256": "ee586f5db177336607fb4c97a9e66fa0276b0622fb44a5f7a79a1e8003e204bb"
+      },
+      "limits": [
+        "Indexed decoded payload; no direct Governance wire reply acquired in this research.",
+        "No historical Registry baseline or complete historical boundary roster acquired.",
+        "Proposer summary claims are not independent expected calculations."
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "same-subnet-two-proposal-replacement",
+      "proposal_ids": [
+        "85612",
+        "85622"
+      ],
+      "evidence": "85622 summary explicitly links 85612; payload lists one incoming and one outgoing node. Removal subnet association still requires Registry state.",
+      "test": "Both sequential orders must use same starting Registry version and expose intermediate sizes; avoid treating the two proposals as an atomic onchain action.",
+      "indexed_execution_order": [
+        "85612",
+        "85622"
+      ]
+    },
+    {
+      "id": "cross-subnet-transfer-dependency",
+      "proposal_ids": [
+        "144939",
+        "144954"
+      ],
+      "shared_node": "kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe",
+      "evidence": "144939 removes kaoz3 from fuqsr and explicitly states purpose of freeing it for NNS; 144954 adds it to tdb26. Indexed execution dates are 2026-11-23 and 2026-11-26.",
+      "test": "Advanced dependency scope; do not silently merge different target subnets into same-subnet replacement workflow.",
+      "indexed_execution_order": [
+        "144939",
+        "144954"
+      ]
+    },
+    {
+      "id": "subnet-retirement-and-node-deletion",
+      "proposal_ids": [
+        "144850",
+        "144865"
+      ],
+      "evidence": "DeleteSubnet targets 3zsyy; subsequent RemoveNodes title names seven nodes of retired 3zsyy. Membership linkage not independently established without Registry snapshots.",
+      "test": "Distinguish subnet deletion from registry-node deletion; do not classify function 18 as ordinary member removal."
+    },
+    {
+      "proposal_ids": [
+        "134993",
+        "134994"
+      ],
+      "relationship_evidence": "134994 summary explicitly references134993 as replacement additions",
+      "indexed_execution_order": [
+        "134993",
+        "134994"
+      ],
+      "id": "boundary-replacement-134993-134994"
+    },
+    {
+      "proposal_ids": [
+        "140279",
+        "140280"
+      ],
+      "relationship_evidence": "140280 summary explicitly references140279",
+      "indexed_execution_order": [
+        "140280",
+        "140279"
+      ],
+      "warning": "Description tense and numeric order disagree with execution order; preserve actual timestamps.",
+      "id": "boundary-replacement-140279-140280"
+    }
+  ],
+  "coverage_gaps": [
+    {
+      "function": "SplitSubnet",
+      "function_id": 56,
+      "observed_index_total": 0,
+      "proof": "api/discovery-SplitSubnet.json",
+      "limitation": "Observed index result only; not universal historical absence."
+    },
+    {
+      "function": "MergeSubnets",
+      "function_id": 59,
+      "observed_index_total": 0,
+      "proof": "api/discovery-MergeSubnets.json",
+      "limitation": "Observed index result only; not universal historical absence."
+    },
+    {
+      "kind": "historical-multi-subnet-removal-baseline",
+      "limitation": "132102 carries three node IDs but historical assignment distribution is unverified. Use explicit synthetic distributions."
+    },
+    {
+      "kind": "historical-complete-api-boundary-roster",
+      "limitation": "No complete historical roster captured. Candidate-key evidence cannot establish fleet completeness."
+    }
+  ]
+}

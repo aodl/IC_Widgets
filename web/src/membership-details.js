@@ -1,4 +1,5 @@
-import { assessments, calculationNote, geographyNote, governanceText, groupKey, lifecycle, metrics, metricDelta, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
+import { assessments, calculationNote, geographyNote, governanceText, groupKey, lifecycle, metrics, metricDelta, policyApplicabilityNote, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
+import { terminalOutcome } from './terminal-outcome.js';
 import { markdownEditor } from './review-export.js';
 import { help } from './review-help.js';
 import { action, saveFile } from './review-map.js';
@@ -131,8 +132,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const header = styled('section', 'review-header',
     el('h2', proposals.length === 1 ? 'Proposal #' + proposals[0].id : 'Proposals ' + proposals.map(row => '#' + row.id).join(' + ')),
     contextLine, controls, limit, summary);
-  const section = styled('div', 'workspace', header, styled('div', 'review-grid',
-    styled('div', 'map-card', mapHost), topology), tools, inspector, pane);
+  const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost), topology);
+  const section = styled('div', 'workspace', header, grid, tools, inspector, pane);
   const session = createReviewSession({ live, contexts, policyId, active, call, progress, updated: render });
   const exportReview = action('Export review', () => inspect({ type: 'export' }));
   const retry = action('Retry failed evidence', () => session.retry());
@@ -321,18 +322,25 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       partial ? 'Assignments elsewhere remain unverified.' : 'Full execution validity remains unverified.',
       model?.topology.some(row => row.assessment.endsWith('unresolved')) ? el('span', ' · Some policy checks remain unresolved.') : null);
     const changed = model?.members.filter(node => node.role !== 'Retained') ?? [];
-    const historical = proposals.some(proposal => proposal.lifecycle_status === 4 || proposal.executed_at_seconds.length);
+    const steps = selected?.scenario.steps.slice(0, selected.index) ?? [];
+    const terminal = model ? [] : proposals.filter(proposal => steps.some(step => step.proposal === proposal.id))
+      .flatMap(proposal => {
+        const outcome = terminalOutcome(proposal);
+        return outcome ? [el('p', el('strong', '#' + proposal.id + ' · ' + outcome.label), ' · ' + outcome.explanation)] : [];
+      });
+    grid.hidden = terminal.length > 0;
+    limit.hidden = grid.hidden;
+    exportReview.hidden = grid.hidden;
     replace(summary,
-      model ? el('strong', model.membership) : el('strong', 'Proposed membership unavailable'),
-      subnetLabel ? el('span', subnetLabel + ' · Registry ' + number(version), ' ',
+      model ? el('strong', model.membership) : terminal.length ? terminal : el('strong', 'Proposed membership unavailable'),
+      subnetLabel && !terminal.length ? el('span', subnetLabel + ' · Registry ' + number(version), ' ',
         help('Registry snapshot', 'The version used for every Registry record in this review. Governance has its own observation times.')) : null,
       changed.length ? styled('div', 'actions changed-nodes', changed.map(node => nodeButton(node, () => inspect([node.id], node.label)))) : null,
-      historical ? el('p', 'Governance observed execution. The historical before-state is unavailable.') : null,
       state.consistency?.reason ? el('p', state.consistency.blocked ? state.consistency.reason
         : 'Provisional · ' + state.consistency.reason) : null,
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
-    topologyStatus.textContent = policyLine;
+    topologyStatus.textContent = policyLine + (source ? ' · ' + policyApplicabilityNote : '');
     topology.setAttribute('aria-busy', String(state.work === 'running' || state.work === 'stopping'));
     const rows = model?.topology ?? [];
     replace(tableBody, rows.length ? rows.map(row => el('tr',

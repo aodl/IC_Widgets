@@ -14,7 +14,9 @@ const dfx = (...args) => execFileSync('dfx', args, {
 }).trim();
 const frontend = dfx('canister', 'id', '--network', 'local', 'frontend');
 const reviewer = dfx('canister', 'id', '--network', 'local', 'reviewer');
-const url = 'http://' + frontend + '.localhost:4966';
+const config = JSON.parse(await readFile(resolve(project, 'dfx.json'), 'utf8'));
+const port = config.networks?.local?.bind?.split(':').at(-1) ?? '4966';
+const url = 'http://' + frontend + '.localhost:' + port;
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
 

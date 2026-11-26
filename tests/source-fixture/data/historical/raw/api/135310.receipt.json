@@ -1,0 +1,27 @@
+{
+  "url": "https://ic-api.internetcomputer.org/api/v3/proposals/135310",
+  "requested_at": "2026-11-26T12:23:00.508420+00:00",
+  "retrieved_at": "2026-11-26T12:23:05.779538+00:00",
+  "http_status": 200,
+  "content_type": "application/json",
+  "bytes": 4785,
+  "sha256": "948e9dff75a6e6c5d28285aa3f10ac9a9c7c572bdf27e227c7436093d113f8d5",
+  "source_class": "offchain_index_discovery",
+  "response_headers": {
+    "date": "Thu, 26 Nov 2026 12:23:05 GMT",
+    "content-type": "application/json",
+    "content-length": "4785",
+    "access-control-allow-credentials": "true",
+    "access-control-allow-headers": "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization",
+    "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "access-control-allow-origin": "*",
+    "access-control-max-age": "1728000",
+    "vary": "Origin",
+    "x-api-version": "5.110.0",
+    "cf-cache-status": "DYNAMIC",
+    "server": "envoy",
+    "cf-ray": "a608dcc3ca3e64d7-WAW",
+    "x-envoy-upstream-service-time": "170",
+    "connection": "close"
+  }
+}
