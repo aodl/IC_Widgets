@@ -43,3 +43,7 @@ jobs:
           npm --prefix web ci
           npm --prefix web test
           npm --prefix web run build
+          if rg 'Replay scenario|Development replay|nns-144954|ic-api.internetcomputer.org' web/dist; then
+            echo 'Development replay controls or external acquisition leaked into the production bundle.'
+            exit 1
+          fi

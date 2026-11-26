@@ -161,6 +161,15 @@ fn set_on_demand_caller(caller: Option<Principal>) -> Result<(), String> {
 
 fn require_on_demand_caller() -> Result<(), String> {
     let caller = msg_caller();
+    #[cfg(feature = "fixture-browser")]
+    if caller != Principal::anonymous() {
+        let sources = store::config().sources;
+        if sources.governance == sources.registry
+            && sources.registry != Sources::canonical().registry
+        {
+            return Ok(());
+        }
+    }
     if caller == Principal::anonymous()
         || (!is_controller(&caller) && DELEGATE.get() != Some(caller))
     {

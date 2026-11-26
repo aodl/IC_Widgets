@@ -1,7 +1,7 @@
 // Use a disposable local reviewer and source fixture, as in browser-voting-review.mjs.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Cbor, requestIdOf } from '@icp-sdk/core/agent';
 import { IDL } from '@icp-sdk/core/candid';
@@ -17,6 +17,8 @@ const dfx = (...args) => execFileSync('dfx', args, {
 const localCall = (canister, method, args = '()') => dfx('canister', 'call', '--network', 'local', canister, method, args);
 const frontend = dfx('canister', 'id', '--network', 'local', 'frontend');
 const reviewer = dfx('canister', 'id', '--network', 'local', 'reviewer');
+const config = JSON.parse(await readFile(resolve(project, 'dfx.json'), 'utf8'));
+const port = config.networks?.local?.bind?.split(':').at(-1) ?? '4966';
 const methods = idlFactory({ IDL }).fieldsAsObject();
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
 const mode = value => localCall('fixture', 'set_voting_review_fixture', '(' + value + ' : nat8)');
@@ -47,7 +49,7 @@ async function test(name, fixture, run) {
   };
   const count = method => [...requests.values()].filter(row => row.method_name === method).length;
   try {
-    await page.goto('http://' + frontend + '.localhost:4966');
+    await page.goto('http://' + frontend + '.localhost:' + port);
     const principal = (await page.locator('#browser-principal').textContent()).trim();
     assert.match(localCall('reviewer', 'set_on_demand_caller', '(opt principal "' + principal + '")'), /Ok/);
     const nodeReads = () => [...requests.values()].filter(row => row.method_name === 'membership_context_detail_page').reduce((sum, row) => {

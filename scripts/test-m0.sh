@@ -6,6 +6,7 @@ export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-6}"
 mkdir -p .local/tmp
 export TMPDIR="$PWD/.local/tmp"
 sha256sum --check vendor/ic/SHA256SUMS
+python3 scripts/check-review-corpus.py
 if [[ -z "${POCKET_IC_BIN:-}" && -f "$HOME/.cache/pocket-ic/pocket-ic-server-14.0.0.gz" ]]; then
     mkdir -p .local/pocket-ic-14
     if [[ ! -x .local/pocket-ic-14/pocket-ic-server ]]; then
@@ -53,6 +54,7 @@ cargo test --locked -p nexus-reviewer --test m0 -- --ignored "${capture[@]}"
 cargo test --locked -p nexus-reviewer --test m1 -- --ignored "${capture[@]}"
 cargo test --locked -p nexus-reviewer --test m2 -- --ignored "${capture[@]}"
 cargo test --locked -p nexus-reviewer --test on_demand -- --ignored "${capture[@]}"
+cargo test --locked -p nexus-reviewer --test historical_replay -- --ignored "${capture[@]}"
 candid-extractor target/wasm32-unknown-unknown/release/nexus_reviewer.wasm |
     sed 's/[[:blank:]]*$//' > .local/reviewer.did
 diff -u canisters/reviewer/reviewer.did .local/reviewer.did

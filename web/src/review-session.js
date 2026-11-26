@@ -300,7 +300,14 @@ export function createReviewSession({ live, contexts, policyId, active, call, up
       phases.Comparison = comparisons.some(row => ['stale', 'unavailable'].includes(row.status)) ? 'failed' : 'ready';
       await verifyLifecycle();
     };
-    running = run().catch(error => {
+    running = run().then(async () => {
+      // Returning to a calculated subnet can abandon enrichment without a new
+      // comparison. Still settle the final Governance gate for the visible result.
+      if (valid() && !inScope() && !plannedContexts().some(pending)
+          && selected?.calculation && !final && !consistency) {
+        await verifyLifecycle();
+      }
+    }).catch(error => {
       for (const context of plannedContexts().filter(pending)) context.status = 'unavailable';
       consistency = { blocked: false, reason: error.message };
     }).finally(() => {

@@ -1,0 +1,9 @@
+{
+  "url": "https://ic-api.internetcomputer.org/api/v3/proposals/144865",
+  "retrieved_at": "2026-11-26T12:23:09.975724+00:00",
+  "sha256": "d58fa0aebfed57c25c0ec89eaec3e41727757e5ec582fb64f2c94a3da226e44f",
+  "bytes": 6749,
+  "http_status": 200,
+  "content_type": "application/json",
+  "source_kind": "offchain_index"
+}

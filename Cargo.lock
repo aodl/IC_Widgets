@@ -1157,6 +1157,7 @@ dependencies = [
  "pocket-ic",
  "prost",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1168,6 +1169,8 @@ dependencies = [
  "nexus-domain",
  "nexus-ic-sources",
  "prost",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

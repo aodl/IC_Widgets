@@ -1,8 +1,10 @@
 //! Synthetic, test-only wire endpoints. Installed on a different subnet from the probe.
 #![cfg(target_arch = "wasm32")]
 
+mod historical;
 mod proposal_fixture;
 mod registry_fixture;
+mod replay;
 
 use candid::{CandidType, Principal, encode_one};
 use ic_cdk::api::{msg_arg_data, msg_reply};
@@ -141,11 +143,13 @@ thread_local! {
 struct VotingRegistry {
     version: u64,
     replies: std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
+    chunks: std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
 #[ic_cdk::update]
 fn load_voting_reference() {
     assert!(ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()));
+    replay::clear();
     VOTING_GOVERNANCE_FAILURE.set(false);
     let (version, mut rows): (u64, Vec<(String, Vec<u8>)>) =
         candid::decode_args(include_bytes!("../data/144954/registry.didbin")).unwrap();
@@ -178,6 +182,7 @@ fn load_voting_reference() {
             .into_iter()
             .map(|(key, reply)| (key.into_bytes(), reply))
             .collect(),
+        chunks: Default::default(),
     }));
     set_demo_proposal(
         144_954,
@@ -190,6 +195,7 @@ fn load_voting_reference() {
 fn set_voting_review_fixture(mode: u8) {
     if mode == 5 {
         assert!(ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()));
+        replay::clear();
         VOTING_REGISTRY.set(None);
         DEMO_PROPOSAL.set(None);
         VOTING_GOVERNANCE_FAILURE.set(false);
@@ -275,6 +281,9 @@ fn set_demo_proposal(id: u64, reply: Vec<u8>) {
 
 #[ic_cdk::query(manual_reply = true)]
 fn get_proposal_info(id: u64) {
+    if replay::governance(id) {
+        return;
+    }
     if id == 144_954 && VOTING_GOVERNANCE_FAILURE.get() {
         ic_cdk::trap("Temporary fixture Governance failure");
     }
@@ -513,6 +522,20 @@ fn reply_value(request: RegistryGetValueRequest) {
 #[ic_cdk::query]
 fn get_chunk(request: ChunkRequest) -> Result<Chunk, String> {
     let hash = request.content_sha256.ok_or("missing hash")?;
+    if let Some(result) = VOTING_REGISTRY.with_borrow(|registry| {
+        registry.as_ref().map(|registry| {
+            registry
+                .chunks
+                .get(&hash)
+                .cloned()
+                .map(|content| Chunk {
+                    content: Some(content),
+                })
+                .ok_or_else(|| "uncaptured Registry chunk".into())
+        })
+    }) {
+        return result;
+    }
     let mode = registry_fixture::MODE.get();
     if mode != 0 {
         let part = registry_fixture::chunks()
@@ -560,3 +583,5 @@ async fn remote_oversized_reply_error(remote: Principal) -> String {
         .expect_err("oversized replicated reply must be rejected")
         .to_string()
 }
+
+ic_cdk::export_candid!();

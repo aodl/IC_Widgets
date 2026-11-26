@@ -34,7 +34,7 @@ test('a shared-slot request settles before the latest eligible request is sent',
   assert.deepEqual(calls, ['accepted', 'latest']);
 });
 
-function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => false, finalize } = {}) {
+function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => false, finalize, readPage } = {}) {
   const recorded = [];
   const render = [];
   const updates = [];
@@ -61,6 +61,7 @@ function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => 
       const [[kind, values]] = Object.entries(keys);
       recorded.push({ kind, values });
       if (recorded.length === 1 && firstPage) await firstPage();
+      await readPage?.(kind, values);
       if (reject(kind)) throw new Error('source unavailable');
       return { Ok: { registry_version: [version], outcome: { Ok: { [kind]: values.map(() => ({
         Nodes: present({ operator: [operator] }),
@@ -155,6 +156,50 @@ test('a confirmed Governance change blocks later enrichment for the same preview
   assert.equal(recorded.length, calls);
   assert.equal(session.section().stage, 'Blocked');
   assert.equal(two.calculation, undefined);
+});
+
+test('returning to a calculated subnet while another loads settles the Governance gate', async () => {
+  const requested = deferred();
+  const page = deferred();
+  const awaitingVerification = deferred();
+  const verified = deferred();
+  let checks = 0;
+  const { session, recorded, one, two } = fixture({
+    readPage: (kind, nodes) => {
+      if (kind === 'Nodes' && nodes.some(node => node.toText() === 'node-c')) {
+        requested.resolve();
+        return page.promise;
+      }
+    },
+    finalize: async () => {
+      if (++checks === 2) {
+        awaitingVerification.resolve();
+        await verified.promise;
+      }
+      return { Ok: { registry_version: [5n], outcome: { Ok: ['verified'] } } };
+    },
+  });
+  two.subnet = id('another subnet');
+  two.state.members.push(id('node-c'));
+  session.select(one);
+  await session.settled();
+  const accepted = one.calculation;
+  assert.deepEqual(session.section().final, ['verified']);
+  session.select(two);
+  await requested.promise;
+  session.select(one);
+  assert.equal(session.section().final, undefined);
+  page.resolve();
+  await awaitingVerification.promise;
+  assert.equal(session.section().work, 'running');
+  assert.equal(session.section().final, undefined);
+  verified.resolve();
+  await session.settled();
+  assert.deepEqual(session.section().final, ['verified']);
+  assert.equal(session.section().work, 'settled');
+  assert.equal(one.calculation, accepted);
+  assert.equal(two.calculation, undefined);
+  assert.equal(recorded.filter(row => row.kind === 'comparison').length, 1);
 });
 
 test('stop waits for the accepted page and schedules no follow-up calls', async () => {

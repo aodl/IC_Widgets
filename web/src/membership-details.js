@@ -1,4 +1,4 @@
-import { assessments, calculationNote, geographyNote, governanceText, groupKey, lifecycle, metrics, metricDelta, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
+import { assessments, calculationNote, geographyNote, governanceText, groupKey, lifecycle, metrics, metricDelta, policyApplicabilityNote, reviewModel, scenarioName, shortIds, thresholdNote } from './detail-model.js';
 import { markdownEditor } from './review-export.js';
 import { help } from './review-help.js';
 import { action, saveFile } from './review-map.js';
@@ -322,17 +322,19 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       model?.topology.some(row => row.assessment.endsWith('unresolved')) ? el('span', ' · Some policy checks remain unresolved.') : null);
     const changed = model?.members.filter(node => node.role !== 'Retained') ?? [];
     const historical = proposals.some(proposal => proposal.lifecycle_status === 4 || proposal.executed_at_seconds.length);
+    const rejected = proposals.some(proposal => [2, 5].includes(proposal.lifecycle_status));
     replace(summary,
       model ? el('strong', model.membership) : el('strong', 'Proposed membership unavailable'),
       subnetLabel ? el('span', subnetLabel + ' · Registry ' + number(version), ' ',
         help('Registry snapshot', 'The version used for every Registry record in this review. Governance has its own observation times.')) : null,
       changed.length ? styled('div', 'actions changed-nodes', changed.map(node => nodeButton(node, () => inspect([node.id], node.label)))) : null,
       historical ? el('p', 'Governance observed execution. The historical before-state is unavailable.') : null,
+      rejected && !model ? el('p', 'The proposal did not execute. This result contains no simulated membership change.') : null,
       state.consistency?.reason ? el('p', state.consistency.blocked ? state.consistency.reason
         : 'Provisional · ' + state.consistency.reason) : null,
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
-    topologyStatus.textContent = policyLine;
+    topologyStatus.textContent = policyLine + (source ? ' · ' + policyApplicabilityNote : '');
     topology.setAttribute('aria-busy', String(state.work === 'running' || state.work === 'stopping'));
     const rows = model?.topology ?? [];
     replace(tableBody, rows.length ? rows.map(row => el('tr',

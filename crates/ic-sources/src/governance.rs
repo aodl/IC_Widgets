@@ -107,6 +107,54 @@ struct RemovePayload {
     node_ids: Vec<Principal>,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum BoundaryAction {
+    Add {
+        nodes: Vec<Principal>,
+        version: String,
+    },
+    Remove {
+        nodes: Vec<Principal>,
+    },
+    LegacyVersion {
+        nodes: Vec<Principal>,
+        version: String,
+    },
+    DeployVersion {
+        nodes: Vec<Principal>,
+        version: String,
+    },
+}
+
+#[derive(CandidType, Deserialize)]
+struct VersionedBoundaryNodes {
+    node_ids: Vec<Principal>,
+    version: String,
+}
+
+/// Decode the boundary-specific action family. This does not admit it to the
+/// subnet review resolver or establish the membership of a boundary pool.
+pub fn boundary_action(action: &ExecuteNnsFunction) -> Result<Option<BoundaryAction>, String> {
+    match action.nns_function {
+        44 => {
+            let RemovePayload { node_ids } = decode_candid(&action.payload)?;
+            Ok(Some(BoundaryAction::Remove { nodes: node_ids }))
+        }
+        function @ (43 | 46 | 47) => {
+            let VersionedBoundaryNodes {
+                node_ids: nodes,
+                version,
+            } = decode_candid(&action.payload)?;
+            Ok(Some(match function {
+                43 => BoundaryAction::Add { nodes, version },
+                46 => BoundaryAction::LegacyVersion { nodes, version },
+                _ => BoundaryAction::DeployVersion { nodes, version },
+            }))
+        }
+        _ => Ok(None),
+    }
+}
+
 pub fn is_membership(function: i32) -> bool {
     matches!(function, 31 | 2 | 13)
 }

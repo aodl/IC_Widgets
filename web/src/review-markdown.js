@@ -35,8 +35,12 @@ export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '' } =
     model.topology.flatMap(row => [
       ...(row.departures ?? []).map(group => '- ' + escape(group.label) + ' ' + group.delta.text + ' · Last member leaves this subnet.'),
       row.sharedProvider ? '- The incoming and outgoing nodes share recorded provider `' + row.sharedProvider.id + '`.' : null,
-      ...(row.groupRows ?? []).slice(1).filter(group => group.breach.length).slice(0, 3).map(group =>
-        '- ' + escape(group.label) + ' · ' + words(branch(group.breach[0])) + ' breach.'),
+      ...(row.groupRows ?? []).slice(1).filter(group => group.breach.length || branch(group.assessment) === 'ExceedsLimit').map(group => {
+        const change = option(group.breach);
+        const wording = change ? branch(change) === 'Improved' ? 'Improved, still exceeds the cap.' : words(branch(change)) + ' breach.'
+          : 'Exceeds limit.';
+        return '- ' + escape(row.label) + ' · ' + escape(group.label) + ' · ' + wording;
+      }),
     ]).filter(Boolean).join('\n'),
     model.publishing?.changes.length ? '## Changed Nakamoto coefficients\n\n'
       + markdownTable({ headers: ['Grouping', 'Groups needed'], rows: model.publishing.changes }) : null,

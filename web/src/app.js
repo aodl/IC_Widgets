@@ -1,4 +1,4 @@
-import { connect, identity, liveError, result } from './client.js';
+import { activeReplay, connect, identity, liveError, replays, result } from './client.js';
 import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
 import { reviewMap } from './review-map.js';
@@ -15,7 +15,25 @@ const progressRow = document.querySelector('#review-progress');
 const progressBar = progressRow.querySelector('progress');
 const progressCounts = document.querySelector('#review-counts');
 const stageList = document.querySelector('#review-stages');
-document.querySelector('#local-notice').hidden = !LOCAL_REPLICA;
+const notice = document.querySelector('#local-notice');
+notice.hidden = !LOCAL_REPLICA;
+if (FIXTURE_REPLAY && activeReplay) {
+  notice.textContent = 'Development replay · ' + activeReplay.provenance;
+  access.hidden = true;
+  const selector = el('select', replays.cases.map(row => Object.assign(el('option', row.name), { value: row.id })));
+  selector.value = activeReplay.id;
+  const label = el('label', 'Replay scenario', selector);
+  label.className = 'local-note';
+  notice.after(label);
+  selector.addEventListener('change', () => {
+    const next = new URL(location.href);
+    next.searchParams.set('case', selector.value);
+    location.assign(next);
+  });
+  search.elements.first.value = activeReplay.proposalIds[0];
+  search.elements.second.value = activeReplay.proposalIds[1] ?? '';
+  if (activeReplay.failureReason) notice.after(el('p', 'Indexed failure · ' + activeReplay.failureReason));
+}
 const browserPrincipal = document.querySelector('#browser-principal');
 browserPrincipal.textContent = identity.getPrincipal().toText();
 document.querySelector('#copy-principal').addEventListener('click', async () => {
@@ -189,7 +207,9 @@ search.addEventListener('submit', event => {
       const body = live.outcome.Ok;
       const contexts = reviewContexts(body.report, option(body.subnet_rules ?? []) ?? []);
       current = mountReviewWorkspace({ live, contexts, map, mapHost, active, call: remote,
-        policyId, progress: state => { if (active()) status(state); }, performance, local: LOCAL_REPLICA });
+        policyId, progress: state => { if (active()) status(state); }, performance,
+        local: FIXTURE_REPLAY && activeReplay ? 'Development replay · ' + activeReplay.provenance
+          : LOCAL_REPLICA ? 'Local replica review using fixture evidence.' : undefined });
       reportContainer.replaceChildren(current.section);
       current.start();
     } catch (error) {
