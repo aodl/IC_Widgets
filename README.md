@@ -1,6 +1,6 @@
-# Network Nexus
+# IC Widgets
 
-Network Nexus is an Internet Computer application for reviewing NNS Subnet Membership proposals against versioned on-chain evidence. The Rust backend includes a diagnostic probe and an autonomous production evidence collector for Governance, Registry and management-canister observations.
+IC Widgets is an Internet Computer application for reviewing NNS subnet membership and inspecting registered nodes and blockmaking. It includes a certified frontend and the on-demand reviewer. Earlier releases and fixtures use the Network Nexus name. Network Nexus is now the name of the separate generic host design.
 
 - [Implementation status and next milestone](docs/IMPLEMENTATION_STATUS.md)
 - [Architecture and evidence model](docs/ARCHITECTURE.md)
@@ -20,4 +20,4 @@ cargo test --locked --workspace
 ./scripts/test-m0.sh
 ```
 
-The integration script builds and installs Wasm in a fresh PocketIC instance. The original archives and separate extracted materials are local references under the repository root. The DFX asset canister serves the widget from [web/](web/README.md).
+The integration script builds and installs Wasm in a fresh PocketIC instance. The original archives and separate extracted materials are local references under the repository root. The production frontend embeds the application from [web/](web/README.md). Start and stop a disposable replica with the [historical replay launcher](docs/review-fixtures/README.md). Rust crate names, existing environment variables and deployment aliases remain stable for current tooling and historical reproduction.

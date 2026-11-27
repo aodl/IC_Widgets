@@ -14,20 +14,11 @@ Provision the pinned Rust toolchain, Wasm target, DFX 0.31, `codex_local` identi
 
 The browser signs updates with a fresh in-memory identity. The production reviewer rejects source overrides. The fixture loader requires a local controller, and production frontend builds exclude the menu and corpus.
 
-## Public HTTPS replay on Azure
+## Temporary public acceptance preview
 
-Open the public replay URL, choose **Replay scenario**, and click **Review**. The page identifies the selected case's recorded and synthetic evidence.
+Use disposable loopback replicas for ordinary development and testing. The scoped replay ingress and Cloudflare Quick Tunnel served the temporary public acceptance preview. They have no production role. Keep that instance available until hands-on acceptance is complete. Stop the tunnel, then its ingress process, then use the launcher's printed stop command for that specific project. Preserve the fixture corpus and release and rollback evidence. [Preview configuration and access history](FACTUAL_REFINEMENTS.md)
 
-To serve the replay, start the ordinary launcher on the VM and use the project path it prints. In separate VM processes, run the scoped ingress and point a Cloudflare Quick Tunnel at it:
-
-```bash
-node web/replay-ingress.mjs "$PROJECT" 4971 4972
-cloudflared tunnel --no-autoupdate --protocol http2 --metrics 127.0.0.1:4978 --url http://127.0.0.1:4972
-```
-
-Share the HTTPS URL printed by `cloudflared`. A tunnel restart generates a new URL. Stop the tunnel and the scoped ingress on the VM, then run the launcher's printed replica stop command. Restart all three processes to publish a new URL. [Quick Tunnel documentation](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)
-
-Both VM listeners bind to loopback. The public ingress serves the built app, the replica status used to obtain the local trust root, and signed calls to selected public reviewer methods with certified request-status polling. Controller methods, fixture mutation, the replica dashboard and other canisters stay private. The HTTPS ingress is for replay only. The live app uses the IC transport and its normal trust root.
+The local launcher already prepares the replay Wasm, sources and frontend. The older individually provisioned fixture path remains useful for wire fixtures. It is unnecessary for replaying the historical corpus.
 
 ## Evidence matrix
 
