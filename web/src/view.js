@@ -23,23 +23,23 @@ export const words = value => value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 
 const details = (label, ...content) => el('details', el('summary', label), ...content);
 
-export function table(headers, rows) {
+export function table(headers, rows, rowClasses = []) {
   return styled('div', 'table-wrap',
     el('table', el('thead', el('tr', headers.map(label => {
       const heading = el('th', label);
       heading.scope = 'col';
       return heading;
     }))),
-      el('tbody', rows.map(row => el('tr', row.map(cell => el('td', cell)))))));
+      el('tbody', rows.map((row, index) => styled('tr', rowClasses[index] ?? '', row.map(cell => el('td', cell)))))));
 }
 
-export function sourceReceipts(result) {
+export function sourceReceipts(result, { replay = false } = {}) {
   const version = option(result.registry_version);
   return details('Source receipts',
     version === undefined ? null : el('p', `Pinned Registry version ${number(version)}`),
     el('p', `${number(result.usage.calls)} source calls · ${number(result.usage.source_bytes)} reply bytes`),
     el('p', `${number((result.usage.finished_at - result.usage.started_at) / 1_000_000n)} ms source stage · ${number(result.usage.instructions)} instructions · ${number(result.usage.peak_batch_reservation)} cycles peak batch reservation`),
-    table(['Observation', 'Source read', 'Observed at', 'Reply'], result.receipts.map(row => [
+    table(['Observation', 'Source read', replay ? 'Local replay delivery' : 'Observed at', 'Reply'], result.receipts.map(row => [
       row.id, el('span', row.method, ' ', el('code', row.item), el('br'), el('code', principal(row.source))),
       time(row.observed_at),
       option(row.reply_hash) ? el('code', hex(option(row.reply_hash))) : option(row.reject) ?? 'Unavailable',
@@ -75,4 +75,29 @@ export function renderPerformance(history, filter, section) {
   select.addEventListener('change', draw);
   section.replaceChildren(el('label', 'Sample time', select), output);
   draw();
+}
+
+export function action(label, run) {
+  const item = el('button', label);
+  item.type = 'button';
+  item.addEventListener('click', run);
+  return item;
+}
+
+export function saveFile(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const anchor = el('a');
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function deltaNode(delta) {
+  if (!delta?.before) return el('span', delta?.text ?? 'Unavailable');
+  const display = el('span', delta.before, styled('span', delta.direction > 0 ? 'delta-up' : delta.direction < 0 ? 'delta-down' : '',
+    ' → ' + delta.after));
+  display.setAttribute('aria-label', delta.accessible);
+  display.setAttribute('role', 'img');
+  return display;
 }

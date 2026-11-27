@@ -607,6 +607,21 @@ export const idlFactory = ({ IDL }) => {
     'receipts' : IDL.Vec(LiveReceipt),
   });
   const Result_12 = IDL.Variant({ 'Ok' : LiveResponse_2, 'Err' : IDL.Text });
+  const RegistryRole = IDL.Record({
+    'issue' : IDL.Opt(IDL.Text),
+    'retryable' : IDL.Bool,
+    'mutation_version' : IDL.Opt(IDL.Nat64),
+    'nns_subnet' : IDL.Opt(IDL.Principal),
+    'record' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+  });
+  const Result_13 = IDL.Variant({ 'Ok' : RegistryRole, 'Err' : LiveError });
+  const LiveResponse_3 = IDL.Record({
+    'registry_version' : IDL.Opt(IDL.Nat64),
+    'usage' : LiveUsage,
+    'outcome' : Result_13,
+    'receipts' : IDL.Vec(LiveReceipt),
+  });
+  const Result_14 = IDL.Variant({ 'Ok' : LiveResponse_3, 'Err' : IDL.Text });
   const ScopeCursor = IDL.Record({
     'after' : IDL.Principal,
     'selection' : IDL.Vec(IDL.Nat8),
@@ -665,7 +680,7 @@ export const idlFactory = ({ IDL }) => {
     }),
     'Unavailable' : ScopeUnavailable,
   });
-  const Result_13 = IDL.Variant({ 'Ok' : ScopePage, 'Err' : IDL.Text });
+  const Result_15 = IDL.Variant({ 'Ok' : ScopePage, 'Err' : IDL.Text });
   const NnsTarget = IDL.Record({
     'clause' : IDL.Text,
     'exception' : IDL.Opt(IDL.Text),
@@ -693,14 +708,14 @@ export const idlFactory = ({ IDL }) => {
     'nns_mutation_version' : IDL.Opt(IDL.Nat64),
     'nns_subnet' : IDL.Opt(IDL.Principal),
   });
-  const Result_14 = IDL.Variant({ 'Ok' : PolicySnapshot, 'Err' : LiveError });
-  const LiveResponse_3 = IDL.Record({
+  const Result_16 = IDL.Variant({ 'Ok' : PolicySnapshot, 'Err' : LiveError });
+  const LiveResponse_4 = IDL.Record({
     'registry_version' : IDL.Opt(IDL.Nat64),
     'usage' : LiveUsage,
-    'outcome' : Result_14,
+    'outcome' : Result_16,
     'receipts' : IDL.Vec(LiveReceipt),
   });
-  const Result_15 = IDL.Variant({ 'Ok' : LiveResponse_3, 'Err' : IDL.Text });
+  const Result_17 = IDL.Variant({ 'Ok' : LiveResponse_4, 'Err' : IDL.Text });
   const MetricConflict = IDL.Record({
     'conflicting_hash' : IDL.Vec(IDL.Nat8),
     'raw_response_hash' : IDL.Vec(IDL.Nat8),
@@ -712,7 +727,7 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'rows' : IDL.Vec(MetricConflict),
   });
-  const Result_16 = IDL.Variant({
+  const Result_18 = IDL.Variant({
     'Ok' : MetricConflictPage,
     'Err' : IDL.Text,
   });
@@ -750,7 +765,7 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Principal),
     'rows' : IDL.Vec(NodeMetrics),
   });
-  const Result_17 = IDL.Variant({ 'Ok' : MetricRows, 'Err' : IDL.Text });
+  const Result_19 = IDL.Variant({ 'Ok' : MetricRows, 'Err' : IDL.Text });
   const HistoryKind = IDL.Variant({
     'Empty' : IDL.Null,
     'MissingBoundary' : IDL.Null,
@@ -781,18 +796,18 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Nat64),
     'rows' : IDL.Vec(MetricSample),
   });
-  const Result_18 = IDL.Variant({ 'Ok' : MetricPage, 'Err' : IDL.Text });
+  const Result_20 = IDL.Variant({ 'Ok' : MetricPage, 'Err' : IDL.Text });
   const MetricsRosterStatus = IDL.Record({
     'registry_version' : IDL.Opt(IDL.Nat64),
     'error' : IDL.Opt(IDL.Text),
     'eligible_count' : IDL.Nat32,
     'unsupported' : IDL.Vec(IDL.Principal),
   });
-  const Result_19 = IDL.Variant({
+  const Result_21 = IDL.Variant({
     'Ok' : MetricsRosterStatus,
     'Err' : IDL.Text,
   });
-  const Result_20 = IDL.Variant({ 'Ok' : SubnetCollection, 'Err' : IDL.Text });
+  const Result_22 = IDL.Variant({ 'Ok' : SubnetCollection, 'Err' : IDL.Text });
   const NodeMetricsHistoryRecord = IDL.Record({
     'timestamp_nanos' : IDL.Nat64,
     'node_metrics' : IDL.Vec(NodeMetrics),
@@ -802,19 +817,19 @@ export const idlFactory = ({ IDL }) => {
     'samples' : IDL.Vec(NodeMetricsHistoryRecord),
     'subnet' : IDL.Principal,
   });
-  const Result_21 = IDL.Variant({ 'Ok' : LivePerformance, 'Err' : LiveError });
-  const LiveResponse_4 = IDL.Record({
+  const Result_23 = IDL.Variant({ 'Ok' : LivePerformance, 'Err' : LiveError });
+  const LiveResponse_5 = IDL.Record({
     'registry_version' : IDL.Opt(IDL.Nat64),
     'usage' : LiveUsage,
-    'outcome' : Result_21,
+    'outcome' : Result_23,
     'receipts' : IDL.Vec(LiveReceipt),
   });
-  const Result_22 = IDL.Variant({ 'Ok' : LiveResponse_4, 'Err' : IDL.Text });
+  const Result_24 = IDL.Variant({ 'Ok' : LiveResponse_5, 'Err' : IDL.Text });
   const ProbeBudget = IDL.Record({
     'migrated_from_m0' : IDL.Bool,
     'usage' : Usage,
   });
-  const Result_23 = IDL.Variant({ 'Ok' : ProbeBudget, 'Err' : IDL.Text });
+  const Result_25 = IDL.Variant({ 'Ok' : ProbeBudget, 'Err' : IDL.Text });
   const ListedProposal = IDL.Record({
     'id' : IDL.Nat64,
     'function' : IDL.Opt(IDL.Int32),
@@ -937,7 +952,7 @@ export const idlFactory = ({ IDL }) => {
     'raw_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'cycles_before' : IDL.Nat,
   });
-  const Result_24 = IDL.Variant({ 'Ok' : Receipt, 'Err' : IDL.Text });
+  const Result_26 = IDL.Variant({ 'Ok' : Receipt, 'Err' : IDL.Text });
   const Status = IDL.Record({
     'caller_subnet' : IDL.Principal,
     'captured_registry_head' : IDL.Opt(IDL.Nat64),
@@ -953,8 +968,8 @@ export const idlFactory = ({ IDL }) => {
     'started_at_nanos' : IDL.Nat64,
     'stop_reason' : IDL.Opt(IDL.Text),
   });
-  const Result_25 = IDL.Variant({ 'Ok' : Status, 'Err' : IDL.Text });
-  const Result_26 = IDL.Variant({ 'Ok' : MembershipAction, 'Err' : IDL.Text });
+  const Result_27 = IDL.Variant({ 'Ok' : Status, 'Err' : IDL.Text });
+  const Result_28 = IDL.Variant({ 'Ok' : MembershipAction, 'Err' : IDL.Text });
   const ActionStatus = IDL.Variant({
     'MalformedPayload' : IDL.Text,
     'UnsupportedAction' : IDL.Null,
@@ -980,12 +995,12 @@ export const idlFactory = ({ IDL }) => {
     'collected_at' : IDL.Nat64,
     'payload_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
-  const Result_27 = IDL.Variant({ 'Ok' : ProposalCapture, 'Err' : IDL.Text });
+  const Result_29 = IDL.Variant({ 'Ok' : ProposalCapture, 'Err' : IDL.Text });
   const CapturePage = IDL.Record({
     'next' : IDL.Opt(IDL.Nat64),
     'rows' : IDL.Vec(ProposalCapture),
   });
-  const Result_28 = IDL.Variant({ 'Ok' : CapturePage, 'Err' : IDL.Text });
+  const Result_30 = IDL.Variant({ 'Ok' : CapturePage, 'Err' : IDL.Text });
   const ProposalStatus = IDL.Record({
     'last_status' : IDL.Opt(SourceStatus),
     'next_lifecycle_check' : IDL.Opt(IDL.Nat64),
@@ -993,7 +1008,7 @@ export const idlFactory = ({ IDL }) => {
     'last_observation' : IDL.Opt(IDL.Nat64),
     'capture_count' : IDL.Nat64,
   });
-  const Result_29 = IDL.Variant({ 'Ok' : ProposalStatus, 'Err' : IDL.Text });
+  const Result_31 = IDL.Variant({ 'Ok' : ProposalStatus, 'Err' : IDL.Text });
   const PerformanceRequest = IDL.Record({
     'scope' : ScopeRequest,
     'timestamp' : IDL.Opt(IDL.Nat64),
@@ -1004,8 +1019,8 @@ export const idlFactory = ({ IDL }) => {
     'last_success_at' : IDL.Opt(IDL.Nat64),
     'scope' : ScopePage,
   });
-  const Result_30 = IDL.Variant({ 'Ok' : PerformancePage, 'Err' : IDL.Text });
-  const Result_31 = IDL.Variant({ 'Ok' : Review, 'Err' : IDL.Text });
+  const Result_32 = IDL.Variant({ 'Ok' : PerformancePage, 'Err' : IDL.Text });
+  const Result_33 = IDL.Variant({ 'Ok' : Review, 'Err' : IDL.Text });
   const Assignment = IDL.Variant({
     'UnknownNode' : IDL.Null,
     'Replica' : IDL.Principal,
@@ -1017,7 +1032,7 @@ export const idlFactory = ({ IDL }) => {
       'api_boundary' : IDL.Bool,
     }),
   });
-  const Result_32 = IDL.Variant({ 'Ok' : Assignment, 'Err' : IDL.Text });
+  const Result_34 = IDL.Variant({ 'Ok' : Assignment, 'Err' : IDL.Text });
   const RecordKey = IDL.Variant({
     'Operator' : IDL.Principal,
     'Node' : IDL.Principal,
@@ -1033,7 +1048,7 @@ export const idlFactory = ({ IDL }) => {
     'keys' : IDL.Vec(RecordKey),
     'next' : IDL.Opt(IDL.Text),
   });
-  const Result_33 = IDL.Variant({ 'Ok' : KeyPage, 'Err' : IDL.Text });
+  const Result_35 = IDL.Variant({ 'Ok' : KeyPage, 'Err' : IDL.Text });
   const RecordEvidence = IDL.Record({
     'value_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'page' : IDL.Nat64,
@@ -1045,7 +1060,7 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Text),
     'operators' : IDL.Vec(IDL.Tuple(IDL.Principal, RecordEvidence)),
   });
-  const Result_34 = IDL.Variant({ 'Ok' : ProviderPage, 'Err' : IDL.Text });
+  const Result_36 = IDL.Variant({ 'Ok' : ProviderPage, 'Err' : IDL.Text });
   const Endpoint = IDL.Record({ 'ip' : IDL.Text, 'port' : IDL.Nat32 });
   const Position = IDL.Record({
     'latitude' : IDL.Float32,
@@ -1102,7 +1117,7 @@ export const idlFactory = ({ IDL }) => {
     'Opaque' : IDL.Record({ 'evidence' : RecordEvidence, 'reason' : IDL.Text }),
     'Deleted' : RecordEvidence,
   });
-  const Result_35 = IDL.Variant({ 'Ok' : RecordAt, 'Err' : IDL.Text });
+  const Result_37 = IDL.Variant({ 'Ok' : RecordAt, 'Err' : IDL.Text });
   const Staging = IDL.Record({
     'end' : IDL.Nat64,
     'count' : IDL.Nat32,
@@ -1155,22 +1170,27 @@ export const idlFactory = ({ IDL }) => {
     'limits' : IDL.Opt(RegistryLimits),
     'superseded_mutations' : IDL.Nat64,
   });
-  const Result_36 = IDL.Variant({ 'Ok' : RegistryStatus, 'Err' : IDL.Text });
-  const Result_37 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : IDL.Text });
-  const Result_38 = IDL.Variant({ 'Ok' : SourceObservation, 'Err' : IDL.Text });
+  const Result_38 = IDL.Variant({ 'Ok' : RegistryStatus, 'Err' : IDL.Text });
+  const Result_39 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : IDL.Text });
+  const Result_40 = IDL.Variant({ 'Ok' : SourceObservation, 'Err' : IDL.Text });
   const ProbeRequest = IDL.Record({
     'registry_subnet' : IDL.Opt(IDL.Principal),
     'metrics_start_nanos' : IDL.Nat64,
     'remote_subnet' : IDL.Opt(IDL.Principal),
     'proposal_id' : IDL.Opt(IDL.Nat64),
   });
-  const Result_39 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
+  const Result_41 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
   return IDL.Service({
     'advance_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'authorize_verification' : IDL.Func([IDL.Nat64, Limits], [Result_1], []),
     'begin_membership_review' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_3], []),
     'capture_proposal' : IDL.Func([IDL.Nat64], [Result_1], []),
     'collection_status' : IDL.Func([], [Result_4], []),
+    'compare_membership_context' : IDL.Func(
+        [DetailComparisonInput, IDL.Vec(IDL.Nat8)],
+        [Result_5],
+        [],
+      ),
     'compare_membership_details' : IDL.Func(
         [DetailComparisonInput],
         [Result_5],
@@ -1211,87 +1231,88 @@ export const idlFactory = ({ IDL }) => {
         [Result_12],
         [],
       ),
+    'membership_registry_role' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_14], []),
     'membership_review_page' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat32],
         [Result_7],
         [],
       ),
-    'membership_review_scope' : IDL.Func([ScopeRequest], [Result_13], []),
+    'membership_review_scope' : IDL.Func([ScopeRequest], [Result_15], []),
     'membership_review_status' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'membership_target_topology' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Nat64)],
-        [Result_15],
+        [Result_17],
         [],
       ),
     'metric_conflicts' : IDL.Func(
         [IDL.Principal, IDL.Nat64, IDL.Opt(IDL.Vec(IDL.Nat8))],
-        [Result_16],
+        [Result_18],
         [],
       ),
     'metric_sample_rows' : IDL.Func(
         [IDL.Principal, IDL.Nat64, IDL.Opt(IDL.Principal)],
-        [Result_17],
+        [Result_19],
         [],
       ),
     'metric_samples' : IDL.Func(
         [IDL.Principal, IDL.Nat64, IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_18],
+        [Result_20],
         [],
       ),
-    'metrics_roster' : IDL.Func([], [Result_19], []),
-    'metrics_status' : IDL.Func([IDL.Principal], [Result_20], []),
+    'metrics_roster' : IDL.Func([], [Result_21], []),
+    'metrics_status' : IDL.Func([IDL.Principal], [Result_22], []),
     'node_performance_on_demand' : IDL.Func(
         [IDL.Principal, IDL.Nat64, IDL.Opt(IDL.Vec(IDL.Principal))],
-        [Result_22],
+        [Result_24],
         [],
       ),
-    'probe_budget' : IDL.Func([IDL.Nat64], [Result_23], []),
-    'probe_receipt' : IDL.Func([IDL.Nat64, IDL.Nat32], [Result_24], []),
+    'probe_budget' : IDL.Func([IDL.Nat64], [Result_25], []),
+    'probe_receipt' : IDL.Func([IDL.Nat64, IDL.Nat32], [Result_26], []),
     'probe_reply' : IDL.Func([IDL.Nat64, IDL.Nat32, IDL.Nat32], [Result_7], []),
-    'probe_status' : IDL.Func([IDL.Nat64], [Result_25], []),
+    'probe_status' : IDL.Func([IDL.Nat64], [Result_27], []),
     'proposal_action' : IDL.Func(
-        [IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_26],
-        [],
-      ),
-    'proposal_archive' : IDL.Func(
-        [IDL.Nat64, IDL.Opt(IDL.Nat64)],
-        [Result_27],
-        [],
-      ),
-    'proposal_history' : IDL.Func(
         [IDL.Nat64, IDL.Opt(IDL.Nat64)],
         [Result_28],
         [],
       ),
-    'proposal_status' : IDL.Func([IDL.Nat64], [Result_29], []),
-    'read_membership_performance' : IDL.Func(
-        [PerformanceRequest],
+    'proposal_archive' : IDL.Func(
+        [IDL.Nat64, IDL.Opt(IDL.Nat64)],
+        [Result_29],
+        [],
+      ),
+    'proposal_history' : IDL.Func(
+        [IDL.Nat64, IDL.Opt(IDL.Nat64)],
         [Result_30],
         [],
       ),
-    'read_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_31], []),
-    'registry_assignment' : IDL.Func(
-        [IDL.Nat64, IDL.Principal],
+    'proposal_status' : IDL.Func([IDL.Nat64], [Result_31], []),
+    'read_membership_performance' : IDL.Func(
+        [PerformanceRequest],
         [Result_32],
         [],
       ),
-    'registry_keys' : IDL.Func([IDL.Nat64, IDL.Opt(IDL.Text)], [Result_33], []),
-    'registry_provider' : IDL.Func(
-        [IDL.Nat64, IDL.Principal, IDL.Opt(IDL.Text)],
+    'read_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_33], []),
+    'registry_assignment' : IDL.Func(
+        [IDL.Nat64, IDL.Principal],
         [Result_34],
         [],
       ),
-    'registry_record' : IDL.Func([IDL.Nat64, RecordKey], [Result_35], []),
-    'registry_status' : IDL.Func([], [Result_36], []),
-    'request_membership_review' : IDL.Func([ReviewRequest], [Result_37], []),
+    'registry_keys' : IDL.Func([IDL.Nat64, IDL.Opt(IDL.Text)], [Result_35], []),
+    'registry_provider' : IDL.Func(
+        [IDL.Nat64, IDL.Principal, IDL.Opt(IDL.Text)],
+        [Result_36],
+        [],
+      ),
+    'registry_record' : IDL.Func([IDL.Nat64, RecordKey], [Result_37], []),
+    'registry_status' : IDL.Func([], [Result_38], []),
+    'request_membership_review' : IDL.Func([ReviewRequest], [Result_39], []),
     'retry_registry' : IDL.Func([], [Result_1], []),
     'review_on_demand' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_3], []),
-    'source_observation' : IDL.Func([IDL.Nat64], [Result_38], []),
-    'start_probe' : IDL.Func([ProbeRequest], [Result_39], []),
+    'source_observation' : IDL.Func([IDL.Nat64], [Result_40], []),
+    'start_probe' : IDL.Func([ProbeRequest], [Result_41], []),
     'start_probe_with_limits' : IDL.Func(
         [ProbeRequest, Limits],
-        [Result_39],
+        [Result_41],
         [],
       ),
   });

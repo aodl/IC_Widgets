@@ -1,0 +1,12 @@
+{
+  "productionNetworkAllowlist": "application assets and reviewer IC protocol routes",
+  "protocolRequests": 10,
+  "mapAndReportProtocolRequests": 0,
+  "externalRequests": 0,
+  "zoomedSwissFillPixels": 5251,
+  "pixels": {
+    "green": 1524,
+    "red": 25,
+    "borders": 15787
+  }
+}

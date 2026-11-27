@@ -1,0 +1,15 @@
+{
+  "embeddedGateway": "http://u6s2n-gx777-77774-qaaba-cai.localhost:4991",
+  "certifiedResponses": 11,
+  "productionNetworkAllowlist": "certified frontend assets and reviewer IC protocol routes",
+  "protocolRequests": 11,
+  "reviewerCalls": 10,
+  "mapAndReportProtocolRequests": 0,
+  "externalRequests": 0,
+  "zoomedSwissFillPixels": 5243,
+  "pixels": {
+    "green": 977,
+    "red": 24,
+    "borders": 14561
+  }
+}

@@ -30,9 +30,9 @@ export function result(reply) {
   return reply.Ok;
 }
 
-export async function compareMembership(client, input, active = () => true, policy = []) {
-  const name = policy.length ? 'compare_membership_with_policy' : 'compare_membership_details';
-  const args = [input, ...policy];
+export async function compareMembership(client, input, active, token) {
+  const name = 'compare_membership_context';
+  const args = [input, token];
   const method = Actor.interfaceOf(client).fieldsAsObject()[name];
   const bytes = IDL.encode(method.argTypes, args);
   const inputHash = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));

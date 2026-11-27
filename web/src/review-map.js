@@ -1,370 +1,151 @@
-import land from './data/land.js';
-import { el, styled } from './view.js';
+import { drawCountries } from './map-units.js';
+import { membershipSites, roleCounts, roles } from './detail-model.js';
 
-const W = 1200;
-const H = 620;
-const palette = { Removed: '#ad263f', Added: '#087748', Retained: '#315e80' };
-const signs = { Added: '+', Removed: '−', Retained: '•' };
+export const markerDiameter = 12;
+export const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+export const pointDistance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const keyOf = ({ lon, lat }) => lon + ',' + lat;
 
-export function clusters(members, roles, project, radius = 31) {
-  const points = [];
+export function mapLocations(members, countries) {
+  const sites = membershipSites(members);
+  const conflicts = new Set([...sites].filter(([, site]) =>
+    new Set(site.nodes.filter(node => node.point).map(node => keyOf(node.point))).size > 1).map(([id]) => id));
+  const locations = new Map();
+  const unmapped = [];
+  let pending = 0;
   for (const node of members) {
-    if (!roles.has(node.role) || !node.point) continue;
-    const point = project(node.point.lon, node.point.lat);
-    if (point.x < 0 || point.x > W || point.y < 0 || point.y > H) continue;
-    let cluster;
-    let nearest = radius;
-    for (const row of points) {
-      const distance = Math.hypot(row.x - point.x, row.y - point.y);
-      if (node.role !== 'Retained' && row.nodes[0].role !== 'Retained' && distance > 0.001) continue;
-      if (distance < nearest) {
-        cluster = row;
-        nearest = distance;
-      }
+    if (!node.point || conflicts.has(node.dc)) {
+      if (node.locationPending) pending++;
+      else unmapped.push(conflicts.has(node.dc) ? { ...node, locationIssue: 'Conflicting coordinates for the same pinned data center' } : node);
+      continue;
     }
-    if (!cluster) {
-      cluster = { ...point, nodes: [] };
-      points.push(cluster);
-    }
-    cluster.nodes.push(node);
+    const key = keyOf(node.point);
+    if (!locations.has(key)) locations.set(key, { key, point: node.point, nodes: [] });
+    locations.get(key).nodes.push(node);
   }
-  return points;
-}
-
-function separateChanged(points, gap) {
-  const placed = [];
-  for (const point of points.filter(row => row.nodes.some(node => node.role !== 'Retained'))) {
-    let x = point.x;
-    let y = point.y;
-    for (let attempt = 0; placed.some(p => Math.hypot(p.displayX - x, p.displayY - y) < gap) && attempt < 8; attempt++) {
-      const angle = attempt * Math.PI / 4;
-      const distance = gap * (attempt < 4 ? 1 : 1.4);
-      x = Math.max(15, Math.min(W - 15, point.x + Math.cos(angle) * distance));
-      y = Math.max(24, Math.min(H - 14, point.y + Math.sin(angle) * distance));
-    }
-    point.displayX = x;
-    point.displayY = y;
-    placed.push(point);
-  }
-}
-
-export function action(label, run) {
-  const item = el('button', label);
-  item.type = 'button';
-  item.addEventListener('click', run);
-  return item;
-}
-
-export function saveFile(name, content, type) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const anchor = el('a');
-  anchor.href = url;
-  anchor.download = name;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-export function reviewMap(inspect, active) {
-  const roles = new Set(Object.keys(palette));
-  let model;
-  let emptyMessage;
-  let selected = new Set();
-  let focusLabel = 'World';
-  const canvas = el('canvas');
-  canvas.width = W;
-  canvas.height = H;
-  canvas.setAttribute('aria-hidden', 'true');
-  const ctx = canvas.getContext('2d');
-  const pins = styled('div', 'map-pins');
-  const map = styled('div', 'map-frame', canvas, pins);
-  map.setAttribute('role', 'group');
-  map.setAttribute('aria-label', 'Map of registered data centers. Changed and unmapped nodes are also available as text.');
-  map.tabIndex = -1;
-  const caption = styled('p', 'map-coverage');
-  const status = styled('p', 'status');
-  status.setAttribute('role', 'status');
-  const unmapped = el('details', el('summary', 'Unmapped nodes'));
-  let scale = 1;
-  let lon = 0;
-  let lat = 0;
-  let pointer;
-  const limit = () => {
-    lon = Math.max(-160, Math.min(160, lon));
-    lat = Math.max(-75, Math.min(75, lat));
-  };
-  function project(x, y) {
-    return { x: W / 2 + (x - lon) * (W / 360) * scale, y: H / 2 - (y - lat) * (W / 360) * scale };
-  }
-
-  function draw(exportImage = false) {
-    ctx.fillStyle = '#e7eff2';
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = '#cedde1';
-    ctx.lineWidth = 1;
-    for (let x = -180; x <= 180; x += 30) {
-      ctx.beginPath();
-      ctx.moveTo(project(x, -90).x, 0);
-      ctx.lineTo(project(x, 90).x, H);
-      ctx.stroke();
-    }
-    for (let y = -90; y <= 90; y += 30) {
-      ctx.beginPath();
-      ctx.moveTo(0, project(0, y).y);
-      ctx.lineTo(W, project(0, y).y);
-      ctx.stroke();
-    }
-    ctx.fillStyle = '#cfdbcd';
-    ctx.strokeStyle = '#a2b39f';
-    ctx.lineWidth = 1.2;
-    for (const polygon of land) {
-      ctx.beginPath();
-      for (const ring of polygon) {
-        ring.forEach(([lon, lat], index) => {
-          const point = project(lon, lat);
-          if (index === 0) ctx.moveTo(point.x, point.y);
-          else ctx.lineTo(point.x, point.y);
-        });
-        ctx.closePath();
-      }
-      ctx.fill('evenodd');
-      ctx.stroke();
-    }
-
-    const population = model?.members ?? [];
-    const viewWidth = map.clientWidth || Math.min(window.innerWidth, W);
-    // Changed nodes seed clusters before retained nodes, so a retained point
-    // cannot shift the marker away from the registered location of a change.
-    const display = [...population].sort((a, b) => +(a.role === 'Retained') - +(b.role === 'Retained'));
-    const gap = Math.max(32, 44 * W / viewWidth);
-    const markers = clusters(display, roles, project, gap);
-    separateChanged(markers, gap);
-    markers.reverse();
-    const buttons = [];
-    for (const cluster of markers) {
-      const counts = Object.keys(palette).map(role => [role, cluster.nodes.filter(node => node.role === role).length]).filter(([, count]) => count);
-      const sites = [...new Set(cluster.nodes.map(node => node.dc).filter(Boolean))];
-      const site = sites.join(', ');
-      const label = counts.map(([role, count]) => role + ' ' + count).join(', ') + ' · ' + site;
-      const changes = counts.filter(([role]) => role !== 'Retained');
-      const emphasized = cluster.nodes.some(node => selected.has(node.id));
-      const identity = cluster.nodes.map(node => node.id).join(',');
-      const x = cluster.displayX ?? cluster.x;
-      const y = cluster.displayY ?? cluster.y;
-      if (x !== cluster.x || y !== cluster.y) {
-        ctx.beginPath();
-        ctx.moveTo(cluster.x, cluster.y);
-        ctx.lineTo(x, y);
-        ctx.strokeStyle = '#315e80';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cluster.x, cluster.y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#315e80';
-        ctx.fill();
-      }
-      if (exportImage) {
-        ctx.beginPath();
-        ctx.arc(x, y, changes.length ? 17 : 12, 0, Math.PI * 2);
-        ctx.fillStyle = changes.length ? '#18344a' : palette.Retained;
-        ctx.fill();
-        ctx.lineWidth = emphasized ? 5 : 2;
-        ctx.strokeStyle = emphasized ? '#f2a445' : '#fff';
-        ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillText(String(cluster.nodes.length), x, y + 5);
-        changes.forEach(([role, count], index) => {
-          const badge = signs[role] + count;
-          ctx.fillStyle = palette[role];
-          ctx.fillRect(x - 18 + index * 24, y - 31, 24, 16);
-          ctx.fillStyle = '#fff';
-          ctx.fillText(badge, x - 6 + index * 24, y - 19);
-        });
-        if (changes.length) {
-          ctx.textAlign = x < W - 95 ? 'left' : 'right';
-          ctx.fillStyle = '#132637';
-          ctx.fillText(sites.length > 3 ? sites.length + ' registered data centers' : site,
-            x + (x < W - 95 ? 21 : -21), y + 5, 100);
-        }
-      } else {
-        const marker = action(cluster.nodes.length, () => inspect(cluster.nodes.map(node => node.id),
-          sites.length > 1 ? 'Location cluster' : site || 'Map location'));
-        marker.className = 'map-pin' + (changes.length ? ' changed-pin' : '');
-        marker.title = label;
-        marker.dataset.marker = identity;
-        marker.setAttribute('aria-label', label);
-        marker.setAttribute('aria-pressed', String(emphasized));
-        marker.style.left = (100 * x / W) + '%';
-        marker.style.top = (100 * y / H) + '%';
-        if (changes.length) marker.append(styled('span', 'map-badges', changes.map(([role, count]) =>
-          styled('span', 'role-' + role.toLowerCase(), signs[role] + count))));
-        buttons.push(marker);
-      }
-    }
-    const mapped = population.filter(node => node.point).length;
-    const pending = population.filter(node => node.locationPending).length;
-    const coverage = mapped + '/' + population.length + ' mapped';
-    if (!exportImage) {
-      const focused = document.activeElement?.dataset.marker;
-      pins.replaceChildren(...buttons);
-      if (focused) {
-        const priorNodes = new Set(focused.split(','));
-        const replacement = buttons.find(button => button.dataset.marker === focused)
-          ?? buttons.find(button => button.dataset.marker.split(',').some(node => priorNodes.has(node)));
-        (replacement ?? map).focus({ preventScroll: true });
-      }
-      caption.textContent = model
-        ? population.length + ' nodes across both states · ' + coverage
-          + (pending ? ' · ' + pending + ' locations pending' : '')
-        : emptyMessage ?? 'Registered locations appear here as evidence becomes available.';
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,.96)';
-      ctx.fillRect(12, 12, W - 24, 76);
-      ctx.fillRect(12, H - 42, W - 24, 30);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#132637';
-      ctx.font = 'bold 21px sans-serif';
-      ctx.fillText('Network Nexus · ' + model.ids.map(id => '#' + id).join(' + ') + ' · Registry ' + model.version, 24, 38, W - 48);
-      ctx.font = '15px sans-serif';
-      ctx.fillText(model.subnet.split('-')[0] + ' · ' + model.scenario + ' · ' + model.stateLabel
-        + (model.source ? ' · Policy #' + model.source.id : ''), 24, 60, W - 48);
-      ctx.fillText(coverage + ' · ' + focusLabel + ' · ' + scale.toFixed(1) + '× · input ' + model.calculation.inputHash.slice(0, 12), 24, 80, W - 48);
-      ctx.fillText('+ Added   − Removed   • Retained  |  ' +
-        Object.keys(palette).map(role => roles.has(role) ? role : role + ' hidden').join(' · ') +
-        '  |  ' + (population.length - mapped) + ' unmapped  |  Natural Earth', 24, H - 21, W - 48);
-    }
-  }
-
-  function redrawUnmapped() {
-    const open = unmapped.open;
-    const focused = unmapped.contains(document.activeElement) ? document.activeElement : undefined;
-    const members = model?.members ?? [];
-    const rows = members.filter(node => !node.point && !node.locationPending);
-    const summary = el('summary', 'Unmapped nodes (' + rows.length + ')');
-    const buttons = rows.map(node => {
-      const button = action(signs[node.role] + ' ' + node.label, () => inspect([node.id], node.label));
-      button.dataset.node = node.id;
-      return button;
-    });
-    unmapped.replaceChildren(summary, rows.length ? el('ul', rows.map((node, index) => el('li', buttons[index],
-      el('small', node.locationIssue)))) : el('p', 'All displayed nodes have registered coordinates.'));
-    unmapped.open = open;
-    unmapped.hidden = !rows.length;
-    if (focused && !unmapped.hidden) {
-      (buttons.find(button => button.dataset.node === focused.dataset.node) ?? summary).focus({ preventScroll: true });
-    }
-  }
-
-  function pan(dx, dy) {
-    lon += dx / scale;
-    lat += dy / scale;
-    limit();
-    focusLabel = 'Panned view';
-    draw();
-  }
-  function zoom(multiplier) {
-    scale = Math.max(1, Math.min(12, scale * multiplier));
-    if (scale === 1) lon = lat = 0;
-    focusLabel = 'Zoomed view';
-    draw();
-    status.textContent = 'Zoom ' + scale.toFixed(1) + '×';
-  }
-  function focusChanges() {
-    const points = (model?.members ?? []).filter(node => node.role !== 'Retained' && node.point).map(node => node.point);
-    if (!points.length) {
-      status.textContent = 'Changed nodes have no mapped locations.';
-      return;
-    }
-    const west = Math.min(...points.map(p => p.lon)), east = Math.max(...points.map(p => p.lon));
-    const south = Math.min(...points.map(p => p.lat)), north = Math.max(...points.map(p => p.lat));
-    lon = (west + east) / 2;
-    lat = (south + north) / 2;
-    scale = Math.max(1, Math.min(9, 245 / Math.max(east - west, 1), 120 / Math.max(north - south, 1)));
-    limit();
-    focusLabel = 'Focused on changes';
-    draw();
-  }
-
-  map.addEventListener('pointerdown', event => {
-    if (event.target.closest('button') || event.pointerType === 'touch') return;
-    pointer = [event.clientX, event.clientY, lon, lat];
-    map.setPointerCapture(event.pointerId);
-  });
-  map.addEventListener('pointermove', event => {
-    if (!pointer) return;
-    lon = pointer[2] - (event.clientX - pointer[0]) * 360 / map.clientWidth / scale;
-    lat = pointer[3] + (event.clientY - pointer[1]) * 360 / map.clientWidth / scale;
-    limit();
-    focusLabel = 'Panned view';
-    draw();
-  });
-  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) map.addEventListener(name, () => { pointer = undefined; });
-
-  const arrows = [['←', 'Pan west', -30, 0], ['↑', 'Pan north', 0, 30], ['↓', 'Pan south', 0, -30], ['→', 'Pan east', 30, 0]];
-  const focus = action('Focus changes', focusChanges);
-  const controls = styled('div', 'actions map-controls', action('World', () => {
-    lon = lat = 0; scale = 1; focusLabel = 'World'; draw();
-  }), focus, ...arrows.map(([symbol, title, x, y]) => {
-    const control = action(symbol, () => pan(x, y));
-    control.setAttribute('aria-label', title);
-    return control;
-  }), ...[ ['+', 'Zoom in', 1.6], ['−', 'Zoom out', 1 / 1.6] ].map(([label, name, factor]) => {
-    const control = action(label, () => zoom(factor));
-    control.setAttribute('aria-label', name);
-    return control;
-  }));
-  const exportButton = action('Export map PNG', () => {
-    if (!active() || !model?.calculation) return;
-    const exported = model;
-    const name = 'network-nexus-' + model.ids.join('-') + '-' + model.version + '.png';
-    const image = el('canvas');
-    image.width = W;
-    image.height = H;
-    draw(true);
-    image.getContext('2d').drawImage(canvas, 0, 0);
-    draw();
-    image.toBlob(blob => {
-      if (!active() || model !== exported) return;
-      if (blob) saveFile(name, blob, 'image/png');
-      status.textContent = blob ? 'Map exported with this view and review scope.' : 'Map export failed.';
-    });
-  });
-  const filters = styled('fieldset', 'map-filters', el('legend', 'Map roles'),
-    Object.keys(palette).map(role => {
-      const toggle = el('input');
-      toggle.type = 'checkbox';
-      toggle.checked = true;
-      toggle.addEventListener('change', () => {
-        if (toggle.checked) roles.add(role); else roles.delete(role);
-        draw();
-      });
-      return el('label', toggle, styled('span', 'map-symbol role-' + role.toLowerCase(), signs[role]), role);
-    }));
-  const section = styled('section', 'map-section', styled('div', 'map-heading', el('h3', 'World map')),
-    map, caption, controls, filters, unmapped, status);
-  if (typeof ResizeObserver === 'function') {
-    const observer = new ResizeObserver(() => {
-      if (!map.isConnected) observer.disconnect();
-      else draw();
-    });
-    observer.observe(map);
-  }
+  const changed = [...sites.values()].filter(site => site.changed).sort((a, b) => a.id.localeCompare(b.id));
   return {
-    section,
-    exportButton,
-    update(next, ids = [], reason) {
-      model = next;
-      emptyMessage = reason;
-      selected = new Set(ids);
-      exportButton.disabled = !model?.calculation;
-      focus.disabled = !model?.members?.some(node => node.role !== 'Retained' && node.point);
-      redrawUnmapped();
-      draw();
-    },
-    highlight(ids) {
-      selected = new Set(ids);
-      draw();
-    },
+    locations: [...locations.values()].map(location => ({
+      ...location, roles: Object.keys(roleCounts(location.nodes)).filter(role => location.nodes.some(node => node.role === role)),
+      sites: [...new Set(location.nodes.map(node => node.dc))].sort().map(id =>
+        ({ ...sites.get(id), nodes: location.nodes.filter(node => node.dc === id), id })),
+    })),
+    unmapped, pending, changed, countries, total: members.length, mapped: members.length - unmapped.length - pending,
   };
+}
+
+export function mapProjection(view, { lon = 0, lat = 0, scale = 1 } = {}) {
+  const unit = Math.min((view.width - 28) / 360, (view.height - 28) / 180) * scale;
+  return {
+    unit,
+    project: (x, y) => ({ x: view.width / 2 + (x - lon) * unit, y: view.height / 2 - (y - lat) * unit }),
+    unproject: ({ x, y }) => ({ lon: lon + (x - view.width / 2) / unit, lat: lat - (y - view.height / 2) / unit }),
+  };
+}
+
+export function fitLocations(locations, view) {
+  if (!locations.length) return { lon: 0, lat: 0, scale: 1 };
+  const points = locations.map(location => location.point);
+  const west = Math.min(...points.map(p => p.lon)), east = Math.max(...points.map(p => p.lon));
+  const south = Math.min(...points.map(p => p.lat)), north = Math.max(...points.map(p => p.lat));
+  const unit = mapProjection(view).unit;
+  return { lon: (west + east) / 2, lat: (south + north) / 2,
+    scale: clamp(Math.min((view.width - 64) / unit / Math.max(1, east - west),
+      (view.height - 64) / unit / Math.max(1, north - south)), 0.7, 12) };
+}
+
+export const siteLabel = site => site.id + ' · ' + site.count.text + ' nodes';
+
+export function mapScene(geography, project, view) {
+  const locations = geography.locations.map(location => ({ ...location, ...project(location.point.lon, location.point.lat) }));
+  const visible = locations.filter(({ x, y }) => x >= 0 && x <= view.width && y >= 0 && y <= view.height);
+  const labels = [];
+  const placed = new Set();
+  function place(location, text, site) {
+    const width = Math.ceil(text.length * 6.5 + 8);
+    if (width > view.width - 4) return false;
+    const { x, y } = location;
+    const candidates = [];
+    for (const gap of site ? [13, 30, 48] : [12]) candidates.push([x - width / 2, y - gap - 16], [x - width / 2, y + gap],
+      [x + gap, y - 8], [x - width - gap, y - 8]);
+    for (const [left, top] of candidates) {
+      const box = { left: clamp(left, 2, Math.max(2, view.width - width - 2)), top: clamp(top, 2, view.height - 18), width };
+      if (visible.some(p => p.x + 10 > box.left && p.x - 10 < box.left + width && p.y + 10 > box.top && p.y - 10 < box.top + 16)
+          || labels.some(p => p.left < box.left + width && p.left + p.width > box.left && p.top < box.top + 16 && p.top + 16 > box.top)) continue;
+      labels.push({ ...box, text, x, y, site });
+      return true;
+    }
+    return false;
+  }
+  for (const site of geography.changed) {
+    const location = visible.find(location => location.sites.some(item => item.id === site.id));
+    if (location && place(location, siteLabel(site), site)) placed.add(site.id);
+  }
+  for (const location of visible) {
+    if (location.nodes.length > 1 && !location.sites.some(site => site.id && placed.has(site.id))) {
+      place(location, String(location.nodes.length));
+    }
+  }
+  return { ...view, locations, visible, labels, countries: geography.countries, overflow: geography.changed.filter(site => !placed.has(site.id)) };
+}
+
+export function mapCoverage(geography) {
+  return geography.total + ' unique nodes across both states · ' + geography.mapped + '/' + geography.total + ' located'
+    + (geography.pending ? ' · ' + geography.pending + ' locations loading' : '');
+}
+
+export function drawMap(ctx, scene, project) {
+  const { width, height } = scene;
+  ctx.fillStyle = '#e7eff2';
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = '#cedde1';
+  ctx.lineWidth = 1;
+  for (let x = -180; x <= 180; x += 30) {
+    ctx.beginPath(); ctx.moveTo(project(x, 0).x, 0); ctx.lineTo(project(x, 0).x, height); ctx.stroke();
+  }
+  for (let y = -90; y <= 90; y += 30) {
+    ctx.beginPath(); ctx.moveTo(0, project(0, y).y); ctx.lineTo(width, project(0, y).y); ctx.stroke();
+  }
+  drawCountries(ctx, scene, project);
+  for (const { left, top, width, text, x, y } of scene.labels) {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(clamp(x, left, left + width), clamp(y, top, top + 16));
+    ctx.strokeStyle = '#627682';
+    ctx.stroke();
+    ctx.fillStyle = '#f8fbf5';
+    ctx.fillRect(left, top, width, 16);
+    ctx.fillStyle = '#173445';
+    ctx.font = '600 11px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText(text, left + 4, top + 12, width - 8);
+  }
+  // Nearby locations may overlap at overview scale. Keep changed sites legible without shifting their anchors.
+  const changes = location => location.roles.some(role => role !== 'Retained');
+  for (const location of scene.locations.toSorted((a, b) => Number(changes(a)) - Number(changes(b)))) drawMarker(ctx, location);
+}
+
+function drawMarker(ctx, { x, y, nodes, roles: present }) {
+  const radius = markerDiameter / 2 - 0.5;
+  present.forEach((role, i) => {
+    const part = Math.PI * 2 / present.length;
+    const start = -Math.PI / 2 + i * part;
+    ctx.beginPath();
+    if (present.length > 1) ctx.moveTo(x, y);
+    ctx.arc(x, y, radius, start, start + part);
+    ctx.closePath();
+    ctx.fillStyle = roles[role].color;
+    ctx.fill();
+  });
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = '#fff';
+  ctx.stroke();
+  if (nodes.length < 2) return;
+  ctx.beginPath();
+  ctx.arc(x, y, 8.5, 0, Math.PI * 2);
+  ctx.strokeStyle = '#334954';
+  ctx.setLineDash([1, 2]);
+  ctx.stroke();
+  ctx.setLineDash([]);
 }

@@ -1,0 +1,22 @@
+{
+  "frontend": {
+    "id": "s45ab-wiaaa-aaaar-qcifq-cai",
+    "certifiedAt": "2026-11-27T16:29:28.256Z",
+    "moduleHash": "04e565b3425fe7510ee16b02adcfe3f01abc9a2725c82a21cb08969241debd62",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "candidMetadata": false
+  },
+  "reviewer": {
+    "id": "s34gv-3qaaa-aaaar-qcifa-cai",
+    "certifiedAt": "2026-11-27T16:29:30.015Z",
+    "moduleHash": "a0e5ee28c0e4e42f215411f825d02b7ac65f2285794a371bf598fb2755e2eec9",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "candidMetadata": false
+  }
+}

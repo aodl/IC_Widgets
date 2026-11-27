@@ -1,8 +1,10 @@
 import { activeReplay, connect, liveError, replays, result } from './client.js';
+import { proposalHeading } from './dashboard.js';
+import { replayLabel } from './detail-model.js';
 import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
-import { reviewMap } from './review-map.js';
-import { reviewContexts, reviewStages, serializeCalls } from './review-session.js';
+import { reviewMap } from './map-interaction.js';
+import { reviewContexts, serializeCalls } from './review-session.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
 import { el, option, sourceReceipts, styled } from './view.js';
 
@@ -14,15 +16,14 @@ const reportContainer = document.querySelector('#report');
 const progressRow = document.querySelector('#review-progress');
 const progressBar = progressRow.querySelector('progress');
 const progressCounts = document.querySelector('#review-counts');
-const stageList = document.querySelector('#review-stages');
 const notice = document.querySelector('#local-notice');
 notice.hidden = !LOCAL_REPLICA;
 if (FIXTURE_REPLAY && activeReplay) {
-  notice.textContent = 'Development replay · ' + activeReplay.provenance;
+  notice.textContent = replayLabel(activeReplay) + (activeReplay.roleSupplement ? ' · Synthetic NNS-role supplement' : '');
   const selector = el('select', replays.cases.map(row => Object.assign(el('option', row.name), { value: row.id })));
   selector.value = activeReplay.id;
   const label = el('label', 'Replay scenario', selector);
-  label.className = 'local-note';
+  label.className = 'local-note replay-selector';
   notice.after(label, styled('p', 'local-note replay-purpose', activeReplay.purpose));
   selector.addEventListener('change', () => {
     const next = new URL(location.href);
@@ -36,6 +37,7 @@ if (FIXTURE_REPLAY && activeReplay) {
 let generation = 0;
 let connection;
 let current;
+let currentMap;
 let previewTask;
 let timer;
 let request;
@@ -65,37 +67,23 @@ const phases = {
   Preview: 'Proposal and membership · Reading pinned evidence',
   Nodes: 'Registered nodes · Loading node records',
   Operators: 'Registered nodes · Loading operator records',
-  DataCenters: 'Locations and policy · Loading data centers',
-  Policy: 'Locations and policy · Checking the selected policy and Registry role',
+  DataCenters: 'Loading data centers',
+  Role: 'Reading the pinned Registry role',
   Comparison: 'Comparison · Calculating supported states',
   Lifecycle: 'Comparison · Checking Governance again',
-  Finished: 'Finished', Gaps: 'Finished with gaps', Provisional: 'Provisional · Governance check failed',
+  Finished: 'Data loading complete', Provisional: 'Provisional · Governance check failed',
   Observed: 'Proposal outcome recorded', Blocked: 'Could not produce a review', Stopped: 'Stopped',
 };
 
-function status({ work, stage, counts, reason, remaining, selectedReady, phases: stages, coverage }) {
+function status({ work, stage, counts, reason, remaining, selectedReady }) {
   const working = work === 'running' || work === 'stopping';
   const label = work === 'stopping' ? 'Stopping · Waiting for an accepted call to settle' : phases[stage];
   const message = [label, reason].filter(Boolean).join(' · ');
   if (reportStatus.textContent !== message) reportStatus.textContent = message;
   reportStatus.classList.toggle('error', stage === 'Blocked');
-  reportStatus.classList.toggle('review-finished', ['Finished', 'Gaps', 'Provisional', 'Observed'].includes(stage));
+  reportStatus.classList.toggle('review-finished', ['Finished', 'Provisional', 'Observed'].includes(stage));
   stop.hidden = work !== 'running';
-  progressRow.hidden = stage === 'Observed';
-  progressBar.hidden = !working;
-  const readiness = stages ?? { Preview: stage === 'Preview' ? 'active' : stage === 'Blocked' ? 'failed' : 'stopped' };
-  stageList.replaceChildren(...Object.entries(reviewStages).map(([key, title]) => {
-    const state = readiness[key] ?? (work === 'settled' || work === 'stopped' ? 'stopped' : 'pending');
-    const stateLabel = { ready: 'Ready', active: 'Active', pending: 'Pending', failed: 'Failed', stopped: 'Stopped' }[state];
-    const item = styled('li', 'stage-' + state, title, styled('span', 'stage-label', ' · ' + stateLabel));
-    if (state === 'ready') {
-      const mark = styled('span', 'stage-check', ' ✓');
-      mark.setAttribute('aria-hidden', 'true');
-      item.append(mark);
-    }
-    if (state === 'active') item.setAttribute('aria-current', 'step');
-    return item;
-  }));
+  progressRow.hidden = !working;
   progressBar.setAttribute('aria-label', label ?? 'Current review phase');
   if (counts?.planned) {
     progressBar.max = counts.planned;
@@ -103,11 +91,7 @@ function status({ work, stage, counts, reason, remaining, selectedReady, phases:
   } else progressBar.removeAttribute('value');
   const tally = counts?.planned ? counts.settled + ' of ' + counts.planned + (stage === 'Comparison' ? ' comparisons settled'
     : ' records settled · ' + counts.present + ' present · ' + counts.absent + ' absent · ' + counts.failed + ' failed') : '';
-  progressCounts.textContent = tally + (stage === 'Comparison' && selectedReady && remaining ? ' · Selected comparison is ready' : '')
-    || (coverage && !working ? [coverage.absent ? coverage.absent + ' records absent' : '',
-      coverage.failed ? coverage.failed + ' record reads failed' : '',
-      coverage.outside ? coverage.outside + (coverage.outside === 1 ? ' affected subnet outside the enriched scope' : ' affected subnets outside the enriched scope')
-        : ''].filter(Boolean).join(' · ') : '');
+  progressCounts.textContent = tally + (stage === 'Comparison' && selectedReady && remaining ? ' · Selected comparison is ready' : '');
   const tick = () => {
     if (request) {
       const running = request.segment === undefined ? 0 : Date.now() - request.segment;
@@ -131,14 +115,11 @@ function status({ work, stage, counts, reason, remaining, selectedReady, phases:
 function idsForSearch() {
   const fields = new FormData(search);
   const ids = ['first', 'second'].map(name => fields.get(name).trim()).filter(Boolean).map(BigInt);
-  const policy = fields.get('policy').trim();
-  const policyId = policy ? BigInt(policy) : undefined;
   const valid = id => id >= 1n && id <= 18_446_744_073_709_551_615n;
   if (!ids.length || ids.some(id => !valid(id)) || new Set(ids).size !== ids.length) {
     throw new Error('Choose one or two distinct positive proposal IDs.');
   }
-  if (policyId !== undefined && !valid(policyId)) throw new Error('Choose a positive policy motion ID.');
-  return { ids, policyId };
+  return ids;
 }
 
 stop.addEventListener('click', () => {
@@ -159,19 +140,21 @@ search.addEventListener('submit', event => {
     return;
   }
   document.querySelector('#search-error').textContent = '';
-  const { ids, policyId } = fields;
+  const ids = fields;
   const ticket = ++generation;
   const active = () => generation === ticket;
   current?.session.stop();
+  current?.dispose();
+  currentMap?.dispose();
   current = undefined;
   const thisRequest = request = { segment: Date.now(), elapsed: 0, stopped: false };
   performance.scope(undefined);
   performance.visible(false);
-  const map = reviewMap((...args) => current?.inspect(...args), active);
+  const map = currentMap = reviewMap();
   const mapHost = map.section;
   map.update();
   reportContainer.replaceChildren(styled('div', 'workspace waiting-workspace',
-    styled('section', 'review-header', el('h2', ids.length === 1 ? 'Proposal #' + ids[0] : 'Proposals ' + ids.map(id => '#' + id).join(' + '))),
+    styled('section', 'review-header', el('h2', proposalHeading(ids))),
     styled('div', 'review-grid', styled('div', 'map-card', mapHost))));
   clearInterval(timer);
   timer = undefined;
@@ -183,37 +166,36 @@ search.addEventListener('submit', event => {
       const live = result(response);
       if ('Err' in live.outcome) {
         status({ work: 'settled', stage: 'Blocked', reason: liveError(live.outcome.Err) });
-        map.update(undefined, [], 'Map unavailable · Required membership evidence');
+        map.update(undefined, 'Map unavailable · Required membership evidence');
         reportContainer.append(styled('section', 'card', el('h3', 'Evidence'), sourceReceipts(live)));
         return;
       }
       const body = live.outcome.Ok;
       const proposals = body.report.manifest.proposals;
       if (proposals.length && proposals.every(terminalOutcome)) {
+        map.dispose();
         const titles = option(body.proposal_text ?? []) ?? [];
         const indexedFailure = FIXTURE_REPLAY && activeReplay?.proposalIds.length === 1 ? activeReplay.failureReason : undefined;
         reportContainer.replaceChildren(styled('section', 'card terminal-outcome',
           proposals.map(proposal => terminalSummary(proposal,
             option(titles.find(row => row.id === proposal.id)?.title ?? []),
-            FIXTURE_REPLAY && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined)),
-          sourceReceipts(live)));
+            FIXTURE_REPLAY && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, activeReplay)),
+          sourceReceipts(live, { replay: !!activeReplay })));
         status({ work: 'settled', stage: 'Observed' });
         return;
       }
       const contexts = reviewContexts(body.report, option(body.subnet_rules ?? []) ?? []);
       current = mountReviewWorkspace({ live, contexts, map, mapHost, active, call: remote,
-        policyId, progress: state => { if (active()) status(state); }, performance,
-        local: FIXTURE_REPLAY && activeReplay ? 'Development replay · ' + activeReplay.provenance
-          : LOCAL_REPLICA ? 'Local replica review using fixture evidence.' : undefined });
+        progress: state => { if (active()) status(state); }, performance, replay: activeReplay });
       reportContainer.replaceChildren(current.section);
       current.start();
     } catch (error) {
       if (!active() || thisRequest.stopped) return;
-      map.update(undefined, [], 'The map needs supported membership evidence for this review.');
+      map.update(undefined, 'The map needs supported membership evidence for this review.');
       status({ work: 'settled', stage: 'Blocked', reason: error.message });
     } finally {
       if (active() && thisRequest.stopped) {
-        map.update(undefined, [], 'Not loaded · Review stopped');
+        map.update(undefined, 'Not loaded · Review stopped');
         status({ work: 'stopped', stage: 'Stopped' });
       }
     }

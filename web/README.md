@@ -22,3 +22,16 @@ CANISTER_ID_REVIEWER="$(dfx canister id --network local reviewer)" DFX_NETWORK=l
 ```
 
 `./scripts/test-m0.sh` builds the fixtures and runs the cross-subnet PocketIC tests, including the on-demand review and native blockmaking cases. Set `NEXUS_REAL_PROPOSAL_REPLY` to an existing public Candid reply for a one-addition, one-removal Governance proposal to also replay its exact payload against a synthetic local Registry. This tests the real proposal decoder and analysis path while keeping Registry verification local.
+
+## Embedded frontend and production network regression
+
+The normal DFX frontend build bundles the web application with content-hashed names and embeds it in the certified Rust frontend. Follow the [build and migration guide](../docs/EMBEDDED_FRONTEND.md). The separate historical replay launcher still serves development replay assets.
+
+Prepare the locked npm dependencies and Playwright with Chromium. Create a disposable local fixture project, then upgrade its standard asset canister to the embedded local build as described in the guide. Use the printed project directory. Optional `PLAYWRIGHT_MODULE` and `CHROMIUM_EXECUTABLE` point to prepared installations.
+
+```bash
+node web/verify-embedded-frontend.mjs "$project"
+node web/browser-production-network.mjs "$project" "$PWD/.local/production-network"
+```
+
+The browser driver uses the actual certified responses from the loopback IC HTTP gateway. It independently verifies v2 responses, allows only the hashed frontend assets and the intended reviewer protocol routes, and blocks outside requests, service workers and external DNS. The installed local profile fetches the replica trust root through the standard local IC status endpoint. The test does not rewrite the bundle or bypass certification. The separately reproducible production artifact embeds the mainnet reviewer ID and uses the SDK's pinned mainnet trust root. The guide also checks that exact production artifact through the local gateway without running mainnet application calls.

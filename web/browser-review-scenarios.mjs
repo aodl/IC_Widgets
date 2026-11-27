@@ -18,7 +18,11 @@ const localCall = (canister, method, args = '()') => dfx('canister', 'call', '--
 const frontend = dfx('canister', 'id', '--network', 'local', 'frontend');
 const reviewer = dfx('canister', 'id', '--network', 'local', 'reviewer');
 const config = JSON.parse(await readFile(resolve(project, 'dfx.json'), 'utf8'));
-const port = config.networks?.local?.bind?.split(':').at(-1) ?? '4966';
+const port = config.networks?.local?.bind?.match(/^127\.0\.0\.1:(\d+)$/)?.[1];
+const reviewerWasm = config.canisters?.reviewer?.wasm;
+if (!port || config.networks.local.type !== 'ephemeral' || !reviewerWasm) {
+  throw new Error('An isolated loopback reviewer with a local Wasm is required.');
+}
 const methods = idlFactory({ IDL }).fieldsAsObject();
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
 const mode = value => localCall('fixture', 'set_voting_review_fixture', '(' + value + ' : nat8)');
@@ -30,6 +34,8 @@ const gate = () => {
 const results = [];
 
 async function test(name, fixture, run) {
+  // Case budgets are independent. Reset transient work counters only in this disposable replica.
+  dfx('canister', 'install', '--network', 'local', '--mode', 'upgrade', '--upgrade-unchanged', '--wasm', reviewerWasm, 'reviewer');
   mode(fixture);
   const page = await browser.newPage({ viewport: { width: 1024, height: 900 } });
   const requests = new Map();
@@ -78,38 +84,46 @@ async function holdPage(page, accepts) {
     await release.settled;
     return route.fulfill({ response });
   });
-  return { dispatched: dispatched.settled, release: release.release };
+  return {
+    dispatched() {
+      let timer;
+      const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('The requested evidence page was not dispatched.')), 45_000);
+      });
+      return Promise.race([dispatched.settled, deadline]).finally(() => clearTimeout(timer));
+    },
+    release: release.release,
+  };
 }
 const status = page => page.locator('#report-status');
-const finished = page => status(page).getByText('Finished with gaps', { exact: true }).waitFor({ timeout: 120000 });
+const finished = page => status(page).getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });
 
 try {
   await test('Held data-center page keeps counts truthful and preserves the inspector and map camera', 1, async (page, send) => {
     const hold = await holdPage(page, key => 'DataCenters' in key);
     try {
       await send(144954);
-      await hold.dispatched;
+      await hold.dispatched();
       await page.locator('#review-counts').getByText(/^0 of 39 records settled/).waitFor();
-      await page.getByText(/41 locations pending/).waitFor();
+      await page.getByText(/41 locations loading/).waitFor();
       assert.equal(await page.getByText(/Unmapped nodes/).isVisible(), false);
-      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-      await page.getByRole('button', { name: 'Registered DC owner', exact: true }).click();
+      await page.locator('.topology-card:not(.node-changes)').getByText('Loading', { exact: true }).waitFor();
+      await page.locator('.map-frame').focus();
+      await page.keyboard.press('+');
+      await page.locator('.node-changes').getByRole('button', { name: /kaoz3/ }).click();
       const panel = page.locator('.inspector');
-      await panel.getByText('Loading data centers', { exact: true }).waitFor();
-      await panel.getByRole('button', { name: 'Close details' }).click();
-      await page.locator('.changed-nodes').getByRole('button', { name: /kaoz3/ }).click();
       await panel.getByLabel('Full node principal').waitFor();
       assert.match(await panel.textContent(), /Registered ownerLoading data centers/);
-      assert.doesNotMatch(await panel.textContent(), /Unavailable|Could not load/);
+      assert.doesNotMatch(await panel.textContent(), /Could not load/);
       if (output) await page.screenshot({ path: resolve(output, '144954-loading.png'), fullPage: true });
     } finally {
       hold.release();
     }
     await finished(page);
-    await page.getByText('41 nodes across both states · 38/41 mapped', { exact: true }).waitFor();
-    await page.getByText('Zoom 1.6×', { exact: true }).waitFor();
+    await page.getByText(/41 unique nodes across both states · 38\/41 located/).waitFor();
+    assert.equal(await page.locator('.map-frame').getAttribute('data-map-scale'), '1.5');
     const panel = page.locator('.inspector');
-    await panel.getByText('Coordinates not recorded on-chain', { exact: true }).waitFor();
+    await panel.getByText('Not recorded on-chain', { exact: true }).first().waitFor();
     assert.match(await panel.textContent(), /Digital Realty/);
   });
 
@@ -117,29 +131,29 @@ try {
     const hold = await holdPage(page, key => 'DataCenters' in key);
     try {
       await send(144954);
-      await hold.dispatched;
+      await hold.dispatched();
       await page.getByRole('button', { name: 'Stop', exact: true }).click();
       await status(page).getByText(/Stopping.*accepted call/).waitFor();
     } finally {
       hold.release();
     }
     await status(page).getByText('Stopped', { exact: true }).waitFor();
-    await page.locator('.changed-nodes').getByRole('button', { name: /kaoz3/ }).click();
+    await page.locator('.node-changes').getByRole('button', { name: /kaoz3/ }).click();
     await page.locator('.inspector').getByText('Not loaded · Review stopped', { exact: true }).first().waitFor();
     assert.equal(count('membership_target_topology'), 0);
     assert.equal(count('finalize_membership_review'), 0);
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+    assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
   });
 
   await test('Supersession rejects a late node page and starts the next review', 0, async (page, send, count) => {
     const hold = await holdPage(page, key => 'Nodes' in key);
     try {
       await send(144954);
-      await hold.dispatched;
+      await hold.dispatched();
       await send(999999);
       await page.getByRole('heading', { name: 'Proposal #999999' }).waitFor();
       assert.equal(count('begin_membership_review'), 1);
-      assert.equal(await page.getByText(/40 members · \+1 added/).count(), 0);
+      assert.equal(await page.getByText(/40 members · Add 1/).count(), 0);
     } finally {
       hold.release();
     }
@@ -151,22 +165,22 @@ try {
   await test('Failed metadata stays distinct from absence and retries only the failed key', 2, async (page, send, count) => {
     await send(144954);
     await finished(page);
-    await page.locator('.changed-nodes').getByRole('button', { name: /kaoz3/ }).click();
+    await page.locator('.node-changes').getByRole('button', { name: /kaoz3/ }).click();
     await page.locator('.inspector').getByText(/Could not load.*withheld optional/).first().waitFor();
     const pages = count('membership_context_detail_page');
     mode(0);
     const hold = await holdPage(page, key => 'DataCenters' in key);
     try {
       await page.getByRole('button', { name: 'Retry failed evidence', exact: true }).click();
-      await hold.dispatched;
+      await hold.dispatched();
       await page.getByText('Previous accepted comparison · Retry in progress', { exact: true }).waitFor();
-      await page.getByText('41 nodes across both states · 38/41 mapped', { exact: true }).waitFor();
-      assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+      await page.getByText(/41 unique nodes across both states · 38\/41 located/).waitFor();
+      assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
     } finally { hold.release(); }
     await finished(page);
-    await page.getByText('41 nodes across both states · 41/41 mapped', { exact: true }).waitFor();
+    await page.getByText(/41 unique nodes across both states · 41\/41 located/).waitFor();
     assert.equal(count('membership_context_detail_page'), pages + 1);
-    assert.equal(count('membership_target_topology'), 1);
+    assert.equal(count('membership_registry_role'), 1);
     assert.equal(count('begin_membership_review'), 1);
   });
 
@@ -174,7 +188,7 @@ try {
     await send(144954);
     await status(page).getByText(/Could not produce a review.*conflicting/).waitFor();
     assert.equal(count('membership_context_detail_page'), 0);
-    assert.equal(await page.getByText(/40 members · \+1 added/).count(), 0);
+    assert.equal(await page.getByText(/40 members · Add 1/).count(), 0);
   });
 
   await test('An executed proposal does not imply a historical baseline', 4, async (page, send, count) => {
@@ -182,8 +196,8 @@ try {
     await status(page).getByText('Proposal outcome recorded', { exact: true }).waitFor();
     await page.getByText(/historical before-state is unavailable/).waitFor();
     assert.equal(count('membership_context_detail_page'), 0);
-    assert.equal(await page.getByRole('button', { name: 'Export review', exact: true }).count(), 0);
-    assert.equal(await page.getByRole('heading', { name: 'Target Topology' }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Generate review', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('heading', { name: 'Decentralisation' }).count(), 0);
   });
 
   await test('The final Governance check blocks a result when the proposal executes during enrichment', 0, async (page, send, count) => {
@@ -200,8 +214,8 @@ try {
     await status(page).getByText('Could not produce a review', { exact: true }).waitFor({ timeout: 120000 });
     await page.getByText(/144954 changed during the review/).waitFor();
     assert.equal(count('finalize_membership_review'), 1);
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
-    assert.equal(await page.getByText(/40 members · \+1 added/).count(), 0);
+    assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
+    assert.equal(await page.getByText(/40 members · Add 1/).count(), 0);
   });
 
   await test('A failed final Governance read remains provisional and retries only verification', 0, async (page, send, count) => {
@@ -217,13 +231,13 @@ try {
     await send(144954);
     await status(page).getByText('Provisional · Governance check failed', { exact: true }).waitFor({ timeout: 120000 });
     await page.getByText(/Provisional.*Temporary fixture Governance failure/).waitFor();
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+    assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
     const pages = count('membership_context_detail_page');
     mode(0);
     await page.getByRole('button', { name: 'Retry failed evidence', exact: true }).click();
     await finished(page);
     assert.equal(count('membership_context_detail_page'), pages);
-    assert.equal(count('compare_membership_with_policy'), 1);
+    assert.equal(count('compare_membership_context'), 1);
     assert.equal(count('finalize_membership_review'), 2);
   });
 
@@ -240,8 +254,8 @@ try {
     await send(144954);
     await status(page).getByText('Could not produce a review', { exact: true }).waitFor({ timeout: 120000 });
     await page.getByText(/unsupported action/).waitFor();
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
-    assert.equal(await page.getByText(/40 members · \+1 added/).count(), 0);
+    assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
+    assert.equal(await page.getByText(/40 members · Add 1/).count(), 0);
   });
 
   await test('Multi-subnet review enriches the selected subnet first within one record budget', 5, async (page, send, count, nodeReads) => {
@@ -251,13 +265,13 @@ try {
     await send(91);
     await finished(page);
     assert.equal(nodeReads(), 50);
-    assert.equal(count('compare_membership_with_policy'), 1);
-    await page.getByText(/1 affected subnet outside the enriched scope/).waitFor();
+    assert.equal(count('compare_membership_context'), 1);
+    await page.locator('.coverage-notice').getByText(/1 affected subnet is outside the enriched scope/).waitFor();
     await page.getByLabel('Subnet', { exact: true }).selectOption({ index: 1 });
     await finished(page);
     assert.equal(nodeReads(), 100);
-    assert.equal(count('compare_membership_with_policy'), 2);
-    assert.equal(count('membership_target_topology'), 1);
+    assert.equal(count('compare_membership_context'), 2);
+    assert.equal(count('membership_registry_role'), 1);
   });
 
   await test('Both orders and intermediate states settle with shared records', 5, async (page, send, count) => {
@@ -266,23 +280,31 @@ try {
     localCall('fixture', 'enable_proposal_fixture');
     await send(93, '92');
     await finished(page);
-    assert.equal(count('compare_membership_with_policy'), 6);
+    assert.equal(count('compare_membership_context'), 6);
     assert.equal(count('finalize_membership_review'), 1);
     const pages = count('membership_context_detail_page');
     const order = page.getByLabel('Proposal order');
     const step = page.getByLabel('Membership state');
     await order.selectOption('AThenB');
     await step.selectOption('1');
-    await page.locator('.review-summary').getByText(/51 \(\+1\) members/).waitFor();
-    await page.getByRole('button', { name: 'Export review', exact: true }).click();
-    await page.getByLabel('VOTE', { exact: true }).fill('Order A assessment');
+    await page.locator('.review-summary > strong').filter({ hasText: /50 → 51 members/ }).waitFor();
+    await page.getByRole('button', { name: 'Generate review', exact: true }).click();
+    await page.getByText('Reviewer commentary (optional)', { exact: true }).click();
+    await page.getByLabel('Reviewer vote', { exact: true }).fill('Order A assessment');
+    const firstMarkdown = await page.getByLabel('Generated Markdown', { exact: true }).inputValue();
     await order.selectOption('BThenA');
     await step.selectOption('1');
-    await page.locator('.review-summary').getByText(/49 \(−1\) members/).waitFor();
-    await page.getByRole('button', { name: 'Export review', exact: true }).click();
+    await page.locator('.review-summary > strong').filter({ hasText: /50 → 49 members/ }).waitFor();
+    await page.getByRole('button', { name: 'Generate review', exact: true }).click();
     const markdown = await page.getByLabel('Generated Markdown', { exact: true }).inputValue();
     assert.match(markdown, /Proposal #92 then Proposal #93/);
     assert.doesNotMatch(markdown, /Order A assessment/);
+    assert.match(firstMarkdown, /Proposal #93 then Proposal #92.*Step 1 of 2/);
+    assert.match(markdown, /Proposal #92 then Proposal #93.*Step 1 of 2/);
+    const digest = text => /Calculation input SHA-256 `([a-f0-9]{64})`/.exec(text)?.[1];
+    assert.ok(digest(firstMarkdown));
+    assert.ok(digest(markdown));
+    assert.notEqual(digest(firstMarkdown), digest(markdown));
     assert.equal(count('membership_context_detail_page'), pages);
     await page.locator('#open-performance').click();
     await page.getByLabel('Performance scope').selectOption('follow');

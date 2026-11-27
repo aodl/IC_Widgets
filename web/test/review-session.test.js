@@ -53,10 +53,10 @@ function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => 
     membership_context_detail_page(_token, keys) {
       return this.membership_detail_page(5n, keys);
     },
-    membership_target_topology() {
-      return { Ok: { registry_version: [5n], outcome: { Ok: { digest: [], motion: [], nns_issue: [] } } } };
+    membership_registry_role() {
+      return { Ok: { registry_version: [5n], outcome: { Ok: { nns_subnet: [], issue: [], retryable: false } } } };
     },
-    finalize_membership_review: finalize,
+    finalize_membership_review: finalize ?? (() => ({ Ok: { registry_version: [5n], outcome: { Ok: [] } } })),
     async membership_detail_page(version, keys) {
       const [[kind, values]] = Object.entries(keys);
       recorded.push({ kind, values });
@@ -72,7 +72,7 @@ function fixture({ firstPage, comparison, firstOrder = 'AThenB', reject = () => 
   };
   const serialize = serializeCalls();
   const session = createReviewSession({
-    live: { outcome: { Ok: { review_context: finalize ? [[7]] : [],
+    live: { outcome: { Ok: { review_context: [[7]],
       report: { manifest: { registry_version: 5n }, revision: [9] } } } },
     contexts: [one, two], active: () => true, call: (active, run) => serialize(active, () => run(client)),
     compare: async (_, input) => {

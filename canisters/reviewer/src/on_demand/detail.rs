@@ -216,6 +216,17 @@ fn compare_membership_details(
 }
 
 #[ic_cdk::update(guard = "comparison_ingress")]
+fn compare_membership_context(
+    input: DetailComparisonInput,
+    token: Hash,
+) -> Result<LiveMembershipComparison, String> {
+    policy::verify_context(token)?;
+    let _guard = RequestGuard::acquire()?;
+    policy::verify_input(token, &input)?;
+    calculate(input)
+}
+
+#[ic_cdk::update(guard = "comparison_ingress")]
 fn compare_membership_with_policy(
     input: DetailComparisonInput,
     token: Hash,

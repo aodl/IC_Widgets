@@ -1,64 +1,177 @@
-import { action, saveFile } from './review-map.js';
-import { reviewMarkdown } from './review-markdown.js';
-import { el, styled } from './view.js';
+import { boundaryNote, countryLabel } from './country-presentation.js';
+import { dashboardLink, proposalHeading } from './dashboard.js';
+import { comparisonCaption, distanceTitle, distributionTables, governanceText, replayLabel, roles } from './detail-model.js';
+import { nodeTables } from './node-table.js';
+import { drawMap, fitLocations, mapCoverage, mapProjection, mapScene, siteLabel } from './review-map.js';
+import { reportScope, reviewMarkdown } from './review-markdown.js';
+import { action, deltaNode, el, number, saveFile, styled, table } from './view.js';
 
-const disclose = (label, ...contents) => el('details', el('summary', label), ...contents);
+function reportMap(snapshot) {
+  const view = { width: 1600, height: 790 };
+  const projection = mapProjection(view, fitLocations(snapshot.geography.locations, view));
+  const scene = mapScene(snapshot.geography, projection.project, view);
+  const lines = [
+    'Proposal review · ' + snapshot.scope.ids.map(id => '#' + id).join(' + '),
+    reportScope(snapshot),
+    'Registry ' + number(snapshot.version) + ' · Subnet ' + snapshot.scope.subnet,
+    snapshot.replay && replayLabel(snapshot.replay),
+    snapshot.membership + ' · ' + mapCoverage(snapshot.geography),
+    'Calculation input SHA-256 ' + snapshot.scope.inputHash,
+    snapshot.countries?.note,
+  ].filter(Boolean);
+  const header = 24 * lines.length + 52;
+  const image = styled('canvas', 'report-map');
+  image.width = view.width;
+  image.height = header + view.height + (scene.overflow.length ? (Math.ceil(scene.overflow.length / 4) + 1) * 25 + 12 : 0);
+  image.setAttribute('role', 'img');
+  image.setAttribute('aria-label', 'Report map. ' + mapCoverage(snapshot.geography));
+  const ctx = image.getContext('2d');
+  ctx.fillStyle = '#f7fbfb';
+  ctx.fillRect(0, 0, image.width, image.height);
+  ctx.fillStyle = '#132637';
+  lines.forEach((line, index) => {
+    ctx.font = index === 0 ? 'bold 22px system-ui' : '15px system-ui';
+    ctx.fillText(line, 18, 27 + 24 * index, image.width - 36);
+  });
+  Object.values(roles).forEach(({ label, color }, index) => {
+    const x = 24 + index * 118;
+    ctx.beginPath();
+    ctx.arc(x, header - 20, 6, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.fillStyle = '#132637';
+    ctx.fillText(label, x + 12, header - 15);
+  });
+  ctx.fillText('Dotted halo: co-located nodes · Cartographic boundaries · Natural Earth', 392, header - 15);
+  ctx.save();
+  ctx.translate(0, header);
+  ctx.beginPath();
+  ctx.rect(0, 0, view.width, view.height);
+  ctx.clip();
+  drawMap(ctx, scene, projection.project);
+  ctx.restore();
+  if (scene.overflow.length) {
+    ctx.fillText('Changed sites outside map labels', 18, header + view.height + 25);
+    scene.overflow.forEach((site, index) => ctx.fillText(siteLabel(site),
+      18 + index % 4 * 276, header + view.height + 50 + Math.floor(index / 4) * 25, 260));
+  }
+  return image;
+}
 
-export function markdownEditor(model, draft, exportMap) {
-  const vote = el('input');
-  vote.value = draft.vote ?? '?';
-  const tldr = el('textarea');
-  tldr.rows = 3;
-  tldr.value = draft.tldr ?? '';
-  const mapImage = el('input');
-  mapImage.type = 'url';
-  const inputHash = model.calculation?.inputHash;
-  mapImage.disabled = !inputHash;
-  mapImage.value = draft.mapImage?.inputHash === inputHash ? draft.mapImage?.url ?? '' : '';
-  const previewVote = el('p');
-  const previewTldr = el('p');
-  const raw = el('textarea');
-  raw.readOnly = true;
-  raw.rows = 12;
+const crcTable = Array.from({ length: 256 }, (_, value) => {
+  for (let bit = 0; bit < 8; bit++) value = (value >>> 1) ^ (value & 1 ? 0xedb88320 : 0);
+  return value;
+});
+
+// A standards-compatible stored ZIP. Markdown is small and PNG is already compressed.
+export function reviewZip(files) {
+  const encoder = new TextEncoder();
+  const entries = [], directory = [];
+  let offset = 0, directorySize = 0;
+  for (const [name, bytes] of files) {
+    const filename = encoder.encode(name);
+    let crc = 0xffffffff;
+    for (const byte of bytes) crc = (crc >>> 8) ^ crcTable[(crc ^ byte) & 255];
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);
+    local.setUint16(4, 20, true);
+    local.setUint16(12, 33, true);
+    local.setUint32(14, crc ^ 0xffffffff, true);
+    local.setUint32(18, bytes.length, true);
+    local.setUint32(22, bytes.length, true);
+    local.setUint16(26, filename.length, true);
+    entries.push(local.buffer, filename, bytes);
+    const central = new DataView(new ArrayBuffer(46));
+    central.setUint32(0, 0x02014b50, true);
+    central.setUint16(4, 20, true);
+    new Uint8Array(central.buffer, 6, 24).set(new Uint8Array(local.buffer, 4, 24));
+    central.setUint32(42, offset, true);
+    directory.push(central.buffer, filename);
+    directorySize += central.byteLength + filename.length;
+    offset += local.byteLength + filename.length + bytes.length;
+  }
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, directorySize, true);
+  end.setUint32(16, offset, true);
+  return new Blob([...entries, ...directory, end.buffer], { type: 'application/zip' });
+}
+
+export function markdownEditor(snapshot, draft, isCurrent) {
+  const image = reportMap(snapshot);
+  const png = new Promise(resolve => image.toBlob(resolve, 'image/png'));
+  const vote = Object.assign(el('input'), { value: draft.vote ?? '' });
+  const summary = Object.assign(el('textarea'), { rows: 3, value: draft.summary ?? '' });
+  const attribution = Object.assign(el('input'), { value: draft.attribution ?? '' });
+  const raw = Object.assign(el('textarea'), { readOnly: true, rows: 14 });
   raw.setAttribute('aria-label', 'Generated Markdown');
+  const reviewer = el('div');
+  const source = el('details', el('summary', 'Generated Markdown source'), raw);
   const status = styled('p', 'status');
   status.setAttribute('role', 'status');
   function update() {
-    Object.assign(draft, { vote: vote.value, tldr: tldr.value });
-    if (inputHash) draft.mapImage = { inputHash, url: mapImage.value };
-    raw.value = reviewMarkdown(model, { ...draft, mapImage: mapImage.value });
-    previewVote.replaceChildren(el('strong', 'VOTE'), ' ' + (vote.value.trim() || '?'));
-    previewTldr.replaceChildren(el('strong', 'TLDR'), ' ' + tldr.value.trim());
+    Object.assign(draft, { vote: vote.value, summary: summary.value, attribution: attribution.value });
+    raw.value = reviewMarkdown(snapshot, draft);
+    reviewer.replaceChildren(...[['Reviewer vote', vote], ['Reviewer summary', summary], ['Reviewer attribution', attribution]]
+      .filter(([, input]) => input.value.trim()).map(([label, input]) => el('p', el('strong', label), ' · ', input.value.trim())));
   }
-  for (const input of [vote, tldr, mapImage]) input.addEventListener('input', update);
+  for (const input of [vote, summary, attribution]) input.addEventListener('input', update);
   update();
-
-  const preview = styled('article', 'markdown-preview', el('h4', 'Proposal ' + model.ids.map(id => '#' + id).join(' + ') + ' Review'),
-    previewVote, previewTldr, el('p', model.membership), el('p', model.scenario + ' · ' + model.stateLabel + ' · Registry ' + model.version),
-    el('ul', model.notes.map(note => el('li', note))),
-    el('p', 'Use the exported PNG and the forum’s image upload to include the map.'));
-  return styled('section', 'detail-section', el('h3', 'Review Markdown'),
-    styled('div', 'markdown-fields', el('label', 'VOTE', vote), el('label', 'TLDR', tldr),
-      el('label', 'Uploaded map image URL (optional)', mapImage)),
-    styled('div', 'actions', exportMap, action('Copy Markdown', async event => {
-      const copyButton = event.currentTarget;
-      try {
-        await navigator.clipboard.writeText(raw.value);
-        status.textContent = 'Review Markdown copied.';
-      } catch {
-        const source = raw.closest('details');
-        const wasOpen = source.open;
-        source.open = true;
-        raw.focus();
-        raw.select();
-        if (document.execCommand('copy')) {
-          source.open = wasOpen;
-          copyButton.focus();
+  const preview = styled('article', 'markdown-preview',
+    el('h4', 'Review · ', proposalHeading(snapshot.scope.ids)),
+    el('p', reportScope(snapshot)), reviewer, el('h4', 'Summary'), el('p', snapshot.summary), el('p', snapshot.membership),
+    el('h4', 'Evidence scope'), el('p', 'Pinned Registry ' + number(snapshot.version) + ' · Subnet ',
+      dashboardLink('subnet', snapshot.scope.subnet)),
+    snapshot.governance.map(item => el('p', governanceText(item, snapshot.replay, true))),
+    snapshot.notes.map(note => el('p', note)),
+    el('h4', 'Map'), image, nodeTables(snapshot.members, { heading: 'h4' }),
+    el('h4', 'Decentralisation'), el('p', comparisonCaption),
+    distributionTables.flatMap(({ key, title }) => [
+      el('h5', title), table(['Dimension', 'Members'], snapshot.dimensions.map(item => [item.label, item[key]?.text ?? 'Unavailable'])),
+    ]),
+    snapshot.distances ? el('div', el('h5', distanceTitle), el('p', snapshot.distances.coverage),
+      table(['Distance', 'Value'], snapshot.distances.columns.map(item => [item.label, item.delta.text]))) : null,
+    snapshot.countries?.groups.length ? el('details', el('summary', 'Recorded country membership'),
+      table(['Country (recorded token)', 'Subnet members'], snapshot.countries.groups.map(group => [
+        countryLabel(group.token, undefined, true), deltaNode(group.delta),
+      ]))) : null,
+    el('details', el('summary', 'Sources and calculation'), el('p', 'Calculation input SHA-256 ', el('code', snapshot.scope.inputHash)),
+      el('p', boundaryNote),
+      table(['Method', 'Item', 'Canister', snapshot.replay ? 'Replay delivery time' : 'Observed at', 'Reply SHA-256 or issue'], snapshot.sources)));
+  return styled('section', 'detail-section',
+    styled('div', 'actions',
+      action('Copy Markdown', async event => {
+        if (!isCurrent()) return;
+        const copyButton = event.currentTarget;
+        try {
+          await navigator.clipboard.writeText(raw.value);
           status.textContent = 'Review Markdown copied.';
-        } else {
-          status.textContent = 'Select and copy the generated Markdown from the field.';
+        } catch {
+          const wasOpen = source.open;
+          source.open = true;
+          raw.focus({ preventScroll: true });
+          raw.select();
+          if (document.execCommand('copy')) {
+            source.open = wasOpen;
+            copyButton.focus({ preventScroll: true });
+            status.textContent = 'Review Markdown copied.';
+          } else status.textContent = 'Select and copy the generated Markdown from the field.';
         }
-      }
-    }), action('Download Markdown', () => saveFile('proposal-' + model.ids.join('-') + '-' + model.version + '-review.md', raw.value, 'text/markdown;charset=utf-8'))),
-    status, disclose('Review preview', preview), disclose('Generated Markdown source', raw));
+      }),
+      action('Download review', async () => {
+        const markdown = raw.value;
+        const map = await png;
+        if (!isCurrent()) return;
+        if (!map) { status.textContent = 'Could not generate the map image.'; return; }
+        const bytes = new Uint8Array(await map.arrayBuffer());
+        if (!isCurrent()) return;
+        const content = reviewZip([['review.md', new TextEncoder().encode(markdown)], ['map.png', bytes]]);
+        saveFile('proposal-' + snapshot.scope.ids.join('-') + '-step-' + snapshot.scope.step + '-review.zip', content, 'application/zip');
+      }), el('span', 'Attach map.png when posting.')), status,
+    el('details', el('summary', 'Reviewer commentary (optional)'),
+      styled('div', 'markdown-fields', el('label', 'Reviewer vote', vote), el('label', 'Reviewer summary', summary),
+        el('label', 'Reviewer attribution', attribution))),
+    preview, source);
 }

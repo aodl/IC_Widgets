@@ -16,7 +16,7 @@
         "recorded-open"
       ],
       "support": "local-resolver",
-      "purpose": "Replay the recorded NNS replacement and inspect its map, policy checks, and export.",
+      "purpose": "Replay the recorded NNS replacement and inspect its individual nodes, registered groups, and export.",
       "action_evidence": [
         {
           "proposal_id": "144954",

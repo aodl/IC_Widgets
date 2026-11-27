@@ -1,12 +1,12 @@
 # Historical review fixtures
 
-Start the ordinary Network Nexus frontend and reviewer against committed local inputs.
+Start the ordinary Network Nexus frontend and reviewer against committed local inputs. [Current factual replay, screenshots and verification](FACTUAL_REFINEMENTS.md)
 
 ```bash
 ./scripts/dev-review-fixture.sh --case nns-144954-recorded-open
 ```
 
-Open the printed URL and click **Review**. The **Replay scenario** menu switches between preloaded contexts, fills the proposal IDs and shows the purpose of the selected case. Wait for the new page before clicking **Review**. The replay uses the same staged review, map, policy comparison and export as the ordinary application. Each menu entry has an isolated local reviewer and source-canister instance. Switching pages supersedes the old browser session and never changes another case’s records. Executed, Rejected and Failed cases open a recorded outcome with source receipts. A membership comparison and its export require a supported prospective state.
+Open the printed URL and click **Review**. The **Replay scenario** menu switches between preloaded contexts, fills the proposal IDs and shows the purpose of the selected case. Wait for the new page before clicking **Review**. The replay uses the same staged review, individual-node map, factual composition and export as the ordinary application. Each menu entry has an isolated local reviewer and source-canister instance. Switching pages supersedes the old browser session and never changes another case’s records. Executed, Rejected and Failed cases open a recorded outcome with source receipts. A membership comparison and its export require a supported prospective state.
 
 The launcher defaults to port 4971. Use `--port PORT` for a separate project or add `--single` to provision only the starting case. Use the printed `dfx stop` command to stop the isolated replica. Starting again creates a fresh project under `.local/review-fixtures.*`. Once stopped, the specific printed project directory can be removed.
 
@@ -35,7 +35,7 @@ The [catalogue](../../tests/source-fixture/data/catalogue.json) indexes 25 exact
 
 | Examples | Available coverage | Evidence limits |
 |---|---|---|
-| 144954 recorded Open | Full resolver, map, policy and export. The subnet retains 39 of 40 members in a one-for-one replacement. One of 96 memberships is checked. | Recorded pre-execution review snapshot at Registry 66,013, selected records only. The role binding is a synthetic `nns_subnet_id` supplement. The actual execution the following day belongs to a separate indexed observation. |
+| 144954 recorded Open | Full resolver, map, factual composition and export. The subnet retains 39 of 40 members in a one-for-one replacement. One of 96 memberships is checked. | Recorded pre-execution review snapshot at Registry 66,013, selected records only. The role binding is a synthetic `nns_subnet_id` supplement. The actual execution the following day belongs to a separate indexed observation. |
 | 144954 terminal and fault variants | Indexed Executed state, slow locations, missing shared coordinates, rejected location reads and phase-triggered Governance changes | Replay timing and intentional faults are local. The repository’s original Open reply, Registry and provenance files retain their exact bytes. |
 | 144940, 135053, 142931, 132483 | Multi-node swap, empty removal vector, empty addition vector, unequal counts, constructed Adopted variant | Indexed action re-encoded as fixture Candid over a synthetic Registry and a declared lifecycle transformation. |
 | 85612 and 85622 | Both hypothetical orders, each intermediate state and exact full principals | Synthetic rosters supply the function-13 target. The source records describe separate executed proposals in the order 85612 then 85622. |
@@ -44,7 +44,7 @@ The [catalogue](../../tests/source-fixture/data/catalogue.json) indexes 25 exact
 | 134902, 134993/134994, 140279/140280, 130714, 135310, 144909 | Boundary payload classification, original statuses and failure text, version deployments distinguished from pool membership, and distinct boundary and NodeRecord keys | Payload and state tests only. The browser and production resolver provide no Boundary widget or historical pool reconstruction. The indexed execution order for the second pair is 140280 then 140279. |
 | 142743, 48615, 144681, 143100, 144850, 144865, 144939 | Adjacent payloads and classification guard cases. 48615 retains a missing failure reason. 143100 retains null replacement nodes. | The 144939→144954 cross-subnet dependency has no replay. Bounded API queries for SplitSubnet and MergeSubnets returned no indexed cases. |
 
-Synthetic data-center coordinates and provider associations are local constructions. An explicitly missing key and an uncaptured key use different wire outcomes. Synthetic versions 99 and 100 exercise older record mutations at the pinned version. The chunk cases use byte-addressed synthetic data, with an explicitly corrupted variant. The recorded policy reply for #143190 is a selected reference. Current policy applicability and later amendments remain unverified.
+Synthetic data-center coordinates and provider associations are local constructions. An explicitly missing key and an uncaptured key use different wire outcomes. Synthetic versions 99 and 100 exercise older record mutations at the pinned version. The chunk cases use byte-addressed synthetic data, with an explicitly corrupted variant. The recorded #143190 reply remains in the compatibility corpus. Ordinary reviews perform no motion read.
 
 The original 144954 Governance reply was observed at 13:08:13.589 UTC on 25 November 2026. The separate policy reply was observed at 07:24:41.619 UTC on 26 November. PocketIC starts from the manifest clock and advances deterministically. Interactive replica receipt times are local observations. Both paths preserve original source payload timestamps and replay provenance.
 

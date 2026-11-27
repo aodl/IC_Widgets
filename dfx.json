@@ -9,17 +9,11 @@
       "build": "cargo build --locked --release --target wasm32-unknown-unknown -p nexus-reviewer"
     },
     "frontend": {
-      "type": "assets",
-      "dependencies": [
-        "reviewer"
-      ],
-      "source": [
-        "web/dist"
-      ],
-      "build": [
-        "npm --prefix web ci",
-        "npm --prefix web run build"
-      ]
+      "type": "custom",
+      "dependencies": ["reviewer"],
+      "candid": "canisters/frontend/frontend.did",
+      "wasm": "target/wasm32-unknown-unknown/release/nexus_frontend.wasm.gz",
+      "build": "./scripts/build-frontend-wasm.sh"
     }
   }
 }

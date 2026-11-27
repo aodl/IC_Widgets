@@ -736,9 +736,10 @@ fn membership_preview_finishes_while_data_center_metadata_is_delayed() {
 fn voting_detail_replays_the_66013_registry() {
     use std::collections::BTreeMap;
 
-    use nexus_review_engine::{ANALYSIS_VERSION, Dimension, Group, Record};
+    use nexus_review_engine::{ANALYSIS_VERSION, Dimension, Group, ProposalEvidence, Record};
     use nexus_reviewer::{
         DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison, PolicySnapshot,
+        RegistryRole,
     };
 
     assert!(enabled());
@@ -747,32 +748,55 @@ fn voting_detail_replays_the_66013_registry() {
         .with_application_subnet()
         .build();
     let controller = id(90, 1);
-    let fixture =
-        pic.create_canister_on_subnet(Some(controller), None, pic.topology().get_nns().unwrap());
-    let reviewer =
-        pic.create_canister_on_subnet(Some(controller), None, pic.topology().get_app_subnets()[0]);
-    pic.install_canister(
-        fixture,
-        wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
-        encode_args(()).unwrap(),
-        Some(controller),
-    );
-    pic.install_canister(
-        reviewer,
-        wasm(".local/reviewer-fixture.wasm"),
-        encode_one(Some(Sources {
+    let reviewer_package = std::env::var_os("NEXUS_REHEARSAL_NEW");
+    let (sources, init, reviewer_wasm) = if let Some(package) = reviewer_package {
+        let canonical = Sources::canonical();
+        for source in [canonical.registry, canonical.governance] {
+            pic.create_canister_with_id(Some(controller), None, source)
+                .unwrap();
+        }
+        (canonical, None, std::fs::read(package).unwrap())
+    } else {
+        let fixture = pic.create_canister_on_subnet(
+            Some(controller),
+            None,
+            pic.topology().get_nns().unwrap(),
+        );
+        let sources = Sources {
             registry: fixture,
             governance: fixture,
-        }))
-        .unwrap(),
+        };
+        (sources, Some(sources), wasm(".local/reviewer-fixture.wasm"))
+    };
+    for source in BTreeSet::from([sources.registry, sources.governance]) {
+        pic.install_canister(
+            source,
+            wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
+            encode_args(()).unwrap(),
+            Some(controller),
+        );
+        call::<()>(
+            &pic,
+            source,
+            controller,
+            "load_voting_reference",
+            encode_args(()).unwrap(),
+        );
+    }
+    let reviewer =
+        pic.create_canister_on_subnet(Some(controller), None, pic.topology().get_app_subnets()[0]);
+    let artifact_hash = sha256(&reviewer_wasm);
+    pic.install_canister(
+        reviewer,
+        reviewer_wasm,
+        encode_one(init).unwrap(),
         Some(controller),
     );
-    call::<()>(
-        &pic,
-        fixture,
-        controller,
-        "load_voting_reference",
-        encode_args(()).unwrap(),
+    assert_eq!(
+        pic.canister_status(reviewer, Some(controller))
+            .unwrap()
+            .module_hash,
+        Some(artifact_hash.to_vec()),
     );
     let response = call::<Result<LiveResponse<LiveReview>, String>>(
         &pic,
@@ -948,26 +972,42 @@ fn voting_detail_replays_the_66013_registry() {
             .contains("pinned Registry version")
     );
 
-    let policy = call::<Result<LiveResponse<PolicySnapshot>, String>>(
+    let role = call::<Result<LiveResponse<RegistryRole>, String>>(
+        &pic,
+        reviewer,
+        controller,
+        "membership_registry_role",
+        encode_one(token).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(role.registry_version, Some(66_013));
+    assert_eq!(role.usage.calls, 1);
+    assert_eq!(role.receipts[0].item, "nns_subnet_id");
+    assert_eq!(role.outcome.unwrap().nns_subnet, Some(subnet));
+    let no_motion = call::<Result<LiveResponse<PolicySnapshot>, String>>(
         &pic,
         reviewer,
         controller,
         "membership_target_topology",
         encode_args((token, None::<u64>)).unwrap(),
     )
-    .unwrap()
-    .outcome
     .unwrap();
-    assert_eq!(policy.motion.as_ref().unwrap().id, 143_190);
-    let digest = policy.digest;
-    let compare_context = |input, digest| {
-        let args = encode_args((input, token, digest)).unwrap();
+    assert!(
+        no_motion
+            .receipts
+            .iter()
+            .all(|row| row.method == "get_value")
+    );
+    let policy = no_motion.outcome.unwrap();
+    assert!(policy.motion.is_none());
+    let compare_context = |input, caller| {
+        let args = encode_args((input, token)).unwrap();
         let expected = sha256(&args);
         let comparison = call::<Result<LiveMembershipComparison, String>>(
             &pic,
             reviewer,
-            controller,
-            "compare_membership_with_policy",
+            caller,
+            "compare_membership_context",
             args,
         );
         if let Ok(result) = &comparison {
@@ -976,16 +1016,29 @@ fn voting_detail_replays_the_66013_registry() {
         comparison
     };
     let original = || decode_one::<DetailComparisonInput>(&full_args).unwrap();
+    let legacy_args = encode_args((original(), token, policy.digest)).unwrap();
+    let legacy_digest = sha256(&legacy_args);
+    let legacy = call::<Result<LiveMembershipComparison, String>>(
+        &pic,
+        reviewer,
+        controller,
+        "compare_membership_with_policy",
+        legacy_args,
+    )
+    .unwrap();
+    assert_eq!(legacy.input_hash, legacy_digest);
+    assert_eq!(legacy.comparison.baseline.distances.valid_pairs, 780);
     assert!(
-        compare_context(original(), digest)
+        compare_context(original(), controller)
             .unwrap()
             .target_rows
-            .is_some()
+            .is_none()
     );
     for alter in [
         |input: &mut DetailComparisonInput| input.kind += 1,
         |input: &mut DetailComparisonInput| input.after.reverse(),
         |input: &mut DetailComparisonInput| input.registry_version -= 1,
+        |input: &mut DetailComparisonInput| input.preview_revision[0] ^= 1,
         |input: &mut DetailComparisonInput| {
             input.nodes.pop_last();
         },
@@ -1004,9 +1057,9 @@ fn voting_detail_replays_the_66013_registry() {
     ] {
         let mut modified = original();
         alter(&mut modified);
-        assert!(compare_context(modified, digest).is_err());
+        assert!(compare_context(modified, controller).is_err());
     }
-    assert!(compare_context(original(), [7; 32]).is_err());
+    assert!(compare_context(original(), caller).is_err());
 
     let compare = |args: Vec<u8>| {
         let wall = Instant::now();
@@ -1159,4 +1212,13 @@ fn voting_detail_replays_the_66013_registry() {
         encode_args((66_013u64, DetailKeys::Nodes(after.added.clone()))).unwrap(),
     );
     assert!(public_page.unwrap().outcome.is_ok());
+    let finalized = call::<Result<LiveResponse<Vec<ProposalEvidence>>, String>>(
+        &pic,
+        reviewer,
+        controller,
+        "finalize_membership_review",
+        encode_one(token).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(finalized.outcome.unwrap()[0].id, 144_954);
 }

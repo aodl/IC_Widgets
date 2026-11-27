@@ -32,7 +32,7 @@ pub use model::{Observation, ProbeRequest, Receipt, Sources};
 pub use on_demand::{
     CandidateAssignment, DetailComparisonInput, DetailKeys, DetailRecords, LiveError,
     LiveMembershipComparison, LivePerformance, LiveReceipt, LiveResponse, LiveReview, LiveUsage,
-    PolicySnapshot,
+    PolicySnapshot, RegistryRole,
 };
 pub use registry_sync::{
     Assignment, KeyPage, ProviderPage, RecordAt, RecordEvidence, RegistryBlock, RegistryLimit,
