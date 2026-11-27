@@ -2,10 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${CANISTER_ID_REVIEWER:?Set the reviewer canister principal}"
-case "${DFX_NETWORK:-ic}" in
-    local|ic) ;;
-    *) echo "Select local or ic for the frontend build." >&2; exit 1 ;;
-esac
 if [[ -n "${NEXUS_REPLAY_MANIFEST:-}${NEXUS_REPLAY_OUTPUT:-}" ]]; then
     echo "Embedded frontend builds refuse replay inputs." >&2
     exit 1

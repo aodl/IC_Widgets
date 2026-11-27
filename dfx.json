@@ -13,10 +13,7 @@
       "dependencies": ["reviewer"],
       "candid": "canisters/frontend/frontend.did",
       "wasm": "target/wasm32-unknown-unknown/release/nexus_frontend.wasm.gz",
-      "build": [
-        "npm --prefix web ci",
-        "./scripts/build-frontend-wasm.sh"
-      ]
+      "build": "./scripts/build-frontend-wasm.sh"
     }
   }
 }
