@@ -19,3 +19,7 @@ A public Chromium session completed an open-proposal review for NNS proposal 145
 | Frontend | 2,629,937,479,345 | 2,615,818,671,897 | 14,118,807,448 |
 
 Balances are in cycles. The observed decreases include installation, elapsed idle burn and activity during verification. The available status command did not expose per-operation metrics that isolate the installation charge. Final estimated balances above the freezing reserve were 2,424,519,290,026 reviewer cycles and 2,541,853,973,967 frontend cycles. There were no top-ups, controller changes or canister creations. [Evidence checksums](SHA256SUMS)
+
+## Acceptance environment
+
+The reviewer accepted the public preview on 27 November and completed hands-on verification. The temporary Cloudflare Quick Tunnel, scoped ingress proxy and its PocketIC instance were stopped. The archived replay fixtures, release packages and rollback inputs remain available. Ordinary development uses disposable loopback replicas. The application continues to serve from the two existing IC canisters through the certified gateway.
