@@ -736,7 +736,7 @@ fn membership_preview_finishes_while_data_center_metadata_is_delayed() {
 fn voting_detail_replays_the_66013_registry() {
     use std::collections::BTreeMap;
 
-    use nexus_review_engine::{ANALYSIS_VERSION, Dimension, Group, Record};
+    use nexus_review_engine::{ANALYSIS_VERSION, Dimension, Group, ProposalEvidence, Record};
     use nexus_reviewer::{
         DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison, PolicySnapshot,
         RegistryRole,
@@ -748,32 +748,55 @@ fn voting_detail_replays_the_66013_registry() {
         .with_application_subnet()
         .build();
     let controller = id(90, 1);
-    let fixture =
-        pic.create_canister_on_subnet(Some(controller), None, pic.topology().get_nns().unwrap());
-    let reviewer =
-        pic.create_canister_on_subnet(Some(controller), None, pic.topology().get_app_subnets()[0]);
-    pic.install_canister(
-        fixture,
-        wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
-        encode_args(()).unwrap(),
-        Some(controller),
-    );
-    pic.install_canister(
-        reviewer,
-        wasm(".local/reviewer-fixture.wasm"),
-        encode_one(Some(Sources {
+    let reviewer_package = std::env::var_os("NEXUS_REHEARSAL_NEW");
+    let (sources, init, reviewer_wasm) = if let Some(package) = reviewer_package {
+        let canonical = Sources::canonical();
+        for source in [canonical.registry, canonical.governance] {
+            pic.create_canister_with_id(Some(controller), None, source)
+                .unwrap();
+        }
+        (canonical, None, std::fs::read(package).unwrap())
+    } else {
+        let fixture = pic.create_canister_on_subnet(
+            Some(controller),
+            None,
+            pic.topology().get_nns().unwrap(),
+        );
+        let sources = Sources {
             registry: fixture,
             governance: fixture,
-        }))
-        .unwrap(),
+        };
+        (sources, Some(sources), wasm(".local/reviewer-fixture.wasm"))
+    };
+    for source in BTreeSet::from([sources.registry, sources.governance]) {
+        pic.install_canister(
+            source,
+            wasm("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"),
+            encode_args(()).unwrap(),
+            Some(controller),
+        );
+        call::<()>(
+            &pic,
+            source,
+            controller,
+            "load_voting_reference",
+            encode_args(()).unwrap(),
+        );
+    }
+    let reviewer =
+        pic.create_canister_on_subnet(Some(controller), None, pic.topology().get_app_subnets()[0]);
+    let artifact_hash = sha256(&reviewer_wasm);
+    pic.install_canister(
+        reviewer,
+        reviewer_wasm,
+        encode_one(init).unwrap(),
         Some(controller),
     );
-    call::<()>(
-        &pic,
-        fixture,
-        controller,
-        "load_voting_reference",
-        encode_args(()).unwrap(),
+    assert_eq!(
+        pic.canister_status(reviewer, Some(controller))
+            .unwrap()
+            .module_hash,
+        Some(artifact_hash.to_vec()),
     );
     let response = call::<Result<LiveResponse<LiveReview>, String>>(
         &pic,
@@ -975,7 +998,8 @@ fn voting_detail_replays_the_66013_registry() {
             .iter()
             .all(|row| row.method == "get_value")
     );
-    assert!(no_motion.outcome.unwrap().motion.is_none());
+    let policy = no_motion.outcome.unwrap();
+    assert!(policy.motion.is_none());
     let compare_context = |input, caller| {
         let args = encode_args((input, token)).unwrap();
         let expected = sha256(&args);
@@ -992,6 +1016,18 @@ fn voting_detail_replays_the_66013_registry() {
         comparison
     };
     let original = || decode_one::<DetailComparisonInput>(&full_args).unwrap();
+    let legacy_args = encode_args((original(), token, policy.digest)).unwrap();
+    let legacy_digest = sha256(&legacy_args);
+    let legacy = call::<Result<LiveMembershipComparison, String>>(
+        &pic,
+        reviewer,
+        controller,
+        "compare_membership_with_policy",
+        legacy_args,
+    )
+    .unwrap();
+    assert_eq!(legacy.input_hash, legacy_digest);
+    assert_eq!(legacy.comparison.baseline.distances.valid_pairs, 780);
     assert!(
         compare_context(original(), controller)
             .unwrap()
@@ -1176,4 +1212,13 @@ fn voting_detail_replays_the_66013_registry() {
         encode_args((66_013u64, DetailKeys::Nodes(after.added.clone()))).unwrap(),
     );
     assert!(public_page.unwrap().outcome.is_ok());
+    let finalized = call::<Result<LiveResponse<Vec<ProposalEvidence>>, String>>(
+        &pic,
+        reviewer,
+        controller,
+        "finalize_membership_review",
+        encode_one(token).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(finalized.outcome.unwrap()[0].id, 144_954);
 }

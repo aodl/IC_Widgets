@@ -1,4 +1,8 @@
-use std::{fs, path::Path, time::Duration};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use candid::{CandidType, Principal, decode_one, encode_args, encode_one};
 use nexus_domain::{Hash, sha256};
@@ -7,7 +11,7 @@ use nexus_reviewer::{
     Sources,
 };
 use pocket_ic::{CanisterSettings, PocketIc, PocketIcBuilder};
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, de::DeserializeOwned};
 
 fn call<T: CandidType + DeserializeOwned>(
     pic: &PocketIc,
@@ -22,12 +26,184 @@ fn call<T: CandidType + DeserializeOwned>(
     decode_one(&reply).unwrap_or_else(|err| panic!("{method}: {err:?}"))
 }
 
+#[derive(CandidType)]
+struct StoreAsset {
+    key: String,
+    content_type: String,
+    content_encoding: String,
+    content: Vec<u8>,
+    sha256: Option<Vec<u8>>,
+}
+
+#[derive(CandidType)]
+struct HttpRequest {
+    method: String,
+    url: String,
+    headers: Vec<(String, String)>,
+    body: Vec<u8>,
+    certificate_version: Option<u16>,
+}
+
+#[derive(CandidType, Deserialize)]
+struct HttpResponse {
+    status_code: u16,
+    headers: Vec<(String, String)>,
+    body: Vec<u8>,
+}
+
+struct FrontendRehearsal {
+    id: Principal,
+    old_wasm: Vec<u8>,
+    new_wasm: Vec<u8>,
+    files: Vec<(&'static str, Vec<u8>)>,
+    settings: Vec<u8>,
+}
+
+impl FrontendRehearsal {
+    fn start(pic: &PocketIc, directory: &Path, primary: Principal, recovery: Principal) -> Self {
+        let old_wasm = fs::read(directory.join("deployed-frontend.wasm.gz")).unwrap();
+        let new_wasm = fs::read(directory.join("frontend.wasm.gz")).unwrap();
+        let id = pic.create_canister_on_subnet(
+            Some(primary),
+            Some(CanisterSettings {
+                controllers: Some(vec![primary, recovery]),
+                ..Default::default()
+            }),
+            pic.topology().get_app_subnets()[0],
+        );
+        pic.install_canister(
+            id,
+            old_wasm.clone(),
+            encode_args(()).unwrap(),
+            Some(primary),
+        );
+        let files = [
+            ("/index.html", "text/html"),
+            ("/app.js", "text/javascript"),
+            ("/styles.css", "text/css"),
+        ]
+        .into_iter()
+        .map(|(key, content_type)| {
+            let content = fs::read(directory.join("legacy-assets").join(&key[1..])).unwrap();
+            pic.update_call(
+                id,
+                primary,
+                "store",
+                encode_one(StoreAsset {
+                    key: key.into(),
+                    content_type: content_type.into(),
+                    content_encoding: "identity".into(),
+                    sha256: Some(sha256(&content).to_vec()),
+                    content: content.clone(),
+                })
+                .unwrap(),
+            )
+            .unwrap();
+            (key, content)
+        })
+        .collect();
+        let settings =
+            encode_one(&pic.canister_status(id, Some(primary)).unwrap().settings).unwrap();
+        let frontend = Self {
+            id,
+            old_wasm,
+            new_wasm,
+            files,
+            settings,
+        };
+        frontend.verify_legacy(pic, primary);
+        frontend
+    }
+
+    fn request(&self, pic: &PocketIc, path: &str, host: &str) -> HttpResponse {
+        decode_one(
+            &pic.query_call(
+                self.id,
+                Principal::anonymous(),
+                "http_request",
+                encode_one(HttpRequest {
+                    method: "GET".into(),
+                    url: path.into(),
+                    headers: vec![("Host".into(), host.into())],
+                    body: vec![],
+                    certificate_version: Some(2),
+                })
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+    }
+
+    fn verify_module(&self, pic: &PocketIc, controller: Principal, wasm: &[u8]) {
+        let status = pic.canister_status(self.id, Some(controller)).unwrap();
+        assert_eq!(status.module_hash, Some(sha256(wasm).to_vec()));
+        assert_eq!(encode_one(&status.settings).unwrap(), self.settings);
+    }
+
+    fn verify_legacy(&self, pic: &PocketIc, controller: Principal) {
+        self.verify_module(pic, controller, &self.old_wasm);
+        for (path, content) in &self.files {
+            let response = self.request(pic, path, "certified.localhost");
+            assert_eq!(response.status_code, 200);
+            assert_eq!(&response.body, content);
+        }
+    }
+
+    fn upgrade_and_rollback(&self, pic: &PocketIc, primary: Principal, recovery: Principal) {
+        pic.upgrade_canister(
+            self.id,
+            self.new_wasm.clone(),
+            encode_args(()).unwrap(),
+            Some(primary),
+        )
+        .unwrap();
+        self.verify_module(pic, recovery, &self.new_wasm);
+        let response = self.request(pic, "/", "certified.localhost");
+        assert_eq!(response.status_code, 200);
+        assert!(
+            response
+                .headers
+                .iter()
+                .any(|(name, _)| name.eq_ignore_ascii_case("IC-Certificate"))
+        );
+        assert_ne!(response.body, self.files[0].1);
+        let id = self.id;
+        for host in [
+            format!("{id}.raw.icp.net"),
+            format!("{id}.raw.icp0.io"),
+            format!("{id}.raw.ic0.app"),
+            format!("{id}.RAW.ICP.NET.:443"),
+        ] {
+            let refusal = self.request(pic, "/", &host);
+            assert_eq!(refusal.status_code, 403, "{host}");
+            assert!(refusal.body.is_empty());
+        }
+        pic.upgrade_canister(
+            self.id,
+            self.old_wasm.clone(),
+            encode_args(()).unwrap(),
+            Some(primary),
+        )
+        .unwrap();
+        self.verify_legacy(pic, recovery);
+        println!(
+            "Frontend upgraded second and rolled back first. Host refusal and all three prior asset bodies verified."
+        );
+    }
+}
+
 #[test]
 #[ignore = "requires the exact previously deployed compressed Wasm; see docs/VOTING_GRADE_REVIEW.md"]
 fn exact_deployed_module_preserves_paused_checkpoint_on_upgrade() {
     let old = fs::read(std::env::var("NEXUS_REHEARSAL_OLD").unwrap()).unwrap();
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let new = fs::read(root.join(".local/reviewer-production.wasm.gz")).unwrap();
+    let new = fs::read(
+        std::env::var_os("NEXUS_REHEARSAL_NEW")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| root.join(".local/reviewer-production.wasm.gz")),
+    )
+    .unwrap();
     let sources = Sources::canonical();
     let fixture =
         fs::read(root.join("target/wasm32-unknown-unknown/release/nexus_source_fixture.wasm"))
@@ -53,6 +229,8 @@ fn exact_deployed_module_preserves_paused_checkpoint_on_upgrade() {
     let recovery =
         Principal::from_text("zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe")
             .unwrap();
+    let frontend = std::env::var_os("NEXUS_REHEARSAL_FRONTEND_DIR")
+        .map(|dir| FrontendRehearsal::start(&pic, Path::new(&dir), primary, recovery));
     let reviewer = pic.create_canister_on_subnet(
         Some(primary),
         Some(CanisterSettings {
@@ -81,7 +259,7 @@ fn exact_deployed_module_preserves_paused_checkpoint_on_upgrade() {
     let expected_new = sha256(&new);
     pic.install_canister(
         reviewer,
-        old,
+        old.clone(),
         encode_one::<Option<Sources>>(None).unwrap(),
         Some(primary),
     );
@@ -220,11 +398,7 @@ fn exact_deployed_module_preserves_paused_checkpoint_on_upgrade() {
         after.memory_metrics.stable_memory_size,
         status_before.memory_metrics.stable_memory_size
     );
-    for (elapsed, rounds) in [(2, 8), (86_401, 12)] {
-        pic.advance_time(Duration::from_secs(elapsed));
-        for _ in 0..rounds {
-            pic.tick();
-        }
+    let verify_retained_state = || {
         assert_eq!(
             encode_one(registry()).unwrap(),
             encode_one(&before).unwrap()
@@ -242,6 +416,34 @@ fn exact_deployed_module_preserves_paused_checkpoint_on_upgrade() {
             encode_one(&before_blob).unwrap()
         );
         assert!(observation(before_collection.last_observation + 1).is_err());
+    };
+    for (elapsed, rounds) in [(2, 8), (86_401, 12)] {
+        pic.advance_time(Duration::from_secs(elapsed));
+        for _ in 0..rounds {
+            pic.tick();
+        }
+        verify_retained_state();
+    }
+    if let Some(frontend) = frontend {
+        frontend.verify_legacy(&pic, recovery);
+        frontend.upgrade_and_rollback(&pic, primary, recovery);
+        verify_retained_state();
+        pic.upgrade_canister(reviewer, old, empty(), Some(primary))
+            .unwrap();
+        let rolled_back = pic.canister_status(reviewer, Some(recovery)).unwrap();
+        assert_eq!(rolled_back.module_hash, Some(expected_old.to_vec()));
+        assert_eq!(
+            encode_one(&rolled_back.settings).unwrap(),
+            encode_one(&status_before.settings).unwrap()
+        );
+        assert_eq!(
+            rolled_back.memory_metrics.stable_memory_size,
+            status_before.memory_metrics.stable_memory_size
+        );
+        verify_retained_state();
+        println!(
+            "Restored exact prior reviewer. Controller settings, stable pages, checkpoint and retained evidence matched."
+        );
     }
     println!(
         "Exact old and new compressed artifacts verified. Cursor {}, target {}, unpublished. All {} fixture observations (including head 1 and last Registry observation {}), a {}-byte Governance blob, full controller settings and {} stable pages preserved. Collector remained disabled and without a lease across 24h.",

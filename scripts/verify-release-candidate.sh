@@ -16,6 +16,7 @@ printf '%s\n' "$revision" > "$output/SOURCE_COMMIT"
 printf 'Source %s\nReviewer %s\n' "$revision" "$CANISTER_ID_REVIEWER"
 rustc -Vv
 node --version
+protoc --version
 gzip --version | sed -n '1p'
 
 build_copy() {
@@ -23,13 +24,14 @@ build_copy() {
     local checkout target
     checkout=$(mktemp -d "$output/source.XXXXXXXX")
     target="$checkout/target"
-    git archive "$revision" Cargo.toml Cargo.lock rust-toolchain.toml canisters crates tests/source-fixture \
+    git archive "$revision" Cargo.toml Cargo.lock rust-toolchain.toml canisters crates tests/source-fixture vendor/ic \
         scripts/build-frontend-wasm.sh web | tar -x -C "$checkout"
     ln -s "$repo/web/node_modules" "$checkout/web/node_modules"
     local wasm="$target/wasm32-unknown-unknown/release"
     (
         cd "$checkout"
         export CARGO_TARGET_DIR="$target"
+        sha256sum --check vendor/ic/SHA256SUMS
         ./scripts/build-frontend-wasm.sh
         cargo build --offline --locked --release --target wasm32-unknown-unknown -p nexus-reviewer
     )
