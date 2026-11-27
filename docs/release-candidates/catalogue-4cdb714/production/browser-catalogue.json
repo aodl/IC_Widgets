@@ -1,0 +1,38 @@
+{
+  "url": "https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net/",
+  "mode": "embedded",
+  "proposal": "145077",
+  "lifecycle": "open",
+  "requests": [],
+  "rejected": [],
+  "browserErrors": [],
+  "violations": [],
+  "catalogueCount": 37,
+  "caseHeaderObservationVisible": false,
+  "caseHeaderRenderingIssue": true,
+  "catalogue": {
+    "path": "/test-cases/nns-144954-recorded-open",
+    "entries": 37,
+    "reload": true,
+    "reportContents": [
+      "map.png",
+      "review.md"
+    ],
+    "historicalLabel": true,
+    "reviewerRequests": 0,
+    "assetRequests": [
+      "/test-cases",
+      "/styles.76b199b6c6e5a591a20f7cab0834fd7b2a1f3385d624939f70885d1787f5e727.css",
+      "/app.7033e5ca2c71f91107cd28551f48860091b4457d73b4c8107b5705f6c3c64133.js",
+      "/test-cases/nns-144954-recorded-open",
+      "/styles.76b199b6c6e5a591a20f7cab0834fd7b2a1f3385d624939f70885d1787f5e727.css",
+      "/app.7033e5ca2c71f91107cd28551f48860091b4457d73b4c8107b5705f6c3c64133.js",
+      "/test-cases/nns-144954-recorded-open",
+      "/styles.76b199b6c6e5a591a20f7cab0834fd7b2a1f3385d624939f70885d1787f5e727.css",
+      "/app.7033e5ca2c71f91107cd28551f48860091b4457d73b4c8107b5705f6c3c64133.js",
+      "/replay.a13cf94d224129c4385b932ec576f1001354798b0a2faf5db0cb4c08c80a197f.json"
+    ]
+  },
+  "verified": true,
+  "observedAt": "2026-11-27T22:01:07.001Z"
+}

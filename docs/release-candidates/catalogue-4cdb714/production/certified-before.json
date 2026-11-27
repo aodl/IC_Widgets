@@ -1,0 +1,34 @@
+{
+  "frontend": {
+    "id": "s45ab-wiaaa-aaaar-qcifq-cai",
+    "moduleHash": "d3c27e678ff4313972a781abafbd2ed8ef31f2824cd0b77adb85f02411cf73cc",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "certifiedObservedAt": "2026-11-27T21:55:33.460Z",
+    "managementObservedAt": "2026-11-27T21:54:10Z",
+    "status": "running",
+    "cycleBalance": "2615528059261",
+    "estimatedFreezingReserve": "73964697930",
+    "estimatedAboveReserve": "2541563361331",
+    "balanceChangeFromPreflight": "0",
+    "stableMemoryBytes": "589824"
+  },
+  "reviewer": {
+    "id": "s34gv-3qaaa-aaaar-qcifa-cai",
+    "moduleHash": "bb0b3cf4d08267f1262eac26d6cde1d34b2e0b8f0331d525dd7faaab0efe21db",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "certifiedObservedAt": "2026-11-27T21:55:33.459Z",
+    "managementObservedAt": "2026-11-27T21:54:10Z",
+    "status": "running",
+    "cycleBalance": "2798323040354",
+    "estimatedFreezingReserve": "375622979730",
+    "estimatedAboveReserve": "2422700060624",
+    "balanceChangeFromPreflight": "0",
+    "stableMemoryBytes": "151060480"
+  }
+}

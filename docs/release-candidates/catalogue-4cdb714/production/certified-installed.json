@@ -1,0 +1,18 @@
+{
+  "frontend": {
+    "id": "s45ab-wiaaa-aaaar-qcifq-cai",
+    "moduleHash": "b8acdc601b8d2580476a488a735fff17781937846fc782b63c7e1a87ddc166d8",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "certifiedObservedAt": "2026-11-27T21:56:36.031Z",
+    "managementObservedAt": "2026-11-27T21:56:32Z",
+    "status": "running",
+    "cycleBalance": "2599586775940",
+    "estimatedFreezingReserve": "76141256010",
+    "estimatedAboveReserve": "2523445519930",
+    "balanceChangeFromPreflight": "-15941283321",
+    "stableMemoryBytes": "589824"
+  }
+}
