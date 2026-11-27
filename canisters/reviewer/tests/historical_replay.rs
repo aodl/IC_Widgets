@@ -8,7 +8,8 @@ use nexus_review_engine::{
     FindingCode, MembershipState, ProposalEvidence, Record, ReviewError, StepOutcome,
 };
 use nexus_reviewer::{
-    DetailKeys, DetailRecords, LiveError, LiveResponse, LiveReview, PolicySnapshot, Sources,
+    DetailKeys, DetailRecords, LiveError, LiveResponse, LiveReview, LiveSubnetSnapshot,
+    PolicySnapshot, Sources,
 };
 use pocket_ic::{PocketIc, PocketIcBuilder, Time};
 use serde::de::DeserializeOwned;
@@ -379,6 +380,70 @@ fn committed_replays_resolve_exact_subnet_and_boundary_cases() {
         completed.len(),
         expected["cases"].as_object().unwrap().len()
     );
+    let recorded = "nns-144954-recorded-open";
+    call::<()>(
+        &pic,
+        fixture,
+        controller,
+        "load_review_case",
+        encode_one(recorded).unwrap(),
+    );
+    let baseline = expected["cases"][recorded]["baselines"]
+        .as_object()
+        .unwrap();
+    let (subnet_id, node_ids) = baseline.iter().next().unwrap();
+    let subnet = Principal::from_text(subnet_id).unwrap();
+    let read = |id, caller| {
+        call::<Result<LiveResponse<LiveSubnetSnapshot>, String>>(
+            &pic,
+            reviewer,
+            caller,
+            "subnet_snapshot_on_demand",
+            encode_one(id).unwrap(),
+        )
+    };
+    let response = read(subnet, Principal::anonymous()).unwrap();
+    assert_eq!(response.registry_version, Some(66013));
+    assert_eq!(response.receipts.len(), response.usage.calls as usize);
+    assert!(response.receipts.iter().all(|row| row.source == fixture
+        && matches!(
+            row.method.as_str(),
+            "get_latest_version" | "get_value" | "get_chunk"
+        )));
+    assert_eq!(response.receipts[0].method, "get_latest_version");
+    assert_eq!(
+        response
+            .receipts
+            .iter()
+            .filter(|row| row.item.starts_with("subnet_record_"))
+            .count(),
+        1
+    );
+    let records: BTreeSet<_> = response
+        .receipts
+        .iter()
+        .map(|row| (&row.method, &row.item))
+        .collect();
+    assert_eq!(records.len(), response.receipts.len());
+    let snapshot = response.outcome.unwrap();
+    assert_eq!(snapshot.subnet, subnet);
+    assert_eq!(
+        set(&snapshot.membership.value().unwrap().members),
+        expected_ids(node_ids)
+    );
+    assert_eq!(
+        set(&snapshot.nodes.keys().copied().collect::<Vec<_>>()),
+        expected_ids(node_ids)
+    );
+    let center = snapshot.data_centers["sh1"].value().unwrap();
+    assert!(center.registered_region.contains("Stockholm") && center.coordinates.is_some());
+    let nonexistent = Principal::from_slice(&[25, 2]);
+    let missing = read(nonexistent, Principal::anonymous()).unwrap();
+    assert_eq!(missing.usage.calls, 2);
+    assert!(matches!(missing.outcome, Err(LiveError::InvalidEvidence(
+        ReviewError::UnavailableRecord(nexus_review_engine::RegistryKey::Subnet(id))
+    )) if id == nonexistent));
+    assert!(read(Principal::anonymous(), Principal::anonymous()).is_err());
     assert_eq!(checkpoint("collection_status"), collector);
     assert_eq!(checkpoint("registry_status"), registry);
 }

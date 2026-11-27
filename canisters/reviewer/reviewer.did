@@ -313,6 +313,12 @@ type LiveResponse_5 = record {
   outcome : Result_23;
   receipts : vec LiveReceipt;
 };
+type LiveResponse_6 = record {
+  registry_version : opt nat64;
+  usage : LiveUsage;
+  outcome : Result_42;
+  receipts : vec LiveReceipt;
+};
 type LiveReview = record {
   subnet_rules : opt vec SubnetRules;
   report : Review;
@@ -329,6 +335,13 @@ type LiveScope = record {
   subnet : principal;
   nodes : vec principal;
   scenario : ScenarioId;
+};
+type LiveSubnetSnapshot = record {
+  subnet : principal;
+  nodes : vec record { principal; Record };
+  operators : vec record { principal; Record_1 };
+  membership : Record_3;
+  data_centers : vec record { text; Record_2 };
 };
 type LiveUsage = record {
   balance_after : nat;
@@ -674,6 +687,12 @@ type Record_2 = variant {
   Deleted : RecordStamp;
   Unavailable : record { stamp : opt RecordStamp; reason : text };
 };
+type Record_3 = variant {
+  Missing;
+  Present : record { value : Subnet; stamp : RecordStamp };
+  Deleted : RecordStamp;
+  Unavailable : record { stamp : opt RecordStamp; reason : text };
+};
 type RegistryBlock = record {
   cursor : nat64;
   request : Work;
@@ -774,6 +793,8 @@ type Result_39 = variant { Ok : blob; Err : text };
 type Result_4 = variant { Ok : CollectionStatus; Err : text };
 type Result_40 = variant { Ok : SourceObservation; Err : text };
 type Result_41 = variant { Ok : nat64; Err : text };
+type Result_42 = variant { Ok : LiveSubnetSnapshot; Err : LiveError };
+type Result_43 = variant { Ok : LiveResponse_6; Err : text };
 type Result_5 = variant { Ok : LiveMembershipComparison; Err : text };
 type Result_6 = variant { Ok : DiscoveryStatus; Err : text };
 type Result_7 = variant { Ok : ReplyPage; Err : text };
@@ -965,6 +986,11 @@ type Stop = variant {
   RawByteLimit;
   CycleBalance;
 };
+type Subnet = record {
+  members : vec principal;
+  kind : int32;
+  sev_enabled : bool;
+};
 type SubnetCollection = record {
   next_due : opt nat64;
   gap : opt CollectionGap;
@@ -1114,4 +1140,5 @@ service : (opt Sources) -> {
   source_observation : (nat64) -> (Result_40);
   start_probe : (ProbeRequest) -> (Result_41);
   start_probe_with_limits : (ProbeRequest, Limits) -> (Result_41);
+  subnet_snapshot_on_demand : (principal) -> (Result_43);
 }

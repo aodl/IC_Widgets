@@ -8,7 +8,9 @@ use std::{
     collections::BTreeSet,
 };
 
-pub use detail::{DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison};
+pub use detail::{
+    DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison, LiveSubnetSnapshot,
+};
 pub use policy::{PolicySnapshot, RegistryRole};
 
 use candid::{CandidType, Principal, encode_one};

@@ -1,6 +1,6 @@
-# Network Nexus architecture
+# IC Widgets architecture
 
-The application has a Rust reviewer and a Rust frontend canister built with DFX. The backend reads NNS Governance, Registry and the management canister using typed, replicated inter-canister calls. The Azure VM is the build and test environment. The runtime source boundary comprises IC canisters and the IC protocol.
+The application has a Rust reviewer and a Rust frontend canister built with DFX. The backend reads NNS Governance, Registry and the management canister using typed, replicated inter-canister calls. Production serves certified assets directly through the IC HTTP gateway. The IC protocol carries calls to the reviewer. The application requires no Azure VM, Cloudflare tunnel, custom proxy, external application API or continuously running off-chain process. Build on any environment with the pinned toolchain and use disposable loopback replicas for development and acceptance.
 
 | Path | Responsibility |
 |---|---|
@@ -10,13 +10,13 @@ The application has a Rust reviewer and a Rust frontend canister built with DFX.
 | `canisters/reviewer` | On-demand evidence resolution and analysis, on-demand blockmaking, and legacy evidence APIs |
 | `tests/source-fixture` | Synthetic canister for controlled wire cases |
 | `canisters/frontend` | Immutable embedded assets and HTTP certification |
-| `web` | Independent Subnet Membership and Node Performance widgets using the IC agent |
+| `web` | IC Node Map, proposal review and subnet overview producers, and the Node Performance consumer |
 
 ## Self-contained deployed application
 
 This requirement applies to the complete application and every widget. All runtime scripts, styles, fonts, icons, flags, geometry, country names, images, configuration and functionality come from Network Nexus canisters, IC system canisters or native browser facilities. The application uses system fonts, browser cryptography, `Intl.DisplayNames`, Canvas, clipboard, Blob and local file downloads. Maps and flags are bundled into JavaScript. The production HTML, JavaScript and CSS are embedded in the frontend Wasm, so the installed module hash identifies the complete build. Generated review Markdown and PNG are created locally and share a relative reference inside the ZIP. Licensed third-party assets may be prepared during development when their version, source, licence and transformation are recorded and the shipped inputs are committed. Ordinary builds use prepared dependencies and committed inputs. [Bundled cartography and flags](../web/src/data/README.md)
 
-The frontend loads its own HTML, CSS and JavaScript. The pinned `@icp-sdk/core` and its transitive code are bundled. The active agent uses browser fetch, an explicit `https://icp-api.io` gateway and the pinned mainnet trust root for production. Signed update submissions and certified result polling through that gateway are IC protocol transport to the configured reviewer principal. The gateway supplies no separate application data or functionality. Both Membership and Performance use this client. The reviewer obtains evidence through replicated calls to Governance, Registry and the management canister. The local replay uses loopback or its scoped HTTPS preview with a local replica trust root. [Frontend network regression](../web/README.md#production-network-regression)
+The frontend loads its own HTML, CSS and JavaScript. The pinned `@icp-sdk/core` and its transitive code are bundled. The active agent uses browser fetch, an explicit `https://icp-api.io` gateway and the pinned mainnet trust root for production. Signed update submissions and certified result polling through that gateway are IC protocol transport to the configured reviewer principal. The gateway supplies no separate application data or functionality. Both Membership and Performance use this client. The reviewer obtains evidence through replicated calls to Governance, Registry and the management canister. The disposable local replay uses loopback and a local replica trust root. The temporary scoped HTTPS acceptance preview uses that same local trust root. [Frontend network regression](../web/README.md#production-network-regression)
 
 The runtime audit excludes external scripts, stylesheets, remote fonts, flag CDNs, map tiles, reverse geocoders, country APIs, analytics, telemetry and external image hosting. The production regression denies other requests with browser interception and DNS disabled. It loads the exact embedded assets from the IC HTTP gateway, independently verifies their v2 certification and restricts requests to that frontend and its reviewer protocol routes. The embedded local profile uses the replica trust root via the local IC status endpoint. Production builds use the pinned mainnet trust root. Embedded builds reject replay manifests. Cartographic render keys and browser country names never change recorded grouping identities, counts or calculations.
 
@@ -25,6 +25,16 @@ Official Dashboard entity links are optional navigation. Widgets never retrieve 
 ## Embedded frontend releases
 
 Install and upgrade build the HTTP v2 certification tree from the immutable assets. Only the `http_request` query is public. HTML uses no-store and content-hashed JavaScript and CSS use immutable caching. The deployable artifact is the deterministic gzip package. Compare its SHA-256 with the module hash when those exact compressed bytes are installed. [Build and migration evidence](EMBEDDED_FRONTEND.md)
+
+## View inputs and resolved evidence
+
+The proposal view declares one or two proposal IDs. The overview view declares one subnet principal. Each producer resolves its input into a finite membership and linked evidence. The proposal path uses the existing caller-bound review and publishes a selection only after the replicated computation and final Governance check. The existing-subnet path uses one replicated request to pin the Registry head and read one subnet record, its member records and unique dependent operators and data centers. It reports missing or rejected metadata while preserving the exact finite roster.
+
+The same IC Node Map consumes a scope key, resolved member display evidence and country groups in both views. It can inspect any member without a source call. Existing membership uses neutral country fills and counts the exact observed roster or a labeled lower bound when country evidence is missing. Before/proposed shading still uses the accepted replicated distributions. Neither the map nor Performance interprets NNS proposal payloads.
+
+The versioned node-selection value supplies the selected subnet, Registry version, finite node filters, revision, source receipts, observation clocks and coverage. Proposal provenance carries the selected order/step and exact accepted input digest. Performance uses node IDs as a filter for an independent management-canister read. Empty or superseded finite inputs never become an unfiltered read. Reviews, snapshots and caller-bound context handles are transient.
+
+Network Nexus is the separate host product. A reusable view template can declare anchors, typed ports, bindings, layout and opaque presentation settings. Domain producers supply evidence and the host routes the typed values by declared profile. The host has no proposal, subnet or Registry logic. Save the composition and intentional inputs only. Embed/origin and persistence boundaries are evaluated separately from this IC Widgets extraction.
 
 ## Review contract
 
@@ -46,4 +56,4 @@ The reviewer allows up to 32 concurrent review contexts. Each page generates its
 
 The standard IC agent verifies update-call certificates. An explicit Save Review action, exact historical reconstruction, global proposal archiving and fleet-wide monitoring are deferred.
 
-The earlier diagnostic, collector and archive APIs remain available for compatibility and inspection of historical evidence. The new request path does not call them. See [legacy evidence contracts](EVIDENCE.md) and [operations history](OPERATIONS.md) for their stable layout. The mainnet canister and its stored evidence are outside this local proof of concept.
+The earlier diagnostic, collector and archive APIs remain available for compatibility and inspection of historical evidence. The new request path does not call them. See [legacy evidence contracts](EVIDENCE.md) and [operations history](OPERATIONS.md) for their stable layout. The frozen standalone production release and observed mainnet state are documented separately. [Production release evidence](release-candidates/membership-b8014c8/production/README.md)

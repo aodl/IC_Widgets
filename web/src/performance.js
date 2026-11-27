@@ -1,6 +1,6 @@
 import { Principal } from '@icp-sdk/core/principal';
 import { liveError, result } from './client.js';
-import { scenarioName } from './detail-model.js';
+import { nodeSelectionProfile } from './node-snapshot.js';
 import { el, number, principal, renderPerformance, sourceReceipts } from './view.js';
 
 export function mountPerformance(call) {
@@ -14,33 +14,24 @@ export function mountPerformance(call) {
   const mode = document.querySelector('#performance-mode');
   const choices = document.querySelector('#performance-presets');
   const preset = document.querySelector('#performance-preset');
-  let review;
+  let selection;
   let generation = 0;
   let following = false;
-
-  function presetNodes() {
-    const { context, affected } = review;
-    return ({
-      incoming: context.state.added,
-      outgoing: context.state.removed,
-      selected: context.state.members,
-      affected,
-    })[preset.value];
-  }
 
   function applyScope() {
     generation++;
     output.replaceChildren();
-    if (following && review) subnetField.value = principal(review.context.subnet);
+    if (following && selection) subnetField.value = selection.subnet;
     subnetField.readOnly = following;
-    choices.hidden = !following;
-    const affected = preset.querySelector('[value=affected]');
-    affected.disabled = following && !review?.affected.length;
-    if (affected.disabled && preset.value === 'affected') preset.value = 'selected';
-    const nodes = following && review ? presetNodes() : undefined;
-    summary.textContent = !following ? 'Independent subnet scope.' : !review ? 'Following review. Waiting for a resolved membership state.'
-      : scenarioName(review.context.scenario) + ' · ' + (review.context.index ? 'After #' + review.context.scenario.steps[review.context.index - 1].proposal : 'Baseline')
-        + ' · Registry ' + number(review.version) + ' · ' + number(nodes.length) + (nodes.length === 1 ? ' node.' : ' nodes.');
+    choices.hidden = !following || selection?.kind === 'existing';
+    for (const option of preset.options) {
+      option.disabled = option.value !== 'selected' && !selection?.nodes[option.value].length;
+    }
+    if (preset.selectedOptions[0]?.disabled) preset.value = 'selected';
+    const nodes = following && selection ? selection.nodes[preset.value] : undefined;
+    summary.textContent = !following ? 'Independent subnet scope.' : !selection ? 'Waiting for resolved membership evidence.'
+      : selection.label + ' · Registry ' + number(BigInt(selection.registryVersion)) + ' · ' + number(nodes.length)
+        + (nodes.length === 1 ? ' node.' : ' nodes.');
     submit.disabled = following && !nodes?.length;
     status.textContent = submit.disabled ? 'Choose a populated membership filter or use independent scope.' : '';
   }
@@ -56,7 +47,7 @@ export function mountPerformance(call) {
     event.preventDefault();
     if (submit.disabled) return;
     const ticket = ++generation;
-    const filter = following ? presetNodes() : undefined;
+    const filter = following ? selection.nodes[preset.value].map(id => Principal.fromText(id)) : undefined;
     output.replaceChildren();
     submit.disabled = true;
     try {
@@ -84,7 +75,10 @@ export function mountPerformance(call) {
     section,
     visible(show) { section.hidden = !show; },
     scope(next) {
-      review = next;
+      if (next && (next.profile.id !== nodeSelectionProfile.id || next.profile.major !== nodeSelectionProfile.major)) {
+        throw new Error('Unsupported node selection profile.');
+      }
+      selection = next;
       if (following) applyScope();
     },
   };

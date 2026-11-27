@@ -4,20 +4,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <title>Proposal review | Network Nexus</title>
+  <title>IC Widgets</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="./app.js" type="module"></script>
 </head>
 <body>
   <header class="masthead">
     <div class="container masthead-row">
-      <strong>Network Nexus</strong>
+      <strong>IC Widgets</strong>
       <button type="button" id="open-performance">Performance</button>
     </div>
   </header>
   <main class="container">
     <p id="local-notice" class="local-note" hidden>Local replica · fixture data</p>
-    <section class="search-shell" aria-label="Review a proposal">
+    <nav id="view-switch" class="controls" aria-label="IC Widgets views">
+      <button type="button" id="proposal-view" aria-pressed="true">Proposal review</button>
+      <button type="button" id="subnet-view" aria-pressed="false">Subnet overview</button>
+    </nav>
+    <section id="subnet-overview" aria-label="Subnet overview" hidden>
+      <section class="search-shell">
+        <form id="subnet-search">
+          <label>Subnet principal <input name="subnet" spellcheck="false" required></label>
+          <button class="primary">Load subnet</button>
+        </form>
+        <p id="subnet-status" class="status" role="status"></p>
+      </section>
+      <div id="subnet-result"></div>
+    </section>
+    <section id="proposal-search" class="search-shell" aria-label="Review a proposal">
       <form id="search">
         <label>Proposal ID <input name="first" inputmode="numeric" pattern="[0-9]+" maxlength="20" required></label>
         <button class="primary">Review</button>
@@ -44,9 +58,9 @@
       <h2 tabindex="-1" id="performance-heading">Node performance</h2>
       <p>Blockmaking counter coverage describes the observed samples. Uptime and health remain unverified.</p>
       <form id="performance-form">
-        <label>Performance scope <select id="performance-mode"><option value="independent">Independent subnet</option><option value="follow">Follow membership review</option></select></label>
+        <label>Performance scope <select id="performance-mode"><option value="independent">Independent subnet</option><option value="follow">Follow selected membership</option></select></label>
         <label id="performance-presets" hidden>Node filter <select id="performance-preset">
-          <option value="selected">Selected-state members</option><option value="incoming">Incoming</option>
+          <option value="selected">Selected members</option><option value="incoming">Incoming</option>
           <option value="outgoing">Outgoing</option><option value="affected">All affected nodes, including intermediate steps</option>
         </select></label>
         <label>Subnet principal <input name="subnet" required></label>

@@ -18,7 +18,7 @@ function siteTitle(site, links = false) {
   return [links ? dashboardLink('center', site.id, center) : center, region?.[2] ? ' · ' + region[2] : '',
     region?.[1] ? [region[2] ? ', ' : ' · ', countryLabel(region[1])] : null].flat();
 }
-const uniqueCount = nodes => nodes.length + ' unique ' + (nodes.length === 1 ? 'node' : 'nodes') + ' represented across the two states';
+const uniqueCount = (nodes, existing) => nodes.length + ' unique ' + (nodes.length === 1 ? 'node' : 'nodes') + (existing ? ' at this location' : ' represented across the two states');
 const locationTitle = location => location.sites.map(siteHeading).join(' / ');
 const siteCounts = site => site.count ? 'Subnet members: ' + site.count.text : '';
 
@@ -69,7 +69,12 @@ function nodeDetails(node) {
 }
 
 let nextId = 0;
-export function reviewMap() {
+/**
+ * Mount an IC Node Map with a producer-defined geographic scope. The map only
+ * receives registered nodes, optional comparison country groups and a view key.
+ */
+export function nodeMap({ existing = false } = {}) {
+  const roleLabel = role => existing ? 'Member' : roles[role].label;
   let geography = mapLocations([]);
   let view = world;
   let scope;
@@ -100,10 +105,10 @@ export function reviewMap() {
   const overflow = styled('p', 'map-facilities');
   const unmapped = el('details');
   const countryNote = styled('p', 'map-country-note');
-  const legend = styled('div', 'map-legend', Object.values(roles).map(({ label, color }) => {
+  const legend = styled('div', 'map-legend', (existing ? ['Retained'] : Object.keys(roles)).map(role => {
     const dot = styled('span', 'map-symbol');
-    dot.style.background = color;
-    return el('span', dot, label);
+    dot.style.background = roles[role].color;
+    return el('span', dot, roleLabel(role));
   }));
   const section = styled('section', 'map-section', styled('div', 'map-heading', el('h3', 'Map')),
     frame, styled('div', 'map-caption', legend, caption), countryNote, overflow, unmapped);
@@ -117,8 +122,8 @@ export function reviewMap() {
     described = buttons.get(hovered);
     described?.setAttribute('aria-describedby', tooltip.id);
     tooltip.replaceChildren(...location.sites.map(site => el('div', el('strong', siteTitle(site)),
-      el('div', siteCounts(site)), ...siteEvidence(site, labels))), el('span', roleSummary(location.nodes)),
-      el('span', uniqueCount(location.nodes)));
+      el('div', siteCounts(site)), ...siteEvidence(site, labels))), existing ? null : el('span', roleSummary(location.nodes)),
+      el('span', uniqueCount(location.nodes, existing)));
     tooltip.style.left = clamp(location.x - tooltip.offsetWidth / 2, 2, viewport.width - tooltip.offsetWidth - 2) + 'px';
     const top = location.y > tooltip.offsetHeight + 12 ? location.y - tooltip.offsetHeight - 8 : location.y + 8;
     tooltip.style.top = clamp(top, 2, viewport.height - tooltip.offsetHeight - 2) + 'px';
@@ -185,16 +190,16 @@ export function reviewMap() {
       const countryRows = tokens.length ? tokens.map(token => {
         const group = geography.countries?.groups.find(item => item.token === token);
         return styled('p', 'map-country-count', 'Country members · ', countryLabel(token, absent, true), ' · ',
-          group ? deltaNode(group.delta) : 'Comparison unavailable');
+          group ? deltaNode(group.delta) : existing ? 'Country count unavailable' : 'Comparison unavailable');
       }) : el('p', 'Country · ' + (records.find(node => node.centerIssue)?.centerIssue ?? absent));
       return styled('section', 'map-popup-site',
         location.sites.length > 1 ? el('h5', siteTitle(site, true)) : null,
         site.count ? el('strong', 'Subnet members: ', deltaNode(site.count)) : null,
         countryRows,
         ...siteEvidence(site, labels, true),
-        el('p', roleSummary(records)), el('p', uniqueCount(records)),
+        existing ? null : el('p', roleSummary(records)), el('p', uniqueCount(records, existing)),
         el('ul', records.map(node => {
-          const button = action(roles[node.role].label + ' ' + node.label, () => {
+          const button = action(roleLabel(node.role) + ' ' + node.label, () => {
             expanded = expanded === node.id ? undefined : node.id;
             renderPanel();
           });
@@ -242,8 +247,8 @@ export function reviewMap() {
         pins.append(button);
       }
       button.hidden = false;
-      button.setAttribute('aria-label', [locationTitle(location), ...location.sites.map(siteCounts), roleSummary(location.nodes),
-        uniqueCount(location.nodes)].filter(Boolean).join(' · '));
+      button.setAttribute('aria-label', [locationTitle(location), ...location.sites.map(siteCounts), existing ? null : roleSummary(location.nodes),
+        uniqueCount(location.nodes, existing)].filter(Boolean).join(' · '));
       button.setAttribute('aria-expanded', String(selected === key));
       button.style.left = x + 'px';
       button.style.top = y + 'px';
@@ -253,7 +258,7 @@ export function reviewMap() {
     if (selected !== undefined && !visible.has(selected)) close(panel.contains(document.activeElement));
     else if (refreshPanel) renderPanel();
     renderTooltip();
-    caption.textContent = scope ? mapCoverage(geography) : reason ?? 'Registered locations appear as evidence loads.';
+    caption.textContent = scope ? mapCoverage(geography, existing) : reason ?? 'Registered locations appear as evidence loads.';
     frame.dataset.changedSiteLabels = scene.labels.filter(label => label.site).map(label => label.text).join(' | ');
     overflow.textContent = scene.overflow.length ? 'Changed sites outside map labels: ' + scene.overflow.map(siteLabel).join(' · ') : '';
   }
@@ -398,8 +403,8 @@ export function reviewMap() {
       clearTimeout(hoverTimer);
       close(false);
     },
-    update(model, message) {
-      const nextScope = model && [model.order, ...model.ids, model.subnet, model.step, model.version].join('/');
+    update(snapshot, message) {
+      const nextScope = snapshot?.key;
       if (nextScope !== scope) {
         scope = nextScope;
         view = world;
@@ -409,15 +414,15 @@ export function reviewMap() {
         pins.replaceChildren();
       }
       reason = message;
-      geography = mapLocations(model?.members ?? [], model?.countries);
-      labels = shortIds((model?.members ?? []).map(node => node.provider).filter(Boolean));
-      countryNote.textContent = model?.countries?.note ?? '';
+      geography = mapLocations(snapshot?.members ?? [], snapshot?.countries);
+      labels = shortIds((snapshot?.members ?? []).map(node => node.provider).filter(Boolean));
+      countryNote.textContent = snapshot?.countries?.note ?? '';
       unmapped.hidden = !geography.unmapped.length;
       const focusKey = unmapped.contains(document.activeElement) ? document.activeElement.dataset.node : undefined;
       const openNodes = new Set([...unmapped.querySelectorAll('details[open] > summary')].map(item => item.dataset.node));
       unmapped.replaceChildren(el('summary', 'Unmapped nodes (' + geography.unmapped.length + ')'),
         el('ul', geography.unmapped.map(node => {
-          const label = [roles[node.role].label + ' ' + node.label, node.dc, node.locationIssue].filter(Boolean).join(' · ');
+          const label = [roleLabel(node.role) + ' ' + node.label, node.dc, node.locationIssue].filter(Boolean).join(' · ');
           const summary = el('summary', label);
           summary.dataset.node = node.id;
           const details = el('details', summary, nodeDetails(node));

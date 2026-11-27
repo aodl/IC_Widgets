@@ -6,13 +6,14 @@ use ic_cdk::api::{canister_liquid_cycle_balance, msg_arg_data, performance_count
 use nexus_domain::{Hash, sha256};
 use nexus_ic_sources::projection::RecordKey;
 use nexus_review_engine::{
-    ANALYSIS_VERSION, DataCenter, MembershipComparison, Node, Operator, Record, TargetRow,
-    TopologyEvidence, assess_target, compare_membership, data_center_key,
+    ANALYSIS_VERSION, DataCenter, MembershipComparison, Node, Operator, Record, RegistryKey,
+    ReviewError, TargetRow, TopologyEvidence, assess_target, compare_membership, data_center_key,
 };
 use serde::Deserialize;
 
 use super::{
-    LiveError, LiveResponse, NODE_LIMIT, Request, RequestGuard, policy, registry::Resolver,
+    LiveError, LiveResponse, NODE_LIMIT, Request, RequestGuard, policy,
+    registry::{Resolver, pinned_head},
 };
 use crate::{Sources, budget::FLOOR, review_records, store};
 
@@ -54,6 +55,105 @@ pub struct LiveMembershipComparison {
     pub analysis_version: u16,
     pub instructions: u64,
     pub target_rows: Option<Vec<TargetRow>>,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct LiveSubnetSnapshot {
+    pub subnet: Principal,
+    pub membership: Record<nexus_review_engine::Subnet>,
+    pub nodes: BTreeMap<Principal, Record<Node>>,
+    pub operators: BTreeMap<Principal, Record<Operator>>,
+    pub data_centers: BTreeMap<String, Record<DataCenter>>,
+}
+
+#[ic_cdk::update]
+async fn subnet_snapshot_on_demand(
+    subnet: Principal,
+) -> Result<LiveResponse<LiveSubnetSnapshot>, String> {
+    if subnet == Principal::anonymous() || subnet.as_slice().is_empty() {
+        return Err("Select a subnet principal.".into());
+    }
+    let guard = RequestGuard::acquire()?;
+    let mut request = Request::new(guard.0);
+    let source = if cfg!(feature = "local-fixtures") {
+        store::config().sources.registry
+    } else {
+        Sources::canonical().registry
+    };
+    let outcome = read_subnet(&mut request, source, subnet).await;
+    Ok(request.finish(outcome))
+}
+
+async fn read_subnet(
+    request: &mut Request,
+    source: Principal,
+    subnet: Principal,
+) -> Result<LiveSubnetSnapshot, LiveError> {
+    let version = pinned_head(request, source).await?;
+    let mut resolver = Resolver {
+        request,
+        source,
+        version,
+        chunks: BTreeMap::new(),
+    };
+    let membership = resolver
+        .read(vec![RecordKey::Subnet(subnet)], review_records::subnet)
+        .await?
+        .pop()
+        .expect("one subnet");
+    let members = &membership
+        .value()
+        .ok_or_else(|| {
+            LiveError::InvalidEvidence(ReviewError::UnavailableRecord(RegistryKey::Subnet(subnet)))
+        })?
+        .members;
+    if members.len() > NODE_LIMIT {
+        return Err(LiveError::CallLimit);
+    }
+    if members.iter().collect::<BTreeSet<_>>().len() != members.len() {
+        return Err(LiveError::InvalidEvidence(ReviewError::InvalidTopology));
+    }
+    let node_rows = resolver
+        .read(
+            members.iter().copied().map(RecordKey::Node).collect(),
+            review_records::node,
+        )
+        .await?;
+    let operator_ids: BTreeSet<_> = node_rows
+        .iter()
+        .filter_map(|row| row.value()?.operator)
+        .collect();
+    let operator_rows = resolver
+        .read(
+            operator_ids
+                .iter()
+                .copied()
+                .map(RecordKey::Operator)
+                .collect(),
+            review_records::operator,
+        )
+        .await?;
+    let center_ids: BTreeSet<_> = operator_rows
+        .iter()
+        .filter_map(|row| data_center_key(&row.value()?.data_center))
+        .collect();
+    let center_rows = resolver
+        .read(
+            center_ids
+                .iter()
+                .cloned()
+                .map(RecordKey::DataCenter)
+                .collect(),
+            review_records::data_center,
+        )
+        .await?;
+    Ok(LiveSubnetSnapshot {
+        subnet,
+        nodes: members.iter().copied().zip(node_rows).collect(),
+        operators: operator_ids.into_iter().zip(operator_rows).collect(),
+        data_centers: center_ids.into_iter().zip(center_rows).collect(),
+        membership,
+    })
 }
 
 fn valid_keys<T: Ord>(keys: &[T]) -> bool {

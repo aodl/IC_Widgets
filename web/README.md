@@ -2,7 +2,7 @@
 
 Enter one or two NNS proposal IDs and select **Review**. The browser starts membership and continues through the bounded detail pages and replicated comparisons. The map and findings use the pinned Registry snapshot. **Coverage** opens Evidence, including the observations and calculation input. A targeted preview checks the selected target memberships and proposal-candidate records. An untargeted removal checks every listed subnet. The scope notice reports how many listed subnets were checked.
 
-Performance can read blockmaking samples for an independent subnet or follow the selected review with a named node filter. Changing the linked review scope clears its previous performance result. Sample times and sparse source rows are visible.
+**Subnet overview** uses a subnet principal and a bounded pinned Registry snapshot. It reuses the proposal view’s IC Node Map. Performance can read blockmaking samples for an independent subnet or follow the resolved finite node scope of either view. Changing the linked review scope clears its previous performance result. Sample times and sparse source rows are visible.
 
 See [Clear review and Target Topology](../docs/clear-review/README.md) for the current review options, recorded example and uncoached worksheet.
 

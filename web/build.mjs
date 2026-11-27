@@ -46,8 +46,8 @@ if (embedded) {
     if (template.split(reference).length !== 2) throw new Error('Expected one HTML reference to ' + reference);
   }
   const index = template.replace('./app.js', './' + script).replace('./styles.css', './' + style);
-  const notFound = '<!doctype html><html lang="en"><meta charset="utf-8"><title>Not found | Network Nexus</title>'
-    + '<h1>Page not found</h1><a href="/">Open Network Nexus</a></html>\n';
+  const notFound = '<!doctype html><html lang="en"><meta charset="utf-8"><title>Not found | IC Widgets</title>'
+    + '<h1>Page not found</h1><a href="/">Open IC Widgets</a></html>\n';
   await mkdir(embedOutput);
   await Promise.all(Object.entries({ [script]: javascript, [style]: stylesheet, 'index.html': index, '404.html': notFound })
     .map(([name, bytes]) => writeFile(join(embedOutput, name), bytes, { flag: 'wx' })));

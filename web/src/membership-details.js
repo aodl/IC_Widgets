@@ -7,6 +7,7 @@ import { terminalOutcome } from './terminal-outcome.js';
 import { markdownEditor } from './review-export.js';
 import { help } from './review-help.js';
 import { nodeTables } from './node-table.js';
+import { proposalNodeSelection } from './node-snapshot.js';
 import { reportSnapshot } from './review-markdown.js';
 import { affectedNodes, comparisonEvidence, createReviewSession, stageLabel } from './review-session.js';
 import { action, branch, deltaNode, el, hex, number, option, principal, saveFile, styled, table, time, words } from './view.js';
@@ -139,6 +140,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const sorting = { changes: {}, other: {} };
   let selected;
   let model;
+  let published;
   let inspection;
   let trigger;
   let scenario = report.scenarios.find(row => branch(row.id) === 'AThenB') ?? report.scenarios[0];
@@ -150,8 +152,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     selected = next;
     inspection = undefined;
     trigger = undefined;
-    const wire = next && body.scopes.find(row => branch(row.scenario) === branch(next.scenario.id) && principal(row.subnet) === principal(next.subnet));
-    performance.scope(next?.state ? { context: next, affected: affectedNodes(next, wire), version } : undefined);
+    published = undefined;
+    performance.scope(undefined);
     session.select(next);
     if (activeElement instanceof HTMLSelectElement) controls.querySelector('select[aria-label="' +
       activeElement.getAttribute('aria-label') + '"]')?.focus({ preventScroll: true });
@@ -308,9 +310,19 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
     replace(verification, selected?.state ? readinessLine(state) : null);
     renderTables();
-    map.update(model, state.consistency?.blocked ? 'Review blocked · Governance changed'
+    map.update(model && { key: [model.order, ...model.ids, model.subnet, model.step, model.version].join('/'),
+      members: model.members, countries: model.countries }, state.consistency?.blocked ? 'Review blocked · Governance changed'
       : 'Map unavailable · Required membership evidence');
     exportReview.disabled = !model?.calculation || !model.finalVerified || state.work !== 'settled';
+    if (exportReview.disabled && published) {
+      published = undefined;
+      performance.scope(undefined);
+    } else if (!exportReview.disabled && published !== model.calculation.inputHash) {
+      published = model.calculation.inputHash;
+      const wire = body.scopes.find(row => branch(row.scenario) === model.order && principal(row.subnet) === model.subnet);
+      performance.scope(proposalNodeSelection(model, selected, affectedNodes(selected, wire),
+        [live, ...session.receipts.flatMap(row => row.response ? [row.response] : [])]));
+    }
     retry.hidden = !state.retryable;
     if (inspection) renderInspector();
     else inspector.hidden = true;

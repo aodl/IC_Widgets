@@ -1180,6 +1180,38 @@ export const idlFactory = ({ IDL }) => {
     'proposal_id' : IDL.Opt(IDL.Nat64),
   });
   const Result_41 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
+  const Subnet = IDL.Record({
+    'members' : IDL.Vec(IDL.Principal),
+    'kind' : IDL.Int32,
+    'sev_enabled' : IDL.Bool,
+  });
+  const Record_3 = IDL.Variant({
+    'Missing' : IDL.Null,
+    'Present' : IDL.Record({ 'value' : Subnet, 'stamp' : RecordStamp }),
+    'Deleted' : RecordStamp,
+    'Unavailable' : IDL.Record({
+      'stamp' : IDL.Opt(RecordStamp),
+      'reason' : IDL.Text,
+    }),
+  });
+  const LiveSubnetSnapshot = IDL.Record({
+    'subnet' : IDL.Principal,
+    'nodes' : IDL.Vec(IDL.Tuple(IDL.Principal, Record)),
+    'operators' : IDL.Vec(IDL.Tuple(IDL.Principal, Record_1)),
+    'membership' : Record_3,
+    'data_centers' : IDL.Vec(IDL.Tuple(IDL.Text, Record_2)),
+  });
+  const Result_42 = IDL.Variant({
+    'Ok' : LiveSubnetSnapshot,
+    'Err' : LiveError,
+  });
+  const LiveResponse_6 = IDL.Record({
+    'registry_version' : IDL.Opt(IDL.Nat64),
+    'usage' : LiveUsage,
+    'outcome' : Result_42,
+    'receipts' : IDL.Vec(LiveReceipt),
+  });
+  const Result_43 = IDL.Variant({ 'Ok' : LiveResponse_6, 'Err' : IDL.Text });
   return IDL.Service({
     'advance_membership_review' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'authorize_verification' : IDL.Func([IDL.Nat64, Limits], [Result_1], []),
@@ -1315,6 +1347,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_41],
         [],
       ),
+    'subnet_snapshot_on_demand' : IDL.Func([IDL.Principal], [Result_43], []),
   });
 };
 export const init = ({ IDL }) => {

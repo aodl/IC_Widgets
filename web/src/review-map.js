@@ -89,8 +89,8 @@ export function mapScene(geography, project, view) {
   return { ...view, locations, visible, labels, countries: geography.countries, overflow: geography.changed.filter(site => !placed.has(site.id)) };
 }
 
-export function mapCoverage(geography) {
-  return geography.total + ' unique nodes across both states · ' + geography.mapped + '/' + geography.total + ' located'
+export function mapCoverage(geography, existing = false) {
+  return geography.total + (existing ? ' registered members · ' : ' unique nodes across both states · ') + geography.mapped + '/' + geography.total + ' located'
     + (geography.pending ? ' · ' + geography.pending + ' locations loading' : '');
 }
 

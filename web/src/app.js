@@ -3,7 +3,9 @@ import { proposalHeading } from './dashboard.js';
 import { replayLabel } from './detail-model.js';
 import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
-import { reviewMap } from './map-interaction.js';
+import { nodeMap } from './map-interaction.js';
+import { mountSubnetOverview } from './subnet-overview.js';
+import { proposalInput } from './view-inputs.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
 import { el, option, sourceReceipts, styled } from './view.js';
@@ -35,6 +37,7 @@ if (FIXTURE_REPLAY && activeReplay) {
 }
 
 let generation = 0;
+let activeView = 'proposal';
 let connection;
 let current;
 let currentMap;
@@ -54,6 +57,11 @@ function remote(active, run) {
 }
 const performance = mountPerformance(async (active, run) => {
   while (active()) {
+    if (activeView === 'subnet') {
+      await overview.settled();
+      if (activeView === 'subnet') return remote(active, run);
+      continue;
+    }
     const task = previewTask;
     await task;
     const session = current?.session;
@@ -62,6 +70,7 @@ const performance = mountPerformance(async (active, run) => {
   }
 });
 performance.visible(true);
+const overview = mountSubnetOverview({ call: remote, performance, replay: activeReplay });
 
 const phases = {
   Preview: 'Proposal and membership · Reading pinned evidence',
@@ -114,12 +123,7 @@ function status({ work, stage, counts, reason, remaining, selectedReady }) {
 
 function idsForSearch() {
   const fields = new FormData(search);
-  const ids = ['first', 'second'].map(name => fields.get(name).trim()).filter(Boolean).map(BigInt);
-  const valid = id => id >= 1n && id <= 18_446_744_073_709_551_615n;
-  if (!ids.length || ids.some(id => !valid(id)) || new Set(ids).size !== ids.length) {
-    throw new Error('Choose one or two distinct positive proposal IDs.');
-  }
-  return ids;
+  return proposalInput(fields.get('first'), fields.get('second')).value.map(BigInt);
 }
 
 stop.addEventListener('click', () => {
@@ -150,7 +154,7 @@ search.addEventListener('submit', event => {
   const thisRequest = request = { segment: Date.now(), elapsed: 0, stopped: false };
   performance.scope(undefined);
   performance.visible(false);
-  const map = currentMap = reviewMap();
+  const map = currentMap = nodeMap();
   const mapHost = map.section;
   map.update();
   reportContainer.replaceChildren(styled('div', 'workspace waiting-workspace',
@@ -201,6 +205,33 @@ search.addEventListener('submit', event => {
     }
   })();
 });
+
+const switches = {
+  proposal: document.querySelector('#proposal-view'),
+  subnet: document.querySelector('#subnet-view'),
+};
+function changeView(view) {
+  if (activeView === view) return;
+  activeView = view;
+  for (const [name, button] of Object.entries(switches)) button.setAttribute('aria-pressed', String(view === name));
+  generation++;
+  current?.session.stop();
+  current?.dispose();
+  currentMap?.dispose();
+  current = currentMap = undefined;
+  clearInterval(timer);
+  timer = undefined;
+  document.querySelector('main').append(performance.section);
+  performance.visible(false);
+  overview.clear();
+  reportContainer.replaceChildren();
+  status({ work: 'settled' });
+  elapsed.textContent = '';
+  document.querySelector('#proposal-search').hidden = view !== 'proposal';
+  document.querySelector('#subnet-overview').hidden = view !== 'subnet';
+  (view === 'proposal' ? search.elements.first : document.querySelector('#subnet-search input')).focus();
+}
+for (const [view, button] of Object.entries(switches)) button.addEventListener('click', () => changeView(view));
 
 const independent = document.querySelector('#open-performance');
 independent.addEventListener('click', () => {

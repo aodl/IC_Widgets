@@ -28,6 +28,25 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 1366, height: 900 }, acceptDownloads: true,
   hasTouch: true, permissions: ['clipboard-read', 'clipboard-write'] });
+await page.addInitScript(() => {
+  const clipboard = navigator.clipboard;
+  if (clipboard) {
+    const writeText = clipboard.writeText.bind(clipboard);
+    clipboard.writeText = async text => {
+      await writeText(text);
+      window.reviewCopy = text;
+    };
+  }
+  const execute = document.execCommand.bind(document);
+  document.execCommand = (...args) => {
+    const field = document.activeElement;
+    const copied = execute(...args);
+    if (copied && args[0] === 'copy' && field instanceof HTMLTextAreaElement) {
+      window.reviewCopy = field.value.slice(field.selectionStart, field.selectionEnd);
+    }
+    return copied;
+  };
+});
 const external = [];
 const errors = [];
 const calls = new Map();
@@ -108,7 +127,7 @@ async function verifyMixedLocation() {
   const assets = fileURLToPath(new URL('.', import.meta.url));
   const { outputFiles } = await build({
     bundle: true, write: false, target: 'es2022',
-    stdin: { resolveDir: assets, contents: "import { reviewMap } from './src/map-interaction.js'; window.reviewMap = reviewMap;" },
+    stdin: { resolveDir: assets, contents: "import { nodeMap } from './src/map-interaction.js'; window.nodeMap = nodeMap;" },
   });
   try {
     await example.route('**/*', route => { external.push(route.request().url()); return route.abort(); });
@@ -116,11 +135,11 @@ async function verifyMixedLocation() {
     await example.addStyleTag({ path: resolve(assets, 'styles.css') });
     await example.addScriptTag({ content: outputFiles[0].text });
     await example.evaluate(() => {
-      const map = window.reviewMap();
+      const map = window.nodeMap();
       document.querySelector('main').append(map.section);
       const point = { lat: 59.3, lon: 18.1 };
       const region = 'Europe,SE,Stockholm';
-      map.update({ order: 'A', ids: [1], subnet: 'synthetic', step: 1, version: 1, members: [
+      map.update({ key: 'synthetic-mixed-location', members: [
         { id: 'sample-node-1', label: 'Node 1', role: 'Added', dc: 'one', owner: 'Owner A', provider: 'sample-first-provider', point, region },
         { id: 'sample-node-2', label: 'Node 2', role: 'Retained', dc: 'one', owner: 'Owner A', provider: 'sample-other-provider', point, region },
         { id: 'sample-node-3', label: 'Node 3', role: 'Removed', dc: 'two', centerIssue: 'Could not load owner', point, region },
@@ -192,6 +211,17 @@ try {
   assert.equal(count('membership_context_detail_page'), 6);
   const recordedMethods = [...calls.values()];
   const sh = marker('sh1'), zh = marker('zh2');
+  assert.equal(await page.locator('.node-table summary', { hasText: 'Full ID' }).count(), 0);
+  assert.equal(await page.locator('.node-table tbody').getByRole('button', { name: /Inspect|Details/ }).count(), 0);
+  const countrySort = page.locator('.map-card .node-changes th').filter({ has: page.getByRole('button', { name: /^Country/ }) });
+  const changedCountry = () => page.locator('.map-card .node-changes tbody [data-recorded-country]')
+    .evaluateAll(labels => labels.map(label => label.dataset.recordedCountry));
+  await countrySort.getByRole('button').click();
+  assert.equal(await countrySort.getAttribute('aria-sort'), 'ascending');
+  assert.deepEqual(await changedCountry(), ['SE', 'CH']);
+  await countrySort.getByRole('button').click();
+  assert.equal(await countrySort.getAttribute('aria-sort'), 'descending');
+  assert.deepEqual(await changedCountry(), ['CH', 'SE']);
   const shNodes = new Set(await sh.getAttribute('data-nodes').then(nodes => nodes.split(' ')));
   assert.equal(shNodes.size, 3);
   await frame.scrollIntoViewIfNeeded();
@@ -200,7 +230,7 @@ try {
   await page.mouse.move(shPoint.x, shPoint.y);
   const tooltip = page.getByRole('tooltip').filter({ hasText: 'Stockholm' });
   await tooltip.waitFor();
-  await tooltip.getByText('Registered owner: Digital Realty').waitFor();
+  await tooltip.getByText('Data center owner: Digital Realty').waitFor();
   await tooltip.getByText('Provider: bvcsg…mqe').waitFor();
   await tooltip.getByText('Subnet members: 2 → 3').waitFor();
   await tooltip.locator('[data-recorded-country=SE] canvas[data-drawn]').waitFor();
@@ -215,7 +245,11 @@ try {
   await popup.getByText('sh1 · Stockholm, Sweden', { exact: true }).waitFor();
   assert.equal(await page.evaluate(() => scrollY), startScroll);
   await popup.getByText('Subnet members: 2 → 3', { exact: true }).waitFor();
-  await popup.getByText('Registered owner: Digital Realty', { exact: true }).waitFor();
+  await popup.getByText('Data center owner: Digital Realty', { exact: true }).waitFor();
+  const providerHref = 'https://dashboard.internetcomputer.org/network/provider/';
+  const provider = popup.getByRole('link', { name: 'bvcsg…mqe', exact: true });
+  assert.equal(await provider.getAttribute('href'), providerHref + (await provider.getAttribute('title')));
+
   await popup.locator('.map-country-count').getByText('2 → 3', { exact: true }).waitFor();
   await popup.locator('.map-country-count [data-recorded-country=SE] canvas[data-drawn]').waitFor();
   assert.equal(await popup.getByRole('link', { name: 'sh1', exact: true }).getAttribute('href'),
@@ -228,7 +262,8 @@ try {
     assert.equal(await popup.getByLabel('Full node principal').inputValue(), id);
     assert.equal(await popup.getByRole('link', { name: 'Node dashboard' }).getAttribute('href'),
       'https://dashboard.internetcomputer.org/network/nodes/' + id);
-    await popup.getByText('Provider', { exact: true }).waitFor();
+    const providerDetails = popup.getByRole('link', { name: await provider.getAttribute('title'), exact: true });
+    assert.equal(await providerDetails.getAttribute('href'), await provider.getAttribute('href'));
     await node.click();
   }
   assert.ok(!await page.locator('.inspector').isVisible());
@@ -347,6 +382,10 @@ try {
   await exportButton().click();
   const reportRows = page.locator('.markdown-preview :is(.node-row-added, .node-row-removed)');
   await nodeTableLayout(page.locator('.markdown-preview'), 320);
+  const reportSort = page.locator('.markdown-preview').getByRole('combobox', { name: 'Sort node changes' });
+  await reportSort.selectOption({ label: 'Country (A–Z)' });
+  assert.deepEqual(await page.locator('.markdown-preview .node-changes [data-recorded-country]').evaluateAll(labels =>
+    labels.map(label => label.dataset.recordedCountry)), ['SE', 'CH']);
   assert.equal(await reportRows.count(), 2);
   assert.ok(await reportRows.evaluateAll(rows => rows.every(row => [...row.cells].every(cell =>
     getComputedStyle(cell).backgroundColor === (row.className === 'node-row-added' ? 'rgb(236, 247, 237)' : 'rgb(252, 240, 239)')))));
@@ -359,7 +398,7 @@ try {
   await writeFile(resolve(output, 'map.png'), png);
   await page.getByRole('button', { name: 'Copy Markdown' }).click();
   await page.getByText('Review Markdown copied.', { exact: true }).waitFor();
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), markdown);
+  assert.equal(await page.evaluate(() => window.reviewCopy), markdown);
   assert.ok(markdown.includes(digest));
   assert.match(markdown, /Recorded status: Open.*Original Governance observation 2026-11-25 13:08:13\.589 UTC.*Local replay served/);
   assert.match(markdown, /Original Registry observations/);
@@ -399,211 +438,254 @@ try {
   await resize(1366, 900);
   await verifyMixedLocation();
 
-  await select('multiple-changes');
-  await review();
-  await settled();
-  await page.getByText('5 members · Add 2 · Remove 2 · Unchanged 3', { exact: true }).waitFor();
-  const changed = page.locator('.node-changes button');
-  assert.equal(await changed.count(), 4);
-  assert.equal(await page.locator('.other-nodes tbody tr').count(), 3);
-  const expected = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
-  const state = Object.values(expected.cases['multiple-changes'].scenarios.A[0])[0];
-  const ids = [];
-  for (let index = 0; index < 4; index++) {
-    await changed.nth(index).click();
-    ids.push(await page.getByLabel('Full node principal').inputValue());
-  }
-  assert.deepEqual(ids.sort(), [...state.added, ...state.removed].sort());
-  await page.getByRole('button', { name: 'Close details' }).click();
-  await capture('constructed-multiple');
+  const oracle = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
+  const [subnetId, baselineNodes] = Object.entries(oracle.cases['nns-144954-recorded-open'].baselines)[0];
+  await page.getByRole('button', { name: 'Performance', exact: true }).click();
+  await page.locator('#performance-mode').selectOption('follow');
+  await page.locator('#performance-context').getByText(/Proposal #144954.*40 nodes/).waitFor();
+  await page.getByRole('button', { name: 'Subnet overview', exact: true }).click();
+  await page.locator('#subnet-search input').fill(subnetId);
+  const beforeSnapshot = calls.size;
+  await page.getByRole('button', { name: 'Load subnet', exact: true }).click();
+  await page.getByText('40 registered members · 40/40 located', { exact: true }).waitFor({ timeout: 120000 });
+  const onlineMap = page.locator('#subnet-result');
+  const snapshotPins = onlineMap.locator('.map-pin');
+  assert.deepEqual(await snapshotPins.evaluateAll(pins => pins.flatMap(pin => pin.dataset.nodes.split(' ')).sort()),
+    [...baselineNodes].sort());
+  assert.deepEqual([...calls.values()].slice(beforeSnapshot), ['subnet_snapshot_on_demand']);
+  const mapRequests = backendRequests;
+  const shBefore = marker('sh1');
+  assert.equal((await shBefore.getAttribute('data-nodes')).split(' ').length, 2);
+  await resize(390, 744);
+  await shBefore.focus();
+  await page.keyboard.press('Enter');
+  const existingPopup = onlineMap.getByRole('region', { name: 'Map location details' });
+  await existingPopup.getByText('Subnet members: 2').waitFor();
+  assert.equal(await existingPopup.locator('[data-map-node]').count(), 2);
+  await existingPopup.locator('.map-country-count [data-recorded-country=SE] canvas[data-drawn]').waitFor();
+  await page.keyboard.press('Escape');
+  await capture('existing-subnet-390');
+  await page.getByRole('button', { name: 'Performance', exact: true }).click();
+  await page.locator('#performance-context').getByText(/Registered subnet membership.*40 nodes/).waitFor();
+  assert.equal(await page.locator('#performance-form input[name=subnet]').inputValue(), subnetId);
+  assert.equal(backendRequests, mapRequests);
+  await page.locator('#subnet-search input').fill('');
+  await page.locator('#performance-context').getByText(/Waiting for resolved/).waitFor();
+  assert.ok(await page.getByRole('button', { name: 'Read blockmaking samples' }).isDisabled());
+  await page.getByRole('button', { name: 'Proposal review', exact: true }).click();
+  await resize(1366, 900);
 
-  await select('unequal-change');
-  await review();
-  await settled();
-  await page.getByText(/Add 4 · Remove 1/).waitFor();
-  assert.equal(await page.locator('.node-changes button').count(), 5);
-
-  await select('separate-add-remove');
-  await review();
-  await settled();
-  const order = page.getByLabel('Proposal order');
-  const step = page.getByLabel('Membership state');
-  await order.selectOption('AThenB');
-  await step.selectOption('1');
-  await page.locator('.review-summary > strong').filter({ hasText: /3 → 4 members/ }).waitFor();
-  const scopeReport = async (name, scenario) => {
-    await exportButton().click();
-    await download('Download review', name);
-    const archive = resolve(output, name);
-    const markdown = execFileSync('unzip', ['-p', archive, 'review.md'], { encoding: 'utf8' });
-    assert.match(markdown, scenario);
-    const hash = /Calculation input SHA-256 `([a-f0-9]{64})`/.exec(markdown)?.[1];
-    assert.ok(hash, 'Report must carry the accepted input digest');
-    const image = execFileSync('unzip', ['-p', archive, 'map.png']);
-    await page.getByRole('button', { name: 'Close details' }).click();
-    return { hash, image };
-  };
-  const a = await scopeReport('order-a-step-1.zip', /Proposal #85612 then Proposal #85622.*Step 1 of 2/);
-  await order.selectOption('BThenA');
-  await step.selectOption('1');
-  await page.locator('.review-summary > strong').filter({ hasText: /3 → 2 members/ }).waitFor();
-  const b = await scopeReport('order-b-step-1.zip', /Proposal #85622 then Proposal #85612.*Step 1 of 2/);
-  assert.notEqual(a.hash, b.hash);
-  assert.notDeepEqual(a.image, b.image);
-  await order.selectOption('AThenB');
-  await step.selectOption('1');
-  const again = await scopeReport('order-a-return.zip', /Proposal #85612 then Proposal #85622.*Step 1 of 2/);
-  assert.deepEqual(again, a);
-  await capture('constructed-intermediate');
-
-  for (const [name, label, note] of [
-    ['nns-144954-executed', 'Executed', /historical before-state is unavailable/],
-    ['rejected-139792', 'Rejected', /proposal ended at the vote/],
-    ['failed-140988', 'Failed', /recorded an execution error/],
-  ]) {
-    const detailCalls = count('membership_context_detail_page');
-    await select(name);
+  if (data.cases.length > 1) {
+    await select('multiple-changes');
     await review();
-    const outcome = page.locator('.terminal-outcome');
-    await outcome.getByText(label, { exact: true }).waitFor();
-    await outcome.getByText(note).waitFor();
-    assert.equal(await exportButton().count(), 0);
-    assert.equal(await page.locator('.review-grid, .topology-card').count(), 0);
-    assert.equal(count('membership_context_detail_page'), detailCalls);
-    if (label === 'Failed') {
-      await outcome.getByText('Indexed execution error', { exact: true }).click();
-      await outcome.getByText(/Nodes that should be removed do not belong/).waitFor();
+    await settled();
+    await page.getByText('5 members · Add 2 · Remove 2 · Unchanged 3', { exact: true }).waitFor();
+    const changed = page.locator('.node-changes tbody a[href*="/network/nodes/"]');
+    assert.equal(await changed.count(), 4);
+    assert.equal(await page.locator('.other-nodes tbody tr').count(), 3);
+    const expected = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
+    const state = Object.values(expected.cases['multiple-changes'].scenarios.A[0])[0];
+    const ids = await changed.evaluateAll(links => links.map(link => new URL(link.href).pathname.split('/').pop()));
+    assert.deepEqual(ids.sort(), [...state.added, ...state.removed].sort());
+    for (const id of ids) {
+      const pin = frame.locator('.map-pin[data-nodes~="' + id + '"]');
+      await pin.focus();
+      await page.keyboard.press('Enter');
+      await popup.locator('[data-map-node="' + id + '"]').click();
+      assert.equal(await popup.getByLabel('Full node principal').inputValue(), id);
+      await page.keyboard.press('Escape');
     }
-    if (label === 'Executed') await outcome.getByText(/Execution recorded at 2026-11-26 07:45:57 UTC/).waitFor();
-    await capture(label.toLowerCase() + '-terminal');
-  }
+    await capture('constructed-multiple');
 
-  await select('nns-144954-missing-gps');
-  let showPending;
-  let releaseLocations;
-  const pending = new Promise(resolve => { showPending = resolve; });
-  const hold = new Promise(resolve => { releaseLocations = resolve; });
-  let intercepted = false;
-  const detailRoute = /\/api\/v4\/canister\/[^/]+\/call$/;
-  const waitForLocation = async route => {
-    const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
-    if (!intercepted && content.method_name === 'membership_context_detail_page') {
-      const [, keys] = IDL.decode(methods.membership_context_detail_page.argTypes, content.arg);
-      if ('DataCenters' in keys) {
-        intercepted = true;
-        showPending();
-        await hold;
+    await select('unequal-change');
+    await review();
+    await settled();
+    await page.getByText(/Add 4 · Remove 1/).waitFor();
+    assert.equal(await page.locator('.node-changes tbody a[href*="/network/nodes/"]').count(), 5);
+
+    await select('separate-add-remove');
+    await review();
+    await settled();
+    const order = page.getByLabel('Proposal order');
+    const step = page.getByLabel('Membership state');
+    await order.selectOption('AThenB');
+    await step.selectOption('1');
+    await page.locator('.review-summary > strong').filter({ hasText: /3 → 4 members/ }).waitFor();
+    const scopeReport = async (name, scenario) => {
+      await exportButton().click();
+      await download('Download review', name);
+      const archive = resolve(output, name);
+      const markdown = execFileSync('unzip', ['-p', archive, 'review.md'], { encoding: 'utf8' });
+      assert.match(markdown, scenario);
+      const hash = /Calculation input SHA-256 `([a-f0-9]{64})`/.exec(markdown)?.[1];
+      assert.ok(hash, 'Report must carry the accepted input digest');
+      const image = execFileSync('unzip', ['-p', archive, 'map.png']);
+      await page.getByRole('button', { name: 'Close details' }).click();
+      return { hash, image };
+    };
+    const a = await scopeReport('order-a-step-1.zip', /Proposal #85612 then Proposal #85622.*Step 1 of 2/);
+    await order.selectOption('BThenA');
+    await step.selectOption('1');
+    await page.locator('.review-summary > strong').filter({ hasText: /3 → 2 members/ }).waitFor();
+    const b = await scopeReport('order-b-step-1.zip', /Proposal #85622 then Proposal #85612.*Step 1 of 2/);
+    assert.notEqual(a.hash, b.hash);
+    assert.notDeepEqual(a.image, b.image);
+    await order.selectOption('AThenB');
+    await step.selectOption('1');
+    const again = await scopeReport('order-a-return.zip', /Proposal #85612 then Proposal #85622.*Step 1 of 2/);
+    assert.deepEqual(again, a);
+    await capture('constructed-intermediate');
+
+    for (const [name, label, note] of [
+      ['nns-144954-executed', 'Executed', /historical before-state is unavailable/],
+      ['rejected-139792', 'Rejected', /proposal ended at the vote/],
+      ['failed-140988', 'Failed', /recorded an execution error/],
+    ]) {
+      const detailCalls = count('membership_context_detail_page');
+      await select(name);
+      await review();
+      const outcome = page.locator('.terminal-outcome');
+      await outcome.getByText(label, { exact: true }).waitFor();
+      await outcome.getByText(note).waitFor();
+      assert.equal(await exportButton().count(), 0);
+      assert.equal(await page.locator('.review-grid, .topology-card').count(), 0);
+      assert.equal(count('membership_context_detail_page'), detailCalls);
+      if (label === 'Failed') {
+        await outcome.getByText('Indexed execution error', { exact: true }).click();
+        await outcome.getByText(/Nodes that should be removed do not belong/).waitFor();
       }
+      if (label === 'Executed') await outcome.getByText(/Execution recorded at 2026-11-26 07:45:57 UTC/).waitFor();
+      await capture(label.toLowerCase() + '-terminal');
     }
-    await route.fallback();
-  };
-  await page.route(detailRoute, waitForLocation);
-  try {
-    await review();
-    await Promise.race([pending, page.locator('#review-counts').getByText(/^0 of 39 records settled/).waitFor()]);
-    await page.getByText(/41 locations loading/).waitFor();
-    assert.equal(await page.getByText(/Unmapped nodes/).isVisible(), false);
-    await capture('loading-locations');
-  } finally {
-    releaseLocations();
-  }
-  await settled();
-  await page.unroute(detailRoute, waitForLocation);
-  await page.getByText(/41 unique nodes across both states · 38\/41 located/).waitFor();
-  await capture('missing-locations');
 
-  await select('untargeted-two-subnets');
-  await review();
-  await settled();
-  const subnet = page.getByLabel('Subnet', { exact: true });
-  const initial = await subnet.inputValue();
-  const finalChecks = count('finalize_membership_review');
-  const comparisons = count('compare_membership_context');
-  let pendingOther;
-  let releaseOther;
-  const other = new Promise(resolve => { pendingOther = resolve; });
-  const holdOther = new Promise(resolve => { releaseOther = resolve; });
-  let trapped = false;
-  await page.route(detailRoute, async route => {
-    const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
-    if (!trapped && content.method_name === 'membership_context_detail_page') {
-      trapped = true;
-      pendingOther();
-      await holdOther;
-    }
-    await route.fallback();
-  });
-  try {
-    await subnet.selectOption({ index: 1 });
-    await Promise.race([other, page.locator('#review-counts').getByText(/records settled/).waitFor()]);
-    await subnet.selectOption(initial);
-    assert.ok(await exportButton().isDisabled());
-  } finally {
-    releaseOther();
-  }
-  await settled();
-  assert.equal(await subnet.inputValue(), initial);
-  assert.equal(count('finalize_membership_review'), finalChecks + 1);
-  assert.equal(count('compare_membership_context'), comparisons);
-  assert.ok(await exportButton().isEnabled());
-
-  const first = await browser.newPage();
-  const second = await browser.newPage();
-  let holdFirst;
-  let releaseFirst;
-  const ready = new Promise(resolve => { holdFirst = resolve; });
-  const paused = new Promise(resolve => { releaseFirst = resolve; });
-  const senders = new Set();
-  for (const tab of [first, second]) {
-    tab.on('pageerror', error => errors.push(error.message));
-    await tab.route('**/*', route => {
-      if (new URL(route.request().url()).origin === url.origin) return route.continue();
-      external.push(route.request().url());
-      return route.abort();
-    });
-    await tab.route(detailRoute, async route => {
+    await select('nns-144954-missing-gps');
+    let showPending;
+    let releaseLocations;
+    const pending = new Promise(resolve => { showPending = resolve; });
+    const hold = new Promise(resolve => { releaseLocations = resolve; });
+    let intercepted = false;
+    const detailRoute = /\/api\/v4\/canister\/[^/]+\/call$/;
+    const waitForLocation = async route => {
       const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
-      if (content.method_name === 'begin_membership_review') {
-        senders.add(Buffer.from(content.sender).toString('hex'));
+      if (!intercepted && content.method_name === 'membership_context_detail_page') {
+        const [, keys] = IDL.decode(methods.membership_context_detail_page.argTypes, content.arg);
+        if ('DataCenters' in keys) {
+          intercepted = true;
+          showPending();
+          await hold;
+        }
       }
-      if (tab === first && content.method_name === 'membership_context_detail_page') {
-        holdFirst();
-        await paused;
+      await route.fallback();
+    };
+    await page.route(detailRoute, waitForLocation);
+    try {
+      await review();
+      await Promise.race([pending, page.locator('#review-counts').getByText(/^0 of 39 records settled/).waitFor()]);
+      await page.getByText(/41 locations loading/).waitFor();
+      assert.equal(await page.getByText(/Unmapped nodes/).isVisible(), false);
+      await capture('loading-locations');
+    } finally {
+      releaseLocations();
+    }
+    await settled();
+    await page.unroute(detailRoute, waitForLocation);
+    await page.getByText(/41 unique nodes across both states · 38\/41 located/).waitFor();
+    await capture('missing-locations');
+
+    await select('untargeted-two-subnets');
+    await review();
+    await settled();
+    const subnet = page.getByLabel('Subnet', { exact: true });
+    const initial = await subnet.inputValue();
+    const finalChecks = count('finalize_membership_review');
+    const comparisons = count('compare_membership_context');
+    let pendingOther;
+    let releaseOther;
+    const other = new Promise(resolve => { pendingOther = resolve; });
+    const holdOther = new Promise(resolve => { releaseOther = resolve; });
+    let trapped = false;
+    await page.route(detailRoute, async route => {
+      const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
+      if (!trapped && content.method_name === 'membership_context_detail_page') {
+        trapped = true;
+        pendingOther();
+        await holdOther;
       }
-      return route.fallback();
+      await route.fallback();
     });
-  }
-  const concurrencyUrl = new URL('/?case=multiple-changes', url);
-  const start = async tab => {
-    await tab.goto(concurrencyUrl.toString());
-    await tab.getByRole('button', { name: 'Review', exact: true }).click();
-  };
-  const tabFinished = tab => tab.locator('#report-status').getByText('Data loading complete', { exact: true })
-    .waitFor({ timeout: 120000 });
-  try {
-    await start(first);
-    await Promise.race([ready, first.locator('#review-counts').getByText(/records settled/).waitFor()]);
-    await start(second);
-    await tabFinished(second);
-  } finally {
-    releaseFirst();
-  }
-  await tabFinished(first);
-  assert.equal(senders.size, 2);
-  for (const tab of [first, second]) {
-    assert.ok(await tab.getByRole('button', { name: 'Generate review', exact: true }).isEnabled());
-    await tab.close();
+    try {
+      await subnet.selectOption({ index: 1 });
+      await Promise.race([other, page.locator('#review-counts').getByText(/records settled/).waitFor()]);
+      await subnet.selectOption(initial);
+      assert.ok(await exportButton().isDisabled());
+    } finally {
+      releaseOther();
+    }
+    await settled();
+    assert.equal(await subnet.inputValue(), initial);
+    assert.equal(count('finalize_membership_review'), finalChecks + 1);
+    assert.equal(count('compare_membership_context'), comparisons);
+    assert.ok(await exportButton().isEnabled());
+
+    const first = await browser.newPage();
+    const second = await browser.newPage();
+    let holdFirst;
+    let releaseFirst;
+    const ready = new Promise(resolve => { holdFirst = resolve; });
+    const paused = new Promise(resolve => { releaseFirst = resolve; });
+    const senders = new Set();
+    for (const tab of [first, second]) {
+      tab.on('pageerror', error => errors.push(error.message));
+      await tab.route('**/*', route => {
+        if (new URL(route.request().url()).origin === url.origin) return route.continue();
+        external.push(route.request().url());
+        return route.abort();
+      });
+      await tab.route(detailRoute, async route => {
+        const { content } = Cbor.decode(new Uint8Array(route.request().postDataBuffer()));
+        if (content.method_name === 'begin_membership_review') {
+          senders.add(Buffer.from(content.sender).toString('hex'));
+        }
+        if (tab === first && content.method_name === 'membership_context_detail_page') {
+          holdFirst();
+          await paused;
+        }
+        return route.fallback();
+      });
+    }
+    const concurrencyUrl = new URL('/?case=multiple-changes', url);
+    const start = async tab => {
+      await tab.goto(concurrencyUrl.toString());
+      await tab.getByRole('button', { name: 'Review', exact: true }).click();
+    };
+    const tabFinished = tab => tab.locator('#report-status').getByText('Data loading complete', { exact: true })
+      .waitFor({ timeout: 120000 });
+    try {
+      await start(first);
+      await Promise.race([ready, first.locator('#review-counts').getByText(/records settled/).waitFor()]);
+      await start(second);
+      await tabFinished(second);
+    } finally {
+      releaseFirst();
+    }
+    await tabFinished(first);
+    assert.equal(senders.size, 2);
+    for (const tab of [first, second]) {
+      assert.ok(await tab.getByRole('button', { name: 'Generate review', exact: true }).isEnabled());
+      await tab.close();
+    }
   }
 
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  const summary = { cases: ['recorded', 'synthetic mixed-provider co-location', 'multiple changes', 'unequal changes', 'paired orders', 'executed terminal', 'rejected terminal',
-    'failed terminal', 'held locations', 'subnet A→B→A', 'independent browser contexts'],
+  const summary = { cases: ['recorded', 'existing subnet view and shared finite Performance inputs', 'synthetic mixed-provider co-location',
+    ...(data.cases.length > 1 ? ['multiple changes', 'unequal changes', 'paired orders', 'executed terminal', 'rejected terminal',
+      'failed terminal', 'held locations', 'subnet A→B→A', 'independent browser contexts'] : [])],
     mapChecks, mapPngPalettePixels: colors, recordedDigest: digest, recordedMethods, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log(JSON.stringify(summary, null, 2));
 } catch (error) {
-  console.error('Review status:', await page.locator('#report-status').textContent());
+  console.error('Review status:', await page.locator('#report-status').textContent({ timeout: 2000 }).catch(() => page.url()));
   await capture('failure');
   throw error;
 } finally {

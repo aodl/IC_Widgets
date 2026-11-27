@@ -17,11 +17,10 @@ use nexus_review_engine::{
 use super::{CandidateAssignment, LiveError, NODE_LIMIT, Request, bounded_reason, source_error};
 use crate::review_records;
 
-pub(super) async fn resolve(
+pub(super) async fn pinned_head(
     request: &mut Request,
     source: Principal,
-    proposals: &[Proposal],
-) -> Result<(RegistryBaseline, Vec<(Principal, CandidateAssignment)>), LiveError> {
+) -> Result<u64, LiveError> {
     let reply = request
         .one(source, "get_latest_version", "Registry head".into(), vec![])
         .await?;
@@ -33,6 +32,15 @@ pub(super) async fn resolve(
         return Err(source_error(reply.id, "invalid Registry head"));
     }
     request.version = Some(version);
+    Ok(version)
+}
+
+pub(super) async fn resolve(
+    request: &mut Request,
+    source: Principal,
+    proposals: &[Proposal],
+) -> Result<(RegistryBaseline, Vec<(Principal, CandidateAssignment)>), LiveError> {
+    let version = pinned_head(request, source).await?;
     let mut resolver = Resolver {
         request,
         source,
