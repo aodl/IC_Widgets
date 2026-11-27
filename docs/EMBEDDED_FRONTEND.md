@@ -4,6 +4,12 @@ The Network Nexus web application is embedded in `nexus_frontend.wasm`. Installa
 
 The implementation follows Jupiter's pinned `include_dir` and `AssetRouter` pattern. A shared `HttpCertificationTree` covers GET and HEAD. The canister advertises v2 in public Wasm metadata. The security headers use Network Nexus's origin and reviewer protocol policy. The gateway allows scripts and styles from the frontend origin, and connections to that origin and the IC protocol gateway. [Jupiter Rust frontend](https://github.com/aodl/JUPITER_FAUCET_SUITE/blob/ed756fa7ba17abfd918a89f63d3e20c827b057ec/canisters/frontend/src/lib.rs) · [Jupiter web build](https://github.com/aodl/JUPITER_FAUCET_SUITE/blob/ed756fa7ba17abfd918a89f63d3e20c827b057ec/canisters/frontend/web/build-frontend.mjs) · [Jupiter release verification](https://github.com/aodl/JUPITER_FAUCET_SUITE/blob/ed756fa7ba17abfd918a89f63d3e20c827b057ec/docs/operations/reproducible-builds.md)
 
+## Raw gateway requests
+
+The custom `http_request` handler rejects known IC raw hostnames before looking up an asset. It returns an empty, non-cacheable HTTP 403 for `<canister>.raw.icp.net`, `<canister>.raw.icp0.io` and `<canister>.raw.ic0.app`. The same check covers `<canister>.raw.localhost` for gateway tests and the corresponding bare raw aliases if the gateway routes a `canisterId` parameter. The refusals carry no application assets. The prior standard asset canister used `allow_raw_access: false` and redirected known mainnet raw hostnames to a verifying host. This custom handler uses refusal so raw requests need no redirect target. [IC data integrity guidance](https://docs.internetcomputer.org/guides/security/data-integrity-and-authenticity/) · [IC certification guide](https://docs.internetcomputer.org/guides/frontends/certification/)
+
+The canister sees the forwarded `Host` header. A gateway can omit or rewrite it, a caller can supply a different value, and a non-verifying gateway may use any hostname. The refusal protects against ordinary visits to the recognized raw hostnames on a gateway that forwards them. If a gateway verifies responses on such an alias, it may report its own verification error for the uncertified refusal. PocketIC does this for bare `raw.localhost?canisterId=…`. Use the certified `https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net/` URL for the production application. [IC gateway verification model](https://docs.internetcomputer.org/guides/frontends/static-site/how-it-works/#the-raw-hosts-skip-verification)
+
 ## Build and verify
 
 Prepare the locked dependencies with `cargo fetch --locked` and `npm --prefix web ci`. The tested environment used Rust 1.96.0, Node 24.15.0, GNU gzip 1.10, the checked-in locks and DFX 0.31.0. Ordinary builds consume the prepared dependencies. The Rust build invokes the web bundler into a fresh Cargo output directory, checks the HTML references, renames the JS and CSS by SHA-256 and embeds the generated assets. The separate development replay build still writes its legacy layout. Embedded builds reject replay inputs in every network profile.
@@ -69,13 +75,13 @@ node web/browser-production-network.mjs "$project" "$PWD/.local/embedded-browser
 
 The Node verifier checks the actual gateway bytes against the replica trust root using the official response verifier. The browser driver loads the same certified bytes directly. Its allowlist is limited to the frontend assets and reviewer IC protocol. The embedded local profile uses the local protocol status endpoint to establish replica trust. The production profile still uses the SDK's pinned mainnet root. The production artifact's static responses can be checked through the local gateway without running its mainnet reviewer calls.
 
-## Proposed production migration
+## Earlier frontend-only rehearsal
 
 The read-only certified observation at 2026-11-27 15:23:15 UTC reported frontend `s45ab-wiaaa-aaaar-qcifq-cai`, installed module SHA-256 `04e565b3425fe7510ee16b02adcfe3f01abc9a2725c82a21cb08969241debd62`, and these controllers:
 
 - `amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae`
 - `zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe`
 
-For a separately authorized migration, recheck the certified frontend and reviewer identities, the frontend module hash and controllers, and the old certified assets. Retain the exact current standard asset module and the old asset snapshot for rollback. Use the existing frontend-only DFX mapping and change its build type to custom without changing the canister principal or controllers. Upgrade in place with the exact reviewed production gzip so the legacy asset canister runs its normal pre-upgrade hook. Compare the installed hash to the reviewed gzip and verify certified HTML, hashed scripts and styles, HEAD, 404 and application functionality. Compare the controller set and reviewer module hash with their preflight observations. Use the recorded standard asset Wasm upgrade for rollback if required and verify the restored certified assets against the snapshot.
+This rehearsal verified frontend migration and rollback with a fixed local reviewer. The production pair requires a reviewer upgrade first. Use the separately documented release candidate and paired rehearsal for the production sequence. [Production release candidate](RELEASE_CANDIDATE.md)
 
 The implementation and rehearsal use a disposable local replica for installs and upgrades. Mainnet was accessed only for read-only metadata.
