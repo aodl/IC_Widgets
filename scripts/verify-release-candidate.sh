@@ -9,6 +9,8 @@ revision=$(git rev-parse "${1:?Specify the source revision}^{commit}")
 mkdir "$2"
 output=$(cd "$2" && pwd)
 exec > >(tee "$output/build.log") 2>&1
+git show "$revision:scripts/release-rustc.sh" > "$output/reviewer-rustc"
+chmod +x "$output/reviewer-rustc"
 export DFX_NETWORK=ic CARGO_INCREMENTAL=0
 unset NEXUS_REPLAY_MANIFEST NEXUS_REPLAY_OUTPUT
 
@@ -33,7 +35,8 @@ build_copy() {
         export CARGO_TARGET_DIR="$target"
         sha256sum --check vendor/ic/SHA256SUMS
         ./scripts/build-frontend-wasm.sh
-        cargo build --offline --locked --release --target wasm32-unknown-unknown -p nexus-reviewer
+        NEXUS_RELEASE_SOURCE="$checkout" RUSTC_WRAPPER="$output/reviewer-rustc" \
+            cargo build --offline --locked --release --target wasm32-unknown-unknown -p nexus-reviewer
     )
     mkdir "$output/$name"
     cp "$wasm/nexus_frontend.wasm" "$output/$name/frontend.wasm"
