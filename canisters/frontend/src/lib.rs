@@ -17,7 +17,7 @@ static CERTIFICATE_VERSIONS: [u8; 1] = *b"2";
 
 static ASSETS: Dir<'_> = include_dir!("$NEXUS_EMBEDDED_ASSETS");
 const MISSING: &str = "404.html";
-const CSP: &str = "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+const CSP: &str = "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors";
 
 struct Head {
     response: HttpResponse<'static>,
@@ -36,6 +36,8 @@ thread_local! {
 }
 
 fn asset_headers(name: &str) -> Vec<HeaderField> {
+    let ancestor = option_env!("IC_WIDGET_HOST_ORIGIN").unwrap_or("'none'");
+    let csp = format!("{CSP} {ancestor}");
     let cache = if name.ends_with(".html") {
         "public, no-cache, no-store"
     } else {
@@ -43,7 +45,7 @@ fn asset_headers(name: &str) -> Vec<HeaderField> {
     };
     [
         ("cache-control", cache),
-        ("content-security-policy", CSP),
+        ("content-security-policy", csp.as_str()),
         ("x-content-type-options", "nosniff"),
         ("referrer-policy", "no-referrer"),
         (
@@ -60,6 +62,17 @@ fn asset_headers(name: &str) -> Vec<HeaderField> {
     ]
     .map(|(key, value)| (key.into(), value.into()))
     .into()
+}
+
+fn aliases(name: &str) -> Vec<String> {
+    if name != "index.html" {
+        return vec![];
+    }
+    if option_env!("IC_WIDGET_EMBED_VIEW").is_some() {
+        vec!["/".into(), "/embed".into()]
+    } else {
+        vec!["/".into()]
+    }
 }
 
 fn content_type(name: &str) -> &'static str {
@@ -105,11 +118,7 @@ fn certify_assets() {
             } else {
                 vec![]
             },
-            aliased_by: if name == "index.html" {
-                vec!["/".into()]
-            } else {
-                vec![]
-            },
+            aliased_by: aliases(name),
             encodings: vec![],
         });
 
@@ -126,11 +135,9 @@ fn certify_assets() {
             &head_headers,
         );
         heads.insert(path, exact);
-        if name == "index.html" {
-            heads.insert(
-                "/".into(),
-                certified_head(&mut tree.borrow_mut(), "/", false, status, &head_headers),
-            );
+        for alias in aliases(name) {
+            let head = certified_head(&mut tree.borrow_mut(), &alias, false, status, &head_headers);
+            heads.insert(alias, head);
         }
         if missing {
             missing_head = Some(certified_head(

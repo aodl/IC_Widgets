@@ -1,12 +1,12 @@
 import { Principal } from '@icp-sdk/core/principal';
 
-/** @typedef {{profile: 'urn:ic-widgets:subnet', value: string}} SubnetInput */
-/** @typedef {{profile: 'urn:ic-widgets:proposal-ids', value: string[]}} ProposalInput */
+export const subnetInputProfile = Object.freeze({ id: 'urn:ic-widgets:subnet', major: 1 });
+export const proposalInputProfile = Object.freeze({ id: 'urn:ic-widgets:proposal-ids', major: 1 });
 
 export function subnetInput(value) {
   const subnet = Principal.fromText(value.trim());
   if (subnet.isAnonymous() || !subnet.toUint8Array().length) throw new Error('Enter a subnet principal.');
-  return Object.freeze({ profile: 'urn:ic-widgets:subnet', value: subnet.toText() });
+  return Object.freeze({ profile: subnetInputProfile, value: subnet.toText() });
 }
 
 export function proposalInput(first, second) {
@@ -16,5 +16,5 @@ export function proposalInput(first, second) {
       || new Set(ids).size !== ids.length) {
     throw new Error('Choose one or two distinct positive proposal IDs.');
   }
-  return Object.freeze({ profile: 'urn:ic-widgets:proposal-ids', value: Object.freeze(ids.map(String)) });
+  return Object.freeze({ profile: proposalInputProfile, value: Object.freeze(ids.map(String)) });
 }

@@ -6,6 +6,8 @@ fn main() {
         "DFX_NETWORK",
         "NEXUS_REPLAY_MANIFEST",
         "NEXUS_REPLAY_OUTPUT",
+        "IC_WIDGET_EMBED_VIEW",
+        "IC_WIDGET_HOST_ORIGIN",
     ] {
         println!("cargo:rerun-if-env-changed={name}");
     }
@@ -15,6 +17,7 @@ fn main() {
         "index.html",
         "styles.css",
         "build.mjs",
+        "widget-build.mjs",
         "package.json",
         "package-lock.json",
     ] {

@@ -5,12 +5,15 @@ import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
 import { nodeMap } from './map-interaction.js';
 import { mountSubnetOverview } from './subnet-overview.js';
-import { proposalInput } from './view-inputs.js';
+import { proposalInput, proposalInputProfile } from './view-inputs.js';
+import { nodeSelectionProfile, performanceSelection } from './node-snapshot.js';
+import { acceptNexusHost } from './widget-frame.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
 import { el, option, sourceReceipts, styled } from './view.js';
 
 const search = document.querySelector('#search');
+const widget = EMBED_WIDGET;
 const reportStatus = document.querySelector('#report-status');
 const elapsed = document.querySelector('#review-elapsed');
 const stop = document.querySelector('#stop-review');
@@ -71,6 +74,18 @@ const performance = mountPerformance(async (active, run) => {
 });
 performance.visible(true);
 const overview = mountSubnetOverview({ call: remote, performance, replay: activeReplay });
+
+let publishScope;
+const membershipPerformance = widget?.view === 'proposal' ? {
+  ...performance,
+  scope(selection) {
+    if (!publishScope) return;
+    const value = selection
+      ? { kind: 'ready', profile: nodeSelectionProfile, revision: selection.revision, value: selection }
+      : { kind: 'waiting', message: 'Waiting for accepted membership evidence' };
+    publishScope({ selection: value });
+  },
+} : performance;
 
 const phases = {
   Preview: 'Proposal and membership · Reading pinned evidence',
@@ -136,15 +151,15 @@ stop.addEventListener('click', () => {
 
 search.addEventListener('submit', event => {
   event.preventDefault();
-  let fields;
   try {
-    fields = idsForSearch();
+    startReview(idsForSearch());
   } catch (error) {
     document.querySelector('#search-error').textContent = error.message;
-    return;
   }
+});
+
+function startReview(ids) {
   document.querySelector('#search-error').textContent = '';
-  const ids = fields;
   const ticket = ++generation;
   const active = () => generation === ticket;
   current?.session.stop();
@@ -170,6 +185,7 @@ search.addEventListener('submit', event => {
       const live = result(response);
       if ('Err' in live.outcome) {
         status({ work: 'settled', stage: 'Blocked', reason: liveError(live.outcome.Err) });
+        unavailable(liveError(live.outcome.Err));
         map.update(undefined, 'Map unavailable · Required membership evidence');
         reportContainer.append(styled('section', 'card', el('h3', 'Evidence'), sourceReceipts(live)));
         return;
@@ -186,17 +202,23 @@ search.addEventListener('submit', event => {
             FIXTURE_REPLAY && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, activeReplay)),
           sourceReceipts(live, { replay: !!activeReplay })));
         status({ work: 'settled', stage: 'Observed' });
+        unavailable('This proposal has a terminal outcome.');
         return;
       }
       const contexts = reviewContexts(body.report, option(body.subnet_rules ?? []) ?? []);
       current = mountReviewWorkspace({ live, contexts, map, mapHost, active, call: remote,
-        progress: state => { if (active()) status(state); }, performance, replay: activeReplay });
+        progress: state => {
+          if (!active()) return;
+          status(state);
+          if (['Blocked', 'Stopped', 'Provisional'].includes(state.stage)) unavailable(state.reason);
+        }, performance: membershipPerformance, replay: activeReplay });
       reportContainer.replaceChildren(current.section);
       current.start();
     } catch (error) {
       if (!active() || thisRequest.stopped) return;
       map.update(undefined, 'The map needs supported membership evidence for this review.');
       status({ work: 'settled', stage: 'Blocked', reason: error.message });
+      unavailable(error.message);
     } finally {
       if (active() && thisRequest.stopped) {
         map.update(undefined, 'Not loaded · Review stopped');
@@ -204,7 +226,7 @@ search.addEventListener('submit', event => {
       }
     }
   })();
-});
+}
 
 const switches = {
   proposal: document.querySelector('#proposal-view'),
@@ -244,3 +266,58 @@ independent.addEventListener('click', () => {
   performance.section.scrollIntoView({ block: 'nearest' });
   performance.section.querySelector('h2').focus({ preventScroll: true });
 });
+
+function unavailable(reason) {
+  publishScope?.({ selection: { kind: 'unavailable', retryable: true, reason: (reason ?? 'Membership evidence is unavailable.').slice(0, 240) } });
+}
+
+if (widget) {
+  document.querySelector('.masthead').hidden = true;
+  document.querySelector('#view-switch').hidden = true;
+  if (widget.view === 'performance') {
+    document.querySelector('#proposal-search').hidden = true;
+    acceptNexusHost(widget.host, values => {
+      const input = values.selection;
+      let selection;
+      try {
+        if (input?.kind === 'ready') selection = performanceSelection(input);
+        performance.follow(selection, input?.kind === 'unavailable' ? input.reason : undefined);
+      } catch (error) {
+        performance.follow(undefined, error.message);
+      }
+    });
+  } else {
+    performance.visible(false);
+    search.hidden = true;
+    acceptNexusHost(widget.host, (values, publish) => {
+      publishScope = undefined;
+      generation++;
+      current?.session.stop();
+      current?.dispose();
+      currentMap?.dispose();
+      current = currentMap = undefined;
+      reportContainer.replaceChildren();
+      clearInterval(timer);
+      timer = undefined;
+      status({ work: 'settled' });
+      publishScope = publish;
+      const anchor = values.proposals;
+      if (anchor?.kind !== 'ready') {
+        reportStatus.textContent = 'Waiting for proposal IDs.';
+        return;
+      }
+      try {
+        if (anchor.profile?.id !== proposalInputProfile.id || anchor.profile.major !== proposalInputProfile.major
+          || !Array.isArray(anchor.value) || anchor.value.length > 2 || anchor.value.some(id => typeof id !== 'string')) {
+          throw new Error('The view must supply one or two proposal IDs.');
+        }
+        const input = proposalInput(anchor.value[0] ?? '', anchor.value[1] ?? '');
+        [search.elements.first.value, search.elements.second.value = ''] = input.value;
+        startReview(input.value.map(BigInt));
+      } catch (error) {
+        reportStatus.textContent = error.message;
+        unavailable(error.message);
+      }
+    });
+  }
+}

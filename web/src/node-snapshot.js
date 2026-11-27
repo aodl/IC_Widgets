@@ -1,8 +1,29 @@
+import { Principal } from '@icp-sdk/core/principal';
 import { countryComparison, countryToken } from './country-presentation.js';
 import { memberEvidence, metricDelta, shortIds } from './detail-model.js';
 import { hex, option } from './view.js';
 
 export const nodeSelectionProfile = Object.freeze({ id: 'urn:ic-widgets:node-selection', major: 1 });
+
+// A widget transfer is a finite filter. The review's replicated calculation still
+// accepts only input bound to its own Registry observations and caller context.
+export function performanceSelection(input) {
+  const { profile, revision, value } = input;
+  if (profile?.id !== nodeSelectionProfile.id || profile.major !== nodeSelectionProfile.major
+    || !value || value.revision !== revision || typeof value.label !== 'string' || value.label.length > 240
+    || !['existing', 'comparison'].includes(value.kind) || !/^\d{1,20}$/.test(value.registryVersion)
+    || BigInt(value.registryVersion) > 18_446_744_073_709_551_615n) throw new Error('Unsupported node selection.');
+  function principal(text) {
+    if (typeof text !== 'string' || Principal.fromText(text).toText() !== text) throw new Error('Invalid principal in node selection.');
+    return text;
+  }
+  const nodes = Object.fromEntries(['selected', 'incoming', 'outgoing', 'affected'].map(key => {
+    const ids = value.nodes?.[key];
+    if (!Array.isArray(ids) || ids.length > 128 || new Set(ids).size !== ids.length) throw new Error('Invalid finite node selection.');
+    return [key, ids.map(principal)];
+  }));
+  return { ...value, profile: nodeSelectionProfile, subnet: principal(value.subnet), nodes };
+}
 
 function receipt(row) {
   return Object.freeze({

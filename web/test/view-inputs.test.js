@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Principal } from '@icp-sdk/core/principal';
-import { nodeSelection } from '../src/node-snapshot.js';
-import { proposalInput, subnetInput } from '../src/view-inputs.js';
+import { nodeSelection, performanceSelection } from '../src/node-snapshot.js';
+import { proposalInput, proposalInputProfile, subnetInput, subnetInputProfile } from '../src/view-inputs.js';
 
 test('view anchors are typed separately and preserve exact proposal IDs', () => {
   const id = Principal.fromUint8Array(Uint8Array.of(41, 2));
-  assert.deepEqual(subnetInput(' ' + id.toText()), { profile: 'urn:ic-widgets:subnet', value: id.toText() });
+  assert.deepEqual(subnetInput(' ' + id.toText()), { profile: subnetInputProfile, value: id.toText() });
   assert.throws(() => subnetInput('aaaaa-aa'), /subnet principal/);
   assert.throws(() => subnetInput('2vxsx-fae'), /subnet principal/);
   assert.deepEqual(proposalInput('18446744073709551615', ' 42 '), {
-    profile: 'urn:ic-widgets:proposal-ids', value: ['18446744073709551615', '42'],
+    profile: proposalInputProfile, value: ['18446744073709551615', '42'],
   });
   assert.throws(() => proposalInput('00042', '42'), /distinct positive/);
   assert.throws(() => proposalInput('1e2', ''), /distinct positive/);
@@ -25,4 +25,13 @@ test('both variants share a finite Performance selection contract, including rea
   assert.deepEqual(existing.nodes, { selected: [], incoming: [], outgoing: [], affected: [] });
   assert.deepEqual(comparison.nodes.affected, [node.toText()]);
   assert.throws(() => comparison.nodes.selected.push(node), TypeError);
+});
+
+test('bridged Performance accepts only an explicitly finite versioned scope', () => {
+  const subnet = Principal.fromUint8Array(Uint8Array.of(19, 2)).toText();
+  const value = nodeSelection({ kind: 'existing', registryVersion: 42n, selected: [], revision: 'a', subnet, label: 'Test scope' });
+  const ready = { kind: 'ready', profile: value.profile, revision: 'a', value };
+  assert.deepEqual(performanceSelection(ready).nodes.selected, []);
+  assert.throws(() => performanceSelection({ ...ready, revision: 'superseded' }), /Unsupported/);
+  assert.throws(() => performanceSelection({ ...ready, value: { ...value, nodes: {} } }), /Invalid finite/);
 });

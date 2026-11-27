@@ -3,12 +3,15 @@ import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Principal } from '@icp-sdk/core/principal';
 import { build } from 'esbuild';
+import { widgetBuild } from './widget-build.mjs';
 
 const [, , mode, embedOutput, ...extra] = process.argv;
 if (mode && (mode !== '--embed' || !embedOutput || extra.length)) {
   throw new Error('Usage: node build.mjs [--embed fresh-output-directory]');
 }
 const embedded = mode === '--embed';
+const widget = widgetBuild();
+if (widget && !embedded) throw new Error('Widget frame profiles require an embedded frontend build.');
 if (embedded && (process.env.NEXUS_REPLAY_MANIFEST || process.env.NEXUS_REPLAY_OUTPUT)) {
   throw new Error('Embedded frontend builds refuse replay inputs.');
 }
@@ -32,6 +35,7 @@ const bundle = await build({
     REVIEWER_ID: JSON.stringify(Principal.fromText(canister).toText()),
     LOCAL_REPLICA: JSON.stringify(local),
     FIXTURE_REPLAY: JSON.stringify(replay),
+    EMBED_WIDGET: JSON.stringify(widget),
   },
 });
 if (embedded) {

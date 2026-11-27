@@ -43,9 +43,13 @@ export function mountPerformance(call) {
   preset.addEventListener('change', applyScope);
   subnetField.addEventListener('input', applyScope);
 
-  form.addEventListener('submit', async event => {
+  form.addEventListener('submit', event => {
     event.preventDefault();
-    if (submit.disabled) return;
+    readPerformance();
+  });
+
+  async function readPerformance() {
+    if (submit.disabled || !form.checkValidity()) return;
     const ticket = ++generation;
     const filter = following ? selection.nodes[preset.value].map(id => Principal.fromText(id)) : undefined;
     output.replaceChildren();
@@ -69,11 +73,18 @@ export function mountPerformance(call) {
     } finally {
       if (ticket === generation) submit.disabled = false;
     }
-  });
+  }
 
   return {
     section,
     visible(show) { section.hidden = !show; },
+    follow(next, issue) {
+      following = true;
+      mode.value = 'follow';
+      this.scope(next);
+      if (issue) status.textContent = issue;
+      readPerformance();
+    },
     scope(next) {
       if (next && (next.profile.id !== nodeSelectionProfile.id || next.profile.major !== nodeSelectionProfile.major)) {
         throw new Error('Unsupported node selection profile.');

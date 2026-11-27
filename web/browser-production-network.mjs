@@ -1,14 +1,16 @@
 // Exercise the embedded application over the real local IC gateway with a deny-by-default network.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { Cbor } from '@icp-sdk/core/agent';
 import { verifyEmbeddedGateway } from './verify-embedded-frontend.mjs';
 
-const [project, output] = process.argv.slice(2).map(path => resolve(path));
-if (!project || !output) throw new Error('Usage: node web/browser-production-network.mjs <isolated fixture project> <output>');
+const [projectArg, outputArg, alias] = process.argv.slice(2);
+if (!projectArg || !outputArg) throw new Error('Usage: node web/browser-production-network.mjs <isolated fixture project> <output> [frontend alias]');
+const project = resolve(projectArg), output = resolve(outputArg);
 // The installed local profile uses the ordinary compiled app and native IC certification.
-const { origin, reviewer, paths, observed } = await verifyEmbeddedGateway(project);
+const { origin, reviewer, paths, observed } = await verifyEmbeddedGateway(project, alias);
 const assets = new Set(['/', ...paths]);
 const allow = new RegExp('^/api/v[234]/canister/' + reviewer + '/(?:call|read_state)$');
 
@@ -20,7 +22,7 @@ const browser = await chromium.launch({
 await mkdir(output, { recursive: true });
 try {
   const context = await browser.newContext({ viewport: { width: 1366, height: 900 }, hasTouch: true, serviceWorkers: 'block' });
-  const rejected = [], errors = [], protocol = [];
+  const rejected = [], errors = [], protocol = [], methods = [];
   await context.routeWebSocket('**/*', socket => {
     rejected.push(socket.url());
     socket.close();
@@ -36,6 +38,7 @@ try {
     if (host === origin && method === 'GET' && !search && assets.has(pathname)) return route.continue();
     if (host === origin && !search && (allow.test(pathname) && method === 'POST' || pathname === '/api/v2/status' && method === 'GET')) {
       protocol.push(pathname);
+      if (pathname.endsWith('/call')) methods.push(Cbor.decode(new Uint8Array(request.postDataBuffer())).content.method_name);
       return route.continue();
     }
     rejected.push(request.url());
@@ -55,6 +58,10 @@ try {
   await page.locator('.node-changes').getByText('Sweden', { exact: true }).waitFor();
   await page.locator('.node-changes').getByText('Switzerland', { exact: true }).waitFor();
   assert.equal(await page.locator('.map-card .node-changes tbody tr').count(), 2);
+  assert.equal(await page.locator('.node-table tbody details, .node-table tbody button').count(), 0);
+  await page.locator('.node-changes').getByRole('button', { name: /^Country/ }).click();
+  assert.deepEqual(await page.locator('.node-changes tbody [data-recorded-country]').evaluateAll(rows =>
+    rows.map(row => row.dataset.recordedCountry)), ['SE', 'CH']);
   const other = page.locator('.map-card .other-nodes');
   assert.equal(await other.evaluate(node => node.open), false);
   await other.getByText('Other Nodes (39)', { exact: true }).click();
@@ -71,7 +78,12 @@ try {
   const popup = page.getByRole('region', { name: 'Map location details' });
   await popup.getByText(/Country members.*Sweden.*2 → 3/).waitFor();
   await popup.getByRole('link', { name: 'sh1', exact: true }).waitFor();
-  await popup.getByRole('link', { name: 'bvcsg…mqe', exact: true }).waitFor();
+  const linkedProvider = popup.getByRole('link', { name: 'bvcsg…mqe', exact: true });
+  const providerId = await linkedProvider.getAttribute('title');
+  await popup.getByText('Data center owner: Digital Realty', { exact: true }).waitFor();
+  await popup.getByRole('button', { name: /^Add kaoz3/ }).click();
+  const fullProvider = popup.getByRole('link', { name: providerId, exact: true });
+  assert.equal(await fullProvider.getAttribute('href'), await linkedProvider.getAttribute('href'));
   await page.keyboard.press('Escape');
   await map.focus();
   const before = await sh1.getAttribute('style');
@@ -126,13 +138,26 @@ try {
   assert.match(markdown, /Other Nodes \(39\)/);
   assert.match(markdown, /\[sh1\]\(https:\/\/dashboard\.internetcomputer\.org\/network\/centers\/sh1\)/);
   assert.equal(protocol.length, count, 'Display and report actions used IC transport.');
+  const previous = methods.length;
+  const oracle = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
+  const subnet = Object.keys(oracle.cases['nns-144954-recorded-open'].baselines)[0];
+  await page.getByRole('button', { name: 'Subnet overview', exact: true }).click();
+  await page.locator('#subnet-search input').fill(subnet);
+  await page.getByRole('button', { name: 'Load subnet', exact: true }).click();
+  await page.getByText('40 registered members · 40/40 located', { exact: true }).waitFor({ timeout: 90000 });
+  assert.deepEqual(methods.slice(previous), ['subnet_snapshot_on_demand']);
+  const afterOverview = protocol.length;
+  await page.locator('#subnet-result .map-pin').first().focus();
+  await page.keyboard.press('Enter');
+  await page.getByRole('region', { name: 'Map location details' }).waitFor();
+  assert.equal(protocol.length, afterOverview);
   assert.deepEqual(rejected, [], 'External network requests were attempted.');
   assert.deepEqual(await page.evaluate(() => window.policyViolations), []);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ embeddedGateway: origin, certifiedResponses: observed.length,
     productionNetworkAllowlist: 'certified frontend assets and reviewer IC protocol routes',
-    protocolRequests: count, reviewerCalls: protocol.filter(path => path.endsWith('/call')).length,
-    mapAndReportProtocolRequests: protocol.length - count, externalRequests: rejected.length, zoomedSwissFillPixels: screenRed, pixels: png }, null, 2));
+    reviewProtocolRequests: count, reviewReviewerCalls: previous,
+    mapAndReportProtocolRequests: 0, overviewReviewerCalls: methods.slice(previous), externalRequests: rejected.length, zoomedSwissFillPixels: screenRed, pixels: png }, null, 2));
 } finally {
   await browser.close();
 }

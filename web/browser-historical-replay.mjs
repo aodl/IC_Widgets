@@ -15,6 +15,7 @@ const config = JSON.parse(await readFile(resolve(project, 'dfx.json'), 'utf8'));
 const port = config.networks.local.bind.match(/^127\.0\.0\.1:(\d+)$/)?.[1];
 if (!port || config.networks.local.type !== 'ephemeral') throw new Error('An isolated local replay project is required.');
 const data = JSON.parse(await readFile(resolve(project, 'replays.json'), 'utf8'));
+const fullCorpus = data.cases.length > 1 && process.env.NEXUS_REPLAY_RECORDED_ONLY !== '1';
 const id = execFileSync('dfx', ['canister', 'id', '--network', 'local', 'frontend'], {
   cwd: project, env: { ...process.env, DFX_IDENTITY: 'codex_local' }, encoding: 'utf8',
 }).trim();
@@ -436,8 +437,10 @@ try {
   assert.equal(calls.size, sourceCalls);
   assert.equal(backendRequests, localRequests);
   await resize(1366, 900);
+  console.log('Recorded review, map gestures, sorting and ZIP verified.');
   await verifyMixedLocation();
 
+  console.log('Mixed-provider map verified.');
   const oracle = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
   const [subnetId, baselineNodes] = Object.entries(oracle.cases['nns-144954-recorded-open'].baselines)[0];
   await page.getByRole('button', { name: 'Performance', exact: true }).click();
@@ -475,7 +478,8 @@ try {
   await page.getByRole('button', { name: 'Proposal review', exact: true }).click();
   await resize(1366, 900);
 
-  if (data.cases.length > 1) {
+  console.log('Existing subnet view and shared Performance scope verified.');
+  if (fullCorpus) {
     await select('multiple-changes');
     await review();
     await settled();
@@ -679,7 +683,7 @@ try {
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
   const summary = { cases: ['recorded', 'existing subnet view and shared finite Performance inputs', 'synthetic mixed-provider co-location',
-    ...(data.cases.length > 1 ? ['multiple changes', 'unequal changes', 'paired orders', 'executed terminal', 'rejected terminal',
+    ...(fullCorpus ? ['multiple changes', 'unequal changes', 'paired orders', 'executed terminal', 'rejected terminal',
       'failed terminal', 'held locations', 'subnet A→B→A', 'independent browser contexts'] : [])],
     mapChecks, mapPngPalettePixels: colors, recordedDigest: digest, recordedMethods, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
