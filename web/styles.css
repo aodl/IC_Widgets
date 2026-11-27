@@ -78,30 +78,55 @@ textarea { width: 100%; font: inherit; border: 1px solid #a9bac0; border-radius:
 .markdown-preview { padding: .9rem; background: #f3f7f8; }
 .claim-text { white-space: pre-wrap; overflow: auto; max-height: 25rem; padding: .7rem; background: #eef4f5; overflow-wrap: anywhere; }
 .map-section { margin-block: 1.25rem; }
-.map-controls { margin-block: .55rem; gap: .35rem; }
-.map-filters { margin: 0 0 .45rem; border: 0; padding: .35rem 0; display: flex; flex-wrap: wrap; gap: .85rem; }
-.map-filters label { display: flex; align-items: center; font-size: .9rem; }
-.map-filters input { width: 1rem; height: 1rem; }
-.swatch { width: .8rem; height: .8rem; border-radius: 50%; display: inline-block; }
-.map-frame { position: relative; width: 100%; border: 1px solid #9db3ba; border-radius: .55rem; overflow: hidden; background: #e6f1f5; cursor: grab; }
-.map-frame { height: clamp(340px, 44vw, 610px); }
-.map-frame canvas { display: block; width: 100%; height: 100%; }
+.map-frame { position: relative; width: 100%; height: clamp(300px, 42vw, 550px); overflow: hidden; border-radius: .55rem; background: #e7eff2; }
+.map-surface { position: absolute; inset: 0; touch-action: none; cursor: grab; user-select: none; }
+.map-surface:active { cursor: grabbing; }
+.map-surface[data-centering] { cursor: crosshair; }
+.map-surface canvas { display: block; width: 100%; height: 100%; }
 .map-pins { position: absolute; inset: 0; pointer-events: none; }
 button.map-pin, button.map-pin:hover {
-  position: absolute; transform: translate(-50%, -50%); width: var(--pin-target); height: var(--pin-target);
-  min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; pointer-events: auto;
+  position: absolute; transform: translate(-50%, -50%);
+  width: 28px; height: 28px; min-width: 0; min-height: 0; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; pointer-events: none;
 }
-.map-glyph {
-  position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%);
-  width: var(--pin-glyph); height: var(--pin-glyph); display: grid; place-content: center;
-  border: 1px solid #fff; border-radius: 50%; color: #fff; font-size: .875rem; font-weight: 700; line-height: 1;
-  pointer-events: none;
+.map-pin:is(:focus-visible, [aria-expanded=true]) { z-index: 2; }
+.map-pin[aria-expanded=true]::before, .map-pin:focus-visible::before {
+  content: ''; position: absolute; inset: 4px; border-radius: 50%;
+  border: 2px solid #925b0a; pointer-events: none;
 }
-.map-pin:not(.role-retained) { z-index: 1; }
-.map-pin:is(:hover, :focus-visible, [aria-pressed=true]) { z-index: 2; }
-.map-pin:is(:hover, :focus-visible) .map-glyph { outline: 2px solid #294b5a; }
-.map-selection { overflow-wrap: anywhere; padding: .55rem 0; }
-.map-selection ul { margin-block: .35rem; padding-left: 1.2rem; }
+.map-pin:focus-visible::before { border-color: #126fbc; }
+.map-tooltip, .map-popup { position: absolute; z-index: 3; overflow-wrap: anywhere; }
+.map-tooltip {
+  display: grid; gap: .18rem; width: max-content; max-width: calc(100% - 8px); padding: .42rem .6rem;
+  border-radius: .4rem; color: #fff; background: #173341; font-size: .84rem;
+}
+.map-popup {
+  inset: auto .45rem .45rem auto; width: min(25rem, calc(100% - .9rem)); max-height: calc(100% - .9rem);
+  overflow: auto; overscroll-behavior: contain; touch-action: pan-y; user-select: text;
+  padding: .55rem .7rem; border: 1px solid #527282; border-radius: .55rem;
+  background: #fff; box-shadow: 0 3px 14px #273e4b38;
+}
+.map-popup-heading { display: flex; justify-content: space-between; align-items: start; gap: .35rem; }
+.map-popup-heading h4, .map-popup-site h5 { margin: .3rem 0; }
+.map-popup p { margin: .25rem 0; }
+.map-popup-site + .map-popup-site { margin-top: .5rem; padding-top: .35rem; border-top: 1px solid var(--border); }
+.map-popup ul { list-style: none; padding: 0; margin: .3rem 0 0; }
+.map-popup li button { text-align: left; padding: .23rem .35rem; }
+.map-popup li + li { margin-top: .18rem; }
+.node-detail { padding-block: .3rem; overflow-wrap: anywhere; }
+.node-detail input { width: 100%; font: .82rem ui-monospace, monospace; }
+.node-detail dl { font-size: .87rem; margin-block: .4rem; }
+.node-detail dt { font-weight: 700; }
+.node-detail dd { margin: 0 0 .28rem; }
+.map-help { margin-bottom: 0; }
+.map-help p { margin: .35rem 0; }
+.map-navigation-status:not(:empty) { display: block; padding-top: .35rem; }
+.map-caption, .map-legend, .map-legend > span { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .75rem; }
+.map-caption { justify-content: space-between; margin-top: .35rem; }
+.map-legend { font-size: .875rem; }
+.map-legend > span { gap: .3rem; }
+.map-symbol { display: inline-block; width: 12px; height: 12px; border: 1px solid #fff; border-radius: 50%; }
+.markdown-preview canvas { display: block; width: 100%; height: auto; }
 @media (max-width: 38rem) {
   .markdown-fields { grid-template-columns: 1fr; }
 }
@@ -152,22 +177,11 @@ main { padding-top: .85rem; }
 .segmented button[aria-pressed=true], .review-nav button[aria-pressed=true] { background: #173c45; color: #fff; border-color: #173c45; }
 .map-frame { margin-top: .6rem; border: 1px solid #c2d5d5; }
 .map-coverage { color: #385563; font-size: .84rem; font-weight: 600; margin: .4rem 0; }
-.map-controls { margin: .18rem 0; gap: .25rem; }
-.map-controls button { min-width: 2rem; min-height: 2rem; padding: .2rem .44rem; font-size: .84rem; }
-.map-filters { margin: .25rem 0 0; gap: .25rem .75rem; }
-.map-filters legend { position: absolute; clip-path: inset(50%); height: 1px; width: 1px; overflow: hidden; }
-.map-filters label { gap: .3rem; }
-.map-symbol { display: inline-grid; place-content: center; border-radius: .25rem; width: 1.1rem; height: 1.1rem; }
 .role-added { background: #d5eee2; color: #005b36; }
 .role-removed { background: #f9dfe5; color: #891c36; }
 .role-retained { background: #dce9f3; color: #214b6b; }
-.map-pin.role-retained .map-glyph { background: #315e80; }
-.map-pin.role-added .map-glyph { background: #087748; }
-.map-pin.role-removed .map-glyph { background: #ad263f; }
-.map-pin[aria-pressed=true] .map-glyph { box-shadow: 0 0 0 2px #ec9a33; }
 .map-facilities { color: #385563; font-size: .78rem; margin: .2rem 0; }
 .map-facilities:empty { display: none; }
-.map-card > .changed-nodes { margin-top: .55rem; }
 .findings-card { padding: .85rem; }
 .findings-card h3 { margin: .1rem 0 .6rem; font-size: 1.05rem; }
 .finding-card { border-top: 1px solid var(--border); padding: .45rem 0; }
@@ -244,31 +258,24 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
 #review-counts { color: var(--muted); font-size: .83rem; }
 .topology-card { min-width: 0; padding: .8rem; border: 1px solid var(--border); border-radius: .7rem; background: #fff; }
 .topology-card h3 { margin-bottom: .25rem; }
-.topology-card table { table-layout: fixed; font-size: .85rem; }
+.topology-card table { table-layout: fixed; font-size: .9rem; }
+.topology-card h4 { margin: .75rem 0 .3rem; }
+.topology-card .node-role { white-space: nowrap; }
+.topology-card td details { margin: 0; }
+.topology-card td details summary { overflow-wrap: anywhere; }
+.review-summary p { margin: .25rem 0; }
+.review-outcomes { margin: .28rem 0; color: var(--muted); font-size: .84rem; line-height: 1.35; }
+.review-summary > span { font-size: .88rem; }
 .topology-card th, .topology-card td { padding: .38rem .25rem; overflow-wrap: anywhere; }
-.topology-card th:last-child { width: 32%; }
 .topology-card td small { display: block; line-height: 1.3; }
 .topology-card td > button:not(.metric-help-button) { text-align: left; color: #064951; text-decoration: underline; border: 0; padding: .12rem 0; }
 .topology-status { margin-block: .15rem .4rem; font-size: .84rem; }
-.composition-navigation { margin-block: .55rem .35rem; }
-.composition-navigation select { max-width: 100%; }
-.composition-summary, .review-outcomes { color: var(--muted); font-size: .84rem; }
-.composition-summary p, .review-outcomes { margin: .35rem 0; }
-.composition-coefficients { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .45rem; margin-bottom: .5rem; }
-.composition-coefficients button { font-size: inherit; padding: .2rem .4rem; }
-.distribution-option { display: flex; gap: .35rem; align-items: center; margin: .55rem 0; }
-.distribution-option input { width: auto; }
-@media (max-width: 38rem) {
-  .map-frame:not([data-regional]) { height: clamp(208px, 60vw, 340px); }
-}
 .delta-up { color: #086243; font-weight: 650; }
 .delta-down { color: #9b243e; font-weight: 650; }
 .metric-help { display: inline-block; position: relative; vertical-align: middle; }
 .metric-help-button { display: inline-grid; place-content: center; padding: 0; width: 24px; min-height: 24px; border-radius: 50%; font-size: .78rem; color: #245365; }
 .metric-tooltip { position: fixed; z-index: 10; inset: auto max(.7rem, calc((100% - 34rem)/2)) .9rem; padding: .75rem; border-radius: .45rem; border: 1px solid #527282; background: #173341; color: #fff; font: .9rem/1.45 system-ui, sans-serif; box-shadow: 0 4px 18px #11223135; text-align: left; }
 .review-tools { margin: .65rem 0; }
-.changed-nodes { margin-top: .35rem; gap: .35rem; }
-.changed-nodes button { padding: .24rem .4rem; font-size: .83rem; }
 .review-summary { margin: .45rem 0; }
 .inspector { min-width: 0; }
 .inspector pre { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -281,16 +288,11 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   #search [name=second] { width: 100%; }
   #search > details[open] .controls { gap: .35rem; }
   .topology-card { padding: .5rem; }
-  .topology-card table { font-size: .79rem; }
   .topology-card th, .topology-card td { padding: .28rem .22rem; }
   .metric-tooltip { bottom: .55rem; }
 }
 
 #report-status.review-finished, .inspector-readiness { font-weight: 700; color: #245365; }
-.measure-label { display: inline-flex; align-items: center; gap: .22rem; max-width: 100%; line-height: 1.25; }
-.measure-label > button, .topology-card td small button { border: 0; background: transparent; color: #064951; text-decoration: underline; text-align: left; padding: .12rem 0; }
-.measure-label > button { min-width: 0; overflow-wrap: anywhere; }
-.measure-label .metric-help { flex: 0 0 auto; }
 @media (max-width: 22rem) {
   #search { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .3rem; }
   #search > label { width: 100%; white-space: nowrap; }
@@ -302,8 +304,6 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   .proposal-meta { gap: .17rem .55rem; }
   .coverage-notice { margin-block: .35rem; }
   .map-frame { margin-top: .35rem; }
-  .topology-card table { font-size: .74rem; }
   .topology-card th { overflow-wrap: normal; }
   .topology-card th .metric-help { display: block; width: max-content; }
-  .measure-label { flex-wrap: wrap; gap: .08rem .16rem; }
 }

@@ -1,13 +1,15 @@
-import { assignmentCoverage, calculationNote, criteriaNote, geographyNote, governanceText, groupKey, metrics, metricDelta, replayRegistryText, reviewModel, reviewReadiness, scenarioName, shortIds, thresholdNote } from './detail-model.js';
+import { assignmentCoverage, calculationNote, comparisonCaption, criteriaNote, distanceHelp, distanceTitle, distributionTables,
+  geographyNote, governanceText, metricDelta, nodeFields, nodeHeaders, replayRegistryText, reviewModel, reviewReadiness,
+  roles, scenarioName, shortIds, thresholdNote } from './detail-model.js';
 import { terminalOutcome } from './terminal-outcome.js';
 import { markdownEditor } from './review-export.js';
 import { help } from './review-help.js';
-import { action, saveFile } from './review-map.js';
+import { nodeDetails } from './map-interaction.js';
+import { reportSnapshot } from './review-markdown.js';
 import { affectedNodes, comparisonEvidence, createReviewSession, stageLabel } from './review-session.js';
-import { branch, el, hex, number, option, principal, styled, table, time, words } from './view.js';
+import { action, branch, deltaNode, el, hex, number, option, principal, saveFile, styled, table, time, words } from './view.js';
 
 const disclosure = (title, ...content) => el('details', el('summary', title), ...content);
-const roleNames = { Added: '+ Incoming', Removed: '− Outgoing', Retained: '• Retained' };
 const subnetTypes = { 1: 'Application subnet', 2: 'System subnet', 4: 'Verified application subnet', 5: 'Cloud Engine subnet' };
 
 function replace(node, ...children) {
@@ -28,17 +30,8 @@ function selector(label, entries, value, changed) {
   return el('label', label, select);
 }
 
-function deltaNode(delta) {
-  if (!delta.before) return el('span', delta.text);
-  const display = el('span', delta.before, styled('span', delta.direction > 0 ? 'delta-up' : delta.direction < 0 ? 'delta-down' : '',
-    ' → ' + delta.after));
-  display.setAttribute('aria-label', delta.accessible);
-  display.setAttribute('role', 'img');
-  return display;
-}
-
 function nodeButton(node, click) {
-  return action([roleNames[node.role], node.label, node.dc, node.region?.split(',')[2]?.trim(),
+  return action([roles[node.role].label, node.label, node.dc, node.region?.split(',')[2]?.trim(),
     node.locationPending ? 'Location pending' : !node.point ? 'Unlocated' : null].filter(Boolean).join(' · '), click);
 }
 
@@ -116,23 +109,10 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const controls = styled('div', 'controls review-controls');
   const limit = styled('p', 'coverage-notice');
   const summary = styled('div', 'review-summary');
-  const changedNodes = styled('div', 'actions changed-nodes');
-  changedNodes.hidden = true;
+  const changedNodes = styled('section', 'topology-card node-changes');
   const verification = el('div');
   const topology = styled('section', 'topology-card');
-  const tableBody = el('tbody');
-
-  const topologyTable = el('table', el('thead', el('tr',
-    el('th', 'Registered group'),
-    el('th', 'Before → proposed ', help('Proposed membership', 'Membership produced by applying the decoded action to the selected Registry snapshot.')))), tableBody);
-  const navigation = styled('div', 'controls composition-navigation', selector('Composition dimension',
-    [['overview', 'Overview'], ...Object.entries(metrics).map(([key, info]) => [key, info.label])], 'overview', key => {
-      dimension = key;
-      render();
-    }));
-  const compositionSummary = styled('div', 'composition-summary');
-  topology.append(el('h3', 'Subnet composition'), styled('p', 'muted topology-status', criteriaNote),
-    navigation, compositionSummary, styled('div', 'table-wrap', topologyTable));
+  const narrow = matchMedia('(max-width: 44rem)');
   const inspector = styled('section', 'card inspector');
   inspector.hidden = true;
   const pane = styled('section', 'card review-pane');
@@ -140,13 +120,18 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const tools = styled('div', 'actions review-tools');
   const header = styled('section', 'review-header',
     el('h2', proposals.length === 1 ? 'Proposal #' + proposals[0].id : 'Proposals ' + proposals.map(row => '#' + row.id).join(' + ')),
-    contextLine, controls, limit, summary);
-  const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost, changedNodes, verification), topology);
+    contextLine, controls, verification, summary, limit);
+  const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost), changedNodes, topology);
   const section = styled('div', 'workspace', header, grid, tools, inspector, pane);
   const session = createReviewSession({ live, contexts, active, call, progress, updated: render });
-  const exportReview = action('Export review', () => inspect({ type: 'export' }));
+  const exportReview = action('Generate review', () => {
+    if (exportReview.disabled || !active()) return;
+    const snapshot = reportSnapshot(model, [{ response: live }, ...session.receipts]);
+    inspect({ type: 'export', snapshot });
+  });
   const retry = action('Retry failed evidence', () => session.retry());
-  tools.append(action('Sources & details', () => inspect({ type: 'sources' })), exportReview, retry);
+  tools.append(exportReview, action('Sources & details', () => inspect({ type: 'sources' })), retry);
+  narrow.addEventListener('change', renderTables);
 
   let selected;
   let model;
@@ -154,13 +139,10 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   let trigger;
   let scenario = report.scenarios.find(row => branch(row.id) === 'AThenB') ?? report.scenarios[0];
   let subnet;
-  let dimension = 'overview';
 
   function choose(next) {
     const activeElement = document.activeElement;
     selected = next;
-    dimension = 'overview';
-    navigation.querySelector('select').value = dimension;
     inspection = undefined;
     trigger = undefined;
     const wire = next && body.scopes.find(row => branch(row.scenario) === branch(next.scenario.id) && principal(row.subnet) === principal(next.subnet));
@@ -195,10 +177,6 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   function inspect(selection, title) {
     if (!inspector.contains(document.activeElement)) trigger = document.activeElement;
     inspection = Array.isArray(selection) ? { type: 'nodes', ids: selection, title } : selection;
-    const ids = selectionIds();
-    if (ids.length) map.highlight(ids);
-    else map.highlight([]);
-    if (document.activeElement?.dataset.marker) trigger = document.activeElement;
     renderInspector();
     inspector.querySelector('h3')?.focus();
   }
@@ -206,70 +184,67 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   function close() {
     inspection = undefined;
     inspector.hidden = true;
-    if (trigger?.isConnected) trigger.focus();
-    else tools.querySelector('button')?.focus();
-    map.highlight([]);
+    (trigger?.isConnected ? trigger : tools.querySelector('button'))?.focus({ preventScroll: true });
   }
   inspector.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
 
-  function selectionIds() {
-    if (inspection?.type === 'nodes') return inspection.ids;
-    if (inspection?.type === 'group' && model) {
-      return model.members.filter(node => groupKey(node, inspection.key) === inspection.group).map(node => node.id);
+  function comparisonTable(headers, values) {
+    if (!narrow.matches) return table(headers, [values]);
+    return styled('div', 'table-wrap', el('table',
+      el('thead', el('tr', ['Dimension', 'Value'].map(text => Object.assign(el('th', text), { scope: 'col' })))),
+      el('tbody', headers.map((label, index) => el('tr', Object.assign(el('th', label), { scope: 'row' }), el('td', values[index]))))));
+  }
+
+  function distributions() {
+    if (!model?.calculation) return null;
+    return disclosure('Recorded distributions and maximum ties', model.dimensions.map(item => {
+      const rows = model.composition.filter(row => row.key === item.key);
+      const tied = list => list.map(group => group.label).join(', ') || 'Unavailable';
+      return disclosure(item.label, el('p', item.help),
+        item.partial ? el('p', 'Members with missing grouping · ', deltaNode(item.unknown)) : null,
+        el('p', 'Largest known groups before · ' + tied(item.ties[0])),
+        el('p', 'Largest known groups proposed · ' + tied(item.ties[1])),
+        table(['Recorded group', 'Subnet members'], rows.map(row => [row.group, deltaNode(row.delta)])));
+    }));
+  }
+
+  function renderTables() {
+    const changed = model?.members.filter(node => node.role !== 'Retained') ?? [];
+    changedNodes.hidden = !model;
+    if (model) {
+      const ids = shortIds(model.members.flatMap(node => [node.id, node.operatorId, node.provider]).filter(Boolean));
+      const fields = node => nodeFields(node).map((field, index) => {
+        if (index === 0) return action(ids.get(node.id), () => inspect([node.id], node.label));
+        if (!field.principal || !field.value) return field.text;
+        return disclosure(ids.get(field.value), el('code', field.value));
+      });
+      const role = node => styled('span', 'node-role role-' + node.role.toLowerCase(), roles[node.role].label);
+      replace(changedNodes, el('h3', 'Node changes'), !changed.length ? el('p', 'No membership changes in this comparison.')
+        : narrow.matches ? changed.map(node => table(['Field', 'Recorded value'],
+          [['Action', role(node)], ...fields(node).map((field, index) => [nodeHeaders[index + 1], field])]))
+          : table(nodeHeaders, changed.map(node => [role(node), ...fields(node)])));
     }
-    return [];
-  }
 
-  function pendingLabel(state, key) {
-    if (state.work === 'settled') return 'Could not calculate from the available evidence';
-    if (state.work === 'stopped') return 'Not loaded · Review stopped';
-    if (state.stage === 'DataCenters' && ['DataCenter', 'RegisteredOwner', 'RegisteredCountry', 'RegisteredContinent'].includes(key)) return 'Loading data centers';
-    return 'Waiting for composition calculation';
-  }
-
-  function nodeDetails(node) {
-    const id = Object.assign(el('input'), { value: node.id, readOnly: true });
-    id.setAttribute('aria-label', 'Full node principal');
-    const copied = el('p');
-    copied.setAttribute('role', 'status');
-    const field = (label, value) => el('div', el('dt', label), el('dd', value));
-    return el('div', el('p', roleNames[node.role]), id, action('Copy node ID', async () => {
-      id.select();
-      try { await navigator.clipboard.writeText(node.id); copied.textContent = 'Node ID copied.'; }
-      catch { copied.textContent = document.execCommand('copy') ? 'Node ID copied.' : 'Select and copy the node ID.'; }
-    }), copied, el('dl',
-      field('Data center', node.dc || node.operatorIssue || 'Not recorded on-chain'),
-      field('Registered owner', node.owner || node.centerIssue || 'Not recorded on-chain'),
-      field('Registered region', node.region || node.centerIssue || 'Not recorded on-chain'),
-      field('Node provider', node.provider || node.operatorIssue || 'Not recorded on-chain'),
-      field('Node operator', node.operatorId || node.nodeIssue || 'Not recorded on-chain'),
-      field('Coordinates', node.point ? node.point.lat + ', ' + node.point.lon : node.locationIssue)));
-  }
-
-  function metricDetails(row) {
-    const share = metricDelta(row.a === undefined || !model.beforeCount ? undefined : 100 * row.a / model.beforeCount,
-      row.b === undefined || !model.selectedCount ? undefined : 100 * row.b / model.selectedCount,
-      { percentage: true, beforePartial: !!row.old.unknown, afterPartial: !!row.next.unknown });
-    return el('div', el('p', row.help), row.identity === 'principal' ? el('p', el('code', row.group)) : null,
-      el('p', 'Recorded members ', deltaNode(row.delta)),
-      el('p', 'Recorded group share ', deltaNode(share), ' · Subnet size ', deltaNode(metricDelta(model.beforeCount, model.selectedCount))),
-      row.old.unknown || row.next.unknown ? el('p', 'Members with unknown grouping · '
-        + metricDelta(row.old.unknown, row.next.unknown).text) : null,
-      row.note ? el('p', row.note) : null,
-      coefficientLine(model.dimensions.find(item => item.key === row.key)));
-  }
-
-  function coefficientLine(item) {
-    return el('p', 'Nakamoto coefficient ', help('Nakamoto coefficient', thresholdNote), ' · ', deltaNode(item.coefficient));
-  }
-
-  function dimensionSummary(item) {
-    return [
-      el('p', 'Distinct recorded groups · ', deltaNode(item.distinct),
-        item.old.unknown || item.next.unknown ? ' · Grouping incomplete' : ''),
-      item.tied > 1 ? el('p', item.tied + ' recorded groups are tied at ' + item.maximum + ' members in the proposed state'
-        + (item.next.unknown ? ' among known records.' : '.')) : null,
-    ];
+    const state = session.section();
+    const loading = !model?.calculation && ['running', 'idle', 'stopping'].includes(state.work);
+    topology.setAttribute('aria-busy', String(loading));
+    replace(topology, el('h3', 'Decentralisation'),
+      !model?.calculation ? el('p', loading ? 'Loading' : state.work === 'stopped'
+        ? 'Not loaded · Review stopped' : 'Could not calculate from the available evidence') : [
+        el('p', comparisonCaption),
+        distributionTables.map(({ key, title, help: explanation }) => el('section', el('h4', title, ' ', help(title, explanation)),
+          comparisonTable(model.dimensions.map(item => item.label), model.dimensions.map(item => deltaNode(item[key]))),
+          key === 'coefficient' ? (() => {
+            const values = model.dimensions.find(item => item.thresholds?.some(value => value !== undefined))?.thresholds;
+            return values ? el('p', 'Node threshold · ', deltaNode(metricDelta(...values))) : null;
+          })() : null)),
+        model.dimensions.some(item => item.partial) ? el('p', '≥ marks a recorded minimum. ',
+          model.dimensions.filter(item => item.partial).map(item => item.label + ' members with missing grouping: ' + item.unknown.text).join(' · ')) : null,
+        model.distances ? el('section', el('h4', distanceTitle, ' ', help(distanceTitle, distanceHelp)),
+          comparisonTable(model.distances.columns.map(column => column.label), model.distances.columns.map(column => deltaNode(column.delta))),
+          el('p', model.distances.coverage)) : null,
+        styled('p', 'muted topology-status', criteriaNote),
+      ].flat());
   }
 
   function readinessLine(state) {
@@ -283,27 +258,23 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     inspector.hidden = !inspection;
     if (!inspection) return;
     const state = session.section();
-    const row = model?.composition.find(row => row.key === inspection.key && row.group === inspection.group);
-    const nodes = model?.members.filter(node => selectionIds().includes(node.id)) ?? [];
-    let title = inspection.title ?? (inspection.type === 'sources' ? 'Sources & details'
-      : inspection.type === 'export' ? 'Export review' : row?.groupLabel ?? metrics[inspection.key]?.label ?? 'Nodes in this review');
+    const { type, snapshot } = inspection;
+    const node = model?.members.find(node => inspection.ids?.includes(node.id));
+    const title = inspection.title ?? (type === 'sources' ? 'Sources & details' : 'Generate review');
     const heading = el('h3', title);
     heading.tabIndex = -1;
     let content;
-    if (inspection.type === 'sources') content = [model?.members.length ? disclosure('Nodes in this review (' + model.members.length + ')',
+    if (type === 'sources') content = [model?.members.length ? disclosure('Nodes in this review (' + model.members.length + ')',
         styled('div', 'actions', model.members.map(node => nodeButton(node, () => inspect([node.id], node.label))))) : null,
-      evidenceView(live, state, session, selected, model, replay)];
-    else if (inspection.type === 'export') content = exportReview.disabled
-      ? el('p', 'Export requires a settled comparison and verified final Governance observations.')
-      : markdownEditor(model, selected.draft, map);
-    else if (inspection.type === 'nodes' && nodes.length === 1) content = nodeDetails(nodes[0]);
-    else {
-      const item = model?.dimensions.find(item => item.key === inspection.key);
-      const first = row ? metricDetails(row) : item ? el('div', el('p', item.help), dimensionSummary(item), coefficientLine(item))
-        : inspection.key ? el('p', pendingLabel(state, inspection.key)) : null;
-      content = [first, nodes.length ? el('div', el('h4', 'Nodes in this group'),
-        styled('div', 'actions', nodes.map(node => nodeButton(node, () => inspect([node.id], node.label))))) : null];
+      distributions(), evidenceView(live, state, session, selected, model, replay)];
+    else if (type === 'export') {
+      const isCurrent = () => active() && !exportReview.disabled && inspection?.snapshot === snapshot
+        && model?.calculation?.inputHash === snapshot.scope.inputHash && model?.step === snapshot.scope.step
+        && model?.order === snapshot.scope.order && model?.subnet === snapshot.scope.subnet;
+      content = isCurrent() ? (inspection.editor ??= markdownEditor(snapshot, selected.draft, isCurrent))
+        : el('p', 'Generate the review again after the selected calculation and final Governance verification settle.');
     }
+    else if (node) content = [el('p', roles[node.role].label), nodeDetails(node)];
     const readiness = ({ Finished: 'Data loading complete', Provisional: 'Provisional · Governance check failed',
       Stopped: state.work === 'stopping' ? 'Stopping' : 'Stopped', Blocked: 'Review blocked' })[state.stage] ?? 'Review in progress';
     replace(inspector, styled('div', 'inspector-heading', heading, action('Close details', close)),
@@ -327,7 +298,6 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     replace(limit, el('span', assignmentCoverage(live, selected), ' ',
       help('Assignment coverage', 'Which subnet memberships were checked for the nodes involved. Assignments outside that scope remain unverified.')),
       model?.evidenceNotes.map(note => el('span', ' ', note)));
-    const changed = model?.members.filter(node => node.role !== 'Retained') ?? [];
     const steps = selected?.scenario.steps.slice(0, selected.index) ?? [];
     const terminal = model ? [] : proposals.filter(proposal => steps.some(step => step.proposal === proposal.id))
       .flatMap(proposal => {
@@ -337,45 +307,26 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     grid.hidden = terminal.length > 0;
     limit.hidden = grid.hidden;
     exportReview.hidden = grid.hidden;
-    changedNodes.hidden = !changed.length;
-    replace(changedNodes, changed.map(node => nodeButton(node, () => inspect([node.id], node.label))));
     replace(summary,
-      model ? el('strong', model.membership) : terminal.length ? terminal : el('strong', 'Proposed membership unavailable'),
+      model ? [el('strong', model.membership), el('p', model.summary)] : terminal.length ? terminal : el('strong', 'Proposed membership unavailable'),
       subnetLabel && !terminal.length ? el('span', subnetLabel + ' · Registry ' + number(version), ' ',
+        model ? '· ' + (model.ids.length > 1 ? model.scenario + ' · ' : '') + model.stateLabel + ' ' : '',
         help('Registry snapshot', 'The version used for every Registry record in this review. Governance has its own observation times.')) : null,
       state.consistency?.reason ? el('p', state.consistency.blocked ? state.consistency.reason
         : 'Provisional · ' + state.consistency.reason) : null,
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
     replace(verification, selected?.state ? readinessLine(state) : null);
-    topology.setAttribute('aria-busy', String(!model?.calculation && (state.work === 'running' || state.work === 'stopping')));
-    navigation.hidden = !model?.calculation;
-    const rows = model?.composition ?? [];
-    const displayed = rows.filter(row => dimension === 'overview' ? row.featured : row.key === dimension);
-    const item = model?.dimensions.find(item => item.key === dimension);
-    const changedCoefficients = model?.dimensions.filter(item => item.coefficientChanged) ?? [];
-    replace(compositionSummary, item ? [...dimensionSummary(item), coefficientLine(item)]
-      : changedCoefficients.length ? styled('div', 'composition-coefficients',
-        el('span', 'Changed Nakamoto coefficients ', help('Nakamoto coefficient', thresholdNote)),
-        changedCoefficients.map(item => action(item.label + ' · ' + item.coefficient.text,
-          () => inspect({ type: 'metric', key: item.key })))) : null);
-    replace(tableBody, displayed.length ? displayed.map(row => el('tr',
-      el('td', styled('span', 'measure-label',
-        action(row.label + ' · ' + row.groupLabel, () => inspect({ type: 'group', key: row.key, group: row.group })),
-        help(row.label, row.help)), row.note ? el('small', row.note) : null),
-      el('td', deltaNode(row.delta)))) : model && !model.calculation ? Object.entries(metrics).map(([key, info]) => el('tr',
-        el('td', styled('span', 'measure-label', action(info.label, () => inspect({ type: 'metric', key })), help(info.label, info.help))),
-      el('td', pendingLabel(state, key)))) : el('tr', Object.assign(el('td', !model
-          ? 'A proposed membership state is unavailable.' : rows.length && dimension === 'overview'
-            ? 'Choose a dimension to see its recorded groups.' : 'No groups have recorded evidence for this selection.'), { colSpan: 2 })));
-    map.update(model, selectionIds(), state.consistency?.blocked ? 'Review blocked · Governance changed'
+    renderTables();
+    map.update(model, state.consistency?.blocked ? 'Review blocked · Governance changed'
       : 'Map unavailable · Required membership evidence');
     exportReview.disabled = !model?.calculation || !model.finalVerified || state.work !== 'settled';
     retry.hidden = !state.retryable;
     if (inspection) renderInspector();
+    else inspector.hidden = true;
   }
 
-  return { section, session, start: chooseScope, inspect, openPerformance() {
+  return { section, session, dispose: () => narrow.removeEventListener('change', renderTables), start: chooseScope, inspect, openPerformance() {
     if (!pane.contains(performance.section)) pane.replaceChildren(performance.section);
     pane.hidden = false;
     performance.visible(true);

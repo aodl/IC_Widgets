@@ -2,7 +2,7 @@ import { activeReplay, connect, liveError, replays, result } from './client.js';
 import { replayLabel } from './detail-model.js';
 import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
-import { reviewMap } from './review-map.js';
+import { reviewMap } from './map-interaction.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
 import { el, option, sourceReceipts, styled } from './view.js';
@@ -36,6 +36,7 @@ if (FIXTURE_REPLAY && activeReplay) {
 let generation = 0;
 let connection;
 let current;
+let currentMap;
 let previewTask;
 let timer;
 let request;
@@ -142,11 +143,13 @@ search.addEventListener('submit', event => {
   const ticket = ++generation;
   const active = () => generation === ticket;
   current?.session.stop();
+  current?.dispose();
+  currentMap?.dispose();
   current = undefined;
   const thisRequest = request = { segment: Date.now(), elapsed: 0, stopped: false };
   performance.scope(undefined);
   performance.visible(false);
-  const map = reviewMap((...args) => current?.inspect(...args), active);
+  const map = currentMap = reviewMap();
   const mapHost = map.section;
   map.update();
   reportContainer.replaceChildren(styled('div', 'workspace waiting-workspace',
@@ -162,13 +165,14 @@ search.addEventListener('submit', event => {
       const live = result(response);
       if ('Err' in live.outcome) {
         status({ work: 'settled', stage: 'Blocked', reason: liveError(live.outcome.Err) });
-        map.update(undefined, [], 'Map unavailable · Required membership evidence');
+        map.update(undefined, 'Map unavailable · Required membership evidence');
         reportContainer.append(styled('section', 'card', el('h3', 'Evidence'), sourceReceipts(live)));
         return;
       }
       const body = live.outcome.Ok;
       const proposals = body.report.manifest.proposals;
       if (proposals.length && proposals.every(terminalOutcome)) {
+        map.dispose();
         const titles = option(body.proposal_text ?? []) ?? [];
         const indexedFailure = FIXTURE_REPLAY && activeReplay?.proposalIds.length === 1 ? activeReplay.failureReason : undefined;
         reportContainer.replaceChildren(styled('section', 'card terminal-outcome',
@@ -186,11 +190,11 @@ search.addEventListener('submit', event => {
       current.start();
     } catch (error) {
       if (!active() || thisRequest.stopped) return;
-      map.update(undefined, [], 'The map needs supported membership evidence for this review.');
+      map.update(undefined, 'The map needs supported membership evidence for this review.');
       status({ work: 'settled', stage: 'Blocked', reason: error.message });
     } finally {
       if (active() && thisRequest.stopped) {
-        map.update(undefined, [], 'Not loaded · Review stopped');
+        map.update(undefined, 'Not loaded · Review stopped');
         status({ work: 'stopped', stage: 'Stopped' });
       }
     }

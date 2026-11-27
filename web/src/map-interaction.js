@@ -1,0 +1,407 @@
+import { absent, geographyNote, nodeFields, roles, roleSummary } from './detail-model.js';
+import { clamp, drawMap, fitLocations, mapCoverage, mapLocations, mapProjection, mapScene, pointDistance, siteLabel } from './review-map.js';
+import { action, deltaNode, el, styled } from './view.js';
+
+const targetRadius = 14;
+const midpoint = (a, b) => b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : a;
+const world = { lon: 0, lat: 0, scale: 1 };
+const siteHeading = site => {
+  const region = site.nodes.find(node => node.region)?.region.split(',').map(part => part.trim());
+  return [site.id, region && [region[2], region[1]].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Registered location';
+};
+const uniqueCount = nodes => nodes.length + ' unique ' + (nodes.length === 1 ? 'node' : 'nodes') + ' represented across the two states';
+const locationTitle = location => location.sites.map(siteHeading).join(' / ');
+const siteCounts = site => site.count ? 'Subnet members: ' + site.count.text : '';
+
+export function nodeDetails(node) {
+  const id = Object.assign(el('input'), { value: node.id, readOnly: true });
+  id.setAttribute('aria-label', 'Full node principal');
+  const status = el('span');
+  status.setAttribute('role', 'status');
+  const field = (label, value) => el('div', el('dt', label), el('dd', value));
+  const [, dc, owner, provider, operator] = nodeFields(node);
+  return styled('div', 'node-detail', id, action('Copy node ID', async () => {
+    try {
+      await navigator.clipboard.writeText(node.id);
+      status.textContent = 'Node ID copied.';
+    } catch {
+      id.select();
+      status.textContent = document.execCommand('copy') ? 'Node ID copied.' : 'Select and copy the node ID.';
+    }
+  }), status, el('dl',
+    field('Data center', dc.text), field('Registered owner', owner.text),
+    field('Registered region', node.region || node.centerIssue || absent),
+    field('Provider', provider.text), field('Operator', operator.text),
+    field('Coordinates', node.point ? node.point.lat + ', ' + node.point.lon : node.locationIssue || absent)));
+}
+
+let nextId = 0;
+export function reviewMap() {
+  let geography = mapLocations([]);
+  let view = world;
+  let scope;
+  let reason;
+  let scene, projection, viewport;
+  let selected, expanded, choices, hovered, hoverTimer, suppressedHover, described;
+  let centerMode = false;
+  const buttons = new Map();
+  const canvas = el('canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  const ctx = canvas.getContext('2d');
+  const pins = styled('div', 'map-pins');
+  const panel = styled('section', 'map-popup');
+  panel.setAttribute('role', 'region');
+  panel.setAttribute('aria-label', 'Map location details');
+  panel.id = 'map-location-' + ++nextId;
+  panel.hidden = true;
+  const tooltip = styled('div', 'map-tooltip');
+  tooltip.id = 'map-summary-' + nextId;
+  tooltip.setAttribute('role', 'tooltip');
+  tooltip.hidden = true;
+  const surface = styled('div', 'map-surface', canvas, pins);
+  const frame = styled('div', 'map-frame', surface, tooltip, panel);
+  frame.tabIndex = 0;
+  frame.setAttribute('role', 'group');
+  frame.setAttribute('aria-label', 'Map of registered locations');
+  const caption = styled('p', 'map-coverage');
+  const overflow = styled('p', 'map-facilities');
+  const unmapped = el('details');
+  const status = styled('span', 'map-navigation-status');
+  status.setAttribute('role', 'status');
+  const legend = styled('div', 'map-legend', Object.values(roles).map(({ label, color }) => {
+    const dot = styled('span', 'map-symbol');
+    dot.style.background = color;
+    return el('span', dot, label);
+  }));
+  const zoomLevel = el('select', [1, 2, 4, 8, 12].map(scale => Object.assign(el('option', scale + '×'), { value: scale })));
+  zoomLevel.addEventListener('change', () => zoom(Number(zoomLevel.value), middle()));
+  const center = action('Center on a point', () => {
+    centerMode = !centerMode;
+    center.setAttribute('aria-pressed', String(centerMode));
+    status.textContent = centerMode ? 'Click or tap a point on the map to center it.' : '';
+    surface.toggleAttribute('data-centering', centerMode);
+  });
+  center.setAttribute('aria-pressed', 'false');
+  const controls = styled('details', 'map-help', el('summary', 'Map help'),
+    el('p', 'Drag to pan. Scroll or pinch to zoom. With map focus, use arrows to pan, + or − to zoom, and Escape to close details.'),
+    el('p', geographyNote), styled('div', 'actions', el('label', 'Zoom level ', zoomLevel), center,
+      action('Fit all locations', () => { if (viewport) { view = fitLocations(geography.locations, viewport); draw(); } })), status);
+  const section = styled('section', 'map-section', styled('div', 'map-heading', el('h3', 'Map')),
+    frame, styled('div', 'map-caption', legend, caption), overflow, unmapped, controls);
+
+  function renderTooltip() {
+    const location = scene?.visible.find(item => item.key === hovered);
+    tooltip.hidden = !location || selected !== undefined || choices !== undefined || suppressedHover === hovered;
+    described?.removeAttribute('aria-describedby');
+    described = undefined;
+    if (tooltip.hidden) return;
+    described = buttons.get(hovered);
+    described?.setAttribute('aria-describedby', tooltip.id);
+    tooltip.replaceChildren(el('strong', locationTitle(location)), el('span', roleSummary(location.nodes)),
+      el('span', uniqueCount(location.nodes)));
+    tooltip.style.left = clamp(location.x - tooltip.offsetWidth / 2, 2, viewport.width - tooltip.offsetWidth - 2) + 'px';
+    tooltip.style.top = (location.y > tooltip.offsetHeight + 12 ? location.y - tooltip.offsetHeight - 8 : location.y + 8) + 'px';
+  }
+
+  function showSummary(key) {
+    clearTimeout(hoverTimer);
+    hoverTimer = undefined;
+    if (hovered !== key) suppressedHover = undefined;
+    hovered = key;
+    renderTooltip();
+  }
+
+  function leaveSummary(key) {
+    if (hoverTimer) return;
+    hoverTimer = setTimeout(() => {
+      hoverTimer = undefined;
+      if (hovered === key && !tooltip.matches(':hover') && document.activeElement !== buttons.get(key)) showSummary(undefined);
+    }, 200);
+  }
+  tooltip.addEventListener('pointerenter', () => {
+    clearTimeout(hoverTimer);
+    hoverTimer = undefined;
+  });
+  tooltip.addEventListener('pointerleave', () => leaveSummary(hovered));
+
+  function outside(event) { if (!frame.contains(event.target)) close(false); }
+
+  function close(restore = true) {
+    const trigger = buttons.get(selected);
+    selected = expanded = choices = undefined;
+    document.removeEventListener('pointerdown', outside, true);
+    panel.hidden = true;
+    for (const button of buttons.values()) button.setAttribute('aria-expanded', 'false');
+    suppressedHover = hovered;
+    if (restore) (trigger && !trigger.hidden ? trigger : frame).focus({ preventScroll: true });
+    suppressedHover = hovered;
+    renderTooltip();
+  }
+
+  function open(key) {
+    selected = key;
+    expanded = choices = undefined;
+    for (const [id, button] of buttons) button.setAttribute('aria-expanded', String(id === key));
+    renderPanel(true);
+  }
+
+  function renderPanel(focus = false) {
+    if (selected === undefined && !choices) return;
+    const location = scene.visible.find(item => item.key === selected);
+    if (selected !== undefined && !location) {
+      close(panel.contains(document.activeElement));
+      return;
+    }
+    const restore = panel.contains(document.activeElement) ? document.activeElement.dataset.mapNode : undefined;
+    const closeButton = action('Close', () => close());
+    closeButton.setAttribute('aria-label', 'Close map details');
+    const title = el('h4', location ? locationTitle(location) : 'Choose a location');
+    const content = location ? location.sites.map(site => {
+      const records = site.nodes.sort((a, b) => Object.keys(roles).indexOf(a.role) - Object.keys(roles).indexOf(b.role)
+        || a.id.localeCompare(b.id));
+      const owner = records.find(node => node.owner)?.owner;
+      return styled('section', 'map-popup-site',
+        location.sites.length > 1 ? el('h5', siteHeading(site)) : null,
+        site.count ? el('strong', 'Subnet members: ', deltaNode(site.count)) : null,
+        owner ? el('p', 'Registered owner: ' + owner) : null,
+        el('p', roleSummary(records)), el('p', uniqueCount(records)),
+        el('ul', records.map(node => {
+          const button = action(roles[node.role].label + ' ' + node.label, () => {
+            expanded = expanded === node.id ? undefined : node.id;
+            renderPanel();
+          });
+          button.dataset.mapNode = node.id;
+          button.style.color = roles[node.role].color;
+          button.setAttribute('aria-expanded', String(expanded === node.id));
+          return el('li', button, expanded === node.id ? nodeDetails(node) : null);
+        })));
+    }) : choices.map(item => action(locationTitle(item), () => open(item.key)));
+    panel.replaceChildren(styled('div', 'map-popup-heading', title, closeButton), ...content);
+    panel.hidden = false;
+    document.addEventListener('pointerdown', outside, true);
+    renderTooltip();
+    if (focus) closeButton.focus({ preventScroll: true });
+    else if (restore) [...panel.querySelectorAll('[data-map-node]')].find(button => button.dataset.mapNode === restore)?.focus({ preventScroll: true });
+  }
+
+  function draw(refreshPanel = false) {
+    if (surface.clientWidth < 29 || surface.clientHeight < 29) return;
+    viewport = { width: surface.clientWidth, height: surface.clientHeight };
+    projection = mapProjection(viewport, view);
+    frame.dataset.mapScale = String(view.scale);
+    scene = mapScene(geography, projection.project, viewport);
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.round(viewport.width * ratio), height = Math.round(viewport.height * ratio);
+    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    ctx.setTransform(width / viewport.width, 0, 0, height / viewport.height, 0, 0);
+    drawMap(ctx, scene, projection.project);
+    const visible = new Set(scene.visible.map(location => location.key));
+    for (const [key, button] of buttons) {
+      if (!visible.has(key) && document.activeElement === button) frame.focus({ preventScroll: true });
+      button.hidden = !visible.has(key);
+    }
+    for (const location of scene.visible) {
+      const { x, y, key } = location;
+      let button = buttons.get(key);
+      if (!button) {
+        button = styled('button', 'map-pin');
+        button.type = 'button';
+        button.setAttribute('aria-controls', panel.id);
+        button.addEventListener('click', event => { if (event.detail === 0) open(key); });
+        button.addEventListener('focus', () => showSummary(key));
+        button.addEventListener('blur', () => leaveSummary(key));
+        buttons.set(key, button);
+        pins.append(button);
+      }
+      button.hidden = false;
+      button.setAttribute('aria-label', [locationTitle(location), ...location.sites.map(siteCounts), roleSummary(location.nodes),
+        uniqueCount(location.nodes)].filter(Boolean).join(' · '));
+      button.setAttribute('aria-expanded', String(selected === key));
+      button.style.left = x + 'px';
+      button.style.top = y + 'px';
+      button.dataset.location = key;
+      button.dataset.nodes = location.nodes.map(node => node.id).join(' ');
+    }
+    if (selected !== undefined && !visible.has(selected)) close(panel.contains(document.activeElement));
+    else if (refreshPanel) renderPanel();
+    renderTooltip();
+    caption.textContent = scope ? mapCoverage(geography) : reason ?? 'Registered locations appear as evidence loads.';
+    frame.dataset.changedSiteLabels = scene.labels.filter(label => label.site).map(label => label.text).join(' | ');
+    overflow.textContent = scene.overflow.length ? 'Changed sites outside map labels: ' + scene.overflow.map(siteLabel).join(' · ') : '';
+  }
+
+  const middle = () => ({ x: viewport.width / 2, y: viewport.height / 2 });
+  const local = ({ clientX, clientY }) => ({ x: clientX - surface.getBoundingClientRect().left, y: clientY - surface.getBoundingClientRect().top });
+  function moveAt(anchor, to, scale) {
+    const { unit } = mapProjection(viewport, { scale });
+    const center = middle();
+    view = { scale, lon: clamp(anchor.lon - (to.x - center.x) / unit, -180, 180),
+      lat: clamp(anchor.lat + (to.y - center.y) / unit, -90, 90) };
+    draw();
+  }
+  function zoom(scale, at) { moveAt(projection.unproject(at), at, clamp(scale, 0.7, 12)); }
+
+  const pointers = new Map();
+  let gesture, tapPoint;
+  let moved = false;
+  function resetGesture() {
+    const [a, b] = pointers.values();
+    if (!a) { gesture = undefined; return; }
+    const center = midpoint(a, b);
+    gesture = { center, anchor: projection.unproject(center), scale: view.scale, gap: b ? pointDistance(a, b) : 0 };
+  }
+  surface.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || pointers.size >= 2 || !projection) return;
+    tapPoint = undefined;
+    if (pointers.size === 0) moved = false;
+    else moved = true;
+    pointers.set(event.pointerId, local(event));
+    resetGesture();
+    if (event.pointerType !== 'touch') event.preventDefault();
+    if (moved) {
+      showSummary(undefined);
+      for (const id of pointers.keys()) surface.setPointerCapture(id);
+    }
+  });
+  surface.addEventListener('pointermove', event => {
+    if (!pointers.has(event.pointerId)) {
+      if (event.pointerType !== 'touch' && !pointers.size && scene) {
+        const point = local(event);
+        const nearest = scene.visible.reduce((best, item) => {
+          const distance = pointDistance(item, point);
+          return distance < (best?.distance ?? targetRadius) ? { key: item.key, distance } : best;
+        }, undefined);
+        if (nearest && nearest.key !== hovered) showSummary(nearest.key);
+        else if (!nearest && hovered !== undefined) leaveSummary(hovered);
+      }
+      return;
+    }
+    pointers.set(event.pointerId, local(event));
+    const [a, b] = pointers.values();
+    const center = midpoint(a, b);
+    if (!moved && pointDistance(center, gesture.center) < 5) return;
+    if (!moved) {
+      moved = true;
+      surface.setPointerCapture(event.pointerId);
+      showSummary(undefined);
+    }
+    const scale = b && gesture.gap > 0 ? gesture.scale * pointDistance(a, b) / gesture.gap : gesture.scale;
+    moveAt(gesture.anchor, center, clamp(scale, 0.7, 12));
+  });
+  function finish(event) {
+    if (!pointers.has(event.pointerId)) return;
+    const point = local(event);
+    const tap = event.type === 'pointerup' && !moved && pointDistance(point, gesture.center) < 5;
+    pointers.delete(event.pointerId);
+    resetGesture();
+    if (tap) tapPoint = point;
+  }
+  // Open on the click so the touch-generated click cannot activate a newly mounted chooser button.
+  surface.addEventListener('click', event => {
+    if (event.detail === 0 || !tapPoint) return;
+    const point = tapPoint;
+    tapPoint = undefined;
+    if (centerMode) {
+      moveAt(projection.unproject(point), middle(), view.scale);
+      center.click();
+      return;
+    }
+    const hits = scene.visible.filter(item => pointDistance(item, point) <= targetRadius);
+    if (hits.length === 1) open(hits[0].key);
+    else if (hits.length > 1) {
+      selected = expanded = undefined;
+      choices = hits;
+      renderPanel(true);
+    } else if (!panel.hidden) close(false);
+    else frame.focus({ preventScroll: true });
+  });
+  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave']) {
+    surface.addEventListener(event, input => {
+      const onSurface = surface.hasPointerCapture(input.pointerId);
+      if (event === 'pointerleave') {
+        if (!pointers.size) leaveSummary(hovered);
+        if (onSurface) return;
+      }
+      // Touch starts with implicit capture on the canvas. Transferring capture keeps that pointer active.
+      if (event === 'lostpointercapture' && input.target !== surface && onSurface) return;
+      finish(input);
+    });
+  }
+  surface.addEventListener('wheel', event => {
+    if (event.ctrlKey || event.metaKey || !projection) return;
+    event.preventDefault();
+    const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.height : 1);
+    zoom(view.scale * Math.exp(clamp(-delta * 0.002, -0.7, 0.7)), local(event));
+  }, { passive: false });
+  frame.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      if (!panel.hidden) close();
+      else {
+        if (centerMode) center.click();
+        for (const id of pointers.keys()) {
+          if (surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
+        }
+        pointers.clear();
+        gesture = undefined;
+        suppressedHover = hovered;
+        renderTooltip();
+      }
+      return;
+    }
+    if (panel.contains(event.target) || event.ctrlKey || event.metaKey || !projection) return;
+    const pan = { ArrowLeft: [-32, 0], ArrowRight: [32, 0], ArrowUp: [0, -32], ArrowDown: [0, 32] }[event.key];
+    if (pan) moveAt(projection.unproject({ x: middle().x + pan[0], y: middle().y + pan[1] }), middle(), view.scale);
+    else if (['+', '=', '-', '−'].includes(event.key)) zoom(view.scale * (['+', '='].includes(event.key) ? 1.5 : 1 / 1.5), middle());
+    else return;
+    event.preventDefault();
+  });
+
+  function dismissFromOutside(event) {
+    if (event.key !== 'Escape' || frame.contains(event.target)) return;
+    if (!panel.hidden) close(false);
+    else if (!tooltip.hidden) {
+      suppressedHover = hovered;
+      renderTooltip();
+    }
+  }
+  document.addEventListener('keydown', dismissFromOutside);
+
+  const observer = new ResizeObserver(() => draw());
+  observer.observe(surface);
+  return {
+    section,
+    dispose() {
+      document.removeEventListener('keydown', dismissFromOutside);
+      observer.disconnect();
+      clearTimeout(hoverTimer);
+      close(false);
+    },
+    update(model, message) {
+      const nextScope = model && [model.order, ...model.ids, model.subnet, model.step, model.version].join('/');
+      if (nextScope !== scope) {
+        scope = nextScope;
+        view = world;
+        close(false);
+        showSummary(undefined);
+        buttons.clear();
+        pins.replaceChildren();
+      }
+      reason = message;
+      geography = mapLocations(model?.members ?? []);
+      unmapped.hidden = !geography.unmapped.length;
+      const focusKey = unmapped.contains(document.activeElement) ? document.activeElement.dataset.node : undefined;
+      const openNodes = new Set([...unmapped.querySelectorAll('details[open] > summary')].map(item => item.dataset.node));
+      unmapped.replaceChildren(el('summary', 'Unmapped nodes (' + geography.unmapped.length + ')'),
+        el('ul', geography.unmapped.map(node => {
+          const label = [roles[node.role].label + ' ' + node.label, node.dc, node.locationIssue].filter(Boolean).join(' · ');
+          const summary = el('summary', label);
+          summary.dataset.node = node.id;
+          const details = el('details', summary, nodeDetails(node));
+          details.open = openNodes.has(node.id);
+          return el('li', details);
+        })));
+      if (focusKey) [...unmapped.querySelectorAll('summary')].find(item => item.dataset.node === focusKey)?.focus({ preventScroll: true });
+      draw(true);
+    },
+  };
+}

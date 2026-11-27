@@ -76,3 +76,28 @@ export function renderPerformance(history, filter, section) {
   section.replaceChildren(el('label', 'Sample time', select), output);
   draw();
 }
+
+export function action(label, run) {
+  const item = el('button', label);
+  item.type = 'button';
+  item.addEventListener('click', run);
+  return item;
+}
+
+export function saveFile(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const anchor = el('a');
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function deltaNode(delta) {
+  if (!delta?.before) return el('span', delta?.text ?? 'Unavailable');
+  const display = el('span', delta.before, styled('span', delta.direction > 0 ? 'delta-up' : delta.direction < 0 ? 'delta-down' : '',
+    ' → ' + delta.after));
+  display.setAttribute('aria-label', delta.accessible);
+  display.setAttribute('role', 'img');
+  return display;
+}

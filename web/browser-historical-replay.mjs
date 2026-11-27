@@ -17,8 +17,10 @@ const id = execFileSync('dfx', ['canister', 'id', '--network', 'local', 'fronten
   cwd: project, env: { ...process.env, DFX_IDENTITY: 'codex_local' }, encoding: 'utf8',
 }).trim();
 const publicUrl = process.env.NEXUS_REPLAY_PUBLIC_URL;
-const url = new URL(publicUrl ?? 'http://' + id + '.localhost:' + port);
-if (publicUrl && url.protocol !== 'https:') throw new Error('Public replay URL requires HTTPS.');
+const url = new URL(publicUrl ?? process.env.NEXUS_REPLAY_LOCAL_URL ?? 'http://' + id + '.localhost:' + port);
+if (publicUrl ? url.protocol !== 'https:' : url.protocol !== 'http:' || !/^(?:127\.0\.0\.1|[-a-z0-9]+\.localhost)$/.test(url.hostname)) {
+  throw new Error('Use the isolated loopback replay or a public HTTPS replay.');
+}
 await mkdir(output, { recursive: true });
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
@@ -27,6 +29,7 @@ const page = await browser.newPage({ viewport: { width: 1366, height: 900 }, acc
 const external = [];
 const errors = [];
 const calls = new Map();
+let backendRequests = 0;
 const methods = idlFactory({ IDL }).fieldsAsObject();
 await page.route('**/*', route => {
   if (new URL(route.request().url()).origin === url.origin) return route.continue();
@@ -35,13 +38,14 @@ await page.route('**/*', route => {
 });
 page.on('pageerror', error => errors.push(error.message));
 page.on('request', request => {
+  if (new URL(request.url()).pathname.startsWith('/api/')) backendRequests++;
   if (!/\/canister\/[^/]+\/call$/.test(request.url())) return;
   const { content } = Cbor.decode(new Uint8Array(request.postDataBuffer()));
   calls.set(Buffer.from(requestIdOf(content)).toString('hex'), content.method_name);
 });
 const count = method => [...calls.values()].filter(name => name === method).length;
 const review = () => page.getByRole('button', { name: 'Review', exact: true }).click();
-const exportButton = () => page.getByRole('button', { name: 'Export review', exact: true });
+const exportButton = () => page.getByRole('button', { name: 'Generate review', exact: true });
 const settled = () => page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });
 const select = async name => {
   await page.getByLabel('Replay scenario').selectOption(name);
@@ -59,47 +63,23 @@ const resize = async (width, height) => {
   assert.ok(documentWidth <= width, 'Viewport ' + width + 'px overflows to ' + documentWidth + 'px');
 };
 const mapChecks = [];
-const checkHitTargets = async () => {
-  const mapTop = await page.locator('.map-frame').evaluate(map => Math.round(map.getBoundingClientRect().top + scrollY));
-  assert.ok(mapTop < page.viewportSize().height, 'The map starts below the first viewport.');
-  await page.locator('.map-frame').scrollIntoViewIfNeeded();
-  const result = await page.locator('.map-pin:visible').evaluateAll(nodes => ({
-    count: nodes.length,
-    minimumTarget: Math.floor(Math.min(...nodes.map(node => node.getBoundingClientRect().width))),
-    glyphSizes: [...new Set(nodes.map(node => node.querySelector('.map-glyph').getBoundingClientRect().width))].sort((a, b) => a - b),
-    maximumDisplacement: Math.ceil(Math.max(...nodes.map(node => Math.hypot(
-      parseFloat(node.style.left) - Number(node.dataset.anchorX),
-      parseFloat(node.style.top) - Number(node.dataset.anchorY))))),
-    allHit: nodes.every(node => {
-      const { left, top, width, height } = node.getBoundingClientRect();
-      return document.elementFromPoint(left + width / 2, top + height / 2) === node && node.tabIndex === 0;
-    }),
-  }));
-  assert.equal(result.count, 41);
-  assert.equal(result.allHit, true);
-  assert.deepEqual(result.glyphSizes, [8, 20]);
-  assert.ok(result.maximumDisplacement <= 48, 'Every glyph stays near its registered anchor.');
-  const world = await page.locator('.map-pin.role-added').getAttribute('data-anchor-y');
-  await page.getByRole('button', { name: 'Focus changes', exact: true }).click();
-  await page.locator('.map-frame').scrollIntoViewIfNeeded();
-  const regional = await page.locator('.map-pin:visible').evaluateAll(nodes => ({
-    count: nodes.length,
-    changed: nodes.filter(node => !node.classList.contains('role-retained')).length,
-    maximumDisplacement: Math.ceil(Math.max(...nodes.map(node => Math.hypot(
-      parseFloat(node.style.left) - Number(node.dataset.anchorX), parseFloat(node.style.top) - Number(node.dataset.anchorY))))),
-    allHit: nodes.every(node => {
-      const { left, top, width, height } = node.getBoundingClientRect();
-      return document.elementFromPoint(left + width / 2, top + height / 2) === node;
-    }),
-  }));
-  assert.ok(regional.count < result.count);
-  assert.equal(regional.changed, 2);
-  assert.ok(regional.allHit);
-  assert.notEqual(await page.locator('.map-pin.role-added').getAttribute('data-anchor-y'), world);
-  await capture('focused-' + page.viewportSize().width);
-  await page.getByRole('button', { name: 'World', exact: true }).click();
-  assert.equal(await page.locator('.map-pin.role-added').getAttribute('data-anchor-y'), world);
-  mapChecks.push({ width: page.viewportSize().width, mapTop, ...result, regional });
+const frame = page.locator('.map-frame');
+const popup = page.getByRole('region', { name: 'Map location details' });
+const marker = name => frame.getByRole('button', { name: new RegExp('^' + name + ' ·') }).first();
+const point = async target => {
+  const { x, y, width, height } = await target.boundingBox();
+  return { x: x + width / 2, y: y + height / 2 };
+};
+const gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const closePopup = () => popup.getByRole('button', { name: 'Close map details' }).click();
+const openHelp = async () => {
+  if (!await page.locator('.map-help').evaluate(node => node.open)) await page.getByText('Map help', { exact: true }).click();
+};
+const fit = async () => {
+  await openHelp();
+  await page.getByRole('button', { name: 'Fit all locations' }).click();
+  await page.getByText('Map help', { exact: true }).click();
+  await frame.scrollIntoViewIfNeeded();
 };
 const download = async (button, filename) => {
   const pending = page.waitForEvent('download');
@@ -120,152 +100,211 @@ try {
   assert.equal(count('compare_membership_context'), 1);
   assert.equal(count('compare_membership_details'), 0);
   assert.equal(count('finalize_membership_review'), 1);
-  await page.getByText('40 members · 39 retained · 1 incoming · 1 outgoing', { exact: true }).waitFor();
+  await page.getByText('40 members · Add 1 · Remove 1 · Unchanged 39', { exact: true }).waitFor();
   await page.getByText(/Target subnet checked; assignments in the other 95 listed subnets were not checked/).waitFor();
-  await page.getByText(/41 nodes across both states · 41\/41 located · 41 shown/).waitFor();
-  await page.locator('.map-card').getByText(/Calculation · Complete · Governance · Final verification passed/).waitFor();
-  await page.locator('#local-notice').getByText(/Historical replay · Recorded Open proposal · Registry 66,013/).waitFor();
-  await page.getByText(/Recorded status: Open · Original Governance observation 2026-11-25 13:08:13.589 UTC/).waitFor();
-  await page.getByText(/No Target Topology limits have been assumed/).waitFor();
-  assert.equal(await page.getByRole('columnheader', { name: /^(Rule|Assessment)$/ }).count(), 0);
-  assert.doesNotMatch(await page.locator('.topology-card').innerText(), /Matches target|Exception unresolved|Identity unresolved|143190/);
-  for (const [name, value] of [
-    ['Data center · sh1', '2 → 3'], ['Data center · zh2', '1 → 0'],
-    ['Registered owner name · Digital Realty', '2 → 3'], ['Registered owner name · Everyware', '1 → 0'],
-    ['Recorded country label · SE', '2 → 3'], ['Recorded country label · CH', '3 → 2'],
-    ['Recorded country label · HK', '3'],
-    ['Node provider · bvcsg…mqe', '3'],
-  ]) {
-    const row = page.locator('.topology-card').getByRole('row').filter({ has: page.getByRole('button', { name, exact: true }) });
-    assert.equal((await row.getByRole('cell').last().textContent()).trim(), value);
-  }
-  const composition = page.locator('.topology-card');
-  const dimensions = composition.getByLabel('Composition dimension');
-  const coefficient = composition.getByRole('button', { name: 'Data center · 13 → 12', exact: true });
-  await coefficient.click();
-  await page.locator('.inspector').getByText(/Nakamoto coefficient.*13 → 12/).waitFor();
-  await page.keyboard.press('Escape');
-  await dimensions.selectOption('RegisteredCountry');
-  await composition.getByText(/Distinct recorded groups · 24/).waitFor();
-  await composition.getByText(/recorded groups are tied at 3 members/).waitFor();
-  await dimensions.selectOption('DataCenter');
-  await composition.getByText(/Distinct recorded groups · 39 → 38/).waitFor();
-  assert.equal(await composition.getByRole('row').count(), 40);
-  await dimensions.selectOption('overview');
-  const marker = role => page.locator('.map-pin.role-' + role + ':visible');
-  assert.equal(await marker('retained').count(), 39);
-  assert.equal(await marker('added').count(), 1);
-  assert.equal(await marker('removed').count(), 1);
-  assert.equal(new Set(await page.locator('.map-pin').evaluateAll(rows => rows.map(row => row.dataset.marker))).size, 41);
-  const incoming = marker('added');
-  const incomingId = await incoming.getAttribute('data-marker');
-  await incoming.focus();
-  await page.keyboard.press('Enter');
-  assert.equal(await page.getByLabel('Full node principal').inputValue(), incomingId);
-  await page.keyboard.press('Escape');
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.marker), incomingId);
-  await page.getByRole('button', { name: 'Focus changes', exact: true }).click();
-  assert.ok(await incoming.isVisible());
-  await page.getByRole('button', { name: 'World', exact: true }).click();
-  await checkHitTargets();
-  await capture('recorded-desktop');
-  await resize(390, 844);
-  const sh1 = page.locator('.map-pin[aria-label*=" · sh1 · "]:visible');
-  assert.equal(await sh1.count(), 3);
-  await checkHitTargets();
-  const targets = [...await sh1.all(), marker('removed')];
-  for (const target of targets) {
-    const id = await target.getAttribute('data-marker');
-    await target.tap();
-    assert.equal(await page.getByLabel('Full node principal').inputValue(), id);
-    await page.getByRole('button', { name: 'Close details' }).click();
-  }
-  await incoming.focus();
-  await resize(320, 700);
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.marker), incomingId);
-  await checkHitTargets();
-  await marker('removed').tap();
-  assert.equal(await page.getByLabel('Full node principal').inputValue(), await marker('removed').getAttribute('data-marker'));
-  await page.getByRole('button', { name: 'Close details' }).click();
-  await page.getByRole('button', { name: 'Focus changes', exact: true }).click();
-  for (const target of [...await sh1.all(), marker('removed')]) {
-    const id = await target.getAttribute('data-marker');
-    await target.tap();
-    assert.equal(await page.getByLabel('Full node principal').inputValue(), id);
-    await page.getByRole('button', { name: 'Close details' }).click();
-  }
-  await page.getByRole('button', { name: 'World', exact: true }).click();
-  await capture('recorded-320');
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await capture('recorded-mobile');
-  await page.setViewportSize({ width: 1366, height: 900 });
-  await page.getByRole('button', { name: 'Sources & details', exact: true }).click();
+  await page.getByText('41 unique nodes across both states · 41/41 located', { exact: true }).waitFor();
+  assert.equal(await page.locator('.map-pin').count(), 39);
+  const replicatedTables = [
+    ['6', '24', '39 → 38', '39 → 38', '38', '39 → 38'],
+    ['17', '3', '2 → 3', '2 → 3', '3', '2 → 3'],
+    ['1', '5', '13 → 12', '13 → 12', '12', '13 → 12'],
+    ['0 km', '7,367.0 km → 7,361.8 km', '19,461.4 km'],
+  ];
+  assert.deepEqual(await page.locator('.topology-card:not(.node-changes) tbody').evaluateAll(tables =>
+    tables.map(table => [...table.querySelectorAll('td')].map(cell => cell.textContent))), replicatedTables);
+  await page.getByText('780 of 780 pairs before and proposed.', { exact: true }).waitFor();
+  await page.getByText('Node threshold · 14', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Sources & details' }).click();
+  await page.getByText('Recorded distributions and maximum ties', { exact: true }).click();
+  await page.getByText('Country', { exact: true }).filter({ visible: true }).last().click();
+  await page.getByText('Largest known groups before · CH, HK, IN, KR, US, ZA', { exact: true }).waitFor();
+  await page.getByText('Largest known groups proposed · HK, IN, KR, SE, US, ZA', { exact: true }).waitFor();
   await page.getByText('Method and exact inputs', { exact: true }).click();
   const wire = await download('Download calculation input (Candid)', 'recorded-calculation.didbin');
   const digest = createHash('sha256').update(wire).digest('hex');
+  await page.getByRole('button', { name: 'Close details' }).click();
+  const sourceCalls = calls.size;
+  const localRequests = backendRequests;
+  assert.equal(count('membership_context_detail_page'), 6);
+  const recordedMethods = [...calls.values()];
+  const sh = marker('sh1'), zh = marker('zh2');
+  const shNodes = new Set(await sh.getAttribute('data-nodes').then(nodes => nodes.split(' ')));
+  assert.equal(shNodes.size, 3);
+  await frame.scrollIntoViewIfNeeded();
+  const startScroll = await page.evaluate(() => scrollY);
+  const shPoint = await point(sh);
+  await page.mouse.move(shPoint.x, shPoint.y);
+  const tooltip = page.getByRole('tooltip').filter({ hasText: 'Stockholm' });
+  await tooltip.waitFor();
+  await tooltip.hover();
+  await page.waitForTimeout(230);
+  assert.ok(await tooltip.isVisible());
+  await sh.focus();
+  await page.keyboard.press('Escape');
+  assert.ok(!await tooltip.isVisible());
+  await page.keyboard.press('Enter');
+  await popup.getByText('sh1 · Stockholm, SE', { exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => scrollY), startScroll);
+  await popup.getByText('Subnet members: 2 → 3', { exact: true }).waitFor();
+  await popup.getByText('Registered owner: Digital Realty', { exact: true }).waitFor();
+  for (const node of await popup.locator('[data-map-node]').all()) {
+    const id = await node.getAttribute('data-map-node');
+    await node.click();
+    assert.ok(shNodes.has(id));
+    assert.equal(await popup.getByLabel('Full node principal').inputValue(), id);
+    await popup.getByText('Provider', { exact: true }).waitFor();
+    await node.click();
+  }
+  assert.ok(!await page.locator('.inspector').isVisible());
+  await page.keyboard.press('Escape');
+  assert.equal(await sh.evaluate(node => document.activeElement === node), true);
+  assert.equal(await page.evaluate(() => scrollY), startScroll);
+
+  const beforeZoom = await point(sh);
+  const beforeSecond = await point(zh);
+  await page.mouse.move(beforeZoom.x, beforeZoom.y);
+  await page.mouse.wheel(0, -250);
+  await page.waitForFunction(({ key, old }) => {
+    const marker = [...document.querySelectorAll('.map-pin')].find(node => node.dataset.location === key);
+    return Math.abs(marker.getBoundingClientRect().left + 14 - old) > 3;
+  }, { key: await zh.getAttribute('data-location'), old: beforeSecond.x });
+  const wheelError = gap(await point(sh), beforeZoom);
+  assert.ok(wheelError <= 1, 'Wheel anchor error: ' + wheelError);
+  const beforeDrag = await point(sh);
+  await page.mouse.move(beforeDrag.x, beforeDrag.y);
+  await page.mouse.down();
+  await page.mouse.move(beforeDrag.x + 40, beforeDrag.y + 25, { steps: 6 });
+  await page.mouse.up();
+  assert.ok(gap(await point(sh), { x: beforeDrag.x + 40, y: beforeDrag.y + 25 }) <= 1);
+  assert.ok(!await popup.isVisible());
+  await frame.focus();
+  const beforeKey = await point(sh);
+  await page.keyboard.press('ArrowRight');
+  assert.ok(gap(await point(sh), { x: beforeKey.x - 32, y: beforeKey.y }) <= 1);
+  await page.keyboard.press('+');
+  await page.keyboard.press('-');
+  await fit();
+
+  for (const [width, height] of [[1366, 900], [768, 900], [390, 844], [320, 700]]) {
+    await resize(width, height);
+    await fit();
+    const expectedSummary = await sh.getAttribute('data-nodes');
+    assert.deepEqual(new Set(expectedSummary.split(' ')), shNodes);
+    assert.equal(await page.locator('.map-pin:visible').count(), 39);
+    assert.match(await frame.getAttribute('data-changed-site-labels'), /sh1 · 2 → 3 nodes.*zh2 · 1 → 0 nodes/);
+    assert.equal(await page.getByRole('button', { name: 'Focus changes' }).count(), 0);
+    const values = await page.locator('.topology-card:not(.node-changes) tbody').evaluateAll(tables =>
+      tables.map(table => [...table.querySelectorAll('td')].map(cell => cell.textContent)));
+    assert.deepEqual(values, replicatedTables);
+    await page.evaluate(() => scrollTo(0, 0));
+    await capture(width === 1366 ? 'recorded-desktop' : width === 390 ? 'recorded-mobile' : 'recorded-' + width);
+    mapChecks.push({ width, locations: 39, identities: 41 });
+  }
+
+  await resize(390, 844);
+  await openHelp();
+  await page.getByRole('button', { name: 'Center on a point' }).tap();
+  await frame.scrollIntoViewIfNeeded();
+  let where = await point(sh);
+  await page.touchscreen.tap(where.x, where.y);
+  await page.getByLabel('Zoom level').selectOption('4');
+  await page.getByText('Map help', { exact: true }).click();
+  await frame.scrollIntoViewIfNeeded();
+  assert.ok(gap(await point(sh), await point(frame)) <= 2);
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type, touches = []) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: touches });
+  const input = (anchor, dx, dy, id) => ({ x: anchor.x + dx, y: anchor.y + dy, id });
+  where = await point(sh);
+  await touch('touchStart', [input(where, 0, 0, 1)]);
+  await touch('touchMove', [input(where, 32, 20, 1)]);
+  await touch('touchEnd');
+  assert.ok(gap(await point(sh), input(where, 32, 20, 1)) <= 2);
+  assert.ok(!await popup.isVisible());
+  where = await point(sh);
+  const initialSeparation = gap(await point(zh), where);
+  await touch('touchStart', [input(where, -22, 0, 1)]);
+  await touch('touchStart', [input(where, -22, 0, 1), input(where, 22, 0, 2)]);
+  await touch('touchMove', [input(where, -42, 12, 1), input(where, 64, 12, 2)]);
+  await touch('touchEnd');
+  const pinchError = gap(await point(sh), input(where, 11, 12, 1));
+  assert.ok(pinchError <= 2, 'Pinch midpoint error: ' + pinchError);
+  assert.ok(gap(await point(zh), await point(sh)) > initialSeparation * 2);
+  assert.ok(!await popup.isVisible());
+  where = await point(sh);
+  await touch('touchStart', [input(where, 0, 0, 1)]);
+  await touch('touchMove', [input(where, 5, 12, 1)]);
+  await touch('touchCancel');
+  assert.ok(!await popup.isVisible());
+  where = await point(sh);
+  await page.touchscreen.tap(where.x, where.y);
+  assert.ok(await popup.isVisible());
+  assert.equal(await popup.locator('[data-map-node]').count(), 3);
+  await popup.getByRole('button', { name: /Add kaoz3/ }).tap();
+  assert.match(await popup.getByLabel('Full node principal').inputValue(), /^kaoz3/);
+  const inside = await popup.boundingBox(), boundary = await frame.boundingBox();
+  assert.ok(inside.width <= boundary.width && inside.height <= boundary.height);
+  await frame.screenshot({ path: resolve(output, 'recorded-mobile-popover.png') });
+  await closePopup();
+  await resize(320, 700);
+  await frame.scrollIntoViewIfNeeded();
+  where = await point(zh);
+  await page.touchscreen.tap(where.x, where.y);
+  await popup.getByRole('heading', { name: 'Choose a location' }).waitFor();
+  await popup.getByRole('button', { name: /^zh2 ·/ }).tap();
+  assert.match(await popup.innerText(), /Subnet members: 1 → 0/);
+  await popup.getByRole('button', { name: /Remove tg4ec/ }).tap();
+  assert.match(await popup.getByLabel('Full node principal').inputValue(), /^tg4ec/);
+  await closePopup();
+  assert.equal(calls.size, sourceCalls);
+  assert.equal(backendRequests, localRequests);
+  mapChecks.push({ wheelError, pinchError, toleranceCssPixels: 2 });
+
+  // Generate after panning and zooming. The report must use its own all-role scene.
   await exportButton().click();
-  await page.getByRole('checkbox', { name: /Retained/ }).uncheck();
-  assert.equal(await marker('retained').count(), 0);
-  const markdown = (await download('Download Markdown', 'recorded-review.md')).toString('utf8');
-  await page.evaluate(() => {
-    const clipboard = navigator.clipboard;
-    const write = clipboard.writeText.bind(clipboard);
-    clipboard.writeText = async value => {
-      await write(value);
-      window.copiedReview = value;
-    };
-    const exec = document.execCommand.bind(document);
-    document.execCommand = (command, ...args) => {
-      const field = document.activeElement;
-      const selected = field.value?.slice(field.selectionStart, field.selectionEnd);
-      const copied = exec(command, ...args);
-      if (copied && command === 'copy') window.copiedReview = selected;
-      return copied;
-    };
-  });
+  const bundle = resolve(output, 'recorded-review.zip');
+  await download('Download review', 'recorded-review.zip');
+  assert.equal(execFileSync('unzip', ['-Z1', bundle], { encoding: 'utf8' }), 'review.md\nmap.png\n');
+  const markdown = execFileSync('unzip', ['-p', bundle, 'review.md'], { encoding: 'utf8' });
+  const png = execFileSync('unzip', ['-p', bundle, 'map.png']);
+  await writeFile(resolve(output, 'review.md'), markdown);
+  await writeFile(resolve(output, 'map.png'), png);
   await page.getByRole('button', { name: 'Copy Markdown' }).click();
   await page.getByText('Review Markdown copied.', { exact: true }).waitFor();
-  assert.equal(await page.evaluate(() => window.copiedReview), markdown);
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), markdown);
   assert.ok(markdown.includes(digest));
   assert.match(markdown, /Recorded status: Open.*Original Governance observation 2026-11-25 13:08:13\.589 UTC.*Local replay served/);
   assert.match(markdown, /Original Registry observations/);
   assert.match(markdown, /Synthetic NNS-role supplement/);
-  assert.match(markdown, /Filter: Incoming, Outgoing/);
-  assert.doesNotMatch(markdown, /Full recorded distribution|other unchanged recorded groups/);
-  await page.getByRole('checkbox', { name: 'Include full recorded distribution' }).check();
-  const full = (await download('Download Markdown', 'recorded-review-full.md')).toString('utf8');
-  assert.ok(full.startsWith(markdown));
-  assert.match(full, /Full recorded distribution/);
-  assert.match(full, /### Node operator/);
-  assert.match(full, /### Recorded continent label/);
-  assert.doesNotMatch(markdown, /Matches target|Exception unresolved|Identity unresolved|143190/);
-  const png = await download('Export map PNG', 'recorded-map.png');
-  const checkPixels = await page.evaluate(async base64 => {
+  assert.match(markdown, /41 unique nodes across both states · 41\/41 located/);
+  assert.match(markdown, /Unchanged nodes \(39\)/);
+  assert.match(markdown, /7367029 \| 7361847/);
+  assert.match(markdown, /\]\(map\.png\)/);
+  assert.doesNotMatch(markdown, /## Reviewer (vote|summary)|Full recorded distribution|Matches target|143190/);
+  const colors = await page.evaluate(async base64 => {
     const raster = await createImageBitmap(new Blob([Uint8Array.from(atob(base64), char => char.charCodeAt(0))], { type: 'image/png' }));
     const bitmap = document.createElement('canvas');
     bitmap.width = raster.width;
     bitmap.height = raster.height;
     const context = bitmap.getContext('2d');
     context.drawImage(raster, 0, 0);
-    const map = document.querySelector('.map-frame');
-    const factor = raster.width / map.clientWidth;
-    const header = raster.height - Math.ceil(map.clientHeight * factor);
-    return [...map.querySelectorAll('button:not([hidden])')].map(button => ({
-      role: button.className.split(' ').at(-1),
-      pixel: [...context.getImageData((parseFloat(button.style.left) - 6) * factor,
-        header + (parseFloat(button.style.top) - 4) * factor, 1, 1).data].slice(0, 3),
-    }));
+    const data = context.getImageData(0, 230, bitmap.width, bitmap.height - 230).data;
+    const counts = [0, 0, 0];
+    for (let i = 0; i < data.length; i += 4) {
+      const role = [[8, 119, 72], [173, 38, 63], [49, 94, 128]].findIndex(rgb => rgb.every((value, j) => data[i + j] === value));
+      if (role >= 0) counts[role]++;
+    }
+    return counts;
   }, png.toString('base64'));
-  assert.deepEqual(Object.fromEntries(checkPixels.map(row => [row.role, row.pixel])),
-    { 'role-removed': [173, 38, 63], 'role-added': [8, 119, 72] });
-  await page.getByRole('checkbox', { name: /Retained/ }).check();
+  assert.ok(colors.every(count => count > 20) && colors[2] > 1000);
+  assert.equal(calls.size, sourceCalls);
+  assert.equal(backendRequests, localRequests);
+  await resize(1366, 900);
 
   await select('multiple-changes');
   await review();
   await settled();
-  await page.getByText('5 members · 3 retained · 2 incoming · 2 outgoing', { exact: true }).waitFor();
-  const changed = page.locator('.changed-nodes button');
+  await page.getByText('5 members · Add 2 · Remove 2 · Unchanged 3', { exact: true }).waitFor();
+  const changed = page.locator('.node-changes button');
   assert.equal(await changed.count(), 4);
   const expected = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
   const state = Object.values(expected.cases['multiple-changes'].scenarios.A[0])[0];
@@ -278,6 +317,12 @@ try {
   await page.getByRole('button', { name: 'Close details' }).click();
   await capture('constructed-multiple');
 
+  await select('unequal-change');
+  await review();
+  await settled();
+  await page.getByText(/Add 4 · Remove 1/).waitFor();
+  assert.equal(await page.locator('.node-changes button').count(), 5);
+
   await select('separate-add-remove');
   await review();
   await settled();
@@ -285,10 +330,30 @@ try {
   const step = page.getByLabel('Membership state');
   await order.selectOption('AThenB');
   await step.selectOption('1');
-  await page.locator('.review-summary').getByText(/3 → 4 members/).waitFor();
+  await page.locator('.review-summary > strong').filter({ hasText: /3 → 4 members/ }).waitFor();
+  const scopeReport = async (name, scenario) => {
+    await exportButton().click();
+    await download('Download review', name);
+    const archive = resolve(output, name);
+    const markdown = execFileSync('unzip', ['-p', archive, 'review.md'], { encoding: 'utf8' });
+    assert.match(markdown, scenario);
+    const hash = /Calculation input SHA-256 `([a-f0-9]{64})`/.exec(markdown)?.[1];
+    assert.ok(hash, 'Report must carry the accepted input digest');
+    const image = execFileSync('unzip', ['-p', archive, 'map.png']);
+    await page.getByRole('button', { name: 'Close details' }).click();
+    return { hash, image };
+  };
+  const a = await scopeReport('order-a-step-1.zip', /Proposal #85612 then Proposal #85622.*Step 1 of 2/);
   await order.selectOption('BThenA');
   await step.selectOption('1');
-  await page.locator('.review-summary').getByText(/3 → 2 members/).waitFor();
+  await page.locator('.review-summary > strong').filter({ hasText: /3 → 2 members/ }).waitFor();
+  const b = await scopeReport('order-b-step-1.zip', /Proposal #85622 then Proposal #85612.*Step 1 of 2/);
+  assert.notEqual(a.hash, b.hash);
+  assert.notDeepEqual(a.image, b.image);
+  await order.selectOption('AThenB');
+  await step.selectOption('1');
+  const again = await scopeReport('order-a-return.zip', /Proposal #85612 then Proposal #85622.*Step 1 of 2/);
+  assert.deepEqual(again, a);
   await capture('constructed-intermediate');
 
   for (const [name, label, note] of [
@@ -336,7 +401,7 @@ try {
   try {
     await review();
     await Promise.race([pending, page.locator('#review-counts').getByText(/^0 of 39 records settled/).waitFor()]);
-    await page.getByText(/41 locations pending/).waitFor();
+    await page.getByText(/41 locations loading/).waitFor();
     assert.equal(await page.getByText(/Unmapped nodes/).isVisible(), false);
     await capture('loading-locations');
   } finally {
@@ -344,7 +409,7 @@ try {
   }
   await settled();
   await page.unroute(detailRoute, waitForLocation);
-  await page.getByText(/41 nodes across both states · 38\/41 located/).waitFor();
+  await page.getByText(/41 unique nodes across both states · 38\/41 located/).waitFor();
   await capture('missing-locations');
 
   await select('untargeted-two-subnets');
@@ -426,15 +491,15 @@ try {
   await tabFinished(first);
   assert.equal(senders.size, 2);
   for (const tab of [first, second]) {
-    assert.ok(await tab.getByRole('button', { name: 'Export review', exact: true }).isEnabled());
+    assert.ok(await tab.getByRole('button', { name: 'Generate review', exact: true }).isEnabled());
     await tab.close();
   }
 
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  const summary = { cases: ['recorded', 'multiple changes', 'paired orders', 'executed terminal', 'rejected terminal',
+  const summary = { cases: ['recorded', 'multiple changes', 'unequal changes', 'paired orders', 'executed terminal', 'rejected terminal',
     'failed terminal', 'held locations', 'subnet A→B→A', 'independent browser contexts'],
-    mapChecks, recordedDigest: digest, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
+    mapChecks, recordedDigest: digest, recordedMethods, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log(JSON.stringify(summary, null, 2));
 } catch (error) {

@@ -48,8 +48,8 @@ try {
   });
   const began = Date.now();
   await page.getByRole('button', { name: 'Review', exact: true }).click();
-  await page.getByRole('heading', { name: 'World map' }).waitFor();
-  await page.getByText('40 members · 39 retained · 1 incoming · 1 outgoing', { exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Map' }).waitFor();
+  await page.getByText('40 members · Add 1 · Remove 1 · Unchanged 39', { exact: true }).waitFor();
   const previewMs = Date.now() - began;
   await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });
   const reviewMs = Date.now() - began;
@@ -70,13 +70,10 @@ try {
   assert.equal(count('compare_membership_context'), 1);
   assert.equal(count('finalize_membership_review'), 1);
   await page.getByText(/assignments in the other 95 listed subnets were not checked/).waitFor();
-  await page.getByText(/41 nodes across both states · 41\/41 located/).waitFor();
-  const topology = page.locator('.topology-card');
-  await topology.getByText(/No Target Topology limits have been assumed/).waitFor();
-  const group = name => topology.getByRole('button', { name, exact: true });
-  assert.match(await group('Data center · sh1').locator('xpath=ancestor::tr').textContent(), /2 → 3/);
-  assert.match(await group('Data center · zh2').locator('xpath=ancestor::tr').textContent(), /Last member.*1 → 0/);
-  assert.equal(await page.locator('.map-pin:visible').count(), 41);
+  await page.getByText(/41 unique nodes across both states · 41\/41 located/).waitFor();
+  const topology = page.locator('.topology-card:not(.node-changes)');
+  await topology.getByText('No current Target Topology thresholds, exceptions or applicability are assumed.', { exact: true }).waitFor();
+  assert.equal(await page.locator('.map-pin:visible').count(), 39);
 
   const positions = {};
   for (const [width, height] of [[1366, 900], [1024, 900], [390, 844], [320, 700]]) {
@@ -90,31 +87,23 @@ try {
   }
 
   await page.setViewportSize({ width: 1366, height: 900 });
-  const info = topology.getByRole('button', { name: 'About Data center' }).first();
+  const info = topology.getByRole('button', { name: 'About Nakamoto coefficients' });
   await info.hover();
-  await page.getByRole('tooltip').hover();
-  await page.getByRole('tooltip').getByText(/facility ID/).waitFor();
+  await page.getByRole('tooltip').filter({ hasText: /largest registered groups/ }).waitFor();
   await page.keyboard.press('Escape');
-  assert.equal(await page.getByRole('tooltip').count(), 0);
   await info.focus();
-  await page.getByRole('tooltip').waitFor();
-  await page.keyboard.press('Escape');
-  await info.click();
-  await page.getByRole('tooltip').waitFor();
-  await page.keyboard.press('Escape');
-  const row = group('Data center · sh1');
-  await row.focus();
+  const sh = page.getByRole('button', { name: /^sh1 · Stockholm/ });
+  await sh.focus();
   await page.keyboard.press('Enter');
-  const inspector = page.locator('.inspector');
-  await inspector.getByText(/Nakamoto coefficient.*13 → 12/).waitFor();
-  await inspector.getByText(/5% → 7.5%/).waitFor();
-  assert.equal(await inspector.getByRole('button', { name: / · sh1 · Stockholm$/ }).count(), 3);
-  assert.ok(await page.locator('.map-pin[aria-pressed=true]').count() > 0);
-  await inspector.getByRole('button', { name: /kaoz3/ }).click();
-  assert.match(await inspector.getByLabel('Full node principal').inputValue(), /^kaoz3-.*-4qe$/);
-  await inspector.getByRole('button', { name: 'Copy node ID' }).click();
-  await inspector.getByText('Node ID copied.').waitFor();
+  const popup = page.getByRole('region', { name: 'Map location details' });
+  await popup.getByText('Subnet members: 2 → 3', { exact: true }).waitFor();
+  assert.equal(await popup.locator('[data-map-node]').count(), 3);
+  await popup.getByRole('button', { name: /kaoz3/ }).click();
+  assert.match(await popup.getByLabel('Full node principal').inputValue(), /^kaoz3-.*-4qe$/);
+  await popup.getByRole('button', { name: 'Copy node ID' }).click();
+  await popup.getByText('Node ID copied.').waitFor();
   await page.keyboard.press('Escape');
+  const inspector = page.locator('.inspector');
 
   await page.getByRole('button', { name: 'Sources & details', exact: true }).click();
   await page.locator('summary').filter({ hasText: /^Pinned Registry role$/ }).click();
@@ -128,19 +117,17 @@ try {
   await input.saveAs(resolve(output, '144954-calculation.didbin'));
   const hash = createHash('sha256').update(await readFile(resolve(output, '144954-calculation.didbin'))).digest('hex');
   assert.equal(input.suggestedFilename(), 'calculation-' + hash + '.didbin');
-  await page.getByRole('button', { name: 'Focus changes', exact: true }).click();
-  await page.getByRole('button', { name: 'Export review', exact: true }).click();
-  for (const [label, name] of [['Export map PNG', '144954-map.png'], ['Download Markdown', '144954-review.md']]) {
-    const download = page.waitForEvent('download');
-    await page.getByRole('button', { name: label, exact: true }).click();
-    await (await download).saveAs(resolve(output, name));
-  }
-  const md = await readFile(resolve(output, '144954-review.md'), 'utf8');
-  for (const fact of [hash, 'Changed Nakamoto coefficients', 'Proposer comparison', 'zh2 | 1 → 0', 'Digital Realty',
-    'Data loading complete', '40 members', '2 → 3', 'assignments in the other 95 listed subnets were not checked']) {
+  await page.getByRole('button', { name: 'Generate review', exact: true }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download review', exact: true }).click();
+  const bundle = resolve(output, '144954-review.zip');
+  await (await download).saveAs(bundle);
+  const md = execFileSync('unzip', ['-p', bundle, 'review.md'], { encoding: 'utf8' });
+  for (const fact of [hash, 'Nakamoto coefficients', 'Digital Realty', '](map.png)',
+    '40 members', '2 → 3', 'assignments in the other 95 listed subnets were not checked']) {
     assert.ok(md.includes(fact), 'Markdown missing ' + fact);
   }
-  const png = await readFile(resolve(output, '144954-map.png'));
+  const png = execFileSync('unzip', ['-p', bundle, 'map.png']);
   assert.ok(png.readUInt32BE(16) >= 1080);
   assert.ok(png.readUInt32BE(20) > 340);
 
@@ -155,7 +142,7 @@ try {
   assert.deepEqual(errors, []);
   assert.deepEqual(external, []);
   console.log(JSON.stringify({ previewMs, reviewMs, roleMs, finalCheckMs, positions, hash, sourceUsage,
-    methods: [...calls.values()], keyboardInspector: true, externalOrigins: external }, null, 2));
+    methods: [...calls.values()], keyboardMapPopover: true, externalOrigins: external }, null, 2));
 } finally {
   await browser.close();
 }

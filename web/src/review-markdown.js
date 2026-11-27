@@ -1,5 +1,35 @@
-import { calculationNote, criteriaNote, geographyNote, governanceText, replayLabel, replayRegistryText } from './detail-model.js';
-import { hex, number } from './view.js';
+import { calculationNote, comparisonCaption, criteriaNote, distanceHelp, distanceTitle, distributionTables, geographyNote,
+  governanceText, nodeFields, nodeHeaders, replayLabel, replayRegistryText, roles } from './detail-model.js';
+import { mapCoverage, mapLocations, siteLabel } from './review-map.js';
+import { hex, number, option, principal, time } from './view.js';
+
+export function reportSnapshot(model, receipts) {
+  const { ids, order, step, scenario, stateLabel, subnet, version, members, dimensions, distances, membership,
+    summary, notes, governance, replay, previewRevision, evidenceNotes } = model;
+  const { inputHash, analysis_version: analysisVersion } = model.calculation;
+  const scope = { ids, order, step, state: stateLabel, subnet, registry: String(version), inputHash };
+  const sources = receipts.flatMap(({ response }) => (response?.receipts ?? []).map(row => [
+    row.method, row.item, principal(row.source), time(row.observed_at),
+    option(row.reply_hash) ? hex(option(row.reply_hash)) : option(row.reject) ?? 'Unavailable',
+  ]));
+  const snapshot = structuredClone({ scope, scenario, stateLabel, version, members, dimensions, distances, membership,
+    summary, notes, evidenceNotes, governance: governance.map(({ id, lifecycle_status, observed_at_nanos, payload_hash }) => ({
+      id, lifecycle_status, observed_at_nanos, payload_hash: Array.from(payload_hash),
+    })), replay, previewRevision, analysisVersion, sources });
+  snapshot.geography = mapLocations(snapshot.members);
+  function freeze(value) {
+    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+      for (const child of Object.values(value)) freeze(child);
+      Object.freeze(value);
+    }
+  }
+  freeze(snapshot);
+  return snapshot;
+}
+
+export function reportScope(model) {
+  return model.scenario + ' · ' + model.stateLabel + ' · Step ' + model.scope.step + ' of ' + model.scope.ids.length;
+}
 
 function escape(text) {
   return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -11,55 +41,60 @@ export function markdownTable({ headers, rows }) {
   return [line(headers), line(headers.map(() => '---')), ...rows.map(line)].join('\n');
 }
 
-export function reviewMarkdown(model, { vote = '?', tldr = '', mapImage = '', mapView = '', fullDistribution = false } = {}) {
-  const map = /^https:\/\/[^\s()<>"']+$/i.test(mapImage.trim())
-    ? '![Registry data-center map](' + mapImage.trim() + ')'
-    : 'Upload the map PNG to include it in the report.';
-  const composition = model.composition.filter(row => row.featured);
-  const heading = ['Registered group', 'Before → proposed', 'Note'];
-  const values = row => [row.label + ' · ' + row.group, row.delta.text, row.note || '—'];
-  const coefficientChanges = (model.dimensions ?? []).filter(item => item.coefficientChanged);
+const list = rows => rows.map(row => '- ' + escape(row)).join('\n');
+const collapsed = (title, contents) => '<details>\n<summary>' + title + '</summary>\n\n' + contents + '\n\n</details>';
+
+export function reviewMarkdown(model, { vote = '', summary = '', attribution = '' } = {}) {
+  const { scope, members, dimensions, distances, geography } = model;
+  const unchanged = members.filter(node => node.role === 'Retained');
+  const changed = members.filter(node => node.role !== 'Retained');
+  const rows = nodes => nodes.map(node => nodeFields(node).map(field => field.text));
+  const thresholds = dimensions.find(item => item.thresholds?.[0] !== undefined || item.thresholds?.[1] !== undefined)?.thresholds;
+  const threshold = thresholds?.[0] === thresholds?.[1] ? thresholds?.[0] : thresholds?.map(value => value ?? 'Unavailable').join(' → ');
+  const partial = dimensions.filter(item => item.partial).map(item => item.label + ' members with missing grouping: ' + item.unknown.text);
   const blocks = [
-    '# Proposal ' + model.ids.map(id => '#' + id).join(' + ') + ' Review',
-    '**VOTE**: ' + (vote.trim() || '?'),
-    ('**TLDR**: ' + tldr.trim()).trimEnd(),
-    model.work === 'settled' ? '**Data loading complete**' : null,
-    model.readiness ? 'Calculation · ' + model.readiness.calculation + ' · Governance · ' + model.readiness.governance : null,
-    !model.finalVerified ? '**Provisional · Final Governance verification unavailable**' : null,
-    escape(model.scenario + ' · ' + model.stateLabel + ' · Registry ' + number(model.version)),
-    'Subnet `' + model.subnet + '`',
-    model.membership,
-    '## Subnet composition',
-    criteriaNote,
-    composition.length ? markdownTable({ headers: heading, rows: composition.map(values) }) : null,
-    coefficientChanges.length ? '## Changed Nakamoto coefficients\n\n'
-      + markdownTable({ headers: ['Grouping', 'Groups needed'], rows: coefficientChanges.map(item => [item.label, item.coefficient.text]) }) : null,
-    model.publishing?.claims.length ? '## Proposer comparison\n\n'
-      + 'These claims use the proposal’s stated groupings. Country comparisons use recorded Registry labels.\n\n'
-      + markdownTable({ headers: ['Grouping', 'Proposer', 'Replicated calculation', 'Comparison'], rows: model.publishing.claims }) : null,
-    '## Membership evidence',
-    model.members.filter(node => node.role !== 'Retained').map(node => '- ' + (node.role === 'Added' ? 'Incoming' : 'Outgoing') + ' `' + node.id + '`'
-      + (node.dc ? ' · ' + escape(node.dc) : '') + (node.region ? ' · ' + escape(node.region) : '')).join('\n'),
-    model.notes.map(note => '- ' + escape(note)).join('\n'),
-    '## Map', geographyNote,
-    mapView ? 'Map view · ' + escape(mapView) : null, map,
-    '## Provenance',
-    model.governance.map(proposal => '- ' + governanceText(proposal, model.replay, true) + ' · Payload SHA-256 `' + hex(proposal.payload_hash) + '`').join('\n'),
-    model.finalVerified ? 'Governance checked after the selected comparisons.' : 'Final Governance observation unavailable.',
-    model.replay ? escape(replayLabel(model.replay)) : null,
-    model.replay ? escape(replayRegistryText(model.replay)) : null,
-    model.replay?.roleSupplement ? 'Synthetic NNS-role supplement · ' + escape(model.replay.roleSupplement) : null,
+    '# Proposal review · ' + scope.ids.map(id => '#' + id).join(' + '),
+    escape(reportScope(model)), 'Subnet `' + scope.subnet + '`',
+    model.replay && escape(replayLabel(model.replay)),
+    vote.trim() && '## Reviewer vote\n\n' + escape(vote.trim()),
+    summary.trim() && '## Reviewer summary\n\n' + summary.trim().split(/\n\s*\n/).map(escape).join('\n\n'),
+    attribution.trim() && '**Reviewer attribution** ' + escape(attribution.trim()),
+    '## Summary', escape(model.summary), escape(model.membership), escape(model.notes[0] ?? ''), list(model.evidenceNotes ?? []),
+    '## Evidence scope',
+    'Pinned Registry version **' + number(model.version) + '**. Governance checked after the selected comparisons.',
+    list(model.governance.map(proposal => governanceText(proposal, model.replay, true))),
+    list(model.notes.slice(1)), model.replay && escape(replayRegistryText(model.replay)),
+    model.replay?.roleSupplement && 'Synthetic NNS-role supplement · ' + escape(model.replay.roleSupplement),
+    '## Map', '![Map of registered node locations for the selected comparison](map.png)',
+    'Add (green) · Remove (red) · Unchanged (blue). ' + mapCoverage(geography) + '. ' + geographyNote,
+    geography.changed.length && 'Changed sites · ' + geography.changed.map(siteLabel).map(escape).join(' · '),
+    '## Node changes',
+    changed.length ? markdownTable({ headers: nodeHeaders, rows: rows(changed).map((row, index) => [roles[changed[index].role].label, ...row]) })
+      : 'No membership changes in the selected comparison.',
+    '## Decentralisation', comparisonCaption,
+    ...distributionTables.flatMap(({ key, title, help }) => [
+      '### ' + title, help,
+      key === 'coefficient' && threshold !== undefined ? 'Node threshold: ' + threshold + '.' : null,
+      markdownTable({ headers: dimensions.map(item => item.label), rows: [dimensions.map(item => item[key]?.text ?? 'Unavailable')] }),
+    ]),
+    partial.length && '≥ marks a recorded minimum. ' + partial.join(' · ') + '.',
+    '### ' + distanceTitle, distanceHelp,
+    distances && markdownTable({ headers: distances.columns.map(column => column.label),
+      rows: [distances.columns.map(column => column.delta.text)] }),
+    distances?.coverage, criteriaNote,
+    '## Unchanged nodes',
+    collapsed('Unchanged nodes (' + unchanged.length + ')', markdownTable({ headers: nodeHeaders.slice(1), rows: rows(unchanged) })),
+    '## Sources and calculation',
     'Membership preview revision `' + model.previewRevision + '`.',
-    model.calculation ? 'Calculation input SHA-256 `' + model.calculation.inputHash + '` · analysis v'
-      + model.calculation.analysis_version + '.' : null,
+    'Calculation input SHA-256 `' + scope.inputHash + '` · analysis v' + model.analysisVersion + '.',
     calculationNote,
-    fullDistribution && model.dimensions?.length ? '## Full recorded distribution' : null,
-    ...(fullDistribution ? (model.dimensions ?? []).flatMap(item => [
-      '### ' + item.label,
-      'Distinct recorded groups · ' + item.distinct.text + (item.old.unknown || item.next.unknown ? ' · Grouping incomplete' : ''),
-      markdownTable({ headers: ['Group', ...heading.slice(1)], rows: model.composition.filter(row => row.key === item.key)
-        .map(row => [row.group, row.delta.text, row.note || '—']) }),
-    ]) : []),
+    list(model.governance.map(proposal => '#' + proposal.id + ' executable payload SHA-256 ' + hex(proposal.payload_hash))),
+    distances && collapsed('Exact distance evidence in metres',
+      markdownTable({ headers: ['Distance', 'Before', 'Proposed'],
+        rows: distances.columns.map(column => [column.label, ...column.metres.map(value => value ?? 'Unavailable')]) })),
+    model.sources.length && collapsed('Session source receipts (' + model.sources.length + ')',
+      markdownTable({ headers: ['Method', 'Item', 'Canister', model.replay ? 'Replay delivery time' : 'Observed at', 'Reply SHA-256 or issue'],
+        rows: model.sources })),
   ];
   return blocks.filter(Boolean).join('\n\n') + '\n';
 }

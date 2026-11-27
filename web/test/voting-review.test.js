@@ -1,75 +1,50 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
-import { reviewMarkdown } from '../src/review-markdown.js';
-import { compositionDimensions, compositionRows, metricDelta, reviewReadiness } from '../src/detail-model.js';
-import { mapScene } from '../src/review-map.js';
+import { test } from 'node:test';
+import { compositionDimensions, compositionRows, distanceSummary, memberEvidence, metricDelta, reviewReadiness, roleSummary } from '../src/detail-model.js';
+import { reviewZip } from '../src/review-export.js';
+import { reportSnapshot, reviewMarkdown } from '../src/review-markdown.js';
+import { fitLocations, mapLocations, mapProjection, mapScene, markerDiameter } from '../src/review-map.js';
 
 const group = (label, count) => [{ RegisteredLabel: label }, count];
-const distribution = (groups, unknown = 0) => new Map([['DataCenter', { groups, unknown }]]);
-const project = (x, y) => ({ x, y });
+const distribution = (key, groups, unknown = 0) => new Map([[key, {
+  groups, unknown, largest: groups.length ? [Math.max(...groups.map(([, count]) => count))] : [],
+}]]);
 const view = { width: 310, height: 340 };
-const allRoles = new Set(['Retained', 'Added', 'Removed']);
 
-test('composition compares the exact same registered groups and carries changes below the largest group to Markdown', () => {
-  const before = distribution([group('Largest', 12), group('Site | <b>A</b>', 3), group('leaving', 1)]);
-  const after = distribution([group('Largest', 12), group('Site | <b>A</b>', 2), group('new', 2)]);
-  const composition = compositionRows(before, after);
-  assert.deepEqual(new Map(composition.map(row => [row.group, row.delta.text])), new Map([
-    ['new', '0 → 2'], ['Site | <b>A</b>', '3 → 2'], ['leaving', '1 → 0'], ['Largest', '12'],
-  ]));
-  assert.equal(composition.find(row => row.group === 'leaving').note, 'Last member leaves this subnet');
-  const model = {
-    ids: ['144954'], version: 66013n, subnet: 'tdb26', membership: '40 members · 39 retained · 1 incoming · 1 outgoing',
-    stateLabel: 'After proposal #144954', scenario: 'Proposal #144954', previewRevision: '00', governance: [],
-    finalVerified: true, work: 'settled', members: [], notes: ['Evidence is scoped'], composition,
-  };
-  const result = reviewMarkdown(model, { vote: 'Adopt', tldr: 'Written by the reviewer', mapImage: 'https://example.test/map.png' });
-  assert.match(result, /Data loading complete/);
-  assert.match(result, /No Target Topology limits have been assumed/);
-  assert.match(result, /Site \\\| &lt;b&gt;A&lt;\/b&gt; \| 3 → 2/);
-  assert.match(result, /leaving \| 1 → 0/);
-  assert.match(result, /Largest \| 12/);
-  assert.doesNotMatch(result, /Assessment|Exception unresolved|Matches target/);
-  assert.match(reviewMarkdown({ ...model, finalVerified: false }), /Provisional · Final Governance verification unavailable/);
-  assert.ok(!reviewMarkdown(model, { mapImage: 'javascript:alert(1)' }).includes('javascript:'));
+test('recorded grouping preserves every tie and uses strict one-third coefficients on a six-member subnet', () => {
+  const before = distribution('RegisteredCountry', [group('SE', 1), group('CH', 2), group('US', 2), group('DE', 1)]);
+  const after = distribution('RegisteredCountry', [group('SE', 2), group('CH', 1), group('US', 2), group('DE', 1)]);
+  for (const row of [before, after]) Object.assign(row.get('RegisteredCountry'), {
+    greater_than_one_third: [{ groups_to_reach: [2], nodes_required: 3 }],
+    fault_budget_plus_one: [{ groups_to_reach: [1], nodes_required: 2 }],
+  });
+  const item = compositionDimensions(before, after)[1];
+  assert.deepEqual(item.ties.map(list => list.map(row => row.label)), [['CH', 'US'], ['SE', 'US']]);
+  assert.deepEqual(item.thresholds, [3, 3]);
+  assert.deepEqual([item.distinct.text, item.largest.text, item.coefficient.text], ['4', '2', '2']);
+  assert.equal(compositionRows(before, after).find(row => row.group === 'SE').delta.text, '1 → 2');
+  before.get('RegisteredCountry').unknown = 1;
+  const partial = compositionDimensions(before, after)[1];
+  assert.equal(partial.coefficient.text, '2 · Before unavailable');
+  assert.equal(partial.distinct.text, '≥4 → 4');
+  assert.equal(partial.distinct.direction, 0);
 });
 
-test('all tied concentrations and directly affected groups stay visible and the optional appendix includes every row', () => {
-  const groups = [group('maximum A', 7), group('maximum B', 7), group('balanced swap', 1), group('unaffected', 1)];
-  const before = distribution(groups);
-  const after = distribution(groups);
-  before.get('DataCenter').greater_than_one_third = [{ groups_to_reach: [3] }];
-  after.get('DataCenter').greater_than_one_third = [{ groups_to_reach: [2] }];
-  const dimensions = compositionDimensions(before, after);
-  const composition = compositionRows(before, after, undefined, [{ dc: 'balanced swap' }]);
-  assert.deepEqual(composition.filter(row => row.featured).map(row => row.group), ['maximum A', 'maximum B', 'balanced swap']);
-  assert.equal(dimensions[0].tied, 2);
-  assert.equal(dimensions[0].distinct.text, '4');
-  assert.equal(dimensions[0].coefficient.text, '3 → 2');
-  const model = { composition, dimensions, ids: ['1'], version: 1n, notes: [], governance: [], members: [], finalVerified: true };
-  const concise = reviewMarkdown(model);
-  assert.match(concise, /Changed Nakamoto coefficients/);
-  assert.match(concise, /Data center · maximum B \| 7/);
-  assert.doesNotMatch(concise, /unaffected|Full recorded distribution/);
-  const full = reviewMarkdown(model, { fullDistribution: true });
-  assert.ok(full.startsWith(concise));
-  assert.match(full, /\| unaffected \| 1/);
-});
-
-test('arrow notation retains zeros, states unavailable sides and preserves percentage denominators', () => {
+test('distance formatting keeps exact evidence, tiny changes, zero and absent pairs distinct', () => {
+  const row = (valid, total, mean) => ({
+    valid_pairs: BigInt(valid), total_pairs: BigInt(total), minimum_metres: valid ? [0] : [],
+    mean_metres: valid ? [mean] : [], maximum_metres: valid ? [19_461_421] : [],
+  });
+  const full = distanceSummary(row(780, 780, 7_367_029), row(780, 780, 7_361_847));
+  assert.deepEqual(full.columns.map(column => column.delta.text), ['0 km', '7,367.0 km → 7,361.8 km', '19,461.4 km']);
+  assert.deepEqual(full.columns[1].metres, [7_367_029, 7_361_847]);
+  const partial = distanceSummary(row(1, 3, 0), row(3, 3, 1));
+  assert.match(partial.coverage, /1 of 3 pairs before · 3 of 3 pairs proposed · known pairs only/);
+  assert.equal(partial.columns[1].delta.text, '0 km → 0.001 km');
+  assert.equal(partial.columns[1].delta.direction, 0);
+  assert.equal(distanceSummary(row(0, 0), row(0, 0)).columns[0].delta.text, 'Unavailable from recorded evidence');
   assert.equal(metricDelta(28, 28).text, '28');
-  assert.equal(metricDelta(13, 12).text, '13 → 12');
-  assert.equal(metricDelta(5, 7.5, { percentage: true }).text, '5% → 7.5%');
-  assert.equal(metricDelta(5.001, 5, { percentage: true }).text, '5.001% → 5%');
-  assert.equal(metricDelta(2, undefined).text, '2 before · Proposed unavailable');
-  assert.equal(metricDelta(undefined, 3).text, '3 · Before unavailable');
   assert.equal(metricDelta(2, 3).accessible, '2 before, 3 proposed');
-  const row = compositionRows(distribution([], 1), distribution([group('site', 2)]))[0];
-  assert.equal(row.delta.text, '2 · Before unavailable');
-  const partial = metricDelta(2, 3, { beforePartial: true, afterPartial: true });
-  assert.equal(partial.text, '≥2 → ≥3');
-  assert.equal(partial.direction, 0);
-  assert.equal(metricDelta(100 / 40, 100 / 50, { percentage: true }).text, '2.5% → 2%');
 });
 
 test('settled loading, accepted calculations and Governance verification report separate outcomes', () => {
@@ -83,45 +58,108 @@ test('settled loading, accepted calculations and Governance verification report 
   assert.equal(reviewReadiness({ ...accepted, status: 'stale' }, { work: 'settled' }).calculation, 'Previous result retained');
 });
 
-test('overlapping facilities preserve true anchors, individual marker IDs, and separate enclosures', () => {
-  const rows = [
-    { id: 'a', dc: 'site', point: { lat: 20, lon: 20 }, role: 'Retained' },
-    { id: 'b', dc: 'site', point: { lat: 20, lon: 20 }, role: 'Added' },
-    { id: 'c', dc: 'site', point: { lat: 20, lon: 20 }, role: 'Removed' },
-    { id: 'd', dc: 'other site', point: { lat: 20, lon: 20 }, role: 'Retained' },
-    { id: 'e', dc: 'other site', point: { lat: 20, lon: 20 }, role: 'Retained' },
-    { id: 'unknown', role: 'Added' },
-  ];
-  const scene = mapScene(rows, allRoles, project, view);
-  assert.equal(scene.markers.length, 5);
-  assert.ok(scene.markers.every(row => row.anchor.x === 20 && row.anchor.y === 20));
-  assert.equal(new Set(scene.markers.map(row => row.x + '/' + row.y)).size, 5);
-  assert.deepEqual(scene.markers.map(row => [row.node.id, row.x, row.y]),
-    mapScene(rows.toReversed(), allRoles, project, view).markers.map(row => [row.node.id, row.x, row.y]));
-  const site = scene.facilities.find(row => row.id === 'site');
-  assert.deepEqual([site.before, site.after, site.markers.length], [2, 2, 3]);
-  assert.deepEqual(scene.facilities.find(row => row.id === 'other site').markers.map(row => row.node.id), ['d', 'e']);
-  const filtered = mapScene(rows, new Set(['Added', 'Removed']), project, view);
-  assert.deepEqual(filtered.markers.map(row => row.node.id), ['b', 'c']);
-  for (const marker of filtered.markers) {
-    const original = scene.markers.find(item => item.node === marker.node);
-    assert.deepEqual([marker.x, marker.y], [original.x, original.y]);
+test('co-location retains identities and facility counts without moving nearby or overlapping locations', () => {
+  const node = (id, role, dc = 'site', lon = 20) => ({ id, role, dc, point: { lon, lat: 30 } });
+  const nodes = [node('a', 'Added'), node('b', 'Removed'), node('c', 'Retained'), node('d', 'Retained'),
+    node('e', 'Retained', 'other'), node('f', 'Removed', 'nearby', 20.001)];
+  const geography = mapLocations(nodes);
+  assert.equal(geography.locations.length, 2);
+  assert.equal(geography.mapped, 6);
+  assert.equal(markerDiameter, 12);
+  const [shared, nearby] = geography.locations;
+  assert.deepEqual(shared.roles, ['Added', 'Removed', 'Retained']);
+  assert.deepEqual(shared.sites.map(item => item.id), ['other', 'site']);
+  const [site] = shared.sites.slice(1);
+  assert.equal(site.count.text, '3');
+  assert.equal(site.nodes.length, 4);
+  assert.equal(roleSummary(site.nodes), 'Add 1 · Remove 1 · Unchanged 2');
+  assert.equal(nearby.sites[0].count.text, '1 → 0');
+  for (const size of [view, { width: 750, height: 500 }]) {
+    for (const camera of [{ lon: 0, lat: 0, scale: 1 }, { lon: 20, lat: 30, scale: 9 }]) {
+      const { project } = mapProjection(size, camera);
+      const scene = mapScene(geography, project, size);
+      assert.equal(scene.locations.length, 2);
+      assert.deepEqual(scene.locations.map(({ x, y }) => ({ x, y })), [project(20, 30), project(20.001, 30)]);
+      assert.notEqual(scene.locations[0].x, scene.locations[1].x);
+      assert.deepEqual([...scene.labels.map(item => item.site.id), ...scene.overflow.map(item => item.id)].sort(), ['nearby', 'site']);
+    }
   }
-  assert.equal(filtered.facilities[0].before, 2);
-  assert.equal(filtered.facilities[0].after, 2);
+  const newPin = nodes.map(item => item.dc === 'site' ? { ...item, point: { lon: 40, lat: 30 } } : item);
+  assert.equal(mapLocations(newPin).locations[0].point.lon, 40);
+  const conflict = mapLocations([{ ...nodes[0], point: { lon: 40, lat: 30 } }, ...nodes.slice(1)]);
+  assert.equal(conflict.unmapped.length, 4);
+  assert.match(conflict.unmapped[0].locationIssue, /Conflicting coordinates/);
+  const outside = mapScene(geography, mapProjection(view, { lon: -160, lat: 0, scale: 10 }).project, view);
+  assert.equal(outside.visible.length, 0);
+  assert.ok(outside.locations.every(location => location.x > view.width));
 });
 
-test('a narrow map keeps even 41 coincident nodes local and gives every marker a reachable center', () => {
-  const nodes = Array.from({ length: 41 }, (_, id) => ({
-    id: String(id), dc: 'one', point: { lon: 18, lat: 70 }, role: 'Retained',
-  }));
-  const { markers } = mapScene(nodes, allRoles, project, view);
-  assert.equal(markers.length, 41);
-  for (const [i, node] of markers.entries()) {
-    assert.equal(node.diameter, 8);
-    assert.ok(Math.hypot(node.x - node.anchor.x, node.y - node.anchor.y) <= 48.01);
-    assert.ok(markers.slice(i + 1).every(other => Math.hypot(node.x - other.x, node.y - other.y) >= node.diameter));
-    assert.ok(markers.slice(i + 1).every(other => Math.max(Math.abs(node.x - other.x), Math.abs(node.y - other.y))
-      > (node.target + other.target) / 2));
+test('missing owner and coordinate evidence preserve known provider and operator', () => {
+  const id = text => ({ toText: () => text });
+  const coordinates = { latitude_e7: 12, longitude_e7: 34 };
+  const evidence = {
+    Nodes: new Map([['node', [null, { Present: { value: { operator: [id('operator')] } } }]]]),
+    Operators: new Map([['operator', [null, { Present: { value: { provider: [id('provider')], data_center: 'dc' } } }]]]),
+    DataCenters: new Map([['dc', [null, { Present: { value: { registered_owner: '', coordinates: [coordinates] } } }]]]),
+  };
+  const ready = { work: 'settled' };
+  const node = memberEvidence(evidence, 'node', 'Retained', ready);
+  assert.equal(node.owner, '');
+  assert.equal(node.provider, 'provider');
+  assert.equal(node.operatorId, 'operator');
+  assert.ok(node.point);
+  evidence.DataCenters.set('dc', [null, { Unavailable: { reason: 'fixture error' } }]);
+  const failed = memberEvidence(evidence, 'node', 'Retained', ready);
+  assert.equal(failed.provider, 'provider');
+  assert.match(failed.locationIssue, /^Could not load/);
+  evidence.DataCenters.clear();
+  assert.ok(memberEvidence(evidence, 'node', 'Retained', { work: 'running', stage: 'DataCenters' }).locationPending);
+});
+
+test('snapshot binds scope and accepted digest to a deterministic all-role scene and report', () => {
+  const model = {
+    ids: ['1', '2'], order: 'AThenB', step: 1, version: 66013n, subnet: 'subnet', scenario: 'Proposal #1 then Proposal #2',
+    stateLabel: 'After proposal #1', membership: '2 members', summary: 'Compare.', notes: ['Evidence scope.'],
+    governance: [{ id: 1n, lifecycle_status: 1, observed_at_nanos: 1n, payload_hash: Uint8Array.of(12), wire_extra: Uint8Array.of(13) }],
+    dimensions: compositionDimensions(new Map(), new Map()), previewRevision: 'preview',
+    members: [{ id: 'one', dc: 'site | <test>', role: 'Added', point: { lon: 2, lat: 3 } },
+      { id: 'two', dc: 'site | <test>', role: 'Retained', point: { lon: 2, lat: 3 } },
+      { id: 'three', dc: 'other', role: 'Removed', point: { lon: 4, lat: 6 } }],
+    calculation: { inputHash: 'confirmed-digest', analysis_version: 3 },
+  };
+  const snapshot = reportSnapshot(model, []);
+  const later = reportSnapshot({ ...model, step: 2 }, []);
+  assert.notDeepEqual(later.scope, snapshot.scope);
+  const projection = mapProjection(view, fitLocations(snapshot.geography.locations, view));
+  const scene = mapScene(snapshot.geography, projection.project, view);
+  assert.equal(scene.visible.reduce((sum, location) => sum + location.nodes.length, 0), 3);
+  model.members[0].dc = 'changed after snapshot';
+  assert.ok(Object.isFrozen(snapshot.members[0]));
+  assert.ok(Object.isFrozen(snapshot.governance[0].payload_hash));
+  assert.equal(snapshot.governance[0].wire_extra, undefined);
+  const markdown = reviewMarkdown(snapshot);
+  assert.match(markdown, /Step 1 of 2/);
+  assert.match(markdown, /confirmed-digest/);
+  assert.match(markdown, /\]\(map\.png\)/);
+  assert.match(markdown, /site \\\| &lt;test&gt;/);
+  assert.match(markdown, /Unchanged nodes \(1\)/);
+  assert.doesNotMatch(markdown, /Reviewer vote|Reviewer summary|Reviewer attribution|https:\/\//);
+  assert.match(reviewMarkdown(snapshot, { vote: 'Adopt', summary: 'Opinion', attribution: 'Reviewer' }), /Reviewer vote\n\nAdopt/);
+});
+
+test('archive puts the exact Markdown and PNG bytes at their relative paths', async () => {
+  const files = [['review.md', new TextEncoder().encode('![map](map.png)')], ['map.png', Uint8Array.of(0x89, 0x50, 0x4e, 0x47)]];
+  const zip = new Uint8Array(await reviewZip(files).arrayBuffer());
+  const header = new DataView(zip.buffer);
+  let offset = 0;
+  for (const [name, bytes] of files) {
+    assert.equal(header.getUint32(offset, true), 0x04034b50);
+    const length = header.getUint16(offset + 26, true);
+    assert.equal(new TextDecoder().decode(zip.slice(offset + 30, offset + 30 + length)), name);
+    const data = offset + 30 + length;
+    assert.deepEqual(zip.slice(data, data + header.getUint32(offset + 18, true)), bytes);
+    offset = data + bytes.length;
   }
+  assert.equal(header.getUint32(offset, true), 0x02014b50);
+  assert.equal(header.getUint32(zip.length - 6, true), offset);
 });

@@ -105,26 +105,25 @@ try {
       await send(144954);
       await hold.dispatched();
       await page.locator('#review-counts').getByText(/^0 of 39 records settled/).waitFor();
-      await page.getByText(/41 locations pending/).waitFor();
+      await page.getByText(/41 locations loading/).waitFor();
       assert.equal(await page.getByText(/Unmapped nodes/).isVisible(), false);
-      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-      await page.getByRole('button', { name: 'Registered owner name', exact: true }).click();
+      await page.locator('.topology-card:not(.node-changes)').getByText('Loading', { exact: true }).waitFor();
+      await page.getByText('Map help', { exact: true }).click();
+      await page.getByLabel('Zoom level').selectOption('2');
+      await page.locator('.node-changes').getByRole('button', { name: /kaoz3/ }).click();
       const panel = page.locator('.inspector');
-      await panel.getByText('Loading data centers', { exact: true }).waitFor();
-      await panel.getByRole('button', { name: 'Close details' }).click();
-      await page.locator('.changed-nodes').getByRole('button', { name: /kaoz3/ }).click();
       await panel.getByLabel('Full node principal').waitFor();
       assert.match(await panel.textContent(), /Registered ownerLoading data centers/);
-      assert.doesNotMatch(await panel.textContent(), /Unavailable|Could not load/);
+      assert.doesNotMatch(await panel.textContent(), /Could not load/);
       if (output) await page.screenshot({ path: resolve(output, '144954-loading.png'), fullPage: true });
     } finally {
       hold.release();
     }
     await finished(page);
-    await page.getByText(/41 nodes across both states · 38\/41 located/).waitFor();
-    await page.getByText('Zoom 1.6×', { exact: true }).waitFor();
+    await page.getByText(/41 unique nodes across both states · 38\/41 located/).waitFor();
+    assert.equal(await page.locator('.map-frame').getAttribute('data-map-scale'), '2');
     const panel = page.locator('.inspector');
-    await panel.getByText('Coordinates not recorded on-chain', { exact: true }).waitFor();
+    await panel.getByText('Not recorded on-chain', { exact: true }).first().waitFor();
     assert.match(await panel.textContent(), /Digital Realty/);
   });
 
@@ -139,11 +138,11 @@ try {
       hold.release();
     }
     await status(page).getByText('Stopped', { exact: true }).waitFor();
-    await page.locator('.changed-nodes').getByRole('button', { name: /kaoz3/ }).click();
+    await page.locator('.node-changes').getByRole('button', { name: /kaoz3/ }).click();
     await page.locator('.inspector').getByText('Not loaded · Review stopped', { exact: true }).first().waitFor();
     assert.equal(count('membership_target_topology'), 0);
     assert.equal(count('finalize_membership_review'), 0);
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+    assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
   });
 
   await test('Supersession rejects a late node page and starts the next review', 0, async (page, send, count) => {
@@ -154,7 +153,7 @@ try {
       await send(999999);
       await page.getByRole('heading', { name: 'Proposal #999999' }).waitFor();
       assert.equal(count('begin_membership_review'), 1);
-      assert.equal(await page.getByText(/40 members · 39 retained/).count(), 0);
+      assert.equal(await page.getByText(/40 members · Add 1/).count(), 0);
     } finally {
       hold.release();
     }
@@ -166,7 +165,7 @@ try {
   await test('Failed metadata stays distinct from absence and retries only the failed key', 2, async (page, send, count) => {
     await send(144954);
     await finished(page);
-    await page.locator('.changed-nodes').getByRole('button', { name: /kaoz3/ }).click();
+    await page.locator('.node-changes').getByRole('button', { name: /kaoz3/ }).click();
     await page.locator('.inspector').getByText(/Could not load.*withheld optional/).first().waitFor();
     const pages = count('membership_context_detail_page');
     mode(0);
@@ -175,11 +174,11 @@ try {
       await page.getByRole('button', { name: 'Retry failed evidence', exact: true }).click();
       await hold.dispatched();
       await page.getByText('Previous accepted comparison · Retry in progress', { exact: true }).waitFor();
-      await page.getByText(/41 nodes across both states · 38\/41 located/).waitFor();
-      assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+      await page.getByText(/41 unique nodes across both states · 38\/41 located/).waitFor();
+      assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
     } finally { hold.release(); }
     await finished(page);
-    await page.getByText(/41 nodes across both states · 41\/41 located/).waitFor();
+    await page.getByText(/41 unique nodes across both states · 41\/41 located/).waitFor();
     assert.equal(count('membership_context_detail_page'), pages + 1);
     assert.equal(count('membership_registry_role'), 1);
     assert.equal(count('begin_membership_review'), 1);
@@ -189,7 +188,7 @@ try {
     await send(144954);
     await status(page).getByText(/Could not produce a review.*conflicting/).waitFor();
     assert.equal(count('membership_context_detail_page'), 0);
-    assert.equal(await page.getByText(/40 members · 39 retained/).count(), 0);
+    assert.equal(await page.getByText(/40 members · Add 1/).count(), 0);
   });
 
   await test('An executed proposal does not imply a historical baseline', 4, async (page, send, count) => {
@@ -197,8 +196,8 @@ try {
     await status(page).getByText('Proposal outcome recorded', { exact: true }).waitFor();
     await page.getByText(/historical before-state is unavailable/).waitFor();
     assert.equal(count('membership_context_detail_page'), 0);
-    assert.equal(await page.getByRole('button', { name: 'Export review', exact: true }).count(), 0);
-    assert.equal(await page.getByRole('heading', { name: 'Subnet composition' }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Generate review', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('heading', { name: 'Decentralisation' }).count(), 0);
   });
 
   await test('The final Governance check blocks a result when the proposal executes during enrichment', 0, async (page, send, count) => {
@@ -215,8 +214,8 @@ try {
     await status(page).getByText('Could not produce a review', { exact: true }).waitFor({ timeout: 120000 });
     await page.getByText(/144954 changed during the review/).waitFor();
     assert.equal(count('finalize_membership_review'), 1);
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
-    assert.equal(await page.getByText(/40 members · 39 retained/).count(), 0);
+    assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
+    assert.equal(await page.getByText(/40 members · Add 1/).count(), 0);
   });
 
   await test('A failed final Governance read remains provisional and retries only verification', 0, async (page, send, count) => {
@@ -232,7 +231,7 @@ try {
     await send(144954);
     await status(page).getByText('Provisional · Governance check failed', { exact: true }).waitFor({ timeout: 120000 });
     await page.getByText(/Provisional.*Temporary fixture Governance failure/).waitFor();
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
+    assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
     const pages = count('membership_context_detail_page');
     mode(0);
     await page.getByRole('button', { name: 'Retry failed evidence', exact: true }).click();
@@ -255,8 +254,8 @@ try {
     await send(144954);
     await status(page).getByText('Could not produce a review', { exact: true }).waitFor({ timeout: 120000 });
     await page.getByText(/unsupported action/).waitFor();
-    assert.ok(await page.getByRole('button', { name: 'Export review', exact: true }).isDisabled());
-    assert.equal(await page.getByText(/40 members · 39 retained/).count(), 0);
+    assert.ok(await page.getByRole('button', { name: 'Generate review', exact: true }).isDisabled());
+    assert.equal(await page.getByText(/40 members · Add 1/).count(), 0);
   });
 
   await test('Multi-subnet review enriches the selected subnet first within one record budget', 5, async (page, send, count, nodeReads) => {
@@ -288,16 +287,24 @@ try {
     const step = page.getByLabel('Membership state');
     await order.selectOption('AThenB');
     await step.selectOption('1');
-    await page.locator('.review-summary').getByText(/50 → 51 members/).waitFor();
-    await page.getByRole('button', { name: 'Export review', exact: true }).click();
-    await page.getByLabel('VOTE', { exact: true }).fill('Order A assessment');
+    await page.locator('.review-summary > strong').filter({ hasText: /50 → 51 members/ }).waitFor();
+    await page.getByRole('button', { name: 'Generate review', exact: true }).click();
+    await page.getByText('Reviewer commentary (optional)', { exact: true }).click();
+    await page.getByLabel('Reviewer vote', { exact: true }).fill('Order A assessment');
+    const firstMarkdown = await page.getByLabel('Generated Markdown', { exact: true }).inputValue();
     await order.selectOption('BThenA');
     await step.selectOption('1');
-    await page.locator('.review-summary').getByText(/50 → 49 members/).waitFor();
-    await page.getByRole('button', { name: 'Export review', exact: true }).click();
+    await page.locator('.review-summary > strong').filter({ hasText: /50 → 49 members/ }).waitFor();
+    await page.getByRole('button', { name: 'Generate review', exact: true }).click();
     const markdown = await page.getByLabel('Generated Markdown', { exact: true }).inputValue();
     assert.match(markdown, /Proposal #92 then Proposal #93/);
     assert.doesNotMatch(markdown, /Order A assessment/);
+    assert.match(firstMarkdown, /Proposal #93 then Proposal #92.*Step 1 of 2/);
+    assert.match(markdown, /Proposal #92 then Proposal #93.*Step 1 of 2/);
+    const digest = text => /Calculation input SHA-256 `([a-f0-9]{64})`/.exec(text)?.[1];
+    assert.ok(digest(firstMarkdown));
+    assert.ok(digest(markdown));
+    assert.notEqual(digest(firstMarkdown), digest(markdown));
     assert.equal(count('membership_context_detail_page'), pages);
     await page.locator('#open-performance').click();
     await page.getByLabel('Performance scope').selectOption('follow');
