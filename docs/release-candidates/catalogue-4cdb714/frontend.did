@@ -1,11 +1,11 @@
 // A Candid-encodable representation of an HTTP request. This struct is used by
 // the `http_request` method of the HTTP Gateway Protocol's Candid interface.
-// 
+//
 // # Examples
-// 
+//
 // ```
 // use ic_http_certification::{HttpRequest, Method};
-// 
+//
 // let request = HttpRequest::builder()
 // .with_method(Method::GET)
 // .with_url("/")
@@ -13,30 +13,30 @@
 // .with_body(&[1, 2, 3])
 // .with_certificate_version(2)
 // .build();
-// 
+//
 // assert_eq!(request.method(), Method::GET);
 // assert_eq!(request.url(), "/");
 // assert_eq!(request.headers(), &[("X-Custom-Foo".into(), "Bar".into())]);
 // assert_eq!(request.body(), &[1, 2, 3]);
 // assert_eq!(request.certificate_version(), Some(2));
 // ```
-// 
+//
 // # Helpers
-// 
+//
 // There are also a number of convenience methods for quickly creating an [HttpRequest] with
 // commonly used HTTP methods:
-// 
+//
 // - [GET](HttpRequest::get)
 // - [POST](HttpRequest::post)
 // - [PUT](HttpRequest::put)
 // - [PATCH](HttpRequest::patch)
 // - [DELETE](HttpRequest::delete)
-// 
+//
 // ```
 // use ic_http_certification::HttpRequest;
-// 
+//
 // let request = HttpRequest::get("/").build();
-// 
+//
 // assert_eq!(request.method(), "GET");
 // assert_eq!(request.url(), "/");
 // ```
@@ -55,30 +55,30 @@ type HttpRequest = record {
 };
 // A Candid-encodable representation of an HTTP response. This struct is used
 // by the `http_request` method of the HTTP Gateway Protocol's Candid interface.
-// 
+//
 // # Examples
-// 
+//
 // ```
 // use ic_http_certification::{HttpResponse, StatusCode};
-// 
+//
 // let response = HttpResponse::builder()
 // .with_status_code(StatusCode::OK)
 // .with_headers(vec![("Content-Type".into(), "text/plain".into())])
 // .with_body(b"Hello, World!")
 // .with_upgrade(false)
 // .build();
-// 
+//
 // assert_eq!(response.status_code(), StatusCode::OK);
 // assert_eq!(response.headers(), &[("Content-Type".into(), "text/plain".into())]);
 // assert_eq!(response.body(), b"Hello, World!");
 // assert_eq!(response.upgrade(), Some(false));
 // ```
-// 
+//
 // # Helpers
-// 
+//
 // There are also a number of convenience methods for quickly creating an [HttpResponse] with
 // commonly used HTTP status codes:
-// 
+//
 // - [OK](HttpResponse::ok)
 // - [CREATED](HttpResponse::created)
 // - [NO_CONTENT](HttpResponse::no_content)
@@ -91,12 +91,12 @@ type HttpRequest = record {
 // - [METHOD_NOT_ALLOWED](HttpResponse::method_not_allowed)
 // - [TOO_MANY_REQUESTS](HttpResponse::too_many_requests)
 // - [INTERNAL_SERVER_ERROR](HttpResponse::internal_server_error)
-// 
+//
 // ```
 // use ic_http_certification::{HttpResponse, StatusCode};
-// 
+//
 // let response = HttpResponse::ok(b"Hello, World!", vec![("Content-Type".into(), "text/plain".into())]).build();
-// 
+//
 // assert_eq!(response.status_code(), StatusCode::OK);
 // assert_eq!(response.headers(), &[("Content-Type".into(), "text/plain".into())]);
 // assert_eq!(response.body(), b"Hello, World!");
