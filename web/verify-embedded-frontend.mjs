@@ -110,8 +110,13 @@ export async function verifyEmbeddedGateway(project, alias) {
   const bareOrigin = 'http://raw.localhost:' + canisters.port;
   const barePath = '/?canisterId=' + canisters.frontend;
   const bare = await gatewayResponse({ ...canisters, origin: bareOrigin }, 'GET', barePath);
-  assert.equal(bare.code, 403, 'GET ' + bareOrigin + barePath);
-  assert.equal(bare.body.length, 0);
+  if (bare.code === 403) {
+    assert.equal(bare.body.length, 0);
+  } else {
+    // PocketIC routes this alias but still enforces verification on it.
+    assert.equal(bare.code, 503, 'GET ' + bareOrigin + barePath);
+    assert.match(bare.body.toString(), /<title>Response Verification Error - 503/);
+  }
   rawRefusals.push({ method: 'GET', path: barePath, status: bare.code, origin: bareOrigin });
   return { ...canisters, paths, observed, rawOrigin, rawRefusals };
 }
