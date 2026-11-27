@@ -1,0 +1,26 @@
+{
+  "frontend": {
+    "id": "s45ab-wiaaa-aaaar-qcifq-cai",
+    "moduleHash": "04e565b3425fe7510ee16b02adcfe3f01abc9a2725c82a21cb08969241debd62",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "certifiedAt": "2026-11-27T18:57:15.006Z",
+    "balance": "2629937479345",
+    "estimatedFreezingReserve": "82952938710",
+    "estimatedLiquidAboveFreezing": "2546984540635"
+  },
+  "reviewer": {
+    "id": "s34gv-3qaaa-aaaar-qcifa-cai",
+    "moduleHash": "a0e5ee28c0e4e42f215411f825d02b7ac65f2285794a371bf598fb2755e2eec9",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "certifiedAt": "2026-11-27T18:57:17.161Z",
+    "balance": "2843660562677",
+    "estimatedFreezingReserve": "375354020790",
+    "estimatedLiquidAboveFreezing": "2468306541887"
+  }
+}
