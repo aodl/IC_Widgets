@@ -207,13 +207,16 @@ fn post_upgrade() {
 fn is_raw_host(host: &str) -> bool {
     let host = host.trim().split(':').next().unwrap_or_default();
     let host = host.trim_end_matches('.').to_ascii_lowercase();
-    let Some((_, raw_domain)) = host.split_once('.') else {
-        return false;
+    let raw_domain = |domain| {
+        matches!(
+            domain,
+            "raw.icp.net" | "raw.icp0.io" | "raw.ic0.app" | "raw.localhost"
+        )
     };
-    matches!(
-        raw_domain,
-        "raw.icp.net" | "raw.icp0.io" | "raw.ic0.app" | "raw.localhost"
-    )
+    raw_domain(host.as_str())
+        || host
+            .split_once('.')
+            .is_some_and(|(_, domain)| raw_domain(domain))
 }
 
 #[ic_cdk::query]

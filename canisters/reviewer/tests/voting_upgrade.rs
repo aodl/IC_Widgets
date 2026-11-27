@@ -174,6 +174,9 @@ impl FrontendRehearsal {
             format!("{id}.raw.icp0.io"),
             format!("{id}.raw.ic0.app"),
             format!("{id}.RAW.ICP.NET.:443"),
+            "raw.icp.net".into(),
+            "raw.icp0.io".into(),
+            "raw.ic0.app".into(),
         ] {
             let refusal = self.request(pic, "/", &host);
             assert_eq!(refusal.status_code, 403, "{host}");

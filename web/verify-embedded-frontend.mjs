@@ -106,6 +106,13 @@ export async function verifyEmbeddedGateway(project, alias) {
     assert.equal(response.headers.find(([name]) => name === 'cache-control')?.[1], 'public, no-cache, no-store');
     rawRefusals.push({ method, path, status: response.code });
   }
+  // Some gateways also route a bare raw hostname with a canisterId parameter.
+  const bareOrigin = 'http://raw.localhost:' + canisters.port;
+  const barePath = '/?canisterId=' + canisters.frontend;
+  const bare = await gatewayResponse({ ...canisters, origin: bareOrigin }, 'GET', barePath);
+  assert.equal(bare.code, 403, 'GET ' + bareOrigin + barePath);
+  assert.equal(bare.body.length, 0);
+  rawRefusals.push({ method: 'GET', path: barePath, status: bare.code, origin: bareOrigin });
   return { ...canisters, paths, observed, rawOrigin, rawRefusals };
 }
 
