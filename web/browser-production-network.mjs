@@ -6,11 +6,11 @@ import { resolve } from 'node:path';
 import { Cbor } from '@icp-sdk/core/agent';
 import { verifyEmbeddedGateway } from './verify-embedded-frontend.mjs';
 
-const [projectArg, outputArg, alias] = process.argv.slice(2);
-if (!projectArg || !outputArg) throw new Error('Usage: node web/browser-production-network.mjs <isolated fixture project> <output> [frontend alias]');
+const [projectArg, outputArg, alias, reviewerAlias] = process.argv.slice(2);
+if (!projectArg || !outputArg) throw new Error('Usage: node web/browser-production-network.mjs <isolated fixture project> <output> [frontend alias] [reviewer alias]');
 const project = resolve(projectArg), output = resolve(outputArg);
 // The installed local profile uses the ordinary compiled app and native IC certification.
-const { origin, reviewer, paths, observed } = await verifyEmbeddedGateway(project, alias);
+const { origin, reviewer, paths, observed } = await verifyEmbeddedGateway(project, alias, reviewerAlias);
 const assets = new Set(['/', ...paths]);
 const allow = new RegExp('^/api/v[234]/canister/' + reviewer + '/(?:call|read_state)$');
 
@@ -50,7 +50,10 @@ try {
   assert.equal(await page.getByLabel('Replay scenario').count(), 0);
   await page.locator('[name=first]').fill('144954');
   await page.getByRole('button', { name: 'Review', exact: true }).click();
-  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  const reviewStatus = page.locator('#report-status');
+  await reviewStatus.getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 }).catch(async error => {
+    throw new Error('Review status: ' + await reviewStatus.textContent(), { cause: error });
+  });
   const count = protocol.length;
   assert.equal(protocol.filter(path => path.endsWith('/call')).length, 10, JSON.stringify(protocol));
   const flag = page.locator('.node-changes [data-recorded-country=SE] canvas[data-drawn]');

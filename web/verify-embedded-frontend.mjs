@@ -10,7 +10,7 @@ import { verifyRequestResponsePair } from '@dfinity/response-verification';
 import { Cbor } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';
 
-export async function localCanisters(project, alias = 'frontend') {
+export async function localCanisters(project, alias = 'frontend', reviewerAlias = 'reviewer') {
   const config = JSON.parse(await readFile(resolve(project, 'dfx.json'), 'utf8'));
   const port = config.networks?.local?.bind?.match(/^127\.0\.0\.1:(\d+)$/)?.[1];
   if (!port || config.networks.local.type !== 'ephemeral') {
@@ -20,7 +20,7 @@ export async function localCanisters(project, alias = 'frontend') {
     cwd: project, env: { ...process.env, DFX_IDENTITY: 'codex_local' }, encoding: 'utf8',
   }).trim();
   const frontend = id(alias);
-  return { port, frontend, reviewer: id('reviewer'), origin: 'http://' + frontend + '.localhost:' + port };
+  return { port, frontend, reviewer: id(reviewerAlias), origin: 'http://' + frontend + '.localhost:' + port };
 }
 
 // These headers are added by the local gateway or its HTTP server, outside the canister response.
@@ -49,8 +49,8 @@ function gatewayResponse({ port, origin }, method, path) {
   });
 }
 
-export async function verifyEmbeddedGateway(project, alias) {
-  const canisters = await localCanisters(project, alias);
+export async function verifyEmbeddedGateway(project, alias, reviewerAlias) {
+  const canisters = await localCanisters(project, alias, reviewerAlias);
   const principal = Principal.fromText(canisters.frontend).toUint8Array();
   const status = await fetch('http://127.0.0.1:' + canisters.port + '/api/v2/status');
   assert.ok(status.ok);
