@@ -53,8 +53,14 @@ build_copy() {
     cargo clean --target-dir "$target"
 }
 
-build_copy first
-build_copy repeat
+build_copy first &
+first=$!
+build_copy repeat &
+repeat=$!
+status=0
+wait "$first" || status=1
+wait "$repeat" || status=1
+(( status == 0 ))
 cd "$output"
 for canister in frontend reviewer; do
     for extension in wasm wasm.gz did; do
