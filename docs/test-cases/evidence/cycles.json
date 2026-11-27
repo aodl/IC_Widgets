@@ -1,0 +1,22 @@
+{
+  "queryRequests": 60,
+  "bytes": 2450400,
+  "elapsedMs": 660,
+  "routes": [
+    "/test-cases",
+    "/test-cases/nns-144954-recorded-open",
+    "/replay.a13cf94d224129c4385b932ec576f1001354798b0a2faf5db0cb4c08c80a197f.json"
+  ],
+  "separatelyMeasuredLocalBalance": {
+    "frontend": {
+      "before": "2980075897567",
+      "after": "2980073953567",
+      "decrease": "1944000"
+    },
+    "reviewer": {
+      "before": "2978184445743",
+      "after": "2978182501743",
+      "decrease": "1944000"
+    }
+  }
+}

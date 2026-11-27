@@ -1,4 +1,4 @@
-import { activeReplay, connect, liveError, replays, result } from './client.js';
+import { activeReplay, bundledCase, connect, liveError, replays, result, testCases } from './client.js';
 import { proposalHeading } from './dashboard.js';
 import { replayLabel } from './detail-model.js';
 import { mountReviewWorkspace } from './membership-details.js';
@@ -9,6 +9,7 @@ import { proposalInput, proposalInputProfile, subnetInputProfile } from './view-
 import { composedOutputs, hasProfile, readNodeFilter } from './composed-scope.js';
 import { acceptNexusHost } from './widget-frame.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
+import { showTestCatalogue } from './case-catalogue.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
 import { el, option, sourceReceipts, styled } from './view.js';
 
@@ -191,11 +192,11 @@ function startReview(ids) {
       if (proposals.length && proposals.every(terminalOutcome)) {
         map?.dispose();
         const titles = option(body.proposal_text ?? []) ?? [];
-        const indexedFailure = FIXTURE_REPLAY && activeReplay?.proposalIds.length === 1 ? activeReplay.failureReason : undefined;
+        const indexedFailure = (FIXTURE_REPLAY || bundledCase) && activeReplay?.proposalIds.length === 1 ? activeReplay.failureReason : undefined;
         reportContainer.replaceChildren(styled('section', 'card terminal-outcome',
           proposals.map(proposal => terminalSummary(proposal,
             option(titles.find(row => row.id === proposal.id)?.title ?? []),
-            FIXTURE_REPLAY && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, activeReplay)),
+            (FIXTURE_REPLAY || bundledCase) && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, activeReplay)),
           sourceReceipts(live, { replay: !!activeReplay })));
         status({ work: 'settled', stage: 'Observed' });
         unavailable('This proposal has a terminal outcome.');
@@ -334,5 +335,17 @@ if (widget) {
         unavailable(error.message);
       }
     });
+  }
+}
+
+if (testCases.length) {
+  showTestCatalogue(testCases, bundledCase);
+  if (bundledCase?.asset) {
+    search.elements.first.value = bundledCase.proposalIds[0];
+    search.elements.second.value = bundledCase.proposalIds[1] ?? '';
+    search.elements.first.readOnly = true;
+    search.elements.second.readOnly = true;
+    if (bundledCase.proposalIds[1]) document.querySelector('#review-options').open = true;
+    performance.visible(false);
   }
 }

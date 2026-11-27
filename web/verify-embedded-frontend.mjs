@@ -49,8 +49,9 @@ function gatewayResponse({ port, origin }, method, path) {
   });
 }
 
-export async function verifyEmbeddedGateway(project, alias, reviewerAlias) {
-  const canisters = await localCanisters(project, alias, reviewerAlias);
+export async function verifyEmbeddedGateway(project, alias, option) {
+  const catalogue = typeof option === "object" ? option : undefined;
+  const canisters = await localCanisters(project, alias, typeof option === "string" ? option : undefined);
   const principal = Principal.fromText(canisters.frontend).toUint8Array();
   const status = await fetch('http://127.0.0.1:' + canisters.port + '/api/v2/status');
   assert.ok(status.ok);
@@ -70,11 +71,13 @@ export async function verifyEmbeddedGateway(project, alias, reviewerAlias) {
     assert.equal(proof.response.statusCode, expected);
     assert.deepEqual(Buffer.from(proof.response.body), gateway.body);
     assert.equal(lookup('x-content-type-options'), 'nosniff');
-    assert.match(lookup('content-security-policy'), /connect-src 'self' https:\/\/icp-api\.io;/);
-    assert.equal(lookup('cache-control'), expected === 200 && /^\/(?:app|styles)\.[a-f0-9]{64}\./.test(path)
+    const testPage = expected === 200 && path.startsWith('/test-cases');
+    const csp = lookup('content-security-policy');
+    assert.match(csp, testPage ? /connect-src 'self';/ : /connect-src 'self' https:\/\/icp-api\.io;/);
+    assert.equal(lookup('cache-control'), expected === 200 && /^\/(?:app|styles|replay)\.[a-f0-9]{64}\./.test(path)
       ? 'public, max-age=31536000, immutable' : 'public, no-cache, no-store');
     if (method === 'HEAD') assert.equal(gateway.body.length, 0);
-    observed.push({ method, path, status: expected, certification: proof.verificationVersion });
+    observed.push({ method, path, status: expected, certification: proof.verificationVersion, bytes: gateway.body.length });
     return gateway.body;
   }
 
@@ -89,7 +92,7 @@ export async function verifyEmbeddedGateway(project, alias, reviewerAlias) {
     const headers = await gatewayResponse(canisters, 'GET', path);
     const expectedMime = path.endsWith('.js') ? 'text/javascript' : 'text/css';
     assert.equal(headers.headers.find(([name]) => name === 'content-type')?.[1], expectedMime + '; charset=utf-8');
-    if (path.endsWith('.js')) assert.doesNotMatch(body.toString(), /Replay scenario|nns-144954|ic-api\.internetcomputer\.org/);
+    if (path.endsWith('.js')) assert.doesNotMatch(body.toString(), /Replay scenario|ic-api\.internetcomputer\.org/);
     await verify('HEAD', path, 200);
   }
   await verify('HEAD', '/', 200);
@@ -97,9 +100,24 @@ export async function verifyEmbeddedGateway(project, alias, reviewerAlias) {
   await verify('GET', '/.ic-assets.json5', 404);
   await verify('GET', '/unmatched/nested/path', 404);
   await verify('HEAD', '/unmatched/nested/path', 404);
+  if (catalogue) {
+    const tests = await verify('GET', '/test-cases', 200);
+    for (const path of paths) assert.ok(tests.toString().includes('"' + path + '"'));
+    for (const path of ['/test-cases/', ...catalogue.cases.map(row => '/test-cases/' + row.id)]) {
+      assert.deepEqual(await verify('GET', path, 200), tests);
+      await verify('HEAD', path, 200);
+    }
+    await verify('HEAD', '/test-cases', 200);
+    await verify('GET', '/test-cases/not-a-recorded-case', 404);
+    for (const [name, bytes] of Object.entries(catalogue.assets)) {
+      const body = await verify('GET', '/' + name, 200);
+      assert.equal(body.toString(), bytes);
+      assert.equal(createHash('sha256').update(body).digest('hex'), name.split('.')[1]);
+    }
+  }
   const rawOrigin = 'http://' + canisters.frontend + '.raw.localhost:' + canisters.port;
   const rawRefusals = [];
-  for (const [method, path] of [['GET', '/'], ['HEAD', '/'], ...paths.map(path => ['GET', path])]) {
+  for (const [method, path] of [['GET', '/'], ['HEAD', '/'], ...paths.map(path => ['GET', path]), ...(catalogue ? [['GET', '/test-cases'], ['GET', '/test-cases/' + catalogue.cases[0].id]] : [])]) {
     const response = await gatewayResponse({ ...canisters, origin: rawOrigin }, method, path);
     assert.equal(response.code, 403, method + ' ' + rawOrigin + path);
     assert.equal(response.body.length, 0);

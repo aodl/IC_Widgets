@@ -19,11 +19,13 @@ fn main() {
         "styles.css",
         "build.mjs",
         "widget-build.mjs",
+        "test-cases",
         "package.json",
         "package-lock.json",
     ] {
         println!("cargo:rerun-if-changed={}", web.join(input).display());
     }
+    println!("cargo:rerun-if-changed=../../tests/source-fixture/data");
     if env::var("CARGO_CFG_TARGET_ARCH").as_deref() != Ok("wasm32") {
         return;
     }

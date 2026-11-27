@@ -3,6 +3,7 @@ import { IDL } from '@icp-sdk/core/candid';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import { idlFactory } from './reviewer.did.js';
 import { hex } from './view.js';
+import { openBundledReplay } from './bundled-replay.js';
 
 // Each page has its own identity for isolated, expiring review sessions.
 const identity = Ed25519KeyIdentity.generate();
@@ -13,10 +14,16 @@ if (typeof FIXTURE_REPLAY !== 'undefined' && FIXTURE_REPLAY
     && !['127.0.0.1', '[::1]', 'localhost'].includes(location.hostname) && !location.hostname.endsWith('.localhost')) {
   throw new Error('Development replay requires HTTPS or a loopback origin.');
 }
-export const activeReplay = replays && (replays.cases.find(row => row.id === new URLSearchParams(location.search).get('case'))
-  ?? replays.cases.find(row => row.id === replays.initial));
+export const testCases = typeof TEST_CASES === 'undefined' ? [] : TEST_CASES;
+export const bundledCase = testCases.find(row => globalThis.location?.pathname === '/test-cases/' + row.id);
+export const activeReplay = bundledCase ?? (replays && (replays.cases.find(row => row.id === new URLSearchParams(location.search).get('case'))
+  ?? replays.cases.find(row => row.id === replays.initial)));
 
 export async function connect() {
+  if (bundledCase) {
+    if (!bundledCase.asset) throw new Error('An interactive review is unavailable for this test case.');
+    return openBundledReplay(bundledCase);
+  }
   const agent = await HttpAgent.create({
     host: LOCAL_REPLICA ? window.location.origin : 'https://icp-api.io',
     shouldFetchRootKey: LOCAL_REPLICA,
@@ -33,7 +40,7 @@ export function result(reply) {
 export async function compareMembership(client, input, active, token) {
   const name = 'compare_membership_context';
   const args = [input, token];
-  const method = Actor.interfaceOf(client).fieldsAsObject()[name];
+  const method = idlFactory({ IDL }).fieldsAsObject()[name];
   const bytes = IDL.encode(method.argTypes, args);
   const inputHash = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
   if (!active()) return undefined;

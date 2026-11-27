@@ -17,6 +17,8 @@ static CERTIFICATE_VERSIONS: [u8; 1] = *b"2";
 
 static ASSETS: Dir<'_> = include_dir!("$NEXUS_EMBEDDED_ASSETS");
 const MISSING: &str = "404.html";
+const TESTS: &str = "test-cases.html";
+const TEST_ROUTES: &str = "test-case-routes.txt";
 const CSP: &str = "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors";
 
 struct Head {
@@ -38,6 +40,7 @@ thread_local! {
 fn asset_headers(name: &str) -> Vec<HeaderField> {
     let ancestor = option_env!("IC_WIDGET_HOST_ORIGIN").unwrap_or("'none'");
     let csp = format!("{CSP} {ancestor}");
+    let csp = if name == TESTS { csp.replace("connect-src 'self' https://icp-api.io", "connect-src 'self'") } else { csp };
     let cache = if name.ends_with(".html") {
         "public, no-cache, no-store"
     } else {
@@ -64,23 +67,29 @@ fn asset_headers(name: &str) -> Vec<HeaderField> {
     .into()
 }
 
-fn aliases(name: &str) -> Vec<String> {
-    if name != "index.html" {
-        return vec![];
-    }
-    if option_env!("IC_WIDGET_EMBED_VIEW").is_some() {
-        vec!["/".into(), "/embed".into()]
-    } else {
-        vec!["/".into()]
-    }
-}
-
 fn content_type(name: &str) -> &'static str {
     match name {
-        "index.html" | MISSING => "text/html; charset=utf-8",
+        "index.html" | TESTS | MISSING => "text/html; charset=utf-8",
+        _ if name.starts_with("replay.") && name.ends_with(".json") => "application/json",
         _ if name.starts_with("app.") && name.ends_with(".js") => "text/javascript; charset=utf-8",
         _ if name.starts_with("styles.") && name.ends_with(".css") => "text/css; charset=utf-8",
         _ => ic_cdk::trap("unexpected embedded frontend asset"),
+    }
+}
+
+fn aliases(name: &str) -> Vec<String> {
+    match name {
+        "index.html" if option_env!("IC_WIDGET_EMBED_VIEW").is_some() => vec!["/".into(), "/embed".into()],
+        "index.html" => vec!["/".into()],
+        TESTS => ASSETS
+            .get_file(TEST_ROUTES)
+            .expect("test case routes")
+            .contents_utf8()
+            .expect("UTF-8 test case routes")
+            .lines()
+            .map(str::to_owned)
+            .collect(),
+        _ => vec![],
     }
 }
 
@@ -95,6 +104,9 @@ fn certify_assets() {
 
     for file in ASSETS.files() {
         let name = file.path().to_str().expect("UTF-8 embedded filename");
+        if name == TEST_ROUTES {
+            continue;
+        }
         let body = file.contents();
         let missing = name == MISSING;
         let status = if missing {
