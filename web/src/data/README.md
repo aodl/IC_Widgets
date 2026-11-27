@@ -35,4 +35,4 @@ From the repository root with development-only CairoSVG `2.8.2` and Pillow `11.3
 | `map-units.js` | `0802f6626049481df5dd071621065a3441e0fb64c694ea1daccb4a46a8921f9a` |
 | `flag-atlas.js` | `90bacf3d2cec86663005ac8787fbdf57ca7b17f1507b416f973492ff9f0b7156` |
 
-The production `app.js` built with the same principal grew from 372,310 to 513,546 bytes. With `gzip -n` it grew from 127,645 to 260,575 bytes. The measurements include the bundled flag atlas, country geometry and presentation code. Both builds ship a single JavaScript asset.
+The production `app.js` built with the same principal grew from 372,310 to 513,546 bytes. With `gzip -n` it grew from 127,645 to 260,574 bytes. The measurements include the bundled flag atlas, country geometry and presentation code. Both builds ship a single JavaScript asset.

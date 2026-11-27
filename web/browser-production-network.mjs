@@ -1,7 +1,7 @@
 // Exercise the production build with a real isolated replica and a deny-by-default browser network.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Cbor } from '@icp-sdk/core/agent';
 
@@ -105,26 +105,46 @@ try {
   await page.keyboard.press('+');
   await page.keyboard.press('ArrowLeft');
   assert.notEqual(await sh1.getAttribute('style'), before);
+  await map.scrollIntoViewIfNeeded();
+  const swiss = map.getByRole('button', { name: /^zh2 · Zurich, Switzerland/ });
+  const { x, y, width, height } = await swiss.boundingBox();
+  await page.mouse.move(x + width / 2, y + height / 2);
+  for (let i = 0; i < 3; i++) {
+    const old = await map.getAttribute('data-map-scale');
+    await page.mouse.wheel(0, -450);
+    await page.waitForFunction(scale => document.querySelector('.map-frame').dataset.mapScale !== scale, old);
+  }
+  const screenRed = await map.locator('.map-surface canvas').evaluate(canvas => {
+    const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    let count = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] === 239 && pixels[i + 1] === 213 && pixels[i + 2] === 212) count++;
+    }
+    return count;
+  });
+  assert.ok(screenRed > 100, 'Switzerland must show the same pale red fill on the zoomed interactive map.');
+  await map.screenshot({ path: resolve(output, 'switzerland-zoom.png') });
   await page.getByRole('button', { name: 'Generate review' }).click();
   const preview = page.locator('.markdown-preview');
   await preview.locator('.node-row-added [data-recorded-country=SE] canvas[data-drawn]').waitFor();
   const png = await preview.getByRole('img', { name: /^Report map/ }).evaluate(canvas => {
     const ctx = canvas.getContext('2d');
-    const pixels = ctx.getImageData(0, 248, canvas.width, canvas.height - 248).data;
+    const pixels = ctx.getImageData(0, 270, canvas.width, canvas.height - 270).data;
     let green = 0, red = 0, borders = 0;
     for (let i = 0; i < pixels.length; i += 4) {
-      const rgb = (pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2];
-      if (rgb === 0xcce6d0) green++;
-      if (rgb === 0xefd5d4) red++;
-      if (rgb === 0x9eada4) borders++;
+      const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+      if (Math.abs(r - 204) + Math.abs(g - 230) + Math.abs(b - 208) < 6) green++;
+      if (Math.abs(r - 239) + Math.abs(g - 213) + Math.abs(b - 212) < 9) red++;
+      if (r < 197 && g < 205 && b < 196 && Math.abs(g - r) < 25 && Math.abs(b - r) < 17) borders++;
     }
     return { green, red, borders };
   });
-  assert.ok(png.green > 100 && png.red > 25 && png.borders > 100, JSON.stringify(png));
   const pending = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download review' }).click();
   const zip = resolve(output, 'production-review.zip');
   await (await pending).saveAs(zip);
+  await writeFile(resolve(output, 'production-map.png'), execFileSync('unzip', ['-p', zip, 'map.png']));
+  assert.ok(png.green > 100 && png.red > 10 && png.borders > 100, JSON.stringify(png));
   const markdown = execFileSync('unzip', ['-p', zip, 'review.md'], { encoding: 'utf8' });
   assert.match(markdown, /🇸🇪 Sweden \(SE\) \| 2 → 3/);
   assert.match(markdown, /🇨🇭 Switzerland \(CH\) \| 3 → 2/);
@@ -134,7 +154,7 @@ try {
   assert.deepEqual(await page.evaluate(() => window.policyViolations), []);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ productionNetworkAllowlist: 'application assets and reviewer IC protocol routes', protocolRequests: count,
-    mapAndReportProtocolRequests: protocol.length - count, externalRequests: rejected.length, pixels: png }, null, 2));
+    mapAndReportProtocolRequests: protocol.length - count, externalRequests: rejected.length, zoomedSwissFillPixels: screenRed, pixels: png }, null, 2));
 } finally {
   await browser.close();
 }

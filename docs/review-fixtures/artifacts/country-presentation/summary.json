@@ -1,0 +1,122 @@
+{
+  "cases": [
+    "recorded",
+    "multiple changes",
+    "unequal changes",
+    "paired orders",
+    "executed terminal",
+    "rejected terminal",
+    "failed terminal",
+    "held locations",
+    "subnet A→B→A",
+    "independent browser contexts"
+  ],
+  "mapChecks": [
+    {
+      "width": 1366,
+      "locations": 39,
+      "identities": 41
+    },
+    {
+      "width": 768,
+      "locations": 39,
+      "identities": 41
+    },
+    {
+      "width": 390,
+      "locations": 39,
+      "identities": 41
+    },
+    {
+      "width": 320,
+      "locations": 39,
+      "identities": 41
+    },
+    {
+      "wheelError": 0.3125,
+      "pinchError": 0.02209708691207961,
+      "toleranceCssPixels": 2
+    }
+  ],
+  "mapPngPalettePixels": [
+    26,
+    67,
+    1789,
+    1518,
+    23
+  ],
+  "recordedDigest": "1294ed35164c64bad4a3bf4f4444c91a433aeeef33eea6d742523fc2679a72c1",
+  "recordedMethods": [
+    "begin_membership_review",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_registry_role",
+    "compare_membership_context",
+    "finalize_membership_review"
+  ],
+  "reviewerMethods": [
+    "begin_membership_review",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_registry_role",
+    "compare_membership_context",
+    "finalize_membership_review",
+    "begin_membership_review",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_registry_role",
+    "compare_membership_context",
+    "finalize_membership_review",
+    "begin_membership_review",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_registry_role",
+    "compare_membership_context",
+    "finalize_membership_review",
+    "begin_membership_review",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_registry_role",
+    "compare_membership_context",
+    "compare_membership_context",
+    "compare_membership_context",
+    "compare_membership_context",
+    "compare_membership_context",
+    "compare_membership_context",
+    "finalize_membership_review",
+    "begin_membership_review",
+    "begin_membership_review",
+    "begin_membership_review",
+    "begin_membership_review",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_registry_role",
+    "compare_membership_context",
+    "finalize_membership_review",
+    "begin_membership_review",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_context_detail_page",
+    "membership_registry_role",
+    "compare_membership_context",
+    "finalize_membership_review",
+    "membership_context_detail_page",
+    "finalize_membership_review"
+  ],
+  "nonLocalRequests": 0
+}

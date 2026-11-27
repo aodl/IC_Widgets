@@ -319,7 +319,7 @@ try {
     }
     return counts;
   }, png.toString('base64'));
-  assert.ok(colors.every(count => count > 20) && colors[2] > 1000);
+  assert.ok(colors.every(count => count > 20) && colors[2] > 1000, JSON.stringify(colors));
   assert.equal(calls.size, sourceCalls);
   assert.equal(backendRequests, localRequests);
   await resize(1366, 900);

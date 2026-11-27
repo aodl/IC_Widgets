@@ -5,7 +5,7 @@ import { reportScope, reviewMarkdown } from './review-markdown.js';
 import { action, deltaNode, el, number, saveFile, styled, table } from './view.js';
 
 function reportMap(snapshot) {
-  const view = { width: 1120, height: 550 };
+  const view = { width: 1600, height: 790 };
   const projection = mapProjection(view, fitLocations(snapshot.geography.locations, view));
   const scene = mapScene(snapshot.geography, projection.project, view);
   const lines = [
@@ -42,7 +42,7 @@ function reportMap(snapshot) {
   });
   ctx.fillText('Dotted halo: co-located nodes · Cartographic boundaries · Natural Earth', 392, header - 39);
   Object.values(countryStyles).forEach(({ label, color, border }, index) => {
-    const x = 18 + index * 266;
+    const x = 18 + index * 320;
     ctx.fillStyle = color;
     ctx.fillRect(x, header - 26, 14, 12);
     ctx.strokeStyle = border ?? '#84958b';
