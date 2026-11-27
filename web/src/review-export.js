@@ -139,7 +139,7 @@ export function markdownEditor(snapshot, draft, isCurrent) {
       ]))) : null,
     el('details', el('summary', 'Sources and calculation'), el('p', 'Calculation input SHA-256 ', el('code', snapshot.scope.inputHash)),
       el('p', boundaryNote),
-      table(['Method', 'Item', 'Canister', snapshot.replay ? 'Replay delivery time' : 'Observed at', 'Reply SHA-256 or issue'], snapshot.sources)));
+      table(['Method', 'Item', 'Canister', snapshot.replay?.bundled ? 'Fixture capture time' : snapshot.replay ? 'Replay delivery time' : 'Observed at', 'Reply SHA-256 or issue'], snapshot.sources)));
   return styled('section', 'detail-section',
     styled('div', 'actions',
       action('Copy Markdown', async event => {

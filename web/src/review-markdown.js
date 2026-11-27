@@ -109,7 +109,7 @@ export function reviewMarkdown(model, { vote = '', summary = '', attribution = '
         rows: distances.columns.map(column => [column.label, ...column.metres.map(value => value ?? 'Unavailable')]) })),
     regionRows.length && collapsed('Registered geography evidence', markdownTable({ headers: ['Data center', 'Original Registry region', 'Country token'], rows: regionRows })),
     model.sources.length && collapsed('Session source receipts (' + model.sources.length + ')',
-      markdownTable({ headers: ['Method', 'Item', 'Canister', model.replay ? 'Replay delivery time' : 'Observed at', 'Reply SHA-256 or issue'],
+      markdownTable({ headers: ['Method', 'Item', 'Canister', model.replay?.bundled ? 'Fixture capture time' : model.replay ? 'Replay delivery time' : 'Observed at', 'Reply SHA-256 or issue'],
         rows: model.sources })),
   ];
   return blocks.filter(Boolean).join('\n\n') + '\n';

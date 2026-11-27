@@ -35,3 +35,5 @@ node web/browser-production-network.mjs "$project" "$PWD/.local/production-netwo
 ```
 
 The browser driver uses the actual certified responses from the loopback IC HTTP gateway. It independently verifies v2 responses, allows only the hashed frontend assets and the intended reviewer protocol routes, and blocks outside requests, service workers and external DNS. The installed local profile fetches the replica trust root through the standard local IC status endpoint. The test does not rewrite the bundle or bypass certification. The separately reproducible production artifact embeds the mainnet reviewer ID and uses the SDK's pinned mainnet trust root. The guide also checks that exact production artifact through the local gateway without running mainnet application calls.
+
+The embedded frontend includes [/test-cases](../docs/test-cases/README.md), which serves immutable fixture evidence through certified case URLs. The disposable historical launcher continues to exercise the full backend evidence workflow.

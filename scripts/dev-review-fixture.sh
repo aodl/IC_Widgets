@@ -16,7 +16,7 @@ done
 [[ "$port" =~ ^[0-9]{4,5}$ ]] && (( 10#$port >= 1024 && 10#$port <= 65535 )) || exit 2
 export DFX_IDENTITY=codex_local
 unset DFX_NETWORK
-for tool in dfx candid-extractor cargo node npm python3; do
+for tool in dfx candid-extractor cargo gzip node npm python3; do
     command -v "$tool" >/dev/null || { echo "Missing prerequisite: $tool" >&2; exit 1; }
 done
 [[ -d web/node_modules/esbuild ]] || { echo 'Install the locked frontend dependencies with npm --prefix web ci before going offline.' >&2; exit 1; }
@@ -31,6 +31,8 @@ cache=$(dfx cache show)
 mkdir -p .local
 project=$(mktemp -d "$root/.local/review-fixtures.XXXXXXXX")
 echo "Local project: $project"
+mkdir -p "$project/tmp"
+export TMPDIR="$project/tmp"
 python3 - "$project" "$port" "$case_id" "$single" <<'PY'
 import json
 from pathlib import Path
@@ -49,7 +51,7 @@ linked = []
 for index, row in enumerate(selected):
     suffix = f"_{index}" if index else ""
     for name in ["reviewer", "fixture"]:
-        canisters[name + suffix] = dict(type="custom", candid=f"{name}.did", wasm=f"{name}.wasm")
+        canisters[name + suffix] = dict(type="custom", candid=f"{name}.did", wasm=f"{name}.wasm.gz")
     linked.append((suffix, row["id"]))
 (project / "dfx.json").write_text(json.dumps(dict(
     version=1, networks={"local": dict(bind=f"127.0.0.1:{port}", type="ephemeral")},
@@ -61,19 +63,19 @@ cargo build --locked --offline --release --target wasm32-unknown-unknown \
     -p nexus-reviewer -p nexus-source-fixture --features nexus-reviewer/local-fixtures,nexus-source-fixture/slow-governance
 wasms="$root/target/wasm32-unknown-unknown/release"
 mkdir -p "$project/assets"
-cp "$wasms/nexus_reviewer.wasm" "$project/reviewer.wasm"
-cp "$wasms/nexus_source_fixture.wasm" "$project/fixture.wasm"
+gzip -n -c "$wasms/nexus_reviewer.wasm" >"$project/reviewer.wasm.gz"
+gzip -n -c "$wasms/nexus_source_fixture.wasm" >"$project/fixture.wasm.gz"
 cp canisters/reviewer/reviewer.did "$project/reviewer.did"
-candid-extractor "$project/fixture.wasm" > "$project/fixture.did"
+candid-extractor "$wasms/nexus_source_fixture.wasm" > "$project/fixture.did"
 cd "$project"
 dfx start --background --artificial-delay 0
 trap 'dfx stop' ERR
 dfx canister create --all --network local
 while IFS=$'\t' read -r fixture_name reviewer_name id; do
     fixture=$(dfx canister id --network local "$fixture_name")
-    dfx canister install --network local --wasm fixture.wasm "$fixture_name"
+    dfx canister install --network local --wasm fixture.wasm.gz "$fixture_name"
     dfx canister call --network local --candid fixture.did "$fixture_name" load_review_case "(\"$id\")"
-    dfx canister install --network local --wasm reviewer.wasm "$reviewer_name" \
+    dfx canister install --network local --wasm reviewer.wasm.gz "$reviewer_name" \
         --argument "(opt record { governance = principal \"$fixture\"; registry = principal \"$fixture\" })"
 done < cases.tsv
 python3 - "$root" "$case_id" <<'PY'
