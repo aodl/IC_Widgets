@@ -15,6 +15,7 @@ fn main() {
     for input in [
         "src",
         "index.html",
+        "node-map.html",
         "styles.css",
         "build.mjs",
         "widget-build.mjs",

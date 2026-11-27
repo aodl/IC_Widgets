@@ -1,0 +1,18 @@
+{
+  "embeddedGateway": "http://wnnzn-op777-77774-qaapq-cai.localhost:4975",
+  "certifiedResponses": 11,
+  "productionNetworkAllowlist": "certified frontend assets and reviewer IC protocol routes",
+  "reviewProtocolRequests": 11,
+  "reviewReviewerCalls": 10,
+  "mapAndReportProtocolRequests": 0,
+  "overviewReviewerCalls": [
+    "subnet_snapshot_on_demand"
+  ],
+  "externalRequests": 0,
+  "zoomedSwissFillPixels": 5252,
+  "pixels": {
+    "green": 977,
+    "red": 24,
+    "borders": 14561
+  }
+}

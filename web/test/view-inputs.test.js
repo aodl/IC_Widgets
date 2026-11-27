@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Principal } from '@icp-sdk/core/principal';
-import { nodeSelection, performanceSelection } from '../src/node-snapshot.js';
+import { nodeSelection } from '../src/node-snapshot.js';
+import { composedOutputs, readMapScene, readNodeFilter } from '../src/composed-scope.js';
 import { proposalInput, proposalInputProfile, subnetInput, subnetInputProfile } from '../src/view-inputs.js';
 
 test('view anchors are typed separately and preserve exact proposal IDs', () => {
@@ -27,11 +28,24 @@ test('both variants share a finite Performance selection contract, including rea
   assert.throws(() => comparison.nodes.selected.push(node), TypeError);
 });
 
-test('bridged Performance accepts only an explicitly finite versioned scope', () => {
+test('connected Performance gets only the exact finite producer filter, including ready-empty', () => {
   const subnet = Principal.fromUint8Array(Uint8Array.of(19, 2)).toText();
-  const value = nodeSelection({ kind: 'existing', registryVersion: 42n, selected: [], revision: 'a', subnet, label: 'Test scope' });
-  const ready = { kind: 'ready', profile: value.profile, revision: 'a', value };
-  assert.deepEqual(performanceSelection(ready).nodes.selected, []);
-  assert.throws(() => performanceSelection({ ...ready, revision: 'superseded' }), /Unsupported/);
-  assert.throws(() => performanceSelection({ ...ready, value: { ...value, nodes: {} } }), /Invalid finite/);
+  const nodes = [1, 2, 3, 4].map(id => Principal.fromUint8Array(Uint8Array.of(id, 2)).toText());
+  const selected = [nodes[0], nodes[2]];
+  const selection = nodeSelection({ kind: 'comparison', registryVersion: 42n, selected, incoming: [nodes[2]],
+    outgoing: [nodes[1]], affected: nodes.slice(1), revision: 'digest', subnet, label: 'Test scope' });
+  const members = [
+    { id: nodes[0], role: 'Retained', label: 'one', point: undefined },
+    { id: nodes[1], role: 'Removed', label: 'two' },
+    { id: nodes[2], role: 'Added', label: 'three', point: { lat: 10, lon: -15 } },
+  ];
+  const { scene, filter } = composedOutputs(selection, { members, countries: { groups: [], shades: {}, note: '' } });
+  assert.equal(scene.revision, filter.revision);
+  assert.deepEqual(readMapScene(scene).members.map(member => member.id), nodes.slice(0, 3));
+  assert.equal(Object.hasOwn(readMapScene(scene).members[0], 'point'), false);
+  assert.deepEqual(readNodeFilter(filter).nodeIds, selected);
+  assert.deepEqual(readNodeFilter({ ...filter, value: { ...filter.value, nodeIds: [] } }).nodeIds, []);
+  assert.throws(() => readNodeFilter({ kind: 'waiting' }), /Invalid widget evidence/);
+  assert.throws(() => readNodeFilter({ ...filter, value: { ...filter.value, nodeIds: [nodes[0], nodes[0]] } }), /Invalid finite/);
+  assert.throws(() => readMapScene({ ...scene, value: { ...scene.value, members: [members[0], members[0]] } }), /Invalid finite/);
 });

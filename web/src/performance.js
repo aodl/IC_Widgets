@@ -3,7 +3,7 @@ import { liveError, result } from './client.js';
 import { nodeSelectionProfile } from './node-snapshot.js';
 import { el, number, principal, renderPerformance, sourceReceipts } from './view.js';
 
-export function mountPerformance(call) {
+export function mountPerformance(call, { connected = false } = {}) {
   const section = document.querySelector('#performance');
   const form = document.querySelector('#performance-form');
   const submit = form.querySelector('button');
@@ -16,27 +16,29 @@ export function mountPerformance(call) {
   const preset = document.querySelector('#performance-preset');
   let selection;
   let generation = 0;
-  let following = false;
+  let following = connected;
+  const nodeIds = () => connected ? selection?.nodeIds
+    : selection?.nodes[selection.kind === 'existing' ? 'selected' : preset.value];
 
   function applyScope() {
     generation++;
     output.replaceChildren();
     if (following && selection) subnetField.value = selection.subnet;
     subnetField.readOnly = following;
-    choices.hidden = !following || selection?.kind === 'existing';
-    for (const option of preset.options) {
-      option.disabled = option.value !== 'selected' && !selection?.nodes[option.value].length;
-    }
-    if (preset.selectedOptions[0]?.disabled) preset.value = 'selected';
-    const nodes = following && selection ? selection.nodes[preset.value] : undefined;
+    choices.hidden = connected || !following || selection?.kind === 'existing';
+    const nodes = following ? nodeIds() : undefined;
+    const scope = connected && selection?.scope === 'proposed-membership' ? ' · Proposed members'
+      : connected && selection?.scope === 'existing-membership' ? ' · Existing members' : '';
     summary.textContent = !following ? 'Independent subnet scope.' : !selection ? 'Waiting for resolved membership evidence.'
-      : selection.label + ' · Registry ' + number(BigInt(selection.registryVersion)) + ' · ' + number(nodes.length)
+      : selection.label + scope + ' · Registry ' + number(BigInt(selection.registryVersion)) + ' · ' + number(nodes.length)
         + (nodes.length === 1 ? ' node.' : ' nodes.');
     submit.disabled = following && !nodes?.length;
-    status.textContent = submit.disabled ? 'Choose a populated membership filter or use independent scope.' : '';
+    status.textContent = submit.disabled ? (connected ? (selection ? 'The connected filter is empty.' : '')
+      : 'Choose a populated membership filter or use independent scope.') : '';
   }
 
   mode.addEventListener('change', () => {
+    if (connected) return;
     following = mode.value === 'follow';
     applyScope();
   });
@@ -51,11 +53,12 @@ export function mountPerformance(call) {
   async function readPerformance() {
     if (submit.disabled || !form.checkValidity()) return;
     const ticket = ++generation;
-    const filter = following ? selection.nodes[preset.value].map(id => Principal.fromText(id)) : undefined;
+    const filter = following ? nodeIds()?.map(id => Principal.fromText(id)) : undefined;
+    if (following && !filter?.length) return;
     output.replaceChildren();
     submit.disabled = true;
     try {
-      const subnet = Principal.fromText(subnetField.value.trim());
+      const subnet = Principal.fromText(following ? selection.subnet : subnetField.value.trim());
       const days = form.elements.days.valueAsNumber;
       const start = BigInt(Date.now() - days * 86_400_000) * 1_000_000n;
       status.textContent = 'Waiting for the review’s source calls to settle…';
@@ -75,13 +78,17 @@ export function mountPerformance(call) {
     }
   }
 
+  if (connected) {
+    mode.value = 'follow';
+    mode.closest('label').hidden = true;
+    applyScope();
+  }
   return {
     section,
     visible(show) { section.hidden = !show; },
     follow(next, issue) {
-      following = true;
-      mode.value = 'follow';
-      this.scope(next);
+      selection = next;
+      applyScope();
       if (issue) status.textContent = issue;
       readPerformance();
     },

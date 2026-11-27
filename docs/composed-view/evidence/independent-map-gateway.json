@@ -1,0 +1,432 @@
+{
+  "host": "http://ufxgi-4p777-77774-qaadq-cai.localhost:4968",
+  "mapOrigin": "http://vb2j2-fp777-77774-qaafq-cai.localhost:4968",
+  "certified": [
+    {
+      "url": "http://ufxgi-4p777-77774-qaadq-cai.localhost:4968/",
+      "status": 200,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src http://*.localhost:*; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "http://ufxgi-4p777-77774-qaadq-cai.localhost:4968/app.js",
+      "status": 200,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src http://*.localhost:*; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "http://ufxgi-4p777-77774-qaadq-cai.localhost:4968/styles.css",
+      "status": 200,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src http://*.localhost:*; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "http://ufxgi-4p777-77774-qaadq-cai.localhost:4968/bridge.js",
+      "status": 200,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src http://*.localhost:*; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "http://ufxgi-4p777-77774-qaadq-cai.localhost:4968/composition.js",
+      "status": 200,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src http://*.localhost:*; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "http://ufxgi-4p777-77774-qaadq-cai.localhost:4968/storage.js",
+      "status": 200,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src http://*.localhost:*; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "http://ufxgi-4p777-77774-qaadq-cai.localhost:4968/catalogue.json",
+      "status": 200,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src http://*.localhost:*; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "http://vizcg-th777-77774-qaaea-cai.localhost:4968/embed",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vizcg-th777-77774-qaaea-cai.localhost:4968/styles.f906fd51e812cd72f7e8837cba4583e766eb388120d6b1800688911316ac3195.css",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vizcg-th777-77774-qaaea-cai.localhost:4968/app.cade5cc68e0c8d2d516b81dc4f0cb12400a715110ae2b548fe43f9df46e50045.js",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968/embed",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968/styles.f906fd51e812cd72f7e8837cba4583e766eb388120d6b1800688911316ac3195.css",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968/app.a1011b24bf9f654eae7749b3794a5316e2b4cbacc076f186a33c92b57be6176b.js",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vg3po-ix777-77774-qaafa-cai.localhost:4968/embed",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vg3po-ix777-77774-qaafa-cai.localhost:4968/styles.f906fd51e812cd72f7e8837cba4583e766eb388120d6b1800688911316ac3195.css",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vg3po-ix777-77774-qaafa-cai.localhost:4968/app.6a39c494f3bea979ca76622a8f234604b9eec1f746f990a210cebf0bd3dff030.js",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vb2j2-fp777-77774-qaafq-cai.localhost:4968/embed",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vb2j2-fp777-77774-qaafq-cai.localhost:4968/styles.f906fd51e812cd72f7e8837cba4583e766eb388120d6b1800688911316ac3195.css",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vb2j2-fp777-77774-qaafq-cai.localhost:4968/app.caef6efcb246767bea348747798694678da3cf8cb58e3488f0dd8c8cfc63557c.js",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968/embed",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968/styles.f906fd51e812cd72f7e8837cba4583e766eb388120d6b1800688911316ac3195.css",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    },
+    {
+      "url": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968/app.312edfa75ea1246ba45d767a5aa7f5d163fd2b08e74c6a4d9dcde2aad80d64a9.js",
+      "status": 200,
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors http://ufxgi-4p777-77774-qaadq-cai.localhost:4968"
+    }
+  ],
+  "views": [
+    {
+      "name": "Existing subnet",
+      "subnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+      "before": 40,
+      "proposed": null,
+      "added": null,
+      "removed": null,
+      "represented": 40,
+      "metrics": {
+        "origin": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968",
+        "method": "node_performance_on_demand",
+        "subnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "nodes": [
+          "dw2ac-qodm4-snxe5-bnat5-2nu2z-mmogu-7gps7-z4gon-zadqs-3dbqh-pae",
+          "himck-kjpb3-eih7e-knfcr-tkz7f-qzx45-i6xwm-obvn7-fw2hv-2zuy7-aqe",
+          "tbzjp-lv2kb-xhel7-36r77-rfa3z-6iox2-c4ttr-cppwv-naxob-n3arn-fae",
+          "nf7qq-vkm72-lttne-dsnke-3x73z-ofybh-ogahy-vyvta-dgbny-s5dr7-qqe",
+          "oxevh-yptgl-yzu2p-w6dyn-lr6jc-b2xaq-aatz2-yyfot-hm4pr-ucvh6-gae",
+          "v6r7h-luxm5-nxusv-bvhek-sis7i-sitrx-ezprf-j2lp3-2tnlt-2m6yt-zae",
+          "urnku-x7qn7-gt2mu-kueib-duqoz-xcdgj-hsnwl-5q32r-w3vqp-on6lq-gae",
+          "sekkk-e24lo-s2zu3-5ltyu-kbzqs-44bpv-klm7l-72g2n-z7zxu-2pqpu-pae",
+          "4mfcc-d3te7-zk2in-n5hm2-tcquv-bgc2e-obpbh-xp5jc-7boqr-oidte-jqe",
+          "nj7re-dvkal-yq25a-opp2g-5y3qy-3ena4-opd5j-22uir-eaakx-ljk7k-6ae",
+          "5veru-kf3gn-vjdxg-drid6-qpl2s-ojbxd-i73zf-kded7-7e4q3-5vuni-3qe",
+          "nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae",
+          "uafcv-c76tx-jzddu-wxygw-4yzkm-nyr7u-iwk57-bwind-wmupb-2wos6-4qe",
+          "3zfpk-du6xx-yg7j5-h7c5w-6rr7z-cmkbf-pfos7-lhu65-svdmj-co7nc-cae",
+          "2nehn-z42p7-36s7j-qqcz6-sy5rb-euhte-necpl-egqsv-hdoph-gx7qd-6ae",
+          "ulhxy-qlokv-5iual-yizlo-dtlmi-aavz5-bi7ez-kjwqz-la64z-cxjuk-fae",
+          "vysyd-tlwq5-f5vfi-kw2jc-ziylz-di2s5-sf4p3-iflm7-vyvjv-hz3b3-pae",
+          "zatyv-4l26n-3lecc-xpeme-ul34o-yiye2-3d447-aiiz4-5pxtm-v44nh-cqe",
+          "lh2af-66zso-76kqu-d57ag-jca5d-yvmfo-rcabh-ptlvj-ltfdf-kyg6q-lqe",
+          "5gcqu-upr5b-ol3fj-vz273-3ov5j-s2dzp-d3n4o-c3rdz-rnhto-tovcx-zqe",
+          "lxgqb-dlqzi-schn4-i2mha-qh6re-eq3c2-3k6cn-oqumg-jkmgk-d4gex-3qe",
+          "jyh32-azcnn-mwosu-urewl-m3pyx-6pmlq-lu5fu-vqjyl-gwx3j-zqrjr-gae",
+          "isegs-i4akf-kb7st-hnqjn-4col7-qxpph-pncbs-25hiy-5pwsu-nyw3x-xae",
+          "k2ovz-ptdmz-hzmkh-ntfqn-evhux-ktxz4-26jg6-qjjsa-rpgal-wkdjo-kqe",
+          "ncr4b-rasb7-tueb3-n4uos-5nxou-3wbxv-xmyt3-wfdsd-vu4b6-5x3cp-aqe",
+          "yahq2-6rnmm-n7ubm-q76zd-256dl-5f7k6-jxx5l-njyo2-hl7tk-sqcet-6ae",
+          "w2sev-mtuls-aa7m5-cdjgi-5vipg-2jn7i-4awvf-o6suu-73ebs-sw5db-kqe",
+          "gvm7l-ds4n6-vkyjn-gwalp-3vdo6-qfmq7-pxhu4-zvqcu-ozvb7-qz3gr-vqe",
+          "2ftux-ivgjc-t4i2d-lq5hs-myjdg-3h2pz-l2ddl-nsxfc-wlaq7-fkbc5-6ae",
+          "jmuoq-7kbey-cbtmm-zlz6t-chwt6-dk7ly-d3jim-5nuu4-y5tou-l5egg-7qe",
+          "5iihd-fkroy-ow5zp-hlvwz-bsgbl-mecta-kxubm-6adxr-ckcu6-prsus-fqe",
+          "24fcm-3onfs-cykax-al4jb-gvdd3-u76zl-ht6ef-hcsbc-xwf54-xbrym-xae",
+          "q4ksz-lpvfy-ikkem-wyuaa-abopq-nmu5k-ovh6h-xfoqk-hx3x3-g2bk6-4qe",
+          "u4zo2-i6nsc-mowwj-lf6az-s6rdo-caskt-a6yx6-fke5w-qyezs-lyqvn-tqe",
+          "mae7q-ggnbj-xb52f-hvest-dgqoc-whvsq-yui5d-5cys2-zeold-l5ydx-oae",
+          "6hvx2-ymemx-tmykh-vxyic-bgfhv-2lcmt-3oy4x-rysuf-rnerz-vqokw-sqe",
+          "anudy-m6vfi-lphxb-sazpy-la4ti-2hriw-c67ny-butfn-axcel-otvuh-oqe",
+          "tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe",
+          "gj6gc-mbslq-bt63y-72b7h-xs2xw-6vyuj-frvp3-tx375-dsqx5-wem6o-vqe",
+          "5mpdi-v4qj2-64are-tbe6r-6335g-6tksh-c7uzq-w3xyz-o4p5g-rwnll-vqe"
+        ]
+      }
+    },
+    {
+      "name": "Recorded review",
+      "subnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+      "before": 40,
+      "proposed": 40,
+      "added": 1,
+      "removed": 1,
+      "represented": 41,
+      "metrics": {
+        "origin": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968",
+        "method": "node_performance_on_demand",
+        "subnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "nodes": [
+          "kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe",
+          "dw2ac-qodm4-snxe5-bnat5-2nu2z-mmogu-7gps7-z4gon-zadqs-3dbqh-pae",
+          "himck-kjpb3-eih7e-knfcr-tkz7f-qzx45-i6xwm-obvn7-fw2hv-2zuy7-aqe",
+          "tbzjp-lv2kb-xhel7-36r77-rfa3z-6iox2-c4ttr-cppwv-naxob-n3arn-fae",
+          "nf7qq-vkm72-lttne-dsnke-3x73z-ofybh-ogahy-vyvta-dgbny-s5dr7-qqe",
+          "oxevh-yptgl-yzu2p-w6dyn-lr6jc-b2xaq-aatz2-yyfot-hm4pr-ucvh6-gae",
+          "v6r7h-luxm5-nxusv-bvhek-sis7i-sitrx-ezprf-j2lp3-2tnlt-2m6yt-zae",
+          "urnku-x7qn7-gt2mu-kueib-duqoz-xcdgj-hsnwl-5q32r-w3vqp-on6lq-gae",
+          "sekkk-e24lo-s2zu3-5ltyu-kbzqs-44bpv-klm7l-72g2n-z7zxu-2pqpu-pae",
+          "4mfcc-d3te7-zk2in-n5hm2-tcquv-bgc2e-obpbh-xp5jc-7boqr-oidte-jqe",
+          "nj7re-dvkal-yq25a-opp2g-5y3qy-3ena4-opd5j-22uir-eaakx-ljk7k-6ae",
+          "5veru-kf3gn-vjdxg-drid6-qpl2s-ojbxd-i73zf-kded7-7e4q3-5vuni-3qe",
+          "nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae",
+          "uafcv-c76tx-jzddu-wxygw-4yzkm-nyr7u-iwk57-bwind-wmupb-2wos6-4qe",
+          "3zfpk-du6xx-yg7j5-h7c5w-6rr7z-cmkbf-pfos7-lhu65-svdmj-co7nc-cae",
+          "2nehn-z42p7-36s7j-qqcz6-sy5rb-euhte-necpl-egqsv-hdoph-gx7qd-6ae",
+          "ulhxy-qlokv-5iual-yizlo-dtlmi-aavz5-bi7ez-kjwqz-la64z-cxjuk-fae",
+          "vysyd-tlwq5-f5vfi-kw2jc-ziylz-di2s5-sf4p3-iflm7-vyvjv-hz3b3-pae",
+          "zatyv-4l26n-3lecc-xpeme-ul34o-yiye2-3d447-aiiz4-5pxtm-v44nh-cqe",
+          "lh2af-66zso-76kqu-d57ag-jca5d-yvmfo-rcabh-ptlvj-ltfdf-kyg6q-lqe",
+          "5gcqu-upr5b-ol3fj-vz273-3ov5j-s2dzp-d3n4o-c3rdz-rnhto-tovcx-zqe",
+          "lxgqb-dlqzi-schn4-i2mha-qh6re-eq3c2-3k6cn-oqumg-jkmgk-d4gex-3qe",
+          "jyh32-azcnn-mwosu-urewl-m3pyx-6pmlq-lu5fu-vqjyl-gwx3j-zqrjr-gae",
+          "isegs-i4akf-kb7st-hnqjn-4col7-qxpph-pncbs-25hiy-5pwsu-nyw3x-xae",
+          "k2ovz-ptdmz-hzmkh-ntfqn-evhux-ktxz4-26jg6-qjjsa-rpgal-wkdjo-kqe",
+          "ncr4b-rasb7-tueb3-n4uos-5nxou-3wbxv-xmyt3-wfdsd-vu4b6-5x3cp-aqe",
+          "yahq2-6rnmm-n7ubm-q76zd-256dl-5f7k6-jxx5l-njyo2-hl7tk-sqcet-6ae",
+          "w2sev-mtuls-aa7m5-cdjgi-5vipg-2jn7i-4awvf-o6suu-73ebs-sw5db-kqe",
+          "gvm7l-ds4n6-vkyjn-gwalp-3vdo6-qfmq7-pxhu4-zvqcu-ozvb7-qz3gr-vqe",
+          "2ftux-ivgjc-t4i2d-lq5hs-myjdg-3h2pz-l2ddl-nsxfc-wlaq7-fkbc5-6ae",
+          "jmuoq-7kbey-cbtmm-zlz6t-chwt6-dk7ly-d3jim-5nuu4-y5tou-l5egg-7qe",
+          "5iihd-fkroy-ow5zp-hlvwz-bsgbl-mecta-kxubm-6adxr-ckcu6-prsus-fqe",
+          "24fcm-3onfs-cykax-al4jb-gvdd3-u76zl-ht6ef-hcsbc-xwf54-xbrym-xae",
+          "q4ksz-lpvfy-ikkem-wyuaa-abopq-nmu5k-ovh6h-xfoqk-hx3x3-g2bk6-4qe",
+          "u4zo2-i6nsc-mowwj-lf6az-s6rdo-caskt-a6yx6-fke5w-qyezs-lyqvn-tqe",
+          "mae7q-ggnbj-xb52f-hvest-dgqoc-whvsq-yui5d-5cys2-zeold-l5ydx-oae",
+          "6hvx2-ymemx-tmykh-vxyic-bgfhv-2lcmt-3oy4x-rysuf-rnerz-vqokw-sqe",
+          "anudy-m6vfi-lphxb-sazpy-la4ti-2hriw-c67ny-butfn-axcel-otvuh-oqe",
+          "gj6gc-mbslq-bt63y-72b7h-xs2xw-6vyuj-frvp3-tx375-dsqx5-wem6o-vqe",
+          "5mpdi-v4qj2-64are-tbe6r-6335g-6tksh-c7uzq-w3xyz-o4p5g-rwnll-vqe"
+        ]
+      }
+    },
+    {
+      "name": "Multiple changes",
+      "subnet": "yinp6-35cfo-wgcd2-oc4ty-2kqpf-t4dul-rfk33-fsq3r-mfmua-m2ngh-jqe",
+      "before": 5,
+      "proposed": 5,
+      "added": 2,
+      "removed": 2,
+      "represented": 7,
+      "metrics": {
+        "origin": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968",
+        "method": "node_performance_on_demand",
+        "subnet": "yinp6-35cfo-wgcd2-oc4ty-2kqpf-t4dul-rfk33-fsq3r-mfmua-m2ngh-jqe",
+        "nodes": [
+          "jsnfc-hogin-macy3-lfird-pfijz-d5jcg-woonn-sbtgx-gzh5h-jjvst-yae",
+          "lr6qv-kty5w-b6qye-6nog2-leujy-6szil-3toje-lykox-oxgce-z6zik-kqe",
+          "p7tb4-iibfi-ba",
+          "pwqka-6acfi-ba",
+          "prrmu-tydfi-ba"
+        ]
+      }
+    }
+  ],
+  "calls": [
+    {
+      "origin": "http://vg3po-ix777-77774-qaafa-cai.localhost:4968",
+      "method": "subnet_snapshot_on_demand"
+    },
+    {
+      "origin": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968",
+      "method": "node_performance_on_demand",
+      "subnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+      "nodes": [
+        "dw2ac-qodm4-snxe5-bnat5-2nu2z-mmogu-7gps7-z4gon-zadqs-3dbqh-pae",
+        "himck-kjpb3-eih7e-knfcr-tkz7f-qzx45-i6xwm-obvn7-fw2hv-2zuy7-aqe",
+        "tbzjp-lv2kb-xhel7-36r77-rfa3z-6iox2-c4ttr-cppwv-naxob-n3arn-fae",
+        "nf7qq-vkm72-lttne-dsnke-3x73z-ofybh-ogahy-vyvta-dgbny-s5dr7-qqe",
+        "oxevh-yptgl-yzu2p-w6dyn-lr6jc-b2xaq-aatz2-yyfot-hm4pr-ucvh6-gae",
+        "v6r7h-luxm5-nxusv-bvhek-sis7i-sitrx-ezprf-j2lp3-2tnlt-2m6yt-zae",
+        "urnku-x7qn7-gt2mu-kueib-duqoz-xcdgj-hsnwl-5q32r-w3vqp-on6lq-gae",
+        "sekkk-e24lo-s2zu3-5ltyu-kbzqs-44bpv-klm7l-72g2n-z7zxu-2pqpu-pae",
+        "4mfcc-d3te7-zk2in-n5hm2-tcquv-bgc2e-obpbh-xp5jc-7boqr-oidte-jqe",
+        "nj7re-dvkal-yq25a-opp2g-5y3qy-3ena4-opd5j-22uir-eaakx-ljk7k-6ae",
+        "5veru-kf3gn-vjdxg-drid6-qpl2s-ojbxd-i73zf-kded7-7e4q3-5vuni-3qe",
+        "nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae",
+        "uafcv-c76tx-jzddu-wxygw-4yzkm-nyr7u-iwk57-bwind-wmupb-2wos6-4qe",
+        "3zfpk-du6xx-yg7j5-h7c5w-6rr7z-cmkbf-pfos7-lhu65-svdmj-co7nc-cae",
+        "2nehn-z42p7-36s7j-qqcz6-sy5rb-euhte-necpl-egqsv-hdoph-gx7qd-6ae",
+        "ulhxy-qlokv-5iual-yizlo-dtlmi-aavz5-bi7ez-kjwqz-la64z-cxjuk-fae",
+        "vysyd-tlwq5-f5vfi-kw2jc-ziylz-di2s5-sf4p3-iflm7-vyvjv-hz3b3-pae",
+        "zatyv-4l26n-3lecc-xpeme-ul34o-yiye2-3d447-aiiz4-5pxtm-v44nh-cqe",
+        "lh2af-66zso-76kqu-d57ag-jca5d-yvmfo-rcabh-ptlvj-ltfdf-kyg6q-lqe",
+        "5gcqu-upr5b-ol3fj-vz273-3ov5j-s2dzp-d3n4o-c3rdz-rnhto-tovcx-zqe",
+        "lxgqb-dlqzi-schn4-i2mha-qh6re-eq3c2-3k6cn-oqumg-jkmgk-d4gex-3qe",
+        "jyh32-azcnn-mwosu-urewl-m3pyx-6pmlq-lu5fu-vqjyl-gwx3j-zqrjr-gae",
+        "isegs-i4akf-kb7st-hnqjn-4col7-qxpph-pncbs-25hiy-5pwsu-nyw3x-xae",
+        "k2ovz-ptdmz-hzmkh-ntfqn-evhux-ktxz4-26jg6-qjjsa-rpgal-wkdjo-kqe",
+        "ncr4b-rasb7-tueb3-n4uos-5nxou-3wbxv-xmyt3-wfdsd-vu4b6-5x3cp-aqe",
+        "yahq2-6rnmm-n7ubm-q76zd-256dl-5f7k6-jxx5l-njyo2-hl7tk-sqcet-6ae",
+        "w2sev-mtuls-aa7m5-cdjgi-5vipg-2jn7i-4awvf-o6suu-73ebs-sw5db-kqe",
+        "gvm7l-ds4n6-vkyjn-gwalp-3vdo6-qfmq7-pxhu4-zvqcu-ozvb7-qz3gr-vqe",
+        "2ftux-ivgjc-t4i2d-lq5hs-myjdg-3h2pz-l2ddl-nsxfc-wlaq7-fkbc5-6ae",
+        "jmuoq-7kbey-cbtmm-zlz6t-chwt6-dk7ly-d3jim-5nuu4-y5tou-l5egg-7qe",
+        "5iihd-fkroy-ow5zp-hlvwz-bsgbl-mecta-kxubm-6adxr-ckcu6-prsus-fqe",
+        "24fcm-3onfs-cykax-al4jb-gvdd3-u76zl-ht6ef-hcsbc-xwf54-xbrym-xae",
+        "q4ksz-lpvfy-ikkem-wyuaa-abopq-nmu5k-ovh6h-xfoqk-hx3x3-g2bk6-4qe",
+        "u4zo2-i6nsc-mowwj-lf6az-s6rdo-caskt-a6yx6-fke5w-qyezs-lyqvn-tqe",
+        "mae7q-ggnbj-xb52f-hvest-dgqoc-whvsq-yui5d-5cys2-zeold-l5ydx-oae",
+        "6hvx2-ymemx-tmykh-vxyic-bgfhv-2lcmt-3oy4x-rysuf-rnerz-vqokw-sqe",
+        "anudy-m6vfi-lphxb-sazpy-la4ti-2hriw-c67ny-butfn-axcel-otvuh-oqe",
+        "tg4ec-b2g4p-h42kd-k7zvb-6rls2-i2q7l-gtr4h-ymr6v-rrez4-w6fao-oqe",
+        "gj6gc-mbslq-bt63y-72b7h-xs2xw-6vyuj-frvp3-tx375-dsqx5-wem6o-vqe",
+        "5mpdi-v4qj2-64are-tbe6r-6335g-6tksh-c7uzq-w3xyz-o4p5g-rwnll-vqe"
+      ]
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "begin_membership_review"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "membership_registry_role"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "compare_membership_context"
+    },
+    {
+      "origin": "http://vizcg-th777-77774-qaaea-cai.localhost:4968",
+      "method": "finalize_membership_review"
+    },
+    {
+      "origin": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968",
+      "method": "node_performance_on_demand",
+      "subnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+      "nodes": [
+        "kaoz3-4okcl-24amq-v5y4k-vim56-4njvo-fwvyk-v4grq-kuqum-7zm3p-4qe",
+        "dw2ac-qodm4-snxe5-bnat5-2nu2z-mmogu-7gps7-z4gon-zadqs-3dbqh-pae",
+        "himck-kjpb3-eih7e-knfcr-tkz7f-qzx45-i6xwm-obvn7-fw2hv-2zuy7-aqe",
+        "tbzjp-lv2kb-xhel7-36r77-rfa3z-6iox2-c4ttr-cppwv-naxob-n3arn-fae",
+        "nf7qq-vkm72-lttne-dsnke-3x73z-ofybh-ogahy-vyvta-dgbny-s5dr7-qqe",
+        "oxevh-yptgl-yzu2p-w6dyn-lr6jc-b2xaq-aatz2-yyfot-hm4pr-ucvh6-gae",
+        "v6r7h-luxm5-nxusv-bvhek-sis7i-sitrx-ezprf-j2lp3-2tnlt-2m6yt-zae",
+        "urnku-x7qn7-gt2mu-kueib-duqoz-xcdgj-hsnwl-5q32r-w3vqp-on6lq-gae",
+        "sekkk-e24lo-s2zu3-5ltyu-kbzqs-44bpv-klm7l-72g2n-z7zxu-2pqpu-pae",
+        "4mfcc-d3te7-zk2in-n5hm2-tcquv-bgc2e-obpbh-xp5jc-7boqr-oidte-jqe",
+        "nj7re-dvkal-yq25a-opp2g-5y3qy-3ena4-opd5j-22uir-eaakx-ljk7k-6ae",
+        "5veru-kf3gn-vjdxg-drid6-qpl2s-ojbxd-i73zf-kded7-7e4q3-5vuni-3qe",
+        "nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae",
+        "uafcv-c76tx-jzddu-wxygw-4yzkm-nyr7u-iwk57-bwind-wmupb-2wos6-4qe",
+        "3zfpk-du6xx-yg7j5-h7c5w-6rr7z-cmkbf-pfos7-lhu65-svdmj-co7nc-cae",
+        "2nehn-z42p7-36s7j-qqcz6-sy5rb-euhte-necpl-egqsv-hdoph-gx7qd-6ae",
+        "ulhxy-qlokv-5iual-yizlo-dtlmi-aavz5-bi7ez-kjwqz-la64z-cxjuk-fae",
+        "vysyd-tlwq5-f5vfi-kw2jc-ziylz-di2s5-sf4p3-iflm7-vyvjv-hz3b3-pae",
+        "zatyv-4l26n-3lecc-xpeme-ul34o-yiye2-3d447-aiiz4-5pxtm-v44nh-cqe",
+        "lh2af-66zso-76kqu-d57ag-jca5d-yvmfo-rcabh-ptlvj-ltfdf-kyg6q-lqe",
+        "5gcqu-upr5b-ol3fj-vz273-3ov5j-s2dzp-d3n4o-c3rdz-rnhto-tovcx-zqe",
+        "lxgqb-dlqzi-schn4-i2mha-qh6re-eq3c2-3k6cn-oqumg-jkmgk-d4gex-3qe",
+        "jyh32-azcnn-mwosu-urewl-m3pyx-6pmlq-lu5fu-vqjyl-gwx3j-zqrjr-gae",
+        "isegs-i4akf-kb7st-hnqjn-4col7-qxpph-pncbs-25hiy-5pwsu-nyw3x-xae",
+        "k2ovz-ptdmz-hzmkh-ntfqn-evhux-ktxz4-26jg6-qjjsa-rpgal-wkdjo-kqe",
+        "ncr4b-rasb7-tueb3-n4uos-5nxou-3wbxv-xmyt3-wfdsd-vu4b6-5x3cp-aqe",
+        "yahq2-6rnmm-n7ubm-q76zd-256dl-5f7k6-jxx5l-njyo2-hl7tk-sqcet-6ae",
+        "w2sev-mtuls-aa7m5-cdjgi-5vipg-2jn7i-4awvf-o6suu-73ebs-sw5db-kqe",
+        "gvm7l-ds4n6-vkyjn-gwalp-3vdo6-qfmq7-pxhu4-zvqcu-ozvb7-qz3gr-vqe",
+        "2ftux-ivgjc-t4i2d-lq5hs-myjdg-3h2pz-l2ddl-nsxfc-wlaq7-fkbc5-6ae",
+        "jmuoq-7kbey-cbtmm-zlz6t-chwt6-dk7ly-d3jim-5nuu4-y5tou-l5egg-7qe",
+        "5iihd-fkroy-ow5zp-hlvwz-bsgbl-mecta-kxubm-6adxr-ckcu6-prsus-fqe",
+        "24fcm-3onfs-cykax-al4jb-gvdd3-u76zl-ht6ef-hcsbc-xwf54-xbrym-xae",
+        "q4ksz-lpvfy-ikkem-wyuaa-abopq-nmu5k-ovh6h-xfoqk-hx3x3-g2bk6-4qe",
+        "u4zo2-i6nsc-mowwj-lf6az-s6rdo-caskt-a6yx6-fke5w-qyezs-lyqvn-tqe",
+        "mae7q-ggnbj-xb52f-hvest-dgqoc-whvsq-yui5d-5cys2-zeold-l5ydx-oae",
+        "6hvx2-ymemx-tmykh-vxyic-bgfhv-2lcmt-3oy4x-rysuf-rnerz-vqokw-sqe",
+        "anudy-m6vfi-lphxb-sazpy-la4ti-2hriw-c67ny-butfn-axcel-otvuh-oqe",
+        "gj6gc-mbslq-bt63y-72b7h-xs2xw-6vyuj-frvp3-tx375-dsqx5-wem6o-vqe",
+        "5mpdi-v4qj2-64are-tbe6r-6335g-6tksh-c7uzq-w3xyz-o4p5g-rwnll-vqe"
+      ]
+    },
+    {
+      "origin": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968",
+      "method": "begin_membership_review"
+    },
+    {
+      "origin": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "origin": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968",
+      "method": "membership_registry_role"
+    },
+    {
+      "origin": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968",
+      "method": "compare_membership_context"
+    },
+    {
+      "origin": "http://vpyes-67777-77774-qaaeq-cai.localhost:4968",
+      "method": "finalize_membership_review"
+    },
+    {
+      "origin": "http://vu5yx-eh777-77774-qaaga-cai.localhost:4968",
+      "method": "node_performance_on_demand",
+      "subnet": "yinp6-35cfo-wgcd2-oc4ty-2kqpf-t4dul-rfk33-fsq3r-mfmua-m2ngh-jqe",
+      "nodes": [
+        "jsnfc-hogin-macy3-lfird-pfijz-d5jcg-woonn-sbtgx-gzh5h-jjvst-yae",
+        "lr6qv-kty5w-b6qye-6nog2-leujy-6szil-3toje-lykox-oxgce-z6zik-kqe",
+        "p7tb4-iibfi-ba",
+        "pwqka-6acfi-ba",
+        "prrmu-tydfi-ba"
+      ]
+    }
+  ],
+  "denied": []
+}

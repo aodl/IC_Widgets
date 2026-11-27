@@ -1,0 +1,526 @@
+{
+  "widgets": [
+    {
+      "definition": "membership-one",
+      "title": "Membership",
+      "origin": "@membership-one@",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [
+        {
+          "id": "proposals",
+          "profile": {
+            "id": "urn:ic-widgets:proposal-ids",
+            "major": 1
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "id": "scene",
+          "profile": {
+            "id": "urn:ic-widgets:map-scene",
+            "major": 1
+          }
+        },
+        {
+          "id": "filter",
+          "profile": {
+            "id": "urn:ic-widgets:node-filter",
+            "major": 1
+          }
+        }
+      ],
+      "downloads": true
+    },
+    {
+      "definition": "membership-two",
+      "title": "Membership",
+      "origin": "@membership-two@",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [
+        {
+          "id": "proposals",
+          "profile": {
+            "id": "urn:ic-widgets:proposal-ids",
+            "major": 1
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "id": "scene",
+          "profile": {
+            "id": "urn:ic-widgets:map-scene",
+            "major": 1
+          }
+        },
+        {
+          "id": "filter",
+          "profile": {
+            "id": "urn:ic-widgets:node-filter",
+            "major": 1
+          }
+        }
+      ],
+      "downloads": true
+    },
+    {
+      "definition": "subnet",
+      "title": "Subnet overview",
+      "origin": "@subnet@",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [
+        {
+          "id": "subnet",
+          "profile": {
+            "id": "urn:ic-widgets:subnet",
+            "major": 1
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "id": "scene",
+          "profile": {
+            "id": "urn:ic-widgets:map-scene",
+            "major": 1
+          }
+        },
+        {
+          "id": "filter",
+          "profile": {
+            "id": "urn:ic-widgets:node-filter",
+            "major": 1
+          }
+        }
+      ],
+      "downloads": false
+    },
+    {
+      "definition": "map",
+      "title": "IC Node Map",
+      "origin": "@map@",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [
+        {
+          "id": "scene",
+          "profile": {
+            "id": "urn:ic-widgets:map-scene",
+            "major": 1
+          }
+        }
+      ],
+      "outputs": [],
+      "downloads": false
+    },
+    {
+      "definition": "performance",
+      "title": "Performance",
+      "origin": "@performance@",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [
+        {
+          "id": "filter",
+          "profile": {
+            "id": "urn:ic-widgets:node-filter",
+            "major": 1
+          }
+        }
+      ],
+      "outputs": [],
+      "downloads": false
+    }
+  ],
+  "dashboard": {
+    "version": 1,
+    "id": "guest",
+    "title": "IC Widgets replay",
+    "revision": 0,
+    "views": [
+      {
+        "id": "existing",
+        "title": "Existing subnet",
+        "layout": "two-column",
+        "inputs": [
+          {
+            "value": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+            "id": "subnet",
+            "profile": {
+              "id": "urn:ic-widgets:subnet",
+              "major": 1
+            }
+          }
+        ],
+        "widgets": [
+          {
+            "id": "producer",
+            "definition": "subnet",
+            "title": "Subnet overview",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "subnet",
+                "profile": {
+                  "id": "urn:ic-widgets:subnet",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "id": "scene",
+                "profile": {
+                  "id": "urn:ic-widgets:map-scene",
+                  "major": 1
+                }
+              },
+              {
+                "id": "filter",
+                "profile": {
+                  "id": "urn:ic-widgets:node-filter",
+                  "major": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "map",
+            "definition": "map",
+            "title": "IC Node Map",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "scene",
+                "profile": {
+                  "id": "urn:ic-widgets:map-scene",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": []
+          },
+          {
+            "id": "performance",
+            "definition": "performance",
+            "title": "Performance",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "filter",
+                "profile": {
+                  "id": "urn:ic-widgets:node-filter",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": []
+          }
+        ],
+        "bindings": [
+          {
+            "from": {
+              "input": "subnet"
+            },
+            "to": {
+              "widget": "producer",
+              "port": "subnet"
+            }
+          },
+          {
+            "from": {
+              "widget": "producer",
+              "port": "scene"
+            },
+            "to": {
+              "widget": "map",
+              "port": "scene"
+            }
+          },
+          {
+            "from": {
+              "widget": "producer",
+              "port": "filter"
+            },
+            "to": {
+              "widget": "performance",
+              "port": "filter"
+            }
+          }
+        ]
+      },
+      {
+        "id": "one",
+        "title": "Recorded review",
+        "layout": "two-column",
+        "inputs": [
+          {
+            "value": [
+              "144954"
+            ],
+            "id": "proposals",
+            "profile": {
+              "id": "urn:ic-widgets:proposal-ids",
+              "major": 1
+            }
+          }
+        ],
+        "widgets": [
+          {
+            "id": "producer",
+            "definition": "membership-one",
+            "title": "Membership",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "proposals",
+                "profile": {
+                  "id": "urn:ic-widgets:proposal-ids",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "id": "scene",
+                "profile": {
+                  "id": "urn:ic-widgets:map-scene",
+                  "major": 1
+                }
+              },
+              {
+                "id": "filter",
+                "profile": {
+                  "id": "urn:ic-widgets:node-filter",
+                  "major": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "map",
+            "definition": "map",
+            "title": "IC Node Map",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "scene",
+                "profile": {
+                  "id": "urn:ic-widgets:map-scene",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": []
+          },
+          {
+            "id": "performance",
+            "definition": "performance",
+            "title": "Performance",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "filter",
+                "profile": {
+                  "id": "urn:ic-widgets:node-filter",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": []
+          }
+        ],
+        "bindings": [
+          {
+            "from": {
+              "input": "proposals"
+            },
+            "to": {
+              "widget": "producer",
+              "port": "proposals"
+            }
+          },
+          {
+            "from": {
+              "widget": "producer",
+              "port": "scene"
+            },
+            "to": {
+              "widget": "map",
+              "port": "scene"
+            }
+          },
+          {
+            "from": {
+              "widget": "producer",
+              "port": "filter"
+            },
+            "to": {
+              "widget": "performance",
+              "port": "filter"
+            }
+          }
+        ]
+      },
+      {
+        "id": "two",
+        "title": "Multiple changes",
+        "layout": "two-column",
+        "inputs": [
+          {
+            "value": [
+              "144940"
+            ],
+            "id": "proposals",
+            "profile": {
+              "id": "urn:ic-widgets:proposal-ids",
+              "major": 1
+            }
+          }
+        ],
+        "widgets": [
+          {
+            "id": "producer",
+            "definition": "membership-two",
+            "title": "Membership",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "proposals",
+                "profile": {
+                  "id": "urn:ic-widgets:proposal-ids",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "id": "scene",
+                "profile": {
+                  "id": "urn:ic-widgets:map-scene",
+                  "major": 1
+                }
+              },
+              {
+                "id": "filter",
+                "profile": {
+                  "id": "urn:ic-widgets:node-filter",
+                  "major": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "map",
+            "definition": "map",
+            "title": "IC Node Map",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "scene",
+                "profile": {
+                  "id": "urn:ic-widgets:map-scene",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": []
+          },
+          {
+            "id": "performance",
+            "definition": "performance",
+            "title": "Performance",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "filter",
+                "profile": {
+                  "id": "urn:ic-widgets:node-filter",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": []
+          }
+        ],
+        "bindings": [
+          {
+            "from": {
+              "input": "proposals"
+            },
+            "to": {
+              "widget": "producer",
+              "port": "proposals"
+            }
+          },
+          {
+            "from": {
+              "widget": "producer",
+              "port": "scene"
+            },
+            "to": {
+              "widget": "map",
+              "port": "scene"
+            }
+          },
+          {
+            "from": {
+              "widget": "producer",
+              "port": "filter"
+            },
+            "to": {
+              "widget": "performance",
+              "port": "filter"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -11,7 +11,20 @@ The standalone production release remains the baseline for Membership and Perfor
 
 The map takes a viewport key, location evidence and country display groups. It has no proposal input or source client. Exact placement, the country and role presentation, node inspection, unmapped nodes and map gestures use the same component. Existing-subnet coverage uses recorded Registry evidence. Before/proposed analytical counts still come from the replicated comparison.
 
-The producers share `urn:ic-widgets:node-selection` v1. It carries full IDs, the Registry version, an evidence revision, source receipts, observation clocks and coverage. A proposal comparison includes its order, step, Governance observations and exact accepted input digest. A separate readiness state describes waiting or unavailable work. An empty ready selection remains empty. The consumer uses these IDs only as typed filters for its own replicated metrics request. Caller-bound review tokens and credentials stay in the Membership instance.
+The independently hosted map accepts `urn:ic-widgets:map-scene` v1. It receives the represented member records, roles and accepted country groups, the subnet and Registry pin, the evidence revision, coverage and observation metadata. The producers retain detailed source receipts. Their embedded views omit the duplicate interactive map and bind the scene to the same standalone map frontend. The map has no reviewer client.
+
+Performance accepts `urn:ic-widgets:node-filter` v1, which carries an explicitly labeled scope, one exact ID array, the subnet, Registry pin and the evidence revision. The array comes from the producer's existing roster or its accepted proposed roster. It is passed unchanged to the reviewer as a present Candid filter. A connected frame has no independent-mode or preset fallback. An empty, invalid, unavailable or superseded filter does not open an unfiltered request. The upstream management method observes counters for the subnet and the reviewer returns only rows for the supplied principals. Partial sample availability does not change the filter. Caller-bound review tokens and credentials stay with the producer.
+
+## What the earlier Performance filters represented
+
+The reported 40 and five were the complete **proposed memberships** at the selected step. Both original requests were checked by principal against the committed fixture oracle.
+
+| Replay | Existing before | Proposed filter sent | Changed identities | Before/proposed union on the map |
+| --- | ---: | ---: | --- | ---: |
+| 144954, recorded Open | 40 | 40 | 2 · 1 added and 1 removed | 41 |
+| 144940, constructed Open replay of an indexed action | 5 | 5 | 4 · 2 added and 2 removed | 7 |
+
+The equal roster sizes conceal different identities. The 144954 request contains 39 retained members and the incoming node. The 144940 request contains three retained members and both incoming nodes. Departing nodes are present in both map scenes and excluded from these proposed-roster filters. The existing-subnet view sends the 40 recorded before-state principals only. The before/proposed union is the set of distinct identities in those two compared states. An all-steps scope in a multi-proposal sequence can also include transient identities and would require its own explicit filter.
 
 ## Certified composition rehearsal
 
@@ -23,7 +36,7 @@ Prepare the same toolchain and Chromium dependencies used by the recorded Member
 ./scripts/rehearse-composed-view.sh /path/to/Network_Nexus_Host .local/composed-view-evidence
 ```
 
-The command provisions an ephemeral loopback replica, builds dedicated certified host, Membership and Performance artifacts, exercises two independently loaded views and stops the replica. The Membership canisters use recorded and constructed source fixtures for each view. The frontend profiles include the exact Nexus framing origin. The standalone profile keeps its existing `frame-ancestors 'none'` policy. The host and frames exchange only declared inputs and output states through exact-origin session channels. A reload or input change supersedes old outputs. The two Membership views share the node-selection contract with Performance.
+The command provisions an ephemeral loopback replica, builds dedicated certified host, Membership, Subnet overview, IC Node Map and Performance artifacts, exercises three independently loaded views and stops the replica. The Membership canisters use recorded and constructed source fixtures for each view. The frontend profiles include the exact Nexus framing origin. The standalone profile keeps its existing `frame-ancestors 'none'` policy. The host and frames exchange only declared inputs and output states through exact-origin session channels. A reload or input change supersedes old outputs. All views use [one data-only catalogue](composed-view/catalogue.example.json). The script substitutes disposable canister origins for the placeholders. [Generic host repository and contract](https://github.com/aodl/Network_Nexus/blob/main/docs/WIDGET_CONTRACT.md)
 
 The real gateway test validates the certificates for the host and the separate widget embed documents, scripts and styles against the disposable IC trust root. Its Chromium allowlist admits only those certified asset URLs, local IC status and protocol calls to the two fixture reviewers. Historical subnet principals can produce missing blockmaking metrics in PocketIC. The composition test verifies the exact finite request filters and method order. The separate production release evidence records the live Performance result.
 
@@ -31,4 +44,8 @@ The real gateway test validates the certificates for the host and the separate w
 
 Chromium completed the full historical review matrix, including both proposal orders, terminal outcomes, held and missing locations, returning to a calculated subnet and independent browser contexts. The recorded 144954 replacement kept its ten reviewer calls. The existing-subnet view used one additional replicated snapshot request when selected. Map use, node inspection, sorting and ZIP generation sent no additional requests. The tested widths were 1366, 768, 390 and 320 CSS pixels.
 
-The composed rehearsal verified 16 certified gateway responses across four independent canister origins. Proposal 144954 produced a 40-node Performance filter. The constructed multiple-change review 144940 produced a five-node filter. Both filtered metric requests started after Membership's final Governance check. Guest saving used browser storage. The browser observed zero requests outside the allowlist.
+The earlier rehearsal at `7003ccc` verified the separately framed producers and Performance. The independent-map rehearsal and its exact scope checks are recorded with the [verification artifacts](composed-view/README.md).
+
+## Repository names
+
+The active IC Widgets checkout is `~/src/IC_Widgets`. The application title and current developer documentation use IC Widgets. The earlier `~/src/Network_Nexus` checkout preserves the stable standalone release and its rollback evidence. Existing Rust package names, deployment aliases and build variables remain available for reproducibility. The generic host is a separate Git repository, checked out locally at `~/src/Network_Nexus_Host` and published as [aodl/Network_Nexus](https://github.com/aodl/Network_Nexus).

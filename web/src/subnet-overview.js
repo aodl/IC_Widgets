@@ -6,7 +6,7 @@ import { subnetSnapshot } from './node-snapshot.js';
 import { subnetInput } from './view-inputs.js';
 import { el, number, sourceReceipts, styled, time } from './view.js';
 
-export function mountSubnetOverview({ call, performance, replay }) {
+export function mountSubnetOverview({ call, performance, replay, publish }) {
   const form = document.querySelector('#subnet-search');
   const host = document.querySelector('#subnet-result');
   const status = document.querySelector('#subnet-status');
@@ -21,18 +21,24 @@ export function mountSubnetOverview({ call, performance, replay }) {
     map = undefined;
     host.replaceChildren();
     status.textContent = '';
-    performance.scope(undefined);
+    if (publish) publish();
+    else performance.scope(undefined);
   }
 
   field.addEventListener('input', invalidate);
   form.addEventListener('submit', event => {
     event.preventDefault();
+    load(field.value);
+  });
+
+  function load(value) {
     invalidate();
     let input;
     try {
-      input = subnetInput(field.value);
+      input = subnetInput(value);
     } catch (error) {
       status.textContent = error.message;
+      publish?.(undefined, undefined, error.message);
       return;
     }
     const ticket = generation;
@@ -46,6 +52,7 @@ export function mountSubnetOverview({ call, performance, replay }) {
         if ('Err' in response.outcome) {
           status.textContent = liveError(response.outcome.Err);
           host.replaceChildren(sourceReceipts(response, { replay: !!replay }));
+          publish?.(undefined, undefined, status.textContent);
           return;
         }
         const { selection, members, countries, version } = subnetSnapshot(response, replay);
@@ -54,18 +61,22 @@ export function mountSubnetOverview({ call, performance, replay }) {
         const detail = replay
           ? 'Historical replay · locally observed ' + clock
           : 'Registry evidence observed ' + clock;
-        map = nodeMap({ existing: true });
+        if (!publish) map = nodeMap({ existing: true });
         host.replaceChildren(styled('section', 'map-card',
           el('h2', 'Subnet ', dashboardLink('subnet', selection.subnet)),
           el('p', number(members.length) + ' members · Registry ' + number(version)),
-          el('p', detail), map.section, sourceReceipts(response, { replay: !!replay })));
-        map.update({ key: selection.revision, members, countries });
-        performance.scope(selection);
+          el('p', detail), map?.section, sourceReceipts(response, { replay: !!replay })));
+        map?.update({ key: selection.revision, members, countries });
+        if (publish) publish(selection, { members, countries });
+        else performance.scope(selection);
         status.textContent = 'Subnet loaded.';
       } catch (error) {
-        if (active()) status.textContent = error.message;
+        if (active()) {
+          status.textContent = error.message;
+          publish?.(undefined, undefined, error.message);
+        }
       }
     })();
-  });
-  return { clear: invalidate, settled: () => pending };
+  }
+  return { clear: invalidate, load, settled: () => pending };
 }

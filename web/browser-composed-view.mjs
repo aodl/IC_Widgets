@@ -1,7 +1,7 @@
 // Test independent certified widgets using the disposable historical replay replica.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { request } from 'node:http';
 import { Cbor } from '@icp-sdk/core/agent';
@@ -15,8 +15,11 @@ const [project, output] = process.argv.slice(2);
 if (!project || !output) throw new Error('Usage: node web/browser-composed-view.mjs <disposable project> <output>');
 const directory = resolve(output);
 await mkdir(directory, { recursive: true });
-const aliases = ['nx_host', 'nx_membership', 'nx_membership_second', 'nx_performance'];
+const aliases = ['nx_host', 'nx_membership', 'nx_membership_second', 'nx_subnet', 'nx_map', 'nx_performance'];
 const [host, ...widgets] = await Promise.all(aliases.map(alias => localCanisters(resolve(project), alias)));
+const producerOrigins = new Set(widgets.slice(0, 3).map(widget => widget.origin));
+const mapOrigin = widgets[3].origin;
+const performanceOrigin = widgets[4].origin;
 const local = 'http://127.0.0.1:' + host.port;
 const root = Cbor.decode(new Uint8Array(await (await fetch(local + '/api/v2/status')).arrayBuffer())).root_key;
 const transport = new Set(['access-control-allow-origin', 'access-control-expose-headers', 'connection', 'date',
@@ -76,8 +79,8 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, serviceWorkers: 'block' });
   page.setDefaultTimeout(45_000);
   const denied = [], errors = [], calls = [];
-  const origins = new Set(widgets.map(widget => widget.origin));
-  const reviewers = new Set([host.reviewer, execFileSync('dfx', ['canister', 'id', '--network', 'local', 'reviewer_4'], {
+  const origins = new Set([...producerOrigins, performanceOrigin]);
+  const reviewers = new Set([host.reviewer, execFileSync('dfx', ['canister', 'id', '--network', 'local', 'reviewer_second'], {
     cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' }, encoding: 'utf8',
   }).trim()]);
   const performanceArgs = idlFactory({ IDL }).fieldsAsObject().node_performance_on_demand.argTypes;
@@ -99,39 +102,86 @@ try {
     const value = { origin: url.origin, method: content.method_name };
     if (value.method === 'node_performance_on_demand') {
       const [subnet, , filter] = IDL.decode(performanceArgs, content.arg);
-      Object.assign(value, { subnet: subnet.toText(), nodes: filter[0].map(id => id.toText()) });
+      Object.assign(value, { subnet: subnet.toText(), nodes: filter[0]?.map(id => id.toText()) ?? null });
     }
     calls.push(value);
   });
+  const expected = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
+  const catalogue = JSON.parse(await readFile(resolve(project, 'nexus-catalogue.json'), 'utf8'));
   await page.goto(host.origin);
   const membership = page.frameLocator('iframe[title="Membership"]');
+  const overview = page.frameLocator('iframe[title="Subnet overview"]');
   const performance = page.frameLocator('iframe[title="Performance"]');
-  async function review(id, members) {
-    await membership.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 150_000 });
-    await performance.locator('#performance-context').getByText(new RegExp('Proposal #' + id + '.*' + members + ' nodes')).waitFor();
+  const map = page.frameLocator('iframe[title="IC Node Map"]');
+  const verifiedViews = [];
+  const sorted = values => [...values].sort();
+
+  async function view(name, fixture, id) {
+    const oracle = expected.cases[fixture];
+    const [subnet, baseline] = Object.entries(oracle.baselines)[0];
+    const state = id && oracle.scenarios.A[0][subnet];
+    const filter = state?.members ?? baseline;
+    const represented = new Set([...baseline, ...filter]);
+    const start = id ? calls.length : 0;
+    const tab = page.getByRole('button', { name, exact: true });
+    if (await tab.getAttribute('aria-pressed') !== 'true') await tab.click();
+    const producer = id ? membership : overview;
+    await producer.locator(id ? '#report-status' : '#subnet-status').getByText(
+      id ? 'Data loading complete' : 'Subnet loaded.', { exact: true }).waitFor({ timeout: 150_000 });
+    await performance.locator('#performance-context').getByText(new RegExp(
+      (id ? 'Proposal #' + id + '.*Proposed members' : 'Existing members') + '.*' + filter.length + ' nodes')).waitFor();
     await performance.getByText('Source receipts', { exact: true }).waitFor();
-    const samples = calls.filter(row => row.method === 'node_performance_on_demand').at(-1);
-    assert.ok(samples);
-    assert.equal(samples.nodes.length, members);
-    assert.equal(new Set(samples.nodes).size, members);
-    const final = calls.findLastIndex(row => row.method === 'finalize_membership_review');
-    assert.ok(final >= 0 && calls.indexOf(samples) > final);
-    assert.equal(samples.origin, widgets[2].origin);
-    assert.notEqual(calls[final].origin, samples.origin);
+    assert.equal(await producer.locator('.map-frame').count(), 0);
+    assert.equal(await page.locator('iframe[title="IC Node Map"]').getAttribute('src'), mapOrigin + '/embed');
+    await map.locator('.map-pin').first().waitFor();
+    const located = await map.locator('.map-pin').evaluateAll(pins => pins.flatMap(pin => pin.dataset.nodes.split(' ')));
+    const unmapped = await map.locator('summary[data-node]').evaluateAll(rows => rows.map(row => row.dataset.node));
+    assert.deepEqual(sorted([...located, ...unmapped]), sorted(represented));
+    const observedCalls = calls.slice(start);
+    const reads = observedCalls.filter(row => row.method === 'node_performance_on_demand');
+    assert.equal(reads.length, 1);
+    const metrics = reads[0];
+    assert.equal(metrics.subnet, subnet);
+    assert.deepEqual(sorted(metrics.nodes), sorted(filter));
+    const sourceRead = observedCalls.findLastIndex(row => row.method
+      === (id ? 'finalize_membership_review' : 'subnet_snapshot_on_demand'));
+    assert.ok(sourceRead >= 0 && observedCalls.indexOf(metrics) > sourceRead);
+    assert.equal(metrics.origin, performanceOrigin);
+    assert.notEqual(observedCalls[sourceRead].origin, metrics.origin);
+    assert.equal(await performance.getByLabel('Performance scope').isVisible(), false);
+    await map.locator('.map-section').screenshot({ path: resolve(directory, (id ?? 'existing-subnet') + '-map.png') });
+    await page.screenshot({ path: resolve(directory, (id ?? 'existing-subnet') + '-workspace.png'), fullPage: true });
+    const count = calls.length;
+    await map.locator('.map-pin').first().focus();
+    await page.keyboard.press('Enter');
+    await map.getByRole('region', { name: 'Map location details' }).waitFor();
+    assert.equal(calls.length, count);
+    verifiedViews.push({ name, subnet, before: baseline.length, proposed: state?.members.length ?? null,
+      added: state?.added.length ?? null, removed: state?.removed.length ?? null,
+      represented: represented.size, metrics });
   }
-  await review('144954', 40);
-  await page.screenshot({ path: resolve(directory, 'nexus-composed-replay.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Multiple changes', exact: true }).click();
-  await review('144940', 5);
+  // The initial view runs automatically. Open the workspace from a fresh page so
+  // the same input is never submitted twice during verification.
+  await view('Existing subnet', 'nns-144954-recorded-open');
+  await view('Recorded review', 'nns-144954-recorded-open', '144954');
+  await view('Multiple changes', 'multiple-changes', '144940');
   await page.getByRole('button', { name: 'Save dashboard' }).click();
   await page.getByText('Dashboard saved in this browser.', { exact: true }).waitFor();
-  await page.reload();
-  await page.getByRole('button', { name: 'Multiple changes', exact: true }).waitFor();
+  const saved = await page.evaluate(id => JSON.parse(localStorage.getItem('network-nexus.dashboard.v1.' + id)), catalogue.dashboard.id);
+  assert.deepEqual(saved.views.map(view => view.inputs[0].value), catalogue.dashboard.views.map(view => view.inputs[0].value));
+  const settledCalls = calls.length;
+  await page.getByRole('textbox', { name: 'proposals', exact: true }).fill('');
+  await page.getByRole('button', { name: 'Apply proposals', exact: true }).click();
+  await map.locator('#map-widget-status').getByText('Waiting for resolved map evidence.').waitFor();
+  assert.equal(await map.locator('.map-frame').count(), 0);
+  assert.equal(await performance.getByRole('button', { name: 'Read blockmaking samples' }).isDisabled(), true);
+  assert.equal(calls.length, settledCalls);
   assert.deepEqual(denied, []);
   assert.deepEqual(errors, []);
-  const summary = { host: host.origin, certified, cases: ['144954', '144940'], calls, denied };
+  const summary = { host: host.origin, mapOrigin, certified, views: verifiedViews, calls, denied };
   await writeFile(resolve(directory, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
-  console.log('Verified ' + certified.length + ' certified responses, two independently framed reviews and automatic finite Performance requests.');
+  console.log('Verified ' + certified.length + ' certified responses, the same map origin in all views, and exact finite Performance requests.');
+
 } finally {
   await browser.close();
 }

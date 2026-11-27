@@ -5,8 +5,8 @@ import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
 import { nodeMap } from './map-interaction.js';
 import { mountSubnetOverview } from './subnet-overview.js';
-import { proposalInput, proposalInputProfile } from './view-inputs.js';
-import { nodeSelectionProfile, performanceSelection } from './node-snapshot.js';
+import { proposalInput, proposalInputProfile, subnetInputProfile } from './view-inputs.js';
+import { composedOutputs, hasProfile, readNodeFilter } from './composed-scope.js';
 import { acceptNexusHost } from './widget-frame.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
@@ -71,21 +71,17 @@ const performance = mountPerformance(async (active, run) => {
     await session?.settled();
     if (task === previewTask && session === current?.session) return remote(active, run);
   }
-});
+}, { connected: widget?.view === 'performance' });
 performance.visible(true);
-const overview = mountSubnetOverview({ call: remote, performance, replay: activeReplay });
-
 let publishScope;
-const membershipPerformance = widget?.view === 'proposal' ? {
-  ...performance,
-  scope(selection) {
-    if (!publishScope) return;
-    const value = selection
-      ? { kind: 'ready', profile: nodeSelectionProfile, revision: selection.revision, value: selection }
-      : { kind: 'waiting', message: 'Waiting for accepted membership evidence' };
-    publishScope({ selection: value });
-  },
-} : performance;
+function publishEvidence(selection, scene, issue) {
+  const state = issue ? { kind: 'unavailable', retryable: true, reason: issue.slice(0, 240) }
+    : { kind: 'waiting', message: 'Waiting for accepted membership evidence' };
+  publishScope?.(selection ? composedOutputs(selection, scene) : { filter: state, scene: { ...state } });
+}
+const overview = mountSubnetOverview({ call: remote, performance, replay: activeReplay,
+  publish: widget?.view === 'subnet' ? publishEvidence : undefined });
+const membershipPerformance = widget?.view === 'proposal' ? { ...performance, scope: publishEvidence } : performance;
 
 const phases = {
   Preview: 'Proposal and membership · Reading pinned evidence',
@@ -169,12 +165,12 @@ function startReview(ids) {
   const thisRequest = request = { segment: Date.now(), elapsed: 0, stopped: false };
   performance.scope(undefined);
   performance.visible(false);
-  const map = currentMap = nodeMap();
-  const mapHost = map.section;
-  map.update();
+  const map = currentMap = widget?.view === 'proposal' ? undefined : nodeMap();
+  const mapHost = map?.section;
+  map?.update();
   reportContainer.replaceChildren(styled('div', 'workspace waiting-workspace',
     styled('section', 'review-header', el('h2', proposalHeading(ids))),
-    styled('div', 'review-grid', styled('div', 'map-card', mapHost))));
+    mapHost ? styled('div', 'review-grid', styled('div', 'map-card', mapHost)) : null));
   clearInterval(timer);
   timer = undefined;
   status({ work: 'running', stage: 'Preview' });
@@ -186,14 +182,14 @@ function startReview(ids) {
       if ('Err' in live.outcome) {
         status({ work: 'settled', stage: 'Blocked', reason: liveError(live.outcome.Err) });
         unavailable(liveError(live.outcome.Err));
-        map.update(undefined, 'Map unavailable · Required membership evidence');
+        map?.update(undefined, 'Map unavailable · Required membership evidence');
         reportContainer.append(styled('section', 'card', el('h3', 'Evidence'), sourceReceipts(live)));
         return;
       }
       const body = live.outcome.Ok;
       const proposals = body.report.manifest.proposals;
       if (proposals.length && proposals.every(terminalOutcome)) {
-        map.dispose();
+        map?.dispose();
         const titles = option(body.proposal_text ?? []) ?? [];
         const indexedFailure = FIXTURE_REPLAY && activeReplay?.proposalIds.length === 1 ? activeReplay.failureReason : undefined;
         reportContainer.replaceChildren(styled('section', 'card terminal-outcome',
@@ -216,12 +212,12 @@ function startReview(ids) {
       current.start();
     } catch (error) {
       if (!active() || thisRequest.stopped) return;
-      map.update(undefined, 'The map needs supported membership evidence for this review.');
+      map?.update(undefined, 'The map needs supported membership evidence for this review.');
       status({ work: 'settled', stage: 'Blocked', reason: error.message });
       unavailable(error.message);
     } finally {
       if (active() && thisRequest.stopped) {
-        map.update(undefined, 'Not loaded · Review stopped');
+        map?.update(undefined, 'Not loaded · Review stopped');
         status({ work: 'stopped', stage: 'Stopped' });
       }
     }
@@ -268,7 +264,7 @@ independent.addEventListener('click', () => {
 });
 
 function unavailable(reason) {
-  publishScope?.({ selection: { kind: 'unavailable', retryable: true, reason: (reason ?? 'Membership evidence is unavailable.').slice(0, 240) } });
+  publishEvidence(undefined, undefined, reason ?? 'Membership evidence is unavailable.');
 }
 
 if (widget) {
@@ -277,14 +273,33 @@ if (widget) {
   if (widget.view === 'performance') {
     document.querySelector('#proposal-search').hidden = true;
     acceptNexusHost(widget.host, values => {
-      const input = values.selection;
+      const input = values.filter;
       let selection;
       try {
-        if (input?.kind === 'ready') selection = performanceSelection(input);
+        if (input?.kind === 'ready') selection = readNodeFilter(input);
         performance.follow(selection, input?.kind === 'unavailable' ? input.reason : undefined);
       } catch (error) {
         performance.follow(undefined, error.message);
       }
+    });
+  } else if (widget.view === 'subnet') {
+    document.querySelector('#proposal-search').hidden = true;
+    document.querySelector('#subnet-overview').hidden = false;
+    document.querySelector('#subnet-search').hidden = true;
+    performance.visible(false);
+    acceptNexusHost(widget.host, (values, publish) => {
+      publishScope = undefined;
+      overview.clear();
+      publishScope = publish;
+      if (values.subnet?.kind !== 'ready') {
+        publishEvidence(undefined, undefined, values.subnet?.reason);
+        return;
+      }
+      if (!hasProfile(values.subnet, subnetInputProfile) || typeof values.subnet.value !== 'string') {
+        unavailable('A subnet principal is required.');
+        return;
+      }
+      overview.load(values.subnet.value);
     });
   } else {
     performance.visible(false);
@@ -307,7 +322,7 @@ if (widget) {
         return;
       }
       try {
-        if (anchor.profile?.id !== proposalInputProfile.id || anchor.profile.major !== proposalInputProfile.major
+        if (!hasProfile(anchor, proposalInputProfile)
           || !Array.isArray(anchor.value) || anchor.value.length > 2 || anchor.value.some(id => typeof id !== 'string')) {
           throw new Error('The view must supply one or two proposal IDs.');
         }

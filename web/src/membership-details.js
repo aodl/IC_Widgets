@@ -310,7 +310,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
     replace(verification, selected?.state ? readinessLine(state) : null);
     renderTables();
-    map.update(model && { key: [model.order, ...model.ids, model.subnet, model.step, model.version].join('/'),
+    map?.update(model && { key: [model.order, ...model.ids, model.subnet, model.step, model.version].join('/'),
       members: model.members, countries: model.countries }, state.consistency?.blocked ? 'Review blocked · Governance changed'
       : 'Map unavailable · Required membership evidence');
     exportReview.disabled = !model?.calculation || !model.finalVerified || state.work !== 'settled';
@@ -321,7 +321,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       published = model.calculation.inputHash;
       const wire = body.scopes.find(row => branch(row.scenario) === model.order && principal(row.subnet) === model.subnet);
       performance.scope(proposalNodeSelection(model, selected, affectedNodes(selected, wire),
-        [live, ...session.receipts.flatMap(row => row.response ? [row.response] : [])]));
+        [live, ...session.receipts.flatMap(row => row.response ? [row.response] : [])]), model);
     }
     retry.hidden = !state.retryable;
     if (inspection) renderInspector();
