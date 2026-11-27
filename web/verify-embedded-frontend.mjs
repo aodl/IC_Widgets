@@ -97,7 +97,16 @@ export async function verifyEmbeddedGateway(project, alias) {
   await verify('GET', '/.ic-assets.json5', 404);
   await verify('GET', '/unmatched/nested/path', 404);
   await verify('HEAD', '/unmatched/nested/path', 404);
-  return { ...canisters, paths, observed };
+  const rawOrigin = 'http://' + canisters.frontend + '.raw.localhost:' + canisters.port;
+  const rawRefusals = [];
+  for (const [method, path] of [['GET', '/'], ['HEAD', '/'], ...paths.map(path => ['GET', path])]) {
+    const response = await gatewayResponse({ ...canisters, origin: rawOrigin }, method, path);
+    assert.equal(response.code, 403, method + ' ' + rawOrigin + path);
+    assert.equal(response.body.length, 0);
+    assert.equal(response.headers.find(([name]) => name === 'cache-control')?.[1], 'public, no-cache, no-store');
+    rawRefusals.push({ method, path, status: response.code });
+  }
+  return { ...canisters, paths, observed, rawOrigin, rawRefusals };
 }
 
 if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

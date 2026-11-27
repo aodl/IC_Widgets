@@ -204,8 +204,28 @@ fn post_upgrade() {
     certify_assets();
 }
 
+fn is_raw_host(host: &str) -> bool {
+    let host = host.trim().split(':').next().unwrap_or_default();
+    let host = host.trim_end_matches('.').to_ascii_lowercase();
+    let Some((_, raw_domain)) = host.split_once('.') else {
+        return false;
+    };
+    matches!(
+        raw_domain,
+        "raw.icp.net" | "raw.icp0.io" | "raw.ic0.app" | "raw.localhost"
+    )
+}
+
 #[ic_cdk::query]
 fn http_request(request: HttpRequest<'_>) -> HttpResponse<'static> {
+    // The gateway forwards Host. It is a deployment convention and is not proof of verification.
+    if request
+        .headers()
+        .iter()
+        .any(|(name, value)| name.eq_ignore_ascii_case("host") && is_raw_host(value))
+    {
+        return error_response(StatusCode::FORBIDDEN);
+    }
     let method = request.method();
     if method != Method::GET && method != Method::HEAD {
         return error_response(StatusCode::METHOD_NOT_ALLOWED);
