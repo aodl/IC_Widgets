@@ -25,7 +25,7 @@ export const metrics = {
   RegisteredContinent: { label: 'Continent', help: 'The continent label in the registered location.' },
   RegisteredCountry: { label: 'Country', help: 'The country label in the registered location. Different spellings remain separate.' },
   DataCenter: { label: 'Data center', help: 'The facility ID recorded for a node.' },
-  RegisteredOwner: { label: 'Registered owner', help: 'The owner name stored for a data center.' },
+  RegisteredOwner: { label: 'Data center owner', help: 'The owner name stored for a data center.' },
   Provider: { label: 'Provider', help: 'The provider principal recorded for a node.' },
   Operator: { label: 'Operator', help: 'The operator principal recorded for a node.' },
 };
@@ -162,7 +162,7 @@ export function distanceSummary(before, after) {
   };
 }
 
-export const nodeHeaders = ['Action', 'Node', 'Data center', 'Registered owner', 'Provider', 'Operator', 'Country'];
+export const nodeHeaders = ['Action', 'Node', 'Data center', 'Data center owner', 'Provider', 'Operator', 'Country'];
 export function nodeFields(node) {
   return [
     { value: node.id, principal: true, entity: 'node' },

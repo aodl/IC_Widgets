@@ -308,12 +308,19 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
 .node-table tr > :nth-child(3) { width: 11%; }
 .node-table tr > :nth-child(4) { width: 17%; }
 .node-table :is(th, td) { min-width: 0; padding: .38rem .3rem; overflow-wrap: anywhere; }
-.node-table td details { margin: .12rem 0 0; }
-.node-table td summary, .node-inspect { font-size: .83rem; }
-button.node-inspect { padding: 0 .2rem; min-height: 24px; }
+button.node-sort-heading {
+  border: 0; border-radius: .15rem; margin: 0; padding: 0; text-align: start;
+  background: transparent; color: inherit; font: inherit; min-height: 24px;
+}
+.node-sort-indicator { margin-inline-start: .22em; }
+.node-sort-mobile, .node-sort-label { display: none; }
 .node-cell-label { display: none; }
 .other-nodes { margin: .65rem 0; }
 @media (max-width: 44rem) {
+  .node-sort-mobile { display: flex; gap: .5rem; align-items: baseline; margin-bottom: .45rem; }
+  .node-sort-mobile select { min-width: 0; max-width: 100%; }
+  button.node-sort-heading { visibility: hidden; }
+  .node-sort-label { display: inline; }
   .node-table table, .node-table tbody, .node-table tr { display: block; }
   .node-table thead {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
