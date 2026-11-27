@@ -10,6 +10,7 @@
     "@icp-sdk/core": "6.1.1"
   },
   "devDependencies": {
+    "@dfinity/response-verification": "3.2.0",
     "esbuild": "0.28.2"
   }
 }

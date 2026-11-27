@@ -1,52 +1,21 @@
-// Exercise the production build with a real isolated replica and a deny-by-default browser network.
+// Exercise the embedded application over the real local IC gateway with a deny-by-default network.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { Cbor } from '@icp-sdk/core/agent';
+import { verifyEmbeddedGateway } from './verify-embedded-frontend.mjs';
 
 const [project, output] = process.argv.slice(2).map(path => resolve(path));
 if (!project || !output) throw new Error('Usage: node web/browser-production-network.mjs <isolated fixture project> <output>');
-const config = JSON.parse(await readFile(resolve(project, 'dfx.json'), 'utf8'));
-const bind = config.networks?.local?.bind;
-if (!/^127\.0\.0\.1:\d+$/.test(bind) || config.networks.local.type !== 'ephemeral') {
-  throw new Error('The production transport test requires an isolated loopback replica.');
-}
-const reviewer = execFileSync('dfx', ['canister', 'id', '--network', 'local', 'reviewer'], {
-  cwd: project, env: { ...process.env, DFX_IDENTITY: 'codex_local' }, encoding: 'utf8',
-}).trim();
-execFileSync('npm', ['--prefix', 'web', 'run', 'build'], {
-  env: { ...process.env, DFX_NETWORK: 'ic', CANISTER_ID_REVIEWER: reviewer, NEXUS_REPLAY_MANIFEST: '' }, stdio: 'inherit',
-});
-
-const replica = 'http://' + bind;
-const status = await fetch(replica + '/api/v2/status');
-assert.ok(status.ok);
-const rootKey = Buffer.from(Cbor.decode(new Uint8Array(await status.arrayBuffer())).root_key).toString('hex');
-const release = await readFile('web/dist/app.js', 'utf8');
-assert.doesNotMatch(release, /Replay scenario|nns-144954|ic-api\.internetcomputer\.org/);
-const mainnetRoot = /308182301d060d2b0601040182dc7c0503010201060c2b0601040182dc7c05030201036100[0-9a-f]{192}/g;
-assert.equal([...release.matchAll(mainnetRoot)].length, 1);
-assert.notEqual(release.match(mainnetRoot)[0], rootKey);
-// Substitute only the trust anchor in the test response. Certificate verification stays enabled.
-// Production ships the original mainnet root and never requests a local fixture root key.
-const testBundle = release.replace(mainnetRoot, rootKey);
-const origin = 'https://network-nexus.test';
-const api = 'https://icp-api.io';
-const assets = new Map([
-  ['/', ['text/html', await readFile('web/dist/index.html')]],
-  ['/styles.css', ['text/css', await readFile('web/dist/styles.css')]],
-  ['/app.js', ['application/javascript', testBundle]],
-]);
-const assetPolicy = await readFile('web/.ic-assets.json5', 'utf8');
-const policy = assetPolicy.match(/"Content-Security-Policy":\s*"([^"]+)"/)?.[1];
-assert.ok(policy);
+// The installed local profile uses the ordinary compiled app and native IC certification.
+const { origin, reviewer, paths, observed } = await verifyEmbeddedGateway(project);
+const assets = new Set(['/', ...paths]);
 const allow = new RegExp('^/api/v[234]/canister/' + reviewer + '/(?:call|read_state)$');
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_EXECUTABLE,
-  args: ['--no-sandbox', '--disable-background-networking', '--disable-quic', '--host-resolver-rules=MAP * ~NOTFOUND'],
+  args: ['--no-sandbox', '--disable-background-networking', '--disable-quic', '--host-resolver-rules=MAP ' + new URL(origin).hostname + ' 127.0.0.1, MAP * ~NOTFOUND'],
 });
 await mkdir(output, { recursive: true });
 try {
@@ -64,17 +33,10 @@ try {
     const request = route.request();
     const { origin: host, pathname, search } = new URL(request.url());
     const method = request.method();
-    if (host === origin && method === 'GET' && !search && assets.has(pathname)) {
-      const [contentType, body] = assets.get(pathname);
-      return route.fulfill({ contentType, body, headers: { 'Content-Security-Policy': policy } });
-    }
-    if (host === api && !search && (allow.test(pathname) && method === 'POST' || pathname === '/api/v2/status' && method === 'GET')) {
+    if (host === origin && method === 'GET' && !search && assets.has(pathname)) return route.continue();
+    if (host === origin && !search && (allow.test(pathname) && method === 'POST' || pathname === '/api/v2/status' && method === 'GET')) {
       protocol.push(pathname);
-      const response = await fetch(replica + pathname, { method, redirect: 'error',
-        headers: method === 'POST' ? { 'content-type': 'application/cbor' } : {},
-        body: method === 'POST' ? request.postDataBuffer() : undefined });
-      return route.fulfill({ status: response.status, contentType: response.headers.get('content-type') ?? 'application/cbor',
-        headers: { 'Access-Control-Allow-Origin': origin }, body: Buffer.from(await response.arrayBuffer()) });
+      return route.continue();
     }
     rejected.push(request.url());
     return route.abort('blockedbyclient');
@@ -153,7 +115,9 @@ try {
   assert.deepEqual(rejected, [], 'External network requests were attempted.');
   assert.deepEqual(await page.evaluate(() => window.policyViolations), []);
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ productionNetworkAllowlist: 'application assets and reviewer IC protocol routes', protocolRequests: count,
+  console.log(JSON.stringify({ embeddedGateway: origin, certifiedResponses: observed.length,
+    productionNetworkAllowlist: 'certified frontend assets and reviewer IC protocol routes',
+    protocolRequests: count, reviewerCalls: protocol.filter(path => path.endsWith('/call')).length,
     mapAndReportProtocolRequests: protocol.length - count, externalRequests: rejected.length, zoomedSwissFillPixels: screenRed, pixels: png }, null, 2));
 } finally {
   await browser.close();

@@ -11,6 +11,9 @@ jobs:
   rust:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    env:
+      CANISTER_ID_REVIEWER: aaaaa-aa
+      DFX_NETWORK: ic
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -28,6 +31,7 @@ jobs:
           echo "$PWD/.local/ci-tools/protobuf/bin" >> "$GITHUB_PATH"
           rustup show
           cargo install --locked candid-extractor --version 0.1.6
+      - run: npm --prefix web ci
       - run: cargo fmt --all -- --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - run: cargo clippy --locked --workspace --target wasm32-unknown-unknown --all-features -- -D warnings
@@ -40,7 +44,6 @@ jobs:
         run: |
           didc bind --target js canisters/reviewer/reviewer.did > .local/reviewer.did.js
           diff -u web/src/reviewer.did.js .local/reviewer.did.js
-          npm --prefix web ci
           npm --prefix web test
           DFX_NETWORK=ic npm --prefix web run build
           if DFX_NETWORK=ic NEXUS_REPLAY_MANIFEST=../tests/source-fixture/data/historical/replays.json \
@@ -53,3 +56,7 @@ jobs:
             echo 'Development replay controls or external acquisition leaked into the production bundle.'
             exit 1
           fi
+          ./scripts/build-frontend-wasm.sh
+          candid-extractor target/wasm32-unknown-unknown/release/nexus_frontend.wasm > .local/frontend.did
+          didc check .local/frontend.did canisters/frontend/frontend.did
+          didc check canisters/frontend/frontend.did .local/frontend.did
