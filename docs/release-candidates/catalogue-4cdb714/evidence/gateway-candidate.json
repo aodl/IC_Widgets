@@ -1,0 +1,765 @@
+{
+  "port": "4957",
+  "frontend": "uqqxf-5h777-77774-qaaaa-cai",
+  "reviewer": "uxrrr-q7777-77774-qaaaq-cai",
+  "origin": "http://uqqxf-5h777-77774-qaaaa-cai.localhost:4957",
+  "paths": [
+    "/styles.76b199b6c6e5a591a20f7cab0834fd7b2a1f3385d624939f70885d1787f5e727.css",
+    "/app.7033e5ca2c71f91107cd28551f48860091b4457d73b4c8107b5705f6c3c64133.js"
+  ],
+  "observed": [
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3220
+    },
+    {
+      "method": "GET",
+      "path": "/index.html",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3220
+    },
+    {
+      "method": "GET",
+      "path": "/styles.76b199b6c6e5a591a20f7cab0834fd7b2a1f3385d624939f70885d1787f5e727.css",
+      "status": 200,
+      "certification": 2,
+      "bytes": 19778
+    },
+    {
+      "method": "HEAD",
+      "path": "/styles.76b199b6c6e5a591a20f7cab0834fd7b2a1f3385d624939f70885d1787f5e727.css",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/app.7033e5ca2c71f91107cd28551f48860091b4457d73b4c8107b5705f6c3c64133.js",
+      "status": 200,
+      "certification": 2,
+      "bytes": 551041
+    },
+    {
+      "method": "HEAD",
+      "path": "/app.7033e5ca2c71f91107cd28551f48860091b4457d73b4c8107b5705f6c3c64133.js",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "HEAD",
+      "path": "/",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/app.js",
+      "status": 404,
+      "certification": 2,
+      "bytes": 152
+    },
+    {
+      "method": "GET",
+      "path": "/.ic-assets.json5",
+      "status": 404,
+      "certification": 2,
+      "bytes": 152
+    },
+    {
+      "method": "GET",
+      "path": "/unmatched/nested/path",
+      "status": 404,
+      "certification": 2,
+      "bytes": 152
+    },
+    {
+      "method": "HEAD",
+      "path": "/unmatched/nested/path",
+      "status": 404,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-recorded-open",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/nns-144954-recorded-open",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-slow-locations",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/nns-144954-slow-locations",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-missing-gps",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/nns-144954-missing-gps",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-location-reject",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/nns-144954-location-reject",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-open-then-executed",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/nns-144954-open-then-executed",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-final-governance-failure",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/nns-144954-final-governance-failure",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-executed",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/nns-144954-executed",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/multiple-changes",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/multiple-changes",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/three-added",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/three-added",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/six-removed",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/six-removed",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/unequal-change",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/unequal-change",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/rejected-139792",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/rejected-139792",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/failed-140988",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/failed-140988",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/invalid-140988",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/invalid-140988",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/separate-add-remove",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/separate-add-remove",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/untargeted-one-subnet",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/untargeted-one-subnet",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/untargeted-two-subnets",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/untargeted-two-subnets",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/untargeted-no-matches",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/untargeted-no-matches",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/untargeted-incomplete",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/untargeted-incomplete",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/three-added-adopted",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/three-added-adopted",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/three-added-chunked-location",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/three-added-chunked-location",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/three-added-corrupt-chunk",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/three-added-corrupt-chunk",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/boundary-software-144909",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/boundary-software-144909",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-142743",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-142743",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-144939",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-144939",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-144681",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-144681",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-143100",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-143100",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-144850",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-144850",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-144865",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-144865",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-48615",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-48615",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-130714",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-130714",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-134902",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-134902",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-134993",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-134993",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-134994",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-134994",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-135310",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-135310",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-140279",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-140279",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/classification-140280",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3218
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases/classification-140280",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "HEAD",
+      "path": "/test-cases",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/not-a-recorded-case",
+      "status": 404,
+      "certification": 2,
+      "bytes": 152
+    },
+    {
+      "method": "GET",
+      "path": "/replay.a13cf94d224129c4385b932ec576f1001354798b0a2faf5db0cb4c08c80a197f.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 116084
+    },
+    {
+      "method": "GET",
+      "path": "/replay.900e964e8bba765e30ab369e62cf2ce7ff92ef1eabb1051be8b1f714256ee1e1.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 116084
+    },
+    {
+      "method": "GET",
+      "path": "/replay.e0e4c97f3446892a880b8dae6e9a3ad7c8fbe6c26d360cb22e0584e87b14f658.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 116076
+    },
+    {
+      "method": "GET",
+      "path": "/replay.65bc18dfcfd8adcae4b2650c7751ad926f3dc17fa20f04a21893c7670c013901.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 22698
+    },
+    {
+      "method": "GET",
+      "path": "/replay.46ab7d9ee409885985e8afb911e63ae1e5e404ee8cab65d414499783a593e4f1.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 26373
+    },
+    {
+      "method": "GET",
+      "path": "/replay.e5f83f0db2d75fcc5a20a94721b229a870af0b7a8eeb1beab3b7f802e02e886f.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 31388
+    },
+    {
+      "method": "GET",
+      "path": "/replay.81d1c10a86d2591bb981b81115d71944dd8fcb5a70a9b4ac9aac183332ab0f35.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 24619
+    },
+    {
+      "method": "GET",
+      "path": "/replay.4f7252ecfbef989cebcd1da0b47a95930f906595b67afcb3483b9f91e029b7cf.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 35674
+    },
+    {
+      "method": "GET",
+      "path": "/replay.dfcdf6060506ff5f782512432fa7ed2cd34a43cd4618dbd8d02e2580728bd18a.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 14442
+    },
+    {
+      "method": "GET",
+      "path": "/replay.800b4f86bdfbe2d3c17b0338f58df6fa30b9c34f42951e1db86dbbc878ff03bf.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 6250
+    },
+    {
+      "method": "GET",
+      "path": "/replay.1b1ea53e4959f3df1e867de086897637a8f6775b55ef63cb11549dcf0cd63f9c.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 27863
+    },
+    {
+      "method": "GET",
+      "path": "/replay.5d0d46f7419b8c290141e20bbb67292a9428da3f90cd3e72d0f8630d96f75d12.json",
+      "status": 200,
+      "certification": 2,
+      "bytes": 22536
+    }
+  ],
+  "rawOrigin": "http://uqqxf-5h777-77774-qaaaa-cai.raw.localhost:4957",
+  "rawRefusals": [
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 403
+    },
+    {
+      "method": "HEAD",
+      "path": "/",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/styles.76b199b6c6e5a591a20f7cab0834fd7b2a1f3385d624939f70885d1787f5e727.css",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/app.7033e5ca2c71f91107cd28551f48860091b4457d73b4c8107b5705f6c3c64133.js",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-recorded-open",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/?canisterId=uqqxf-5h777-77774-qaaaa-cai",
+      "status": 503,
+      "origin": "http://raw.localhost:4957"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "port": "4957",
+  "frontend": "uqqxf-5h777-77774-qaaaa-cai",
+  "reviewer": "uxrrr-q7777-77774-qaaaq-cai",
+  "origin": "http://uqqxf-5h777-77774-qaaaa-cai.localhost:4957",
+  "paths": [
+    "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+    "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js"
+  ],
+  "observed": [
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3226
+    },
+    {
+      "method": "GET",
+      "path": "/index.html",
+      "status": 200,
+      "certification": 2,
+      "bytes": 3226
+    },
+    {
+      "method": "GET",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "status": 200,
+      "certification": 2,
+      "bytes": 19221
+    },
+    {
+      "method": "HEAD",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "status": 200,
+      "certification": 2,
+      "bytes": 514763
+    },
+    {
+      "method": "HEAD",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "HEAD",
+      "path": "/",
+      "status": 200,
+      "certification": 2,
+      "bytes": 0
+    },
+    {
+      "method": "GET",
+      "path": "/app.js",
+      "status": 404,
+      "certification": 2,
+      "bytes": 158
+    },
+    {
+      "method": "GET",
+      "path": "/.ic-assets.json5",
+      "status": 404,
+      "certification": 2,
+      "bytes": 158
+    },
+    {
+      "method": "GET",
+      "path": "/unmatched/nested/path",
+      "status": 404,
+      "certification": 2,
+      "bytes": 158
+    },
+    {
+      "method": "HEAD",
+      "path": "/unmatched/nested/path",
+      "status": 404,
+      "certification": 2,
+      "bytes": 0
+    }
+  ],
+  "rawOrigin": "http://uqqxf-5h777-77774-qaaaa-cai.raw.localhost:4957",
+  "rawRefusals": [
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 403
+    },
+    {
+      "method": "HEAD",
+      "path": "/",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/?canisterId=uqqxf-5h777-77774-qaaaa-cai",
+      "status": 503,
+      "origin": "http://raw.localhost:4957"
+    }
+  ]
+}
