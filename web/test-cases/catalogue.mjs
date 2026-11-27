@@ -24,6 +24,7 @@ export async function testCatalogue() {
   for (const row of replays) {
     const source = row.proposal_ids.map(id => indexed.get(id)).filter(Boolean);
     const topics = [...new Set(source.map(item => words(item.raw.topic)).filter(Boolean))];
+    if (!topics.length && row.activity?.length) topics.push('Subnet management');
     const actions = row.function_ids.map(id => actionName(functions.find(item => item.id === id)?.name) ?? 'Function ' + id);
     const actionEvidence = row.action_evidence.map(action => {
       const entry = indexed.get(action.proposal_id);
@@ -41,12 +42,12 @@ export async function testCatalogue() {
       assets[asset] = bytes;
     }
     const kind = registry.kind === 'synthetic'
-      ? (actionEvidence.length ? 'Recorded action with synthetic evidence' : 'Synthetic evidence')
+      ? (row.activity?.length ? 'Synthetic evidence' : 'Recorded action with synthetic evidence')
       : registry.synthetic_overlay || row.fault ? 'Recorded evidence with synthetic supplements' : 'Recorded evidence';
     const [basis, status] = row.lifecycle.split('-', 2);
     const lifecycleLabel = (basis === 'constructed' ? 'Constructed ' : 'Recorded ') + words(status) + ' proposal';
     cases.push({ id: row.id, name: row.name, proposalIds: row.proposal_ids, topic: topics.join(' / ') || 'Topic not recorded',
-      actions, purpose: row.purpose, provenance: row.provenance, kind, fault: row.fault, support: row.support,
+      actions, activity: !!row.activity?.length, purpose: row.purpose, provenance: row.provenance, kind, fault: row.fault, support: row.support,
       limits: row.limits, lifecycleLabel, registryVersion: registry.version ?? null, roleSupplement: registry.synthetic_overlay,
       registryFrom: times[0], registryTo: times.at(-1), actionEvidence, failureReason: row.indexed_failure_reason,
       supportLabel: bundled ? 'Interactive review' : row.support === 'production-unsupported' ? 'Classification only' : 'Automated fixture',

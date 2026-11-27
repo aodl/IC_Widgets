@@ -1,0 +1,102 @@
+{
+  "governanceCanister": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+  "registryCanister": "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+  "discoveryStartedAt": "2026-11-27T20:41:31+00:00",
+  "discoveryLimit": 20,
+  "discoveryStatuses": [
+    1,
+    3
+  ],
+  "discoveryPages": 1,
+  "discoveryComplete": false,
+  "registryPin": 66264,
+  "transport": "Anonymous direct system-canister query during development",
+  "proposals": [
+    {
+      "id": "145077",
+      "status": 1,
+      "executedAt": "0",
+      "subnet": "5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae",
+      "add": [
+        "ssfqq-s2yvo-mtunz-ok6ih-wbtxo-p42ie-mlm2u-g33bu-fm6kj-rpz2s-kae"
+      ],
+      "remove": [
+        "haeka-mchv4-zwg3j-d3sz2-k5z2x-ulfmb-kflyu-ezzlz-ckc3d-ako5j-uqe"
+      ],
+      "governanceRetrievedAt": "2026-11-27T20:50:51Z",
+      "registryRetrievedAt": "2026-11-27T20:50:52Z",
+      "subnetRecordMutation": 66080,
+      "pinnedMembers": 13
+    },
+    {
+      "id": "145076",
+      "status": 1,
+      "executedAt": "0",
+      "subnet": "4zbus-z2bmt-ilreg-xakz4-6tyre-hsqj4-slb4g-zjwqo-snjcc-iqphi-3qe",
+      "add": [
+        "b3eje-pmc5j-yqvtm-vrg5t-uzmc3-xrxjs-7xa3c-urakj-tdal4-klkit-iqe"
+      ],
+      "remove": [
+        "7agd5-pfc4g-rdozn-zajij-aax72-7jft2-rzw36-y3flc-xwt77-pjg5w-7qe"
+      ],
+      "governanceRetrievedAt": "2026-11-27T20:50:51Z",
+      "registryRetrievedAt": "2026-11-27T20:50:52Z",
+      "subnetRecordMutation": 66037,
+      "pinnedMembers": 13
+    },
+    {
+      "id": "145075",
+      "status": 1,
+      "executedAt": "0",
+      "subnet": "4ecnw-byqwz-dtgss-ua2mh-pfvs7-c3lct-gtf4e-hnu75-j7eek-iifqm-sqe",
+      "add": [
+        "6jidn-uqgyz-hl2l3-ou2rg-slu73-iztvd-yhdu7-hjfuz-cy4wc-jvoqc-uae",
+        "gfeqv-7ndps-okvma-qxwsi-ozk4x-b5wyp-hzwmb-v6g5t-dmen4-aff4d-zae"
+      ],
+      "remove": [
+        "o42ny-ab3zt-iknyx-eo4ji-utgbe-xmae4-ybmwp-wdkzt-efffe-oq6nh-oae",
+        "vw36t-lgksm-5cgtg-ait3y-sy25v-gdtsq-en6oe-md35y-a7cji-uiryt-3ae"
+      ],
+      "governanceRetrievedAt": "2026-11-27T20:50:51Z",
+      "registryRetrievedAt": "2026-11-27T20:50:52Z",
+      "subnetRecordMutation": 66088,
+      "pinnedMembers": 13
+    },
+    {
+      "id": "145071",
+      "status": 1,
+      "executedAt": "0",
+      "subnet": "qxesv-zoxpm-vc64m-zxguk-5sj74-35vrb-tbgwg-pcird-5gr26-62oxl-cae",
+      "add": [
+        "7vhhj-2qrcv-n5spd-aiff6-pjrke-jetz4-trolr-icnee-yirwt-4pgtp-5ae",
+        "exk6f-v2scl-a77ea-mmykb-rmogm-66rct-usltz-x6pdc-5g3y5-yiw7w-3ae"
+      ],
+      "remove": [
+        "4vzqk-sugue-telln-ixzna-ujcsw-6llis-gcsbd-lbadw-tstbd-a7el7-kqe",
+        "ys5ct-b73ij-z33xq-y4tej-vby6a-pwzjk-t7ob5-y5nub-oe4vo-alrjn-oae"
+      ],
+      "governanceRetrievedAt": "2026-11-27T20:50:51Z",
+      "registryRetrievedAt": "2026-11-27T20:50:52Z",
+      "subnetRecordMutation": 66033,
+      "pinnedMembers": 13
+    },
+    {
+      "id": "145063",
+      "status": 1,
+      "executedAt": "0",
+      "subnet": "gmq5v-hbozq-uui6y-o55wc-ihop3-562wb-3qspg-nnijg-npqp5-he3cj-3ae",
+      "add": [
+        "flc7j-p6oyd-c5hbs-f5h3s-2lgxj-ryled-d534j-wd4em-jujlp-xpno2-jae",
+        "g4xss-lbrh4-4l4mw-ehk6z-3tgfx-f2qzz-bcmiq-fxk5d-xwijm-evdhh-3qe"
+      ],
+      "remove": [
+        "ochxw-hoyfu-vxj3a-nxfik-dp74k-hfv7r-hfu2u-2e2cv-act65-jb6pd-kqe",
+        "vsuqg-6hald-hxxxi-bxr2s-e5af5-p5lsr-2sutj-pip7r-co24u-2he35-hqe"
+      ],
+      "governanceRetrievedAt": "2026-11-27T20:50:51Z",
+      "registryRetrievedAt": "2026-11-27T20:50:52Z",
+      "subnetRecordMutation": 66100,
+      "pinnedMembers": 13
+    }
+  ]
+}

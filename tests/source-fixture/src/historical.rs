@@ -16,6 +16,62 @@ pub struct Case {
     pub lifecycle: String,
     pub registry: Baseline,
     pub fault: Option<String>,
+    #[serde(default)]
+    pub activity: Vec<ActivityFixture>,
+}
+
+#[derive(Deserialize)]
+pub struct ActivityFixture {
+    pub id: String,
+    pub status: i32,
+    pub topic: i32,
+    pub title: String,
+    #[serde(default)]
+    pub summary: String,
+    pub function: Option<i32>,
+    pub payload: Option<Value>,
+    pub motion: Option<String>,
+    #[serde(default)]
+    pub omit_list_payload: bool,
+}
+
+impl ActivityFixture {
+    pub fn info(&self, list: bool) -> ProposalInfo {
+        let action = if let Some(function) = self.function {
+            let executable = self
+                .payload
+                .as_ref()
+                .and_then(|value| action(function, value));
+            Some(Action::ExecuteNnsFunction(ExecuteNnsFunction {
+                nns_function: function,
+                payload: if list && self.omit_list_payload {
+                    vec![]
+                } else {
+                    executable.map_or_else(Vec::new, |action| action.payload)
+                },
+            }))
+        } else {
+            self.motion.as_ref().map(|text| Action::Motion {
+                motion_text: text.clone(),
+            })
+        };
+        ProposalInfo {
+            id: Some(ProposalId {
+                id: decimal(&self.id),
+            }),
+            status: self.status,
+            topic: self.topic,
+            proposal_timestamp_seconds: 1795696512,
+            executed_timestamp_seconds: if self.status == 4 { 1795696513 } else { 0 },
+            failed_timestamp_seconds: None,
+            decided_timestamp_seconds: (self.status != 1).then_some(1795696513),
+            proposal: Some(Proposal {
+                title: Some(self.title.clone()),
+                summary: self.summary.clone(),
+                action,
+            }),
+        }
+    }
 }
 
 #[derive(Deserialize)]

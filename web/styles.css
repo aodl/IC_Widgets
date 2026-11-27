@@ -345,3 +345,7 @@ button.node-sort-heading {
 .test-catalogue { margin-block: 1rem; }
 .test-case-item { margin-block: .7rem; }
 .test-case-item p { margin-block: .2rem; }
+
+.review-checks { margin-block: .75rem; }
+.review-checks h3 { margin-top: 0; }
+.check-warning { border-inline-start: 3px solid #ad2630; padding-inline-start: .55rem; }

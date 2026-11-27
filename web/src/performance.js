@@ -1,4 +1,5 @@
 import { Principal } from '@icp-sdk/core/principal';
+import { comparisonFilterLabels } from './composed-scope.js';
 import { liveError, result } from './client.js';
 import { nodeSelectionProfile } from './node-snapshot.js';
 import { el, number, principal, renderPerformance, sourceReceipts } from './view.js';
@@ -27,8 +28,8 @@ export function mountPerformance(call, { connected = false } = {}) {
     subnetField.readOnly = following;
     choices.hidden = connected || !following || selection?.kind === 'existing';
     const nodes = following ? nodeIds() : undefined;
-    const scope = connected && selection?.scope === 'proposed-membership' ? ' · Proposed members'
-      : connected && selection?.scope === 'existing-membership' ? ' · Existing members' : '';
+    const scope = connected && selection
+      ? ' · ' + (comparisonFilterLabels[selection.scope] ?? 'Existing members') : '';
     summary.textContent = !following ? 'Independent subnet scope.' : !selection ? 'Waiting for resolved membership evidence.'
       : selection.label + scope + ' · Registry ' + number(BigInt(selection.registryVersion)) + ' · ' + number(nodes.length)
         + (nodes.length === 1 ? ' node.' : ' nodes.');

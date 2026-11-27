@@ -40,7 +40,14 @@ thread_local! {
 fn asset_headers(name: &str) -> Vec<HeaderField> {
     let ancestor = option_env!("IC_WIDGET_HOST_ORIGIN").unwrap_or("'none'");
     let csp = format!("{CSP} {ancestor}");
-    let csp = if name == TESTS { csp.replace("connect-src 'self' https://icp-api.io", "connect-src 'self'") } else { csp };
+    let csp = if name == TESTS {
+        csp.replace(
+            "connect-src 'self' https://icp-api.io",
+            "connect-src 'self'",
+        )
+    } else {
+        csp
+    };
     let cache = if name.ends_with(".html") {
         "public, no-cache, no-store"
     } else {
@@ -79,7 +86,9 @@ fn content_type(name: &str) -> &'static str {
 
 fn aliases(name: &str) -> Vec<String> {
     match name {
-        "index.html" if option_env!("IC_WIDGET_EMBED_VIEW").is_some() => vec!["/".into(), "/embed".into()],
+        "index.html" if option_env!("IC_WIDGET_EMBED_VIEW").is_some() => {
+            vec!["/".into(), "/embed".into()]
+        }
         "index.html" => vec!["/".into()],
         TESTS => ASSETS
             .get_file(TEST_ROUTES)

@@ -11,13 +11,39 @@ function ready(profile, revision, value) {
   return { kind: 'ready', profile, revision, value };
 }
 
-export function composedOutputs(selection, { members, countries }) {
+export const comparisonFilterLabels = Object.freeze({
+  'membership-union': 'Before and proposed members',
+  'proposed-membership': 'Proposed members',
+  'before-membership': 'Before members',
+  'changed-membership': 'Added and removed members',
+  'incoming-membership': 'Added members',
+  'outgoing-membership': 'Removed members',
+  'affected-membership': 'Nodes affected across steps',
+});
+const maxFilterSize = 256;
+
+export function composedOutputs(selection, { members, countries }, requestedScope = 'membership-union') {
   const { kind, revision, subnet, registryVersion, label, nodes } = selection;
   const { receipts, ...observation } = selection.observation ?? {};
-  const scope = kind === 'existing' ? 'existing-membership' : 'proposed-membership';
+  const scope = kind === 'existing' ? 'existing-membership' : requestedScope;
+  const filters = {
+    'existing-membership': nodes.selected,
+    'membership-union': members.map(member => member.id),
+    'proposed-membership': nodes.selected,
+    'before-membership': members.filter(member => member.role !== 'Added').map(member => member.id),
+    'changed-membership': members.filter(member => member.role !== 'Retained').map(member => member.id),
+    'incoming-membership': nodes.incoming,
+    'outgoing-membership': nodes.outgoing,
+    'affected-membership': nodes.affected,
+  };
+  if (!Object.hasOwn(filters, scope)) throw new Error('Unsupported Performance scope.');
+  const nodeIds = filters[scope];
+  const filter = nodeIds.length <= maxFilterSize ? ready(nodeFilterProfile, revision,
+    { subnet, registryVersion, scope, label, nodeIds })
+    : { kind: 'unavailable', retryable: false, reason: 'This finite filter exceeds 256 nodes. Select a narrower scope.' };
   return {
     // A connected consumer receives one exact filter, with the producer's scope label.
-    filter: ready(nodeFilterProfile, revision, { subnet, registryVersion, scope, label, nodeIds: nodes.selected }),
+    filter,
     scene: ready(mapSceneProfile, revision, JSON.parse(JSON.stringify({
       kind, subnet, registryVersion, label, members, countries, observation, coverage: selection.coverage,
     }))),
@@ -41,8 +67,8 @@ function checked(input, profile) {
 
 export function readNodeFilter(input) {
   const value = checked(input, nodeFilterProfile);
-  if (!['existing-membership', 'proposed-membership'].includes(value.scope)
-    || !Array.isArray(value.nodeIds) || value.nodeIds.length > 128
+  if ((value.scope !== 'existing-membership' && !Object.hasOwn(comparisonFilterLabels, value.scope))
+    || !Array.isArray(value.nodeIds) || value.nodeIds.length > maxFilterSize
     || new Set(value.nodeIds).size !== value.nodeIds.length || !value.nodeIds.every(canonicalPrincipal)) {
     throw new Error('Invalid finite node filter.');
   }

@@ -12,8 +12,8 @@ import { createReviewSession, reviewContexts, recordKey } from '../src/review-se
 import { branch, option, principal } from '../src/view.js';
 import { capturedInputs } from './source-inputs.mjs';
 
-const [projectArg, output] = process.argv.slice(2);
-if (!projectArg || !output) throw new Error('Usage: node web/test-cases/capture.mjs <disposable project> <output JSON>');
+const [projectArg, output, ...caseIds] = process.argv.slice(2);
+if (!projectArg || !output) throw new Error('Usage: node web/test-cases/capture.mjs <disposable project> <output JSON> [case ID ...]');
 const cwd = resolve(projectArg);
 const config = JSON.parse(await readFile(resolve(cwd, 'dfx.json'), 'utf8'));
 const bind = config.networks?.local?.bind;
@@ -30,7 +30,9 @@ const service = idlFactory({ IDL }).fieldsAsObject();
 const capture = { version: 1, inputs: await capturedInputs(), cases: {} };
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
-for (const row of replays.filter(row => row.menu)) {
+const interactive = replays.filter(row => row.menu);
+assert.ok(caseIds.every(id => interactive.some(row => row.id === id)), 'Unknown interactive test case');
+for (const row of interactive.filter(row => !caseIds.length || caseIds.includes(row.id))) {
   dfx(['call', '--candid', 'fixture.did', 'fixture', 'load_review_case', '(' + JSON.stringify(row.id) + ')']);
   const agent = await HttpAgent.create({
     host: 'http://' + bind, shouldFetchRootKey: true, identity: Ed25519KeyIdentity.generate(),
@@ -56,7 +58,7 @@ for (const row of replays.filter(row => row.menu)) {
   });
   const preview = await client.begin_membership_review(row.proposal_ids.map(BigInt));
   const live = preview.Ok;
-  assert.ok(live?.outcome.Ok, row.id + ' registered proposal evidence');
+  assert.ok(live?.outcome.Ok, row.id + ' registered proposal evidence · ' + (preview.Err ?? Object.keys(live?.outcome.Err ?? {}).join(', ')));
   const { report, subnet_rules, review_context } = live.outcome.Ok;
   const contexts = reviewContexts(report, option(subnet_rules) ?? []);
   const ready = contexts.filter(item => item.index && item.state && item.rules);
@@ -75,7 +77,16 @@ for (const row of replays.filter(row => row.menu)) {
       await session.settled();
     }
     assert.ok(ready.every(item => item.calculation), row.id + ' comparisons captured');
-    assert.ok(statuses.includes('Finished'), row.id + ' settlement captured');
+    if (!session.section().final && session.section().retryable) {
+      session.retry();
+      await session.settled();
+    }
+    assert.ok(session.section().final && statuses.includes('Finished'),
+      row.id + ' settlement captured · ' + (session.section().consistency?.reason ?? statuses.join(', ')));
+  }
+  if (row.activity?.length) {
+    const check = await client.subnet_activity(row.proposal_ids.map(BigInt));
+    assert.ok(check.Ok?.outcome.Ok, row.id + ' Governance discovery captured');
   }
   capture.cases[row.id] = { replies, pages };
   console.log(row.id + ' ' + Object.values(replies).reduce((count, batch) => count + Object.keys(batch).length, 0) + ' typed replies');

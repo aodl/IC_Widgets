@@ -3,6 +3,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 use candid::{Principal, encode_one};
 use ic_cdk::api::{is_controller, msg_caller, msg_reply};
 use nexus_domain::sha256;
+use nexus_ic_sources::governance::{ListRequest, ListResponse};
 use nexus_ic_sources::projection::RecordKey;
 use nexus_ic_sources::registry::{
     NNS_SUBNET_KEY,
@@ -25,6 +26,7 @@ thread_local! {
 struct Replay {
     proposals: BTreeMap<u64, Vec<u8>>,
     fault: Option<String>,
+    activity: Vec<historical::ActivityFixture>,
     failure_active: bool,
 }
 
@@ -48,6 +50,33 @@ pub fn governance(id: u64) -> bool {
     })
 }
 
+pub fn activity(request: &ListRequest) -> Option<ListResponse> {
+    REPLAY.with_borrow(|replay| {
+        let replay = replay.as_ref()?;
+        assert!(
+            !replay.activity.is_empty(),
+            "No cross-proposal discovery captured for this case"
+        );
+        let before = request.before_proposal.map_or(u64::MAX, |id| id.id);
+        let mut rows: Vec<_> = replay
+            .activity
+            .iter()
+            .filter(|row| historical::decimal(&row.id) < before)
+            .filter(|row| {
+                request.include_status.is_empty() || request.include_status.contains(&row.status)
+            })
+            .collect();
+        rows.sort_by_key(|row| std::cmp::Reverse(historical::decimal(&row.id)));
+        Some(ListResponse {
+            proposal_info: rows
+                .into_iter()
+                .take(request.limit as usize)
+                .map(|row| row.info(request.omit_large_fields.unwrap_or(false)))
+                .collect(),
+        })
+    })
+}
+
 #[ic_cdk::update]
 fn load_review_case(id: String) {
     assert!(is_controller(&msg_caller()));
@@ -66,6 +95,9 @@ fn load_review_case(id: String) {
                 assert_eq!(id, "144954");
                 assert_eq!(function, 31);
                 include_bytes!("../data/144954/governance.didbin").to_vec()
+            } else if let Some(row) = case.activity.iter().find(|row| row.id == *id) {
+                assert_eq!(row.function, Some(function));
+                encode_one(Some(row.info(false))).unwrap()
             } else {
                 let info = historical::proposal(id, function, &case.lifecycle);
                 encode_one(Some(info)).unwrap()
@@ -73,6 +105,12 @@ fn load_review_case(id: String) {
             (historical::decimal(id), bytes)
         })
         .collect();
+    let requested = historical::requested(&proposals);
+    for row in &case.activity {
+        proposals
+            .entry(historical::decimal(&row.id))
+            .or_insert_with(|| encode_one(Some(row.info(false))).unwrap());
+    }
     proposals.insert(
         143_190,
         include_bytes!("../data/143190/governance.didbin").to_vec(),
@@ -94,7 +132,7 @@ fn load_review_case(id: String) {
                 historical::decimal(&mutation_version),
                 roster,
                 subnets,
-                historical::requested(&proposals),
+                requested,
                 case.fault.as_deref(),
             )));
         }
@@ -105,6 +143,7 @@ fn load_review_case(id: String) {
     REPLAY.set(Some(Replay {
         proposals,
         fault: case.fault,
+        activity: case.activity,
         failure_active: false,
     }));
 }

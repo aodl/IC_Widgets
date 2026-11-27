@@ -4,7 +4,7 @@ import { hex } from './view.js';
 
 const service = idlFactory({ IDL }).fieldsAsObject();
 const methodNames = ['begin_membership_review', 'membership_context_detail_page', 'membership_registry_role',
-  'compare_membership_context', 'finalize_membership_review'];
+  'compare_membership_context', 'finalize_membership_review', 'subnet_activity'];
 
 function decode(name, body) {
   return IDL.decode(service[name].retTypes, Uint8Array.from(atob(body), char => char.charCodeAt(0)))[0];

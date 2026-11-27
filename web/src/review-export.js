@@ -2,6 +2,7 @@ import { boundaryNote, countryLabel } from './country-presentation.js';
 import { dashboardLink, proposalHeading } from './dashboard.js';
 import { comparisonCaption, distanceTitle, distributionTables, governanceText, replayLabel, roles } from './detail-model.js';
 import { nodeTables } from './node-table.js';
+import { reviewChecksView } from './review-checks.js';
 import { drawMap, fitLocations, mapCoverage, mapProjection, mapScene, siteLabel } from './review-map.js';
 import { reportScope, reviewMarkdown } from './review-markdown.js';
 import { action, deltaNode, el, number, saveFile, styled, table } from './view.js';
@@ -126,6 +127,7 @@ export function markdownEditor(snapshot, draft, isCurrent) {
       dashboardLink('subnet', snapshot.scope.subnet)),
     snapshot.governance.map(item => el('p', governanceText(item, snapshot.replay, true))),
     snapshot.notes.map(note => el('p', note)),
+    snapshot.reviewChecks ? reviewChecksView(snapshot.reviewChecks) : null,
     el('h4', 'Map'), image, nodeTables(snapshot.members, { heading: 'h4' }),
     el('h4', 'Decentralisation'), el('p', comparisonCaption),
     distributionTables.flatMap(({ key, title }) => [

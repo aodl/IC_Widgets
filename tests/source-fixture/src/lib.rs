@@ -81,12 +81,15 @@ fn proposal(id: u64, full: bool) -> ProposalInfo {
 #[cfg(not(feature = "slow-governance"))]
 #[ic_cdk::query]
 fn list_proposals(request: ListRequest) -> ListResponse {
-    list(request)
+    replay::activity(&request).unwrap_or_else(|| list(request))
 }
 
 #[cfg(feature = "slow-governance")]
 #[ic_cdk::update]
 async fn list_proposals(request: ListRequest) -> ListResponse {
+    if let Some(reply) = replay::activity(&request) {
+        return reply;
+    }
     let target = DELAY_TARGET
         .get()
         .expect("configure cross-subnet fixture target");

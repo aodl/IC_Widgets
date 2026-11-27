@@ -12,8 +12,9 @@ function context(row) {
     row.registryVersion ? el('p', 'Pinned Registry ' + BigInt(row.registryVersion).toLocaleString('en-US')) : null,
     row.registryFrom ? el('p', replayRegistryText(row)) : null,
     row.actionEvidence.map(entry => el('p',
-      (entry.kind === 'recorded-governance-reply' ? 'Original Governance observation' : 'Original indexed observation')
-        + ' #' + entry.id + ' · ' + (utc(entry.at) ?? 'Observation time unavailable'))),
+      entry.kind === 'synthetic-governance-action' ? 'Synthetic Governance action #' + entry.id
+        : (entry.kind === 'recorded-governance-reply' ? 'Original Governance observation' : 'Original indexed observation')
+          + ' #' + entry.id + ' · ' + (utc(entry.at) ?? 'Observation time unavailable'))),
     row.roleSupplement ? el('p', 'Synthetic supplement · ' + row.roleSupplement) : null,
     row.fault ? el('p', 'Exceptional condition · ' + row.fault.replaceAll('-', ' ')) : null,
   ];
@@ -26,6 +27,7 @@ export function showTestCatalogue(cases, row) {
   document.querySelector('.masthead-row').append(nav);
   if (!row && !['/test-cases', '/test-cases/', '/test-cases.html'].includes(location.pathname)) return;
   document.querySelector('#open-performance').hidden = true;
+  document.querySelector('#view-switch').hidden = true;
   const card = styled('section', 'card test-catalogue');
   if (row) {
     card.append(styled('p', 'local-note', 'Bundled test case · Fixture evidence'), el('h1', row.name + ' · ' + caseIds(row)), el('p', row.purpose), ...context(row));
@@ -39,7 +41,7 @@ export function showTestCatalogue(cases, row) {
     });
     card.append(styled('div', 'controls', el('label', 'Switch test case', dropdown), ' ', open));
     if (row.asset) {
-      root.querySelector('.search-shell').before(card);
+      root.querySelector('#proposal-search').before(card);
       return;
     }
     card.append(el('p', row.supportLabel + ' · Interactive review unavailable.'));

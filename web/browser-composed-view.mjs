@@ -120,8 +120,8 @@ try {
     const oracle = expected.cases[fixture];
     const [subnet, baseline] = Object.entries(oracle.baselines)[0];
     const state = id && oracle.scenarios.A[0][subnet];
-    const filter = state?.members ?? baseline;
-    const represented = new Set([...baseline, ...filter]);
+    const represented = new Set([...baseline, ...(state?.members ?? [])]);
+    const filter = [...represented];
     const start = id ? calls.length : 0;
     const tab = page.getByRole('button', { name, exact: true });
     if (await tab.getAttribute('aria-pressed') !== 'true') await tab.click();
@@ -129,7 +129,7 @@ try {
     await producer.locator(id ? '#report-status' : '#subnet-status').getByText(
       id ? 'Data loading complete' : 'Subnet loaded.', { exact: true }).waitFor({ timeout: 150_000 });
     await performance.locator('#performance-context').getByText(new RegExp(
-      (id ? 'Proposal #' + id + '.*Proposed members' : 'Existing members') + '.*' + filter.length + ' nodes')).waitFor();
+      (id ? 'Proposal #' + id + '.*Before and proposed members' : 'Existing members') + '.*' + filter.length + ' nodes')).waitFor();
     await performance.getByText('Source receipts', { exact: true }).waitFor();
     assert.equal(await producer.locator('.map-frame').count(), 0);
     assert.equal(await page.locator('iframe[title="IC Node Map"]').getAttribute('src'), mapOrigin + '/embed');
@@ -156,9 +156,20 @@ try {
     await page.keyboard.press('Enter');
     await map.getByRole('region', { name: 'Map location details' }).waitFor();
     assert.equal(calls.length, count);
+    let explicitProposed;
+    if (id === '144940') {
+      const start = calls.length;
+      await producer.getByLabel('Connected Performance scope').selectOption('proposed-membership');
+      await performance.locator('#performance-context').getByText(/Proposed members.*5 nodes/).waitFor();
+      await performance.getByText('Source receipts', { exact: true }).waitFor();
+      const scopedReads = calls.slice(start).filter(row => row.method === 'node_performance_on_demand');
+      assert.equal(scopedReads.length, 1);
+      explicitProposed = scopedReads[0];
+      assert.deepEqual(sorted(explicitProposed.nodes), sorted(state.members));
+    }
     verifiedViews.push({ name, subnet, before: baseline.length, proposed: state?.members.length ?? null,
       added: state?.added.length ?? null, removed: state?.removed.length ?? null,
-      represented: represented.size, metrics });
+      represented: represented.size, metrics, explicitProposed });
   }
   // The initial view runs automatically. Open the workspace from a fresh page so
   // the same input is never submitted twice during verification.

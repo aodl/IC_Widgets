@@ -7,13 +7,13 @@ The standalone production release remains the baseline for Membership and Perfor
 | View | Declared input | Producer | IC Node Map input | Performance input |
 | --- | --- | --- | --- | --- |
 | Existing subnet | `urn:ic-widgets:subnet` v1 | One replicated request pins the Registry head and reads the registered roster and unique linked metadata | Finite set of current members, registered coordinates and neutral country groups | Finite set of current member IDs |
-| Proposal review | `urn:ic-widgets:proposal-ids` v1 | The existing caller-bound proposal workflow and replicated comparison | Before and selected state, roles, registered coordinates and replicated country groups | Finite selected, incoming, outgoing and affected filters |
+| Proposal review | `urn:ic-widgets:proposal-ids` v1 | The existing caller-bound proposal workflow and replicated comparison | Before and selected state, roles, registered coordinates and replicated country groups | Before/proposed union by default, with explicit proposed, before, changed, incoming, outgoing and all-steps filters |
 
 The map takes a viewport key, location evidence and country display groups. It has no proposal input or source client. Exact placement, the country and role presentation, node inspection, unmapped nodes and map gestures use the same component. Existing-subnet coverage uses recorded Registry evidence. Before/proposed analytical counts still come from the replicated comparison.
 
 The independently hosted map accepts `urn:ic-widgets:map-scene` v1. It receives the represented member records, roles and accepted country groups, the subnet and Registry pin, the evidence revision, coverage and observation metadata. The producers retain detailed source receipts. Their embedded views omit the duplicate interactive map and bind the scene to the same standalone map frontend. The map has no reviewer client.
 
-Performance accepts `urn:ic-widgets:node-filter` v1, which carries an explicitly labeled scope, one exact ID array, the subnet, Registry pin and the evidence revision. The array comes from the producer's existing roster or its accepted proposed roster. It is passed unchanged to the reviewer as a present Candid filter. A connected frame has no independent-mode or preset fallback. An empty, invalid, unavailable or superseded filter does not open an unfiltered request. The upstream management method observes counters for the subnet and the reviewer returns only rows for the supplied principals. Partial sample availability does not change the filter. Caller-bound review tokens and credentials stay with the producer.
+Performance accepts `urn:ic-widgets:node-filter` v1, which carries an explicitly labeled scope, one exact ID array, the subnet, Registry pin and the evidence revision. The producer supplies the existing roster for a Subnet view and the before/proposed union for a Proposal view. The Proposal producer provides explicit alternatives scoped to its accepted comparison. The exact array is passed unchanged to the reviewer as a present Candid filter. A connected frame has no independent-mode or preset fallback. An empty, invalid, unavailable or superseded filter does not open an unfiltered request. The upstream management method observes counters for the subnet and the reviewer returns only rows for the supplied principals. Partial sample availability does not change the filter. Caller-bound review tokens and credentials stay with the producer.
 
 ## What the earlier Performance filters represented
 
@@ -24,7 +24,7 @@ The reported 40 and five were the complete **proposed memberships** at the selec
 | 144954, recorded Open | 40 | 40 | 2 · 1 added and 1 removed | 41 |
 | 144940, constructed Open replay of an indexed action | 5 | 5 | 4 · 2 added and 2 removed | 7 |
 
-The equal roster sizes conceal different identities. The 144954 request contains 39 retained members and the incoming node. The 144940 request contains three retained members and both incoming nodes. Departing nodes are present in both map scenes and excluded from these proposed-roster filters. The existing-subnet view sends the 40 recorded before-state principals only. The before/proposed union is the set of distinct identities in those two compared states. An all-steps scope in a multi-proposal sequence can also include transient identities and would require its own explicit filter.
+The equal roster sizes conceal different identities. The 144954 request contains 39 retained members and the incoming node. The 144940 request contains three retained members and both incoming nodes. Departing nodes are present in both map scenes and excluded from these proposed-roster filters. The existing-subnet view sends the 40 recorded before-state principals only. The before/proposed union is the set of distinct identities in those two compared states. The new default sends 41 principals for 144954 and seven for 144940. The earlier 40- and five-node filters remain available as Proposed members. An explicit all-steps filter can include transient identities in a multi-proposal comparison.
 
 ## Certified composition rehearsal
 
@@ -40,7 +40,7 @@ The command provisions an ephemeral loopback replica, builds dedicated certified
 
 The real gateway test validates the certificates for the host and the separate widget embed documents, scripts and styles against the disposable IC trust root. Its Chromium allowlist admits only those certified asset URLs, local IC status and protocol calls to the two fixture reviewers. Historical subnet principals can produce missing blockmaking metrics in PocketIC. The composition test verifies the exact finite request filters and method order. The separate production release evidence records the live Performance result.
 
-## Verified replay
+## Independent-map milestone verification
 
 Chromium completed the full historical review matrix, including both proposal orders, terminal outcomes, held and missing locations, returning to a calculated subnet and independent browser contexts. The recorded 144954 replacement kept its ten reviewer calls. The existing-subnet view used one additional replicated snapshot request when selected. Map use, node inspection, sorting and ZIP generation sent no additional requests. The tested widths were 1366, 768, 390 and 320 CSS pixels.
 

@@ -88,6 +88,11 @@ for case in replays["replays"]:
     assert clock == int(timestamp(case["replay_clock_utc"]).timestamp())
     assert len(case["proposal_ids"]) == len(case["function_ids"]) == len(case["action_evidence"])
     for identifier, function, evidence in zip(case["proposal_ids"], case["function_ids"], case["action_evidence"]):
+        if evidence["kind"] == "synthetic-governance-action":
+            assert case["lifecycle"] == "constructed-open"
+            assert identifier == evidence["proposal_id"]
+            assert any(row["id"] == identifier and row["function"] == function for row in case["activity"])
+            continue
         row, raw = proposals[decimal(identifier)]
         assert function == row["function_id"] and identifier == evidence["proposal_id"]
         if evidence["kind"] == "recorded-governance-reply":

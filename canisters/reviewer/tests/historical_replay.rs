@@ -8,8 +8,8 @@ use nexus_review_engine::{
     FindingCode, MembershipState, ProposalEvidence, Record, ReviewError, StepOutcome,
 };
 use nexus_reviewer::{
-    DetailKeys, DetailRecords, LiveError, LiveResponse, LiveReview, LiveSubnetSnapshot,
-    PolicySnapshot, Sources,
+    DetailKeys, DetailRecords, LiveError, LiveResponse, LiveReview, LiveSubnetActivity,
+    LiveSubnetSnapshot, PolicySnapshot, Sources,
 };
 use pocket_ic::{PocketIc, PocketIcBuilder, Time};
 use serde::de::DeserializeOwned;
@@ -164,7 +164,7 @@ fn committed_replays_resolve_exact_subnet_and_boundary_cases() {
             reviewer,
             controller,
             "begin_membership_review",
-            encode_one(ids).unwrap(),
+            encode_one(&ids).unwrap(),
         )
         .unwrap();
         println!(
@@ -218,6 +218,73 @@ fn committed_replays_resolve_exact_subnet_and_boundary_cases() {
                 (live.listed_subnets, live.total_listed_subnets),
                 (1, Some(96))
             );
+        }
+        if name.starts_with("review-checks-") {
+            let checks = live
+                .review_checks
+                .as_ref()
+                .expect("replicated integrity checks");
+            let discovery: LiveResponse<LiveSubnetActivity> = call::<Result<_, String>>(
+                &pic,
+                reviewer,
+                controller,
+                "subnet_activity",
+                encode_one(&ids).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(discovery.registry_version, None);
+            assert!(
+                discovery
+                    .receipts
+                    .iter()
+                    .all(|receipt| receipt.source == fixture
+                        && matches!(
+                            receipt.method.as_str(),
+                            "list_proposals" | "get_proposal_info"
+                        ))
+            );
+            let activity = discovery.outcome.unwrap();
+            match name {
+                "review-checks-three-replacements" => {
+                    assert_eq!(
+                        checks[0].transitions[0].margin.as_ref().unwrap().remaining,
+                        1
+                    );
+                    assert!(activity.complete);
+                    let matches: BTreeSet<_> =
+                        activity.matches.iter().map(|item| item.other).collect();
+                    assert_eq!(
+                        matches,
+                        [990002, 990003, 990005, 990006].into_iter().collect()
+                    );
+                    assert_eq!(activity.coverage.hydrated, 1);
+                    assert_eq!(activity.coverage.adopted_listed, 2);
+                }
+                "review-checks-four-replacements" => {
+                    assert_eq!(
+                        checks[0].transitions[0].margin.as_ref().unwrap().remaining,
+                        0
+                    );
+                    assert!(activity.coverage.pagination_complete);
+                    assert_eq!(activity.coverage.missing_payloads, 1);
+                    assert!(!activity.complete);
+                }
+                "review-checks-combined" => {
+                    assert!(checks.iter().any(|step| step.add_duplicates.len() == 1
+                        && step.remove_duplicates.len() == 1
+                        && step.overlap.len() == 1));
+                    assert!(
+                        checks
+                            .iter()
+                            .flat_map(|step| step.transitions.iter())
+                            .any(|item| item
+                                .margin
+                                .as_ref()
+                                .is_some_and(|margin| margin.remaining < 0))
+                    );
+                }
+                _ => unreachable!(),
+            }
         }
         let oracle = &expected["cases"][name];
         if !oracle.is_null() {

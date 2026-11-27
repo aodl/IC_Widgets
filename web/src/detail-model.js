@@ -300,7 +300,8 @@ export function reviewModel(live, context, evidence, section, replay) {
 const utc = value => value ? value.replace('T', ' ').replace(/Z$/, ' UTC') : undefined;
 
 export function replayLabel(replay) {
-  return [replay.bundled ? 'Bundled test case · Historical replay' : 'Historical replay', replay.lifecycleLabel, 'Registry ' + number(BigInt(replay.registryVersion))].filter(Boolean).join(' · ');
+  const label = replay.activity ? 'Synthetic scenario' : 'Historical replay';
+  return [replay.bundled ? 'Bundled test case · ' + label : label, replay.lifecycleLabel, 'Registry ' + number(BigInt(replay.registryVersion))].filter(Boolean).join(' · ');
 }
 
 export function replayRegistryText(replay) {
@@ -317,6 +318,7 @@ export function governanceText(proposal, replay, delivery = false) {
     : 'Original indexed observation';
   const label = replay.lifecycleLabel?.startsWith('Constructed') ? 'Constructed status: ' : 'Recorded status: ';
   return '#' + proposal.id + ' · ' + label + status + ' · '
-    + (when ? origin + ' ' + when : 'Original observation time unavailable')
+    + (capture?.kind === 'synthetic-governance-action' ? 'Synthetic Governance action'
+      : when ? origin + ' ' + when : 'Original observation time unavailable')
     + (delivery ? (replay.bundled ? ' · Fixture backend observed ' : ' · Local replay served ') + time(proposal.observed_at_nanos) : '');
 }

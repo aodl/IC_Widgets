@@ -1,4 +1,5 @@
 //! Bounded, request-local source reads. No archive or collector participates.
+mod activity;
 mod detail;
 mod policy;
 mod registry;
@@ -8,6 +9,7 @@ use std::{
     collections::BTreeSet,
 };
 
+pub use activity::LiveSubnetActivity;
 pub use detail::{
     DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison, LiveSubnetSnapshot,
 };
@@ -29,8 +31,8 @@ use nexus_ic_sources::{
     management::{NodeMetricsHistoryArgs, NodeMetricsHistoryResult, decode_metrics},
 };
 use nexus_review_engine::{
-    Capture, Proposal, ProposalEvidence, Review, ReviewError, ReviewInput, ScenarioId, ScopeState,
-    analyze, requested_nodes,
+    Capture, Proposal, ProposalEvidence, Review, ReviewCheck, ReviewError, ReviewInput, ScenarioId,
+    ScopeState, analyze, requested_nodes, review_checks,
 };
 use serde::Deserialize;
 
@@ -123,6 +125,7 @@ pub struct LiveReview {
     pub proposal_text: Option<Vec<ProposalText>>,
     pub subnet_rules: Option<Vec<SubnetRules>>,
     pub review_context: Option<Hash>,
+    pub review_checks: Option<Vec<ReviewCheck>>,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -271,13 +274,16 @@ async fn node_performance_on_demand(
     nodes: Option<Vec<Principal>>,
 ) -> Result<LiveResponse<LivePerformance>, String> {
     const MAX_LOOKBACK: u64 = 60 * 24 * 60 * 60 * SECOND;
+    const MAX_FILTER_NODES: usize = 256;
     let now = time();
     if subnet.as_slice().is_empty()
         || start_at_timestamp_nanos > now
         || now - start_at_timestamp_nanos > MAX_LOOKBACK
-        || nodes.as_ref().is_some_and(|nodes| nodes.len() > NODE_LIMIT)
+        || nodes
+            .as_ref()
+            .is_some_and(|nodes| nodes.len() > MAX_FILTER_NODES)
     {
-        return Err("select a subnet, up to 128 nodes and a start within the last 60 days".into());
+        return Err("select a subnet, up to 256 nodes and a start within the last 60 days".into());
     }
     let guard = RequestGuard::acquire()?;
     let mut request = Request::new(guard.0);
@@ -342,6 +348,15 @@ async fn review(
     )
     .map_err(LiveError::InvalidEvidence)?;
     let report = analyze(&input);
+    let unseen_assignments = assignments
+        .iter()
+        .filter_map(|(node, assignment)| {
+            (Some(listed_subnets) != total_listed_subnets
+                && *assignment == CandidateAssignment::UnknownOutsideListedSubnets)
+                .then_some(*node)
+        })
+        .collect();
+    let checks = review_checks(&report, &unseen_assignments);
     let mut scopes = vec![];
     for scenario in &report.scenarios {
         for &subnet in scenario.subnets.keys() {
@@ -363,6 +378,7 @@ async fn review(
         proposal_text: Some(proposal_text),
         subnet_rules: Some(subnet_rules),
         review_context: None,
+        review_checks: Some(checks),
     })
 }
 

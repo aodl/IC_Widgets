@@ -39,11 +39,17 @@ test('connected Performance gets only the exact finite producer filter, includin
     { id: nodes[1], role: 'Removed', label: 'two' },
     { id: nodes[2], role: 'Added', label: 'three', point: { lat: 10, lon: -15 } },
   ];
-  const { scene, filter } = composedOutputs(selection, { members, countries: { groups: [], shades: {}, note: '' } });
+  const map = { members, countries: { groups: [], shades: {}, note: '' } };
+  const { scene, filter } = composedOutputs(selection, map);
   assert.equal(scene.revision, filter.revision);
   assert.deepEqual(readMapScene(scene).members.map(member => member.id), nodes.slice(0, 3));
   assert.equal(Object.hasOwn(readMapScene(scene).members[0], 'point'), false);
-  assert.deepEqual(readNodeFilter(filter).nodeIds, selected);
+  assert.equal(readNodeFilter(filter).scope, 'membership-union');
+  assert.deepEqual(readNodeFilter(filter).nodeIds, nodes.slice(0, 3));
+  assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'proposed-membership').filter).nodeIds, selected);
+  assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'before-membership').filter).nodeIds, nodes.slice(0, 2));
+  assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'changed-membership').filter).nodeIds, nodes.slice(1, 3));
+  assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'affected-membership').filter).nodeIds, nodes.slice(1));
   assert.deepEqual(readNodeFilter({ ...filter, value: { ...filter.value, nodeIds: [] } }).nodeIds, []);
   assert.throws(() => readNodeFilter({ kind: 'waiting' }), /Invalid widget evidence/);
   assert.throws(() => readNodeFilter({ ...filter, value: { ...filter.value, nodeIds: [nodes[0], nodes[0]] } }), /Invalid finite/);

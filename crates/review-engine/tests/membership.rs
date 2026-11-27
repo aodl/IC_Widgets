@@ -341,6 +341,60 @@ fn membership_rules_preserve_order_and_reject_invalid_steps() {
 }
 
 #[test]
+fn replicated_checks_preserve_raw_duplicates_and_use_each_immediate_state() {
+    let report = run(baseline(), vec![change(&[3, 3, 1], &[1, 1]), remove(&[2])]);
+    let checks = review_checks(&report, &BTreeSet::new());
+    let mut steps = checks
+        .iter()
+        .filter(|row| row.scenario == ScenarioId::AThenB);
+    let first = steps.next().unwrap();
+    assert_eq!(first.add_duplicates, [id(3)]);
+    assert_eq!(first.remove_duplicates, [id(1)]);
+    assert_eq!(first.overlap, [id(1)]);
+    let first_margin = first.transitions[0].margin.as_ref().unwrap();
+    assert_eq!(
+        (
+            first_margin.before.modeled_unavailable,
+            first_margin.proposed.modeled_unavailable
+        ),
+        (1, 1)
+    );
+    let second = steps.next().unwrap().transitions[0]
+        .margin
+        .as_ref()
+        .unwrap();
+    assert_eq!((second.before.members, second.proposed.members), (2, 1));
+    assert_eq!(
+        (
+            second.before.modeled_unavailable,
+            second.proposed.modeled_unavailable
+        ),
+        (1, 0)
+    );
+
+    let incomplete = review_checks(&report, &BTreeSet::from([id(3)]));
+    let first = incomplete
+        .iter()
+        .find(|row| row.scenario == ScenarioId::AThenB)
+        .unwrap();
+    assert_eq!(
+        first.preconditions,
+        MembershipPreconditions::IncompleteAssignmentCoverage
+    );
+    assert!(first.transitions.iter().all(|row| row.margin.is_none()));
+
+    let rejected = run(baseline(), vec![add(&[3, 1, 3])]);
+    let rejected = review_checks(&rejected, &BTreeSet::new());
+    assert_eq!(rejected[0].preconditions, MembershipPreconditions::Rejected);
+    assert!(
+        rejected[0]
+            .transitions
+            .iter()
+            .all(|row| row.margin.is_none())
+    );
+}
+
+#[test]
 fn removal_spans_subnets_and_keeps_unknown_candidates_visible() {
     let report = run(baseline(), vec![remove(&[2, 4, 6, 7, 7])]);
     let a = scenario(&report, ScenarioId::A);

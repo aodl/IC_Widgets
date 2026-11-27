@@ -45,6 +45,7 @@ try {
   const results = [];
   for (const item of catalogue.cases) {
     const path = '/test-cases/' + item.id;
+    console.log('Checking ' + item.id);
     const before = testData.length;
     await page.goto(url(path));
     assert.match(await page.locator('.test-catalogue h1').textContent(), new RegExp(item.proposalIds[0]));
@@ -57,6 +58,7 @@ try {
       continue;
     }
     assert.equal(await page.locator('#search input[name=first]').inputValue(), item.proposalIds[0]);
+    assert.equal(await page.getByRole('button', { name: 'Subnet overview', exact: true }).isVisible(), false);
     await page.getByRole('button', { name: 'Review', exact: true }).click();
     if (item.fault === 'slow-locations') await page.locator('#report-status').getByText(/Loading data centers/).waitFor();
     const expected = / (Executed|Rejected|Failed) /.test(item.lifecycleLabel) ? 'Proposal outcome recorded' : 'Data loading complete';
@@ -80,15 +82,39 @@ try {
         assert.notEqual(await subnet.inputValue(), first);
         await status.getByText('Data loading complete', { exact: true }).waitFor();
       }
+      if (item.id === 'review-checks-combined') {
+        await page.getByLabel('Proposal order').selectOption('BThenA');
+        await status.getByText('Data loading complete', { exact: true }).waitFor();
+        await page.locator('.review-checks').getByText(/Add and Remove overlap/).first().waitFor();
+      }
       await generate.click();
-      const pending = page.waitForEvent('download');
-      await page.getByRole('button', { name: 'Download review', exact: true }).click();
-      const download = await pending;
+      const button = page.getByRole('button', { name: 'Download review', exact: true });
+      const [download] = await Promise.all([page.waitForEvent('download'), button.click()]).catch(async error => {
+        const status = await page.locator('.inspector p.status').allTextContents();
+        throw new Error(item.id + ' download · ' + [...status, ...errors].join(' · '), { cause: error });
+      });
       const zip = await download.path();
       const markdown = execFileSync('unzip', ['-p', zip, 'review.md'], { encoding: 'utf8' });
-      assert.match(markdown, /Bundled test case · Historical replay/);
+      assert.match(markdown, item.activity ? /Bundled test case · Synthetic scenario/ : /Bundled test case · Historical replay/);
       assert.match(markdown, /Fixture backend observed/);
       assert.match(markdown, /Fixture capture time/);
+      if (item.id === 'review-checks-three-replacements') {
+        assert.match(markdown, /1 additional fault tolerable · 2 would exceed/);
+        assert.match(markdown, /Governance check complete.*4 references found/);
+        assert.match(markdown, /Adopted · awaiting execution · Motion.*exact textual principal reference/);
+        for (const id of [990002, 990003, 990005, 990006]) assert.match(markdown, new RegExp('/proposal/' + id));
+        assert.doesNotMatch(markdown, /990004/);
+      }
+      if (item.id === 'review-checks-four-replacements') {
+        assert.match(markdown, /Warning · zero margin/);
+        assert.match(markdown, /Governance check incomplete/);
+        assert.match(markdown, /Missing payloads 1/);
+      }
+      if (item.id === 'review-checks-combined') {
+        assert.match(markdown, /Add duplicates 1 · Remove duplicates 1/);
+        assert.match(markdown, /removal wins under the upstream simulation/);
+        assert.match(markdown, /modeled fault budget exceeded/);
+      }
       if (item.id === 'separate-add-remove') assert.match(markdown, /Proposal #85622 then Proposal #85612.*Step 1 of 2/);
       if (item.id === 'nns-144954-recorded-open') {
         assert.match(markdown, /40 members · Add 1 · Remove 1 · Unchanged 39/);
@@ -96,6 +122,10 @@ try {
         assert.match(markdown, /Synthetic NNS-role supplement/);
         await download.saveAs(resolve(output, '144954-review.zip'));
         await page.screenshot({ path: resolve(output, '144954-test-case.png'), fullPage: true });
+      }
+      if (item.activity) {
+        await download.saveAs(resolve(output, item.id + '.zip'));
+        await page.screenshot({ path: resolve(output, item.id + '.png'), fullPage: true });
       }
       report = true;
     }
@@ -125,13 +155,26 @@ try {
   await page.locator('#search input[name=first]').fill('144954');
   await page.getByRole('button', { name: 'Review', exact: true }).click();
   await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await page.locator('.review-checks').getByText(/Governance check incomplete/).waitFor();
+  execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
+    'load_review_case', '("review-checks-three-replacements")'], {
+    cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' },
+  });
+  await page.getByRole('button', { name: 'Subnet Activity', exact: true }).click();
+  const activity = page.locator('section.card').filter({ has: page.getByRole('heading', { name: 'Subnet Activity' }) });
+  await activity.getByText(/Governance check complete.*references found/).waitFor();
+  await activity.getByText('Known interactions', { exact: true }).click();
+  await activity.getByText(/exact textual principal reference/).waitFor();
+  await page.screenshot({ path: resolve(output, 'subnet-activity.png'), fullPage: true });
+  await activity.getByRole('button', { name: 'Review #990001', exact: true }).click();
+  await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
   assert.equal(testData.length, capturesBeforeLive);
   assert.ok(reviewerRequests.some(path => path.endsWith('/call')));
   assert.deepEqual(rejected, []);
   assert.deepEqual(errors, []);
   const summary = { origin: gateway.origin, certified: gateway.observed, rawRefusals: gateway.rawRefusals,
     results, bundledEvidenceRequests: testData.length, liveReviewerCalls: reviewerRequests.filter(path => path.endsWith('/call')).length,
-    testReviewerCalls: 0, outsideRequests: rejected.length };
+    activityOverviewVerified: true, testReviewerCalls: 0, outsideRequests: rejected.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log('Verified ' + summary.certified.length + ' gateway responses and ' + results.length + ' test cases.');
 } finally {

@@ -6,10 +6,11 @@ import { mountPerformance } from './performance.js';
 import { nodeMap } from './map-interaction.js';
 import { mountSubnetOverview } from './subnet-overview.js';
 import { proposalInput, proposalInputProfile, subnetInputProfile } from './view-inputs.js';
-import { composedOutputs, hasProfile, readNodeFilter } from './composed-scope.js';
+import { comparisonFilterLabels, composedOutputs, hasProfile, readNodeFilter } from './composed-scope.js';
 import { acceptNexusHost } from './widget-frame.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
 import { showTestCatalogue } from './case-catalogue.js';
+import { reviewCheckSummary, reviewChecksView, subnetActivityView } from './review-checks.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
 import { el, option, sourceReceipts, styled } from './view.js';
 
@@ -75,14 +76,28 @@ const performance = mountPerformance(async (active, run) => {
 }, { connected: widget?.view === 'performance' });
 performance.visible(true);
 let publishScope;
-function publishEvidence(selection, scene, issue) {
+function publishEvidence(selection, scene, issue, filterScope) {
   const state = issue ? { kind: 'unavailable', retryable: true, reason: issue.slice(0, 240) }
     : { kind: 'waiting', message: 'Waiting for accepted membership evidence' };
-  publishScope?.(selection ? composedOutputs(selection, scene) : { filter: state, scene: { ...state } });
+  publishScope?.(selection ? composedOutputs(selection, scene, filterScope) : { filter: state, scene: { ...state } });
 }
 const overview = mountSubnetOverview({ call: remote, performance, replay: activeReplay,
   publish: widget?.view === 'subnet' ? publishEvidence : undefined });
-const membershipPerformance = widget?.view === 'proposal' ? { ...performance, scope: publishEvidence } : performance;
+const connectedFilter = el('select', Object.entries(comparisonFilterLabels).map(([value, label]) =>
+  Object.assign(el('option', label), { value })));
+const connectedFilterControl = el('label', 'Connected Performance scope', connectedFilter);
+connectedFilterControl.hidden = true;
+let connectedEvidence;
+connectedFilter.addEventListener('change', () => {
+  if (connectedEvidence) publishEvidence(...connectedEvidence, undefined, connectedFilter.value);
+});
+const membershipPerformance = widget?.view === 'proposal' ? { ...performance, filterControl: connectedFilterControl,
+  scope(selection, scene) {
+    connectedEvidence = selection ? [selection, scene] : undefined;
+    connectedFilterControl.hidden = !selection;
+    publishEvidence(selection, scene, undefined, connectedFilter.value);
+  },
+} : performance;
 
 const phases = {
   Preview: 'Proposal and membership · Reading pinned evidence',
@@ -198,6 +213,23 @@ function startReview(ids) {
             option(titles.find(row => row.id === proposal.id)?.title ?? []),
             (FIXTURE_REPLAY || bundledCase) && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, activeReplay)),
           sourceReceipts(live, { replay: !!activeReplay })));
+        if (!activeReplay || activeReplay.activity) {
+          const checks = el('div');
+          reportContainer.append(checks);
+          replaceTerminalChecks();
+          async function replaceTerminalChecks() {
+            let observation;
+            try {
+              const reply = await remote(active, client => client.subnet_activity(proposals.map(row => row.id)));
+              if (!reply || !active()) return;
+              const response = result(reply);
+              observation = 'Err' in response.outcome ? { response, error: liveError(response.outcome.Err) } : { response };
+            } catch (error) {
+              observation = { error: error.message };
+            }
+            if (active()) checks.replaceChildren(reviewChecksView(reviewCheckSummary([], undefined, observation)));
+          }
+        }
         status({ work: 'settled', stage: 'Observed' });
         unavailable('This proposal has a terminal outcome.');
         return;
@@ -211,6 +243,7 @@ function startReview(ids) {
         }, performance: membershipPerformance, replay: activeReplay });
       reportContainer.replaceChildren(current.section);
       current.start();
+      void current.loadActivity();
     } catch (error) {
       if (!active() || thisRequest.stopped) return;
       map?.update(undefined, 'The map needs supported membership evidence for this review.');
@@ -348,4 +381,35 @@ if (testCases.length) {
     if (bundledCase.proposalIds[1]) document.querySelector('#review-options').open = true;
     performance.visible(false);
   }
+}
+
+if (!widget && !bundledCase && !FIXTURE_REPLAY && !location.pathname.startsWith('/test-cases')) {
+  const button = el('button', 'Subnet Activity');
+  button.type = 'button';
+  const panel = el('div');
+  const searchShell = document.querySelector('#proposal-search');
+  searchShell.before(panel);
+  const openProposal = id => {
+    changeView('proposal');
+    search.elements.first.value = String(id);
+    search.elements.second.value = '';
+    panel.replaceChildren();
+    startReview([id]);
+  };
+  document.querySelector('.masthead-row').append(button);
+  button.addEventListener('click', async () => {
+    const active = () => panel.isConnected;
+    button.disabled = true;
+    panel.replaceChildren(el('p', 'Observing public Governance proposals…'));
+    try {
+      const reply = await remote(active, client => client.subnet_activity([]));
+      if (!active() || !reply) return;
+      const response = result(reply);
+      panel.replaceChildren(subnetActivityView('Err' in response.outcome ? { response, error: liveError(response.outcome.Err) } : { response }, openProposal));
+    } catch (error) {
+      if (active()) panel.replaceChildren(subnetActivityView({ error: error.message }));
+    } finally {
+      button.disabled = false;
+    }
+  });
 }

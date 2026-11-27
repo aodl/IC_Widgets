@@ -1911,6 +1911,502 @@
       "menu": false,
       "limits": "Synthetic construction. No reconstruction of historical Registry state or governance policy applicability.",
       "replay_clock_unix_seconds": "1795696512"
+    },
+    {
+      "id": "review-checks-three-replacements",
+      "name": "Three replacements and cross-proposal references",
+      "proposal_ids": [
+        "990001"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "review-checks"
+      ],
+      "support": "local-resolver",
+      "purpose": "A 13-node subnet replaces three members, leaving one further fault tolerable. Compare executable and exact textual references and adopted versus executed proposals.",
+      "action_evidence": [
+        {
+          "proposal_id": "990001",
+          "kind": "synthetic-governance-action"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "5ag63-q3yke-ba"
+        ],
+        "subnets": {
+          "5ag63-q3yke-ba": [
+            "kk3lb-f3yae-ba",
+            "pgn6g-vdyai-ba",
+            "mcane-flyam-ba",
+            "f7auj-utyaq-ba",
+            "g3nhl-e3yau-ba",
+            "dx3sm-udyay-ba",
+            "atwbo-elya4-ba",
+            "qn2ax-xtyba-ba",
+            "tjxtv-h3ybe-ba",
+            "wfbgs-xdybi-ba",
+            "vbmvq-hlybm-ba",
+            "44mm5-wtybq-ba",
+            "7yb77-g3ybu-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_2uxky-wdyby-ba",
+            "node_record_44mm5-wtybq-ba",
+            "node_record_7yb77-g3ybu-ba",
+            "node_record_afxzh-b3yca-ba",
+            "node_record_atwbo-elya4-ba",
+            "node_record_dx3sm-udyay-ba",
+            "node_record_f7auj-utyaq-ba",
+            "node_record_g3nhl-e3yau-ba",
+            "node_record_kk3lb-f3yae-ba",
+            "node_record_mcane-flyam-ba",
+            "node_record_pgn6g-vdyai-ba",
+            "node_record_qn2ax-xtyba-ba",
+            "node_record_tjxtv-h3ybe-ba",
+            "node_record_vbmvq-hlybm-ba",
+            "node_record_wfbgs-xdybi-ba",
+            "node_record_zq2z2-glyb4-ba",
+            "subnet_list",
+            "subnet_record_5ag63-q3yke-ba"
+          ],
+          "absent": [
+            "api_boundary_node_2uxky-wdyby-ba",
+            "api_boundary_node_44mm5-wtybq-ba",
+            "api_boundary_node_7yb77-g3ybu-ba",
+            "api_boundary_node_afxzh-b3yca-ba",
+            "api_boundary_node_atwbo-elya4-ba",
+            "api_boundary_node_dx3sm-udyay-ba",
+            "api_boundary_node_f7auj-utyaq-ba",
+            "api_boundary_node_g3nhl-e3yau-ba",
+            "api_boundary_node_kk3lb-f3yae-ba",
+            "api_boundary_node_mcane-flyam-ba",
+            "api_boundary_node_pgn6g-vdyai-ba",
+            "api_boundary_node_qn2ax-xtyba-ba",
+            "api_boundary_node_tjxtv-h3ybe-ba",
+            "api_boundary_node_vbmvq-hlybm-ba",
+            "api_boundary_node_wfbgs-xdybi-ba",
+            "api_boundary_node_zq2z2-glyb4-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Governance actions, discovery and Registry. No historical network claim.",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic fixture evidence. Proposal numbers and node identities are test identifiers.",
+      "replay_clock_unix_seconds": "1795696512",
+      "activity": [
+        {
+          "id": "990001",
+          "status": 1,
+          "topic": 7,
+          "function": 31,
+          "title": "Synthetic subnet membership change",
+          "payload": {
+            "subnet_id": "5ag63-q3yke-ba",
+            "node_ids_add": [
+              "2uxky-wdyby-ba",
+              "zq2z2-glyb4-ba",
+              "afxzh-b3yca-ba"
+            ],
+            "node_ids_remove": [
+              "kk3lb-f3yae-ba",
+              "pgn6g-vdyai-ba",
+              "mcane-flyam-ba"
+            ]
+          }
+        },
+        {
+          "id": "990002",
+          "status": 1,
+          "topic": 3,
+          "function": 18,
+          "title": "Open Registry removal",
+          "payload": {
+            "node_ids": [
+              "2uxky-wdyby-ba"
+            ]
+          },
+          "omit_list_payload": true
+        },
+        {
+          "id": "990003",
+          "status": 3,
+          "topic": 4,
+          "function": null,
+          "title": "Adopted motion",
+          "payload": null,
+          "motion": "Investigate (kk3lb-f3yae-ba) and ignore pgn6g-vdyai-ba-suffix."
+        },
+        {
+          "id": "990004",
+          "status": 4,
+          "topic": 3,
+          "function": 18,
+          "title": "Executed Registry removal",
+          "payload": {
+            "node_ids": [
+              "zq2z2-glyb4-ba"
+            ]
+          }
+        },
+        {
+          "id": "990005",
+          "status": 1,
+          "topic": 7,
+          "function": 31,
+          "title": "Other Open membership change",
+          "payload": {
+            "subnet_id": "5ag63-q3yke-ba",
+            "node_ids_add": [],
+            "node_ids_remove": [
+              "pgn6g-vdyai-ba"
+            ]
+          }
+        },
+        {
+          "id": "990006",
+          "status": 3,
+          "topic": 3,
+          "function": 18,
+          "title": "Adopted Registry removal",
+          "payload": {
+            "node_ids": [
+              "mcane-flyam-ba"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-checks-four-replacements",
+      "name": "Four replacements and incomplete discovery",
+      "proposal_ids": [
+        "990011"
+      ],
+      "function_ids": [
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "review-checks"
+      ],
+      "support": "local-resolver",
+      "purpose": "A 13-node subnet replaces four members, leaving zero further faults tolerable. One listed proposal payload remains unavailable after hydration.",
+      "action_evidence": [
+        {
+          "proposal_id": "990011",
+          "kind": "synthetic-governance-action"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "5ag63-q3yke-ba"
+        ],
+        "subnets": {
+          "5ag63-q3yke-ba": [
+            "kk3lb-f3yae-ba",
+            "pgn6g-vdyai-ba",
+            "mcane-flyam-ba",
+            "f7auj-utyaq-ba",
+            "g3nhl-e3yau-ba",
+            "dx3sm-udyay-ba",
+            "atwbo-elya4-ba",
+            "qn2ax-xtyba-ba",
+            "tjxtv-h3ybe-ba",
+            "wfbgs-xdybi-ba",
+            "vbmvq-hlybm-ba",
+            "44mm5-wtybq-ba",
+            "7yb77-g3ybu-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_2uxky-wdyby-ba",
+            "node_record_44mm5-wtybq-ba",
+            "node_record_7yb77-g3ybu-ba",
+            "node_record_afxzh-b3yca-ba",
+            "node_record_atwbo-elya4-ba",
+            "node_record_db2kf-rtyce-ba",
+            "node_record_dx3sm-udyay-ba",
+            "node_record_f7auj-utyaq-ba",
+            "node_record_g3nhl-e3yau-ba",
+            "node_record_kk3lb-f3yae-ba",
+            "node_record_mcane-flyam-ba",
+            "node_record_pgn6g-vdyai-ba",
+            "node_record_qn2ax-xtyba-ba",
+            "node_record_tjxtv-h3ybe-ba",
+            "node_record_vbmvq-hlybm-ba",
+            "node_record_wfbgs-xdybi-ba",
+            "node_record_zq2z2-glyb4-ba",
+            "subnet_list",
+            "subnet_record_5ag63-q3yke-ba"
+          ],
+          "absent": [
+            "api_boundary_node_2uxky-wdyby-ba",
+            "api_boundary_node_44mm5-wtybq-ba",
+            "api_boundary_node_7yb77-g3ybu-ba",
+            "api_boundary_node_afxzh-b3yca-ba",
+            "api_boundary_node_atwbo-elya4-ba",
+            "api_boundary_node_db2kf-rtyce-ba",
+            "api_boundary_node_dx3sm-udyay-ba",
+            "api_boundary_node_f7auj-utyaq-ba",
+            "api_boundary_node_g3nhl-e3yau-ba",
+            "api_boundary_node_kk3lb-f3yae-ba",
+            "api_boundary_node_mcane-flyam-ba",
+            "api_boundary_node_pgn6g-vdyai-ba",
+            "api_boundary_node_qn2ax-xtyba-ba",
+            "api_boundary_node_tjxtv-h3ybe-ba",
+            "api_boundary_node_vbmvq-hlybm-ba",
+            "api_boundary_node_wfbgs-xdybi-ba",
+            "api_boundary_node_zq2z2-glyb4-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Governance actions, discovery and Registry. No historical network claim.",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic fixture evidence. Proposal numbers and node identities are test identifiers.",
+      "replay_clock_unix_seconds": "1795696512",
+      "activity": [
+        {
+          "id": "990011",
+          "status": 1,
+          "topic": 7,
+          "function": 31,
+          "title": "Synthetic subnet membership change",
+          "payload": {
+            "subnet_id": "5ag63-q3yke-ba",
+            "node_ids_add": [
+              "2uxky-wdyby-ba",
+              "zq2z2-glyb4-ba",
+              "afxzh-b3yca-ba",
+              "db2kf-rtyce-ba"
+            ],
+            "node_ids_remove": [
+              "kk3lb-f3yae-ba",
+              "pgn6g-vdyai-ba",
+              "mcane-flyam-ba",
+              "f7auj-utyaq-ba"
+            ]
+          }
+        },
+        {
+          "id": "990012",
+          "status": 1,
+          "topic": 3,
+          "function": 18,
+          "title": "Missing Registry removal payload",
+          "payload": null,
+          "omit_list_payload": true
+        }
+      ]
+    },
+    {
+      "id": "review-checks-combined",
+      "name": "Combined steps and instruction integrity",
+      "proposal_ids": [
+        "990021",
+        "990022"
+      ],
+      "function_ids": [
+        31,
+        31
+      ],
+      "tags": [
+        "subnet",
+        "synthetic",
+        "review-checks"
+      ],
+      "support": "local-resolver",
+      "purpose": "A six-node subnet grows, then shrinks. Inspect duplicate raw instructions, the shared Add and Remove principal, and each order\u2019s intermediate margin.",
+      "action_evidence": [
+        {
+          "proposal_id": "990021",
+          "kind": "synthetic-governance-action"
+        },
+        {
+          "proposal_id": "990022",
+          "kind": "synthetic-governance-action"
+        }
+      ],
+      "registry": {
+        "kind": "synthetic",
+        "version": "100",
+        "mutation_version": "99",
+        "roster": [
+          "5ag63-q3yke-ba"
+        ],
+        "subnets": {
+          "5ag63-q3yke-ba": [
+            "kk3lb-f3yae-ba",
+            "pgn6g-vdyai-ba",
+            "mcane-flyam-ba",
+            "f7auj-utyaq-ba",
+            "g3nhl-e3yau-ba",
+            "dx3sm-udyay-ba"
+          ]
+        },
+        "metadata": "Node and operator registrations for the union of requested nodes and fixture members. Two synthetic registered locations. Explicit API boundary absence for every node in this fixture.",
+        "role_binding": "explicitly absent",
+        "chunks": [],
+        "coverage": "1 synthetic listed subnet records supplied out of 1",
+        "keys": {
+          "present": [
+            "data_center_record_fixture-0",
+            "data_center_record_fixture-1",
+            "node_operator_record_d3g3k-r23fi-ba",
+            "node_operator_record_d4h56-4c2fi-ba",
+            "node_record_atwbo-elya4-ba",
+            "node_record_dx3sm-udyay-ba",
+            "node_record_f7auj-utyaq-ba",
+            "node_record_g3nhl-e3yau-ba",
+            "node_record_kk3lb-f3yae-ba",
+            "node_record_mcane-flyam-ba",
+            "node_record_pgn6g-vdyai-ba",
+            "node_record_qn2ax-xtyba-ba",
+            "node_record_tjxtv-h3ybe-ba",
+            "node_record_wfbgs-xdybi-ba",
+            "subnet_list",
+            "subnet_record_5ag63-q3yke-ba"
+          ],
+          "absent": [
+            "api_boundary_node_atwbo-elya4-ba",
+            "api_boundary_node_dx3sm-udyay-ba",
+            "api_boundary_node_f7auj-utyaq-ba",
+            "api_boundary_node_g3nhl-e3yau-ba",
+            "api_boundary_node_kk3lb-f3yae-ba",
+            "api_boundary_node_mcane-flyam-ba",
+            "api_boundary_node_pgn6g-vdyai-ba",
+            "api_boundary_node_qn2ax-xtyba-ba",
+            "api_boundary_node_tjxtv-h3ybe-ba",
+            "api_boundary_node_wfbgs-xdybi-ba",
+            "nns_subnet_id"
+          ],
+          "uncaptured": []
+        }
+      },
+      "lifecycle": "constructed-open",
+      "replay_clock_utc": "2026-11-26T12:35:12.361552+00:00",
+      "policy": {
+        "kind": "recorded-governance-reply",
+        "proposal_id": "143190",
+        "observation_utc": "2026-11-26T07:24:41.619Z",
+        "reference": {
+          "file": "143190/governance.didbin",
+          "sha256": "9f2e78492a227992e5b413eca5f38e6a7eaa31f109ab164d400ea3f954d28053"
+        },
+        "source": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "method": "get_proposal_info",
+        "applicability": "Selected comparison reference; original applicability and later amendments unverified"
+      },
+      "provenance": "Synthetic Governance actions, discovery and Registry. No historical network claim.",
+      "fault": null,
+      "menu": true,
+      "limits": "Synthetic fixture evidence. Proposal numbers and node identities are test identifiers.",
+      "replay_clock_unix_seconds": "1795696512",
+      "activity": [
+        {
+          "id": "990021",
+          "status": 1,
+          "topic": 7,
+          "function": 31,
+          "title": "Synthetic subnet membership change",
+          "payload": {
+            "subnet_id": "5ag63-q3yke-ba",
+            "node_ids_add": [
+              "atwbo-elya4-ba",
+              "wfbgs-xdybi-ba",
+              "kk3lb-f3yae-ba",
+              "kk3lb-f3yae-ba"
+            ],
+            "node_ids_remove": [
+              "kk3lb-f3yae-ba",
+              "kk3lb-f3yae-ba"
+            ]
+          }
+        },
+        {
+          "id": "990022",
+          "status": 1,
+          "topic": 7,
+          "function": 31,
+          "title": "Synthetic subnet membership change",
+          "payload": {
+            "subnet_id": "5ag63-q3yke-ba",
+            "node_ids_add": [
+              "qn2ax-xtyba-ba",
+              "tjxtv-h3ybe-ba"
+            ],
+            "node_ids_remove": [
+              "pgn6g-vdyai-ba",
+              "mcane-flyam-ba",
+              "f7auj-utyaq-ba"
+            ]
+          }
+        }
+      ]
     }
   ]
 }

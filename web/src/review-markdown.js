@@ -5,7 +5,7 @@ import { calculationNote, comparisonCaption, criteriaNote, distanceHelp, distanc
 import { mapCoverage, mapLocations, siteLabel } from './review-map.js';
 import { hex, number, option, principal, time } from './view.js';
 
-export function reportSnapshot(model, receipts) {
+export function reportSnapshot(model, receipts, reviewChecks) {
   const { ids, order, step, scenario, stateLabel, subnet, version, members, dimensions, countries, distances, membership,
     summary, notes, governance, replay, previewRevision, evidenceNotes } = model;
   const { inputHash, analysis_version: analysisVersion } = model.calculation;
@@ -15,7 +15,7 @@ export function reportSnapshot(model, receipts) {
     option(row.reply_hash) ? hex(option(row.reply_hash)) : option(row.reject) ?? 'Unavailable',
   ]));
   const snapshot = structuredClone({ scope, scenario, stateLabel, version, members, dimensions, countries, distances, membership,
-    summary, notes, evidenceNotes, governance: governance.map(({ id, lifecycle_status, observed_at_nanos, payload_hash }) => ({
+    summary, notes, evidenceNotes, reviewChecks, governance: governance.map(({ id, lifecycle_status, observed_at_nanos, payload_hash }) => ({
       id, lifecycle_status, observed_at_nanos, payload_hash: Array.from(payload_hash),
     })), replay, previewRevision, analysisVersion, sources });
   snapshot.geography = mapLocations(snapshot.members, snapshot.countries);
@@ -78,6 +78,17 @@ export function reviewMarkdown(model, { vote = '', summary = '', attribution = '
     list(model.governance.map(proposal => governanceText(proposal, model.replay, true))),
     list(model.notes.slice(1)), model.replay && escape(replayRegistryText(model.replay)),
     model.replay?.roleSupplement && 'Synthetic NNS-role supplement · ' + escape(model.replay.roleSupplement),
+    model.reviewChecks && [
+      '## Review checks',
+      model.reviewChecks.assumption,
+      ...model.reviewChecks.instructions.flatMap(row => [
+        '### ' + escape(row.title), escape(row.overview), ...row.margins.map(escape), ...row.details.map(item => '- ' + escape(item.text)),
+      ]),
+      escape(model.reviewChecks.interactions.overview),
+      ...model.reviewChecks.interactions.observations.map(text => '- ' + escape(text)),
+      ...model.reviewChecks.interactions.findings.map(item => '- ' + escape(item.text)
+        + (item.url ? ' [' + item.label + '](' + item.url + ')' : '')),
+    ].join('\n\n'),
     '## Map', '![Map of registered node locations for the selected comparison](map.png)',
     'Add (green) · Remove (red) · Unchanged (blue). ' + mapCoverage(geography) + '. ' + geographyNote,
     boundaryNote,
