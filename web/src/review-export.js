@@ -1,5 +1,7 @@
-import { countryLabel, countryStyles } from './country-presentation.js';
-import { comparisonCaption, distanceTitle, distributionTables, governanceText, nodeFields, nodeHeaders, replayLabel, roles } from './detail-model.js';
+import { boundaryNote, countryLabel } from './country-presentation.js';
+import { dashboardLink, proposalHeading } from './dashboard.js';
+import { comparisonCaption, distanceTitle, distributionTables, governanceText, replayLabel, roles } from './detail-model.js';
+import { nodeTables } from './node-table.js';
 import { drawMap, fitLocations, mapCoverage, mapProjection, mapScene, siteLabel } from './review-map.js';
 import { reportScope, reviewMarkdown } from './review-markdown.js';
 import { action, deltaNode, el, number, saveFile, styled, table } from './view.js';
@@ -17,8 +19,8 @@ function reportMap(snapshot) {
     'Calculation input SHA-256 ' + snapshot.scope.inputHash,
     snapshot.countries?.note,
   ].filter(Boolean);
-  const header = 24 * lines.length + 76;
-  const image = el('canvas');
+  const header = 24 * lines.length + 52;
+  const image = styled('canvas', 'report-map');
   image.width = view.width;
   image.height = header + view.height + (scene.overflow.length ? (Math.ceil(scene.overflow.length / 4) + 1) * 25 + 12 : 0);
   image.setAttribute('role', 'img');
@@ -34,24 +36,13 @@ function reportMap(snapshot) {
   Object.values(roles).forEach(({ label, color }, index) => {
     const x = 24 + index * 118;
     ctx.beginPath();
-    ctx.arc(x, header - 44, 6, 0, Math.PI * 2);
+    ctx.arc(x, header - 20, 6, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
     ctx.fillStyle = '#132637';
-    ctx.fillText(label, x + 12, header - 39);
+    ctx.fillText(label, x + 12, header - 15);
   });
-  ctx.fillText('Dotted halo: co-located nodes · Cartographic boundaries · Natural Earth', 392, header - 39);
-  Object.values(countryStyles).forEach(({ label, color, border }, index) => {
-    const x = 18 + index * 320;
-    ctx.fillStyle = color;
-    ctx.fillRect(x, header - 26, 14, 12);
-    ctx.strokeStyle = border ?? '#84958b';
-    if (border) ctx.setLineDash([2, 1.3]);
-    ctx.strokeRect(x, header - 26, 14, 12);
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#132637';
-    ctx.fillText(label, x + 20, header - 15);
-  });
+  ctx.fillText('Dotted halo: co-located nodes · Cartographic boundaries · Natural Earth', 392, header - 15);
   ctx.save();
   ctx.translate(0, header);
   ctx.beginPath();
@@ -128,18 +119,14 @@ export function markdownEditor(snapshot, draft, isCurrent) {
   }
   for (const input of [vote, summary, attribution]) input.addEventListener('input', update);
   update();
-  const nodeRow = node => nodeFields(node).map(field => field.country ? countryLabel(field.value, field.text) : field.text);
-  const changed = snapshot.members.filter(node => node.role !== 'Retained');
-  const unchanged = snapshot.members.filter(node => node.role === 'Retained');
   const preview = styled('article', 'markdown-preview',
-    el('h4', 'Proposal review · ' + snapshot.scope.ids.map(id => '#' + id).join(' + ')),
+    el('h4', 'Review · ', proposalHeading(snapshot.scope.ids)),
     el('p', reportScope(snapshot)), reviewer, el('h4', 'Summary'), el('p', snapshot.summary), el('p', snapshot.membership),
-    el('h4', 'Evidence scope'), el('p', 'Pinned Registry ' + number(snapshot.version) + ' · Subnet ' + snapshot.scope.subnet),
+    el('h4', 'Evidence scope'), el('p', 'Pinned Registry ' + number(snapshot.version) + ' · Subnet ',
+      dashboardLink('subnet', snapshot.scope.subnet)),
     snapshot.governance.map(item => el('p', governanceText(item, snapshot.replay, true))),
     snapshot.notes.map(note => el('p', note)),
-    el('h4', 'Map'), image, el('h4', 'Node changes'),
-    changed.length ? table(nodeHeaders, changed.map(node => [roles[node.role].label, ...nodeRow(node)]), changed.map(node => 'node-row-' + node.role.toLowerCase()))
-      : el('p', 'No membership changes in the selected comparison.'),
+    el('h4', 'Map'), image, nodeTables(snapshot.members, { heading: 'h4' }),
     el('h4', 'Decentralisation'), el('p', comparisonCaption),
     distributionTables.flatMap(({ key, title }) => [
       el('h5', title), table(['Dimension', 'Members'], snapshot.dimensions.map(item => [item.label, item[key]?.text ?? 'Unavailable'])),
@@ -150,8 +137,8 @@ export function markdownEditor(snapshot, draft, isCurrent) {
       table(['Country (recorded token)', 'Subnet members'], snapshot.countries.groups.map(group => [
         countryLabel(group.token, undefined, true), deltaNode(group.delta),
       ]))) : null,
-    el('details', el('summary', 'Unchanged nodes (' + unchanged.length + ')'), table(nodeHeaders.slice(1), unchanged.map(nodeRow))),
     el('details', el('summary', 'Sources and calculation'), el('p', 'Calculation input SHA-256 ', el('code', snapshot.scope.inputHash)),
+      el('p', boundaryNote),
       table(['Method', 'Item', 'Canister', snapshot.replay ? 'Replay delivery time' : 'Observed at', 'Reply SHA-256 or issue'], snapshot.sources)));
   return styled('section', 'detail-section',
     styled('div', 'actions',

@@ -3,8 +3,10 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Cbor, requestIdOf } from '@icp-sdk/core/agent';
 import { IDL } from '@icp-sdk/core/candid';
+import { build } from 'esbuild';
 import { idlFactory } from './src/reviewer.did.js';
 
 const [project, output] = process.argv.slice(2);
@@ -72,14 +74,26 @@ const point = async target => {
 };
 const gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const closePopup = () => popup.getByRole('button', { name: 'Close map details' }).click();
-const openHelp = async () => {
-  if (!await page.locator('.map-help').evaluate(node => node.open)) await page.getByText('Map help', { exact: true }).click();
-};
-const fit = async () => {
-  await openHelp();
-  await page.getByRole('button', { name: 'Fit all locations' }).click();
-  await page.getByText('Map help', { exact: true }).click();
-  await frame.scrollIntoViewIfNeeded();
+const nodeTableLayout = async (container, width) => {
+  const changed = container.locator('.node-changes tbody tr');
+  const other = container.locator('.other-nodes');
+  assert.equal(await other.evaluate(details => details.open), false);
+  assert.equal(await changed.count(), 2);
+  await other.locator('summary').first().click();
+  const rows = other.locator('tbody tr');
+  assert.equal(await rows.count(), 39);
+  assert.ok(await rows.evaluateAll(items => items.every(row => row.cells[0].lastElementChild.textContent === ''
+    && Array.from(row.cells).every(cell => getComputedStyle(cell).backgroundColor === 'rgba(0, 0, 0, 0)'))));
+  const geometry = locator => locator.first().evaluate(row => Array.from(row.cells).map(cell =>
+    [cell.getBoundingClientRect().x, cell.getBoundingClientRect().width]));
+  assert.deepEqual(await geometry(changed), await geometry(rows), 'Node tables should align at ' + width + ' px');
+  assert.equal(await rows.first().getByRole('link').count(), 3);
+  if (width === 1366) {
+    await other.locator('summary').first().evaluate(summary => window.scrollTo(0,
+      window.scrollY + summary.getBoundingClientRect().top - 175));
+    await page.screenshot({ path: resolve(output, 'recorded-other-nodes.png') });
+  }
+  await other.locator('summary').first().click();
 };
 const download = async (button, filename) => {
   const pending = page.waitForEvent('download');
@@ -88,6 +102,47 @@ const download = async (button, filename) => {
   await (await pending).saveAs(target);
   return readFile(target);
 };
+
+async function verifyMixedLocation() {
+  const example = await browser.newPage({ viewport: { width: 390, height: 744 } });
+  const assets = fileURLToPath(new URL('.', import.meta.url));
+  const { outputFiles } = await build({
+    bundle: true, write: false, target: 'es2022',
+    stdin: { resolveDir: assets, contents: "import { reviewMap } from './src/map-interaction.js'; window.reviewMap = reviewMap;" },
+  });
+  try {
+    await example.route('**/*', route => { external.push(route.request().url()); return route.abort(); });
+    await example.setContent('<main aria-label="Synthetic mixed-provider location"></main>');
+    await example.addStyleTag({ path: resolve(assets, 'styles.css') });
+    await example.addScriptTag({ content: outputFiles[0].text });
+    await example.evaluate(() => {
+      const map = window.reviewMap();
+      document.querySelector('main').append(map.section);
+      const point = { lat: 59.3, lon: 18.1 };
+      const region = 'Europe,SE,Stockholm';
+      map.update({ order: 'A', ids: [1], subnet: 'synthetic', step: 1, version: 1, members: [
+        { id: 'sample-node-1', label: 'Node 1', role: 'Added', dc: 'one', owner: 'Owner A', provider: 'sample-first-provider', point, region },
+        { id: 'sample-node-2', label: 'Node 2', role: 'Retained', dc: 'one', owner: 'Owner A', provider: 'sample-other-provider', point, region },
+        { id: 'sample-node-3', label: 'Node 3', role: 'Removed', dc: 'two', centerIssue: 'Could not load owner', point, region },
+      ] });
+    });
+    const pin = example.locator('.map-pin');
+    assert.equal(await pin.count(), 1);
+    await pin.focus();
+    const tooltip = example.getByRole('tooltip');
+    await tooltip.getByText(/Providers:.*1 node.*1 node/).waitFor();
+    await tooltip.getByText(/Could not load owner/).waitFor();
+    assert.equal(await tooltip.getByRole('link').count(), 0);
+    await example.keyboard.press('Enter');
+    const popup = example.getByRole('region', { name: 'Map location details' });
+    assert.equal(await popup.getByRole('link', { name: /^(one|two)$/ }).count(), 2);
+    assert.deepEqual(await popup.locator('a[href*="/network/provider/"]').evaluateAll(links => links.map(link => link.href.split('/').pop())),
+      ['sample-first-provider', 'sample-other-provider']);
+    assert.equal(await popup.locator('[data-map-node]').count(), 3);
+  } finally {
+    await example.close();
+  }
+}
 
 try {
   await page.goto(url.toString());
@@ -116,7 +171,7 @@ try {
   await page.getByText('Node threshold · 14', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Sources & details' }).click();
   await page.getByText('Recorded distributions and maximum ties', { exact: true }).click();
-  await page.getByText('Country', { exact: true }).filter({ visible: true }).last().click();
+  await page.locator('.inspector summary').filter({ hasText: /^Country$/ }).click();
   for (const [state, tokens] of [
     ['before', ['CH', 'HK', 'IN', 'KR', 'US', 'ZA']], ['proposed', ['HK', 'IN', 'KR', 'SE', 'US', 'ZA']],
   ]) {
@@ -145,6 +200,11 @@ try {
   await page.mouse.move(shPoint.x, shPoint.y);
   const tooltip = page.getByRole('tooltip').filter({ hasText: 'Stockholm' });
   await tooltip.waitFor();
+  await tooltip.getByText('Registered owner: Digital Realty').waitFor();
+  await tooltip.getByText('Provider: bvcsg…mqe').waitFor();
+  await tooltip.getByText('Subnet members: 2 → 3').waitFor();
+  await tooltip.locator('[data-recorded-country=SE] canvas[data-drawn]').waitFor();
+  assert.equal(await tooltip.getByRole('link').count(), 0);
   await tooltip.hover();
   await page.waitForTimeout(230);
   assert.ok(await tooltip.isVisible());
@@ -157,12 +217,17 @@ try {
   await popup.getByText('Subnet members: 2 → 3', { exact: true }).waitFor();
   await popup.getByText('Registered owner: Digital Realty', { exact: true }).waitFor();
   await popup.locator('.map-country-count').getByText('2 → 3', { exact: true }).waitFor();
-  await popup.locator('[data-recorded-country=SE] canvas[data-drawn]').waitFor();
+  await popup.locator('.map-country-count [data-recorded-country=SE] canvas[data-drawn]').waitFor();
+  assert.equal(await popup.getByRole('link', { name: 'sh1', exact: true }).getAttribute('href'),
+    'https://dashboard.internetcomputer.org/network/centers/sh1');
+  assert.match(await popup.getByRole('link', { name: 'bvcsg…mqe' }).getAttribute('href'), /\/network\/provider\/bvcsg-[a-z0-9-]+-mqe$/);
   for (const node of await popup.locator('[data-map-node]').all()) {
     const id = await node.getAttribute('data-map-node');
     await node.click();
     assert.ok(shNodes.has(id));
     assert.equal(await popup.getByLabel('Full node principal').inputValue(), id);
+    assert.equal(await popup.getByRole('link', { name: 'Node dashboard' }).getAttribute('href'),
+      'https://dashboard.internetcomputer.org/network/nodes/' + id);
     await popup.getByText('Provider', { exact: true }).waitFor();
     await node.click();
   }
@@ -194,11 +259,19 @@ try {
   assert.ok(gap(await point(sh), { x: beforeKey.x - 32, y: beforeKey.y }) <= 1);
   await page.keyboard.press('+');
   await page.keyboard.press('-');
-  await fit();
+  await page.keyboard.press('ArrowLeft');
+  const displaced = await point(sh);
+  await page.mouse.move(displaced.x, displaced.y);
+  await page.mouse.down();
+  await page.mouse.move(beforeZoom.x, beforeZoom.y, { steps: 6 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, 250);
+  await page.waitForFunction(() => Math.abs(Number(document.querySelector('.map-frame').dataset.mapScale) - 1) < .01);
+  assert.ok(gap(await point(sh), beforeZoom) <= 1);
 
   for (const [width, height] of [[1366, 900], [768, 900], [390, 844], [320, 700]]) {
     await resize(width, height);
-    await fit();
+    await nodeTableLayout(page.locator('.map-card'), width);
     const rowColors = await page.locator('.node-changes tbody tr').evaluateAll(rows =>
       rows.map(row => [row.className, [...row.cells].map(cell => getComputedStyle(cell).backgroundColor)]));
     assert.ok(rowColors.length >= 2 && rowColors.every(([name, cells]) =>
@@ -209,6 +282,7 @@ try {
     assert.equal(await page.locator('.map-pin:visible').count(), 39);
     assert.match(await frame.getAttribute('data-changed-site-labels'), /sh1 · 2 → 3 nodes.*zh2 · 1 → 0 nodes/);
     assert.equal(await page.getByRole('button', { name: 'Focus changes' }).count(), 0);
+    assert.equal(await page.locator('.map-help, .country-legend').count(), 0);
     const values = await page.locator('.topology-card:not(.node-changes) tbody').evaluateAll(tables =>
       tables.map(table => [...table.querySelectorAll('td')].map(cell => cell.textContent)));
     assert.deepEqual(values, replicatedTables);
@@ -218,15 +292,8 @@ try {
   }
 
   await resize(390, 844);
-  await openHelp();
-  await page.getByRole('button', { name: 'Center on a point' }).tap();
   await frame.scrollIntoViewIfNeeded();
-  let where = await point(sh);
-  await page.touchscreen.tap(where.x, where.y);
-  await page.getByLabel('Zoom level').selectOption('4');
-  await page.getByText('Map help', { exact: true }).click();
-  await frame.scrollIntoViewIfNeeded();
-  assert.ok(gap(await point(sh), await point(frame)) <= 2);
+  let where;
   const cdp = await page.context().newCDPSession(page);
   const touch = (type, touches = []) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: touches });
   const input = (anchor, dx, dy, id) => ({ x: anchor.x + dx, y: anchor.y + dy, id });
@@ -279,6 +346,7 @@ try {
   // Generate after panning and zooming. The report must use its own all-role scene.
   await exportButton().click();
   const reportRows = page.locator('.markdown-preview :is(.node-row-added, .node-row-removed)');
+  await nodeTableLayout(page.locator('.markdown-preview'), 320);
   assert.equal(await reportRows.count(), 2);
   assert.ok(await reportRows.evaluateAll(rows => rows.every(row => [...row.cells].every(cell =>
     getComputedStyle(cell).backgroundColor === (row.className === 'node-row-added' ? 'rgb(236, 247, 237)' : 'rgb(252, 240, 239)')))));
@@ -297,7 +365,13 @@ try {
   assert.match(markdown, /Original Registry observations/);
   assert.match(markdown, /Synthetic NNS-role supplement/);
   assert.match(markdown, /41 unique nodes across both states · 41\/41 located/);
-  assert.match(markdown, /Unchanged nodes \(39\)/);
+  assert.match(markdown, /Other Nodes \(39\)/);
+  assert.equal(markdown.split('\n').filter(line => line.startsWith('|  | [')).length, 39);
+  assert.match(markdown, /\[#144954\]\(https:\/\/dashboard\.internetcomputer\.org\/proposal\/144954\)/);
+  assert.match(markdown, /\[tdb26-[a-z0-9-]+\]\(https:\/\/dashboard\.internetcomputer\.org\/network\/subnets\/tdb26-/);
+  assert.match(markdown, /\[sh1\]\(https:\/\/dashboard\.internetcomputer\.org\/network\/centers\/sh1\)/);
+  assert.match(markdown, /\[kaoz3-[a-z0-9-]+\]\(https:\/\/dashboard\.internetcomputer\.org\/network\/nodes\/kaoz3-/);
+  assert.doesNotMatch(markdown, /country count increased|country count decreased/i);
   assert.match(markdown, /🇸🇪 Sweden \(SE\) \| 2 → 3/);
   assert.match(markdown, /🇨🇭 Switzerland \(CH\) \| 3 → 2/);
   assert.match(markdown, /Europe,SE,Stockholm/);
@@ -314,7 +388,7 @@ try {
     const data = context.getImageData(0, 230, bitmap.width, bitmap.height - 230).data;
     const counts = [0, 0, 0, 0, 0];
     for (let i = 0; i < data.length; i += 4) {
-      const role = [[8, 119, 72], [173, 38, 63], [49, 94, 128], [204, 230, 208], [239, 213, 212]].findIndex(rgb => rgb.every((value, j) => data[i + j] === value));
+      const role = [[8, 119, 72], [173, 38, 63], [49, 94, 128], [191, 226, 196], [237, 201, 200]].findIndex(rgb => rgb.every((value, j) => data[i + j] === value));
       if (role >= 0) counts[role]++;
     }
     return counts;
@@ -323,6 +397,7 @@ try {
   assert.equal(calls.size, sourceCalls);
   assert.equal(backendRequests, localRequests);
   await resize(1366, 900);
+  await verifyMixedLocation();
 
   await select('multiple-changes');
   await review();
@@ -330,6 +405,7 @@ try {
   await page.getByText('5 members · Add 2 · Remove 2 · Unchanged 3', { exact: true }).waitFor();
   const changed = page.locator('.node-changes button');
   assert.equal(await changed.count(), 4);
+  assert.equal(await page.locator('.other-nodes tbody tr').count(), 3);
   const expected = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
   const state = Object.values(expected.cases['multiple-changes'].scenarios.A[0])[0];
   const ids = [];
@@ -521,7 +597,7 @@ try {
 
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  const summary = { cases: ['recorded', 'multiple changes', 'unequal changes', 'paired orders', 'executed terminal', 'rejected terminal',
+  const summary = { cases: ['recorded', 'synthetic mixed-provider co-location', 'multiple changes', 'unequal changes', 'paired orders', 'executed terminal', 'rejected terminal',
     'failed terminal', 'held locations', 'subnet A→B→A', 'independent browser contexts'],
     mapChecks, mapPngPalettePixels: colors, recordedDigest: digest, recordedMethods, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');

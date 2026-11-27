@@ -54,6 +54,15 @@ try {
   await flag.waitFor();
   await page.locator('.node-changes').getByText('Sweden', { exact: true }).waitFor();
   await page.locator('.node-changes').getByText('Switzerland', { exact: true }).waitFor();
+  assert.equal(await page.locator('.map-card .node-changes tbody tr').count(), 2);
+  const other = page.locator('.map-card .other-nodes');
+  assert.equal(await other.evaluate(node => node.open), false);
+  await other.getByText('Other Nodes (39)', { exact: true }).click();
+  assert.equal(await other.locator('tbody tr').count(), 39);
+  await other.getByText('Other Nodes (39)', { exact: true }).click();
+  assert.equal(await page.locator('.map-help, .country-legend').count(), 0);
+  assert.equal(await page.locator('.review-header').getByRole('link', { name: '#144954' }).getAttribute('href'),
+    'https://dashboard.internetcomputer.org/proposal/144954');
   const map = page.locator('.map-frame');
   await map.scrollIntoViewIfNeeded();
   const sh1 = map.getByRole('button', { name: /^sh1 · Stockholm, Sweden/ });
@@ -61,6 +70,8 @@ try {
   await page.keyboard.press('Enter');
   const popup = page.getByRole('region', { name: 'Map location details' });
   await popup.getByText(/Country members.*Sweden.*2 → 3/).waitFor();
+  await popup.getByRole('link', { name: 'sh1', exact: true }).waitFor();
+  await popup.getByRole('link', { name: 'bvcsg…mqe', exact: true }).waitFor();
   await page.keyboard.press('Escape');
   await map.focus();
   const before = await sh1.getAttribute('style');
@@ -80,7 +91,7 @@ try {
     const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
     let count = 0;
     for (let i = 0; i < pixels.length; i += 4) {
-      if (pixels[i] === 239 && pixels[i + 1] === 213 && pixels[i + 2] === 212) count++;
+      if (pixels[i] === 237 && pixels[i + 1] === 201 && pixels[i + 2] === 200) count++;
     }
     return count;
   });
@@ -89,14 +100,15 @@ try {
   await page.getByRole('button', { name: 'Generate review' }).click();
   const preview = page.locator('.markdown-preview');
   await preview.locator('.node-row-added [data-recorded-country=SE] canvas[data-drawn]').waitFor();
+  assert.equal(await preview.locator('.other-nodes tbody tr').count(), 39);
   const png = await preview.getByRole('img', { name: /^Report map/ }).evaluate(canvas => {
     const ctx = canvas.getContext('2d');
     const pixels = ctx.getImageData(0, 270, canvas.width, canvas.height - 270).data;
     let green = 0, red = 0, borders = 0;
     for (let i = 0; i < pixels.length; i += 4) {
       const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
-      if (Math.abs(r - 204) + Math.abs(g - 230) + Math.abs(b - 208) < 6) green++;
-      if (Math.abs(r - 239) + Math.abs(g - 213) + Math.abs(b - 212) < 9) red++;
+      if (Math.abs(r - 191) + Math.abs(g - 226) + Math.abs(b - 196) < 6) green++;
+      if (Math.abs(r - 237) + Math.abs(g - 201) + Math.abs(b - 200) < 9) red++;
       if (r < 197 && g < 205 && b < 196 && Math.abs(g - r) < 25 && Math.abs(b - r) < 17) borders++;
     }
     return { green, red, borders };
@@ -111,6 +123,8 @@ try {
   assert.match(markdown, /🇸🇪 Sweden \(SE\) \| 2 → 3/);
   assert.match(markdown, /🇨🇭 Switzerland \(CH\) \| 3 → 2/);
   assert.match(markdown, /\]\(map\.png\)/);
+  assert.match(markdown, /Other Nodes \(39\)/);
+  assert.match(markdown, /\[sh1\]\(https:\/\/dashboard\.internetcomputer\.org\/network\/centers\/sh1\)/);
   assert.equal(protocol.length, count, 'Display and report actions used IC transport.');
   assert.deepEqual(rejected, [], 'External network requests were attempted.');
   assert.deepEqual(await page.evaluate(() => window.policyViolations), []);

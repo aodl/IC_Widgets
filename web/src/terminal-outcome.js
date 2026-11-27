@@ -1,5 +1,6 @@
 import { el, option, styled, time } from './view.js';
 import { governanceText } from './detail-model.js';
+import { proposalHeading } from './dashboard.js';
 
 export function terminalOutcome(proposal) {
   const executed = option(proposal.executed_at_seconds ?? []);
@@ -21,7 +22,7 @@ export function terminalOutcome(proposal) {
 export function terminalSummary(proposal, title, indexedFailure, replay) {
   const outcome = terminalOutcome(proposal);
   return el('article',
-    el('h2', 'Proposal #' + proposal.id),
+    el('h2', proposalHeading([proposal.id])),
     title ? el('p', title) : null,
     el('p', replay ? 'Recorded status: ' : '', styled('strong', 'terminal-lifecycle', outcome.label),
       replay ? null : ' · Observed ' + time(proposal.observed_at_nanos)),

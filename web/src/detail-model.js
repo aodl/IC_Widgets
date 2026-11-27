@@ -165,10 +165,10 @@ export function distanceSummary(before, after) {
 export const nodeHeaders = ['Action', 'Node', 'Data center', 'Registered owner', 'Provider', 'Operator', 'Country'];
 export function nodeFields(node) {
   return [
-    { value: node.id, principal: true },
-    { value: node.dc, issue: node.operatorIssue },
+    { value: node.id, principal: true, entity: 'node' },
+    { value: node.dc, issue: node.operatorIssue, entity: 'center' },
     { value: node.owner, issue: node.centerIssue },
-    { value: node.provider, issue: node.operatorIssue, principal: true },
+    { value: node.provider, issue: node.operatorIssue, principal: true, entity: 'provider' },
     { value: node.operatorId, issue: node.nodeIssue, principal: true },
     { value: countryToken(node.region), issue: node.centerIssue, country: true },
   ].map(field => ({ ...field, text: field.value || field.issue || absent }));

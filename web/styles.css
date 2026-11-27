@@ -81,7 +81,6 @@ textarea { width: 100%; font: inherit; border: 1px solid #a9bac0; border-radius:
 .map-frame { position: relative; width: 100%; height: clamp(300px, 42vw, 550px); overflow: hidden; border-radius: .55rem; background: #e7eff2; }
 .map-surface { position: absolute; inset: 0; touch-action: none; cursor: grab; user-select: none; }
 .map-surface:active { cursor: grabbing; }
-.map-surface[data-centering] { cursor: crosshair; }
 .map-surface canvas { display: block; width: 100%; height: 100%; }
 .map-pins { position: absolute; inset: 0; pointer-events: none; }
 button.map-pin, button.map-pin:hover {
@@ -97,7 +96,8 @@ button.map-pin, button.map-pin:hover {
 .map-pin:focus-visible::before { border-color: #126fbc; }
 .map-tooltip, .map-popup { position: absolute; z-index: 3; overflow-wrap: anywhere; }
 .map-tooltip {
-  display: grid; gap: .18rem; width: max-content; max-width: calc(100% - 8px); padding: .42rem .6rem;
+  display: grid; gap: .18rem; width: max-content; max-width: min(25rem, calc(100% - 8px)); padding: .42rem .6rem;
+  max-height: calc(100% - 4px); overflow: auto;
   border-radius: .4rem; color: #fff; background: #173341; font-size: .84rem;
 }
 .map-popup {
@@ -118,15 +118,12 @@ button.map-pin, button.map-pin:hover {
 .node-detail dl { font-size: .87rem; margin-block: .4rem; }
 .node-detail dt { font-weight: 700; }
 .node-detail dd { margin: 0 0 .28rem; }
-.map-help { margin-bottom: 0; }
-.map-help p { margin: .35rem 0; }
-.map-navigation-status:not(:empty) { display: block; padding-top: .35rem; }
 .map-caption, .map-legend, .map-legend > span { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .75rem; }
 .map-caption { justify-content: space-between; margin-top: .35rem; }
 .map-legend { font-size: .875rem; }
 .map-legend > span { gap: .3rem; }
 .map-symbol { display: inline-block; width: 12px; height: 12px; border: 1px solid #fff; border-radius: 50%; }
-.markdown-preview canvas { display: block; width: 100%; height: auto; }
+.report-map { display: block; width: 100%; height: auto; }
 @media (max-width: 38rem) {
   .markdown-fields { grid-template-columns: 1fr; }
 }
@@ -260,9 +257,6 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
 .topology-card h3 { margin-bottom: .25rem; }
 .topology-card table { table-layout: fixed; font-size: .9rem; }
 .topology-card h4 { margin: .75rem 0 .3rem; }
-.topology-card .node-role { white-space: nowrap; }
-.topology-card td details { margin: 0; }
-.topology-card td details summary { overflow-wrap: anywhere; }
 .review-summary p { margin: .25rem 0; }
 .review-outcomes { margin: .28rem 0; color: var(--muted); font-size: .84rem; line-height: 1.35; }
 .review-summary > span { font-size: .88rem; }
@@ -308,12 +302,34 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   .topology-card th .metric-help { display: block; width: max-content; }
 }
 
-/* Rows carry the direction; the action label remains visible at every width. */
+.review-node-tables { margin-top: 1rem; }
+.node-table table { table-layout: fixed; font-size: .9rem; }
+.node-table tr > :first-child { width: 12%; }
+.node-table tr > :nth-child(3) { width: 11%; }
+.node-table tr > :nth-child(4) { width: 17%; }
+.node-table :is(th, td) { min-width: 0; padding: .38rem .3rem; overflow-wrap: anywhere; }
+.node-table td details { margin: .12rem 0 0; }
+.node-table td summary, .node-inspect { font-size: .83rem; }
+button.node-inspect { padding: 0 .2rem; min-height: 24px; }
+.node-cell-label { display: none; }
+.other-nodes { margin: .65rem 0; }
+@media (max-width: 44rem) {
+  .node-table table, .node-table tbody, .node-table tr { display: block; }
+  .node-table thead {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .node-table tr + tr { margin-top: .55rem; }
+  .node-table tr > td, .node-table tr > td:nth-child(n) {
+    display: grid; grid-template-columns: minmax(0, 7.25rem) minmax(0, 1fr);
+    gap: .45rem; width: auto;
+  }
+  .node-cell-label { display: block; font-weight: 650; }
+}
+
 .node-row-added > td { background: #ecf7ed; }
 .node-row-removed > td { background: #fcf0ef; }
 .country-label { overflow-wrap: anywhere; }
 .country-flag { width: 1.06em; height: .8em; vertical-align: -.02em; margin-right: .28em; border-radius: 1px; }
-.country-legend { margin-block: .28rem; }
-.country-swatch { display: inline-block; width: 13px; height: 11px; border: 1px solid #84958b; }
 .map-country-note { margin-block: .25rem; color: var(--muted); font-size: .83rem; }
 .map-country-note:empty { display: none; }

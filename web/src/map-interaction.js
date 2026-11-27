@@ -1,18 +1,48 @@
-import { boundaryNote, countryLabel, countryName, countryStyles, countryToken } from './country-presentation.js';
-import { absent, geographyNote, nodeFields, roles, roleSummary } from './detail-model.js';
-import { clamp, drawMap, fitLocations, mapCoverage, mapLocations, mapProjection, mapScene, pointDistance, siteLabel } from './review-map.js';
+import { countryLabel, countryName, countryToken } from './country-presentation.js';
+import { dashboardLink } from './dashboard.js';
+import { absent, nodeFields, roles, roleSummary, shortIds } from './detail-model.js';
+import { clamp, drawMap, mapCoverage, mapLocations, mapProjection, mapScene, pointDistance, siteLabel } from './review-map.js';
 import { action, deltaNode, el, styled } from './view.js';
 
 const targetRadius = 14;
 const midpoint = (a, b) => b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : a;
 const world = { lon: 0, lat: 0, scale: 1 };
+const siteRegion = site => site.nodes.find(node => node.region)?.region.split(',').map(part => part.trim());
 const siteHeading = site => {
-  const region = site.nodes.find(node => node.region)?.region.split(',').map(part => part.trim());
+  const region = siteRegion(site);
   return [site.id, region && [region[2], countryName(region[1])?.name].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Registered location';
 };
+function siteTitle(site, links = false) {
+  const region = siteRegion(site);
+  const center = site.id ?? 'Registered location';
+  return [links ? dashboardLink('center', site.id, center) : center, region?.[2] ? ' · ' + region[2] : '',
+    region?.[1] ? [region[2] ? ', ' : ' · ', countryLabel(region[1])] : null].flat();
+}
 const uniqueCount = nodes => nodes.length + ' unique ' + (nodes.length === 1 ? 'node' : 'nodes') + ' represented across the two states';
 const locationTitle = location => location.sites.map(siteHeading).join(' / ');
 const siteCounts = site => site.count ? 'Subnet members: ' + site.count.text : '';
+
+export function siteIdentities(nodes) {
+  const owners = new Set(), providers = new Map();
+  for (const node of nodes) {
+    owners.add(node.owner || node.centerIssue || absent);
+    const id = node.provider;
+    const unavailable = id ? undefined : node.operatorIssue || absent;
+    const key = id ?? unavailable;
+    if (!providers.has(key)) providers.set(key, { id, unavailable, count: 0 });
+    providers.get(key).count++;
+  }
+  return { owners: [...owners], providers: [...providers.values()] };
+}
+
+function siteEvidence(site, labels, links = false) {
+  const { owners, providers } = siteIdentities(site.nodes);
+  const owner = (owners.length === 1 ? 'Registered owner: ' : 'Registered owners: ') + owners.join(' · ');
+  const provider = providers.flatMap(({ id, unavailable, count }, index) =>
+    [index ? ' · ' : '', unavailable ?? (links ? dashboardLink('provider', id, labels.get(id)) : labels.get(id)),
+      providers.length > 1 ? ' (' + count + (count === 1 ? ' node)' : ' nodes)') : '']);
+  return [el('div', owner), el('div', providers.length === 1 ? 'Provider: ' : 'Providers: ', provider)];
+}
 
 export function nodeDetails(node) {
   const id = Object.assign(el('input'), { value: node.id, readOnly: true });
@@ -20,7 +50,8 @@ export function nodeDetails(node) {
   const status = el('span');
   status.setAttribute('role', 'status');
   const field = (label, value) => el('div', el('dt', label), el('dd', value));
-  const [, dc, owner, provider, operator, country] = nodeFields(node);
+  const [identity, dc, owner, provider, operator, country] = nodeFields(node);
+  const recorded = field => dashboardLink(field.entity, field.value, field.text);
   return styled('div', 'node-detail', id, action('Copy node ID', async () => {
     try {
       await navigator.clipboard.writeText(node.id);
@@ -29,11 +60,11 @@ export function nodeDetails(node) {
       id.select();
       status.textContent = document.execCommand('copy') ? 'Node ID copied.' : 'Select and copy the node ID.';
     }
-  }), status, el('dl',
-    field('Data center', dc.text), field('Registered owner', owner.text),
+  }), ' ', dashboardLink(identity.entity, identity.value, 'Node dashboard'), status, el('dl',
+    field('Data center', recorded(dc)), field('Registered owner', owner.text),
     field('Country', countryLabel(country.value, country.text, true)),
     field('Registered region', node.region || node.centerIssue || absent),
-    field('Provider', provider.text), field('Operator', operator.text),
+    field('Provider', recorded(provider)), field('Operator', operator.text),
     field('Coordinates', node.point ? node.point.lat + ', ' + node.point.lon : node.locationIssue || absent)));
 }
 
@@ -45,7 +76,7 @@ export function reviewMap() {
   let reason;
   let scene, projection, viewport;
   let selected, expanded, choices, hovered, hoverTimer, suppressedHover, described;
-  let centerMode = false;
+  let labels = new Map();
   const buttons = new Map();
   const canvas = el('canvas');
   canvas.setAttribute('aria-hidden', 'true');
@@ -68,35 +99,14 @@ export function reviewMap() {
   const caption = styled('p', 'map-coverage');
   const overflow = styled('p', 'map-facilities');
   const unmapped = el('details');
-  const status = styled('span', 'map-navigation-status');
-  status.setAttribute('role', 'status');
   const countryNote = styled('p', 'map-country-note');
   const legend = styled('div', 'map-legend', Object.values(roles).map(({ label, color }) => {
     const dot = styled('span', 'map-symbol');
     dot.style.background = color;
     return el('span', dot, label);
   }));
-  const shadeLegend = styled('div', 'map-legend country-legend', Object.values(countryStyles).map(({ label, color, border }) => {
-    const swatch = styled('span', 'country-swatch');
-    swatch.style.background = color;
-    if (border) swatch.style.border = '1px dashed ' + border;
-    return el('span', swatch, label);
-  }));
-  const zoomLevel = el('select', [1, 2, 4, 8, 12].map(scale => Object.assign(el('option', scale + '×'), { value: scale })));
-  zoomLevel.addEventListener('change', () => zoom(Number(zoomLevel.value), middle()));
-  const center = action('Center on a point', () => {
-    centerMode = !centerMode;
-    center.setAttribute('aria-pressed', String(centerMode));
-    status.textContent = centerMode ? 'Click or tap a point on the map to center it.' : '';
-    surface.toggleAttribute('data-centering', centerMode);
-  });
-  center.setAttribute('aria-pressed', 'false');
-  const controls = styled('details', 'map-help', el('summary', 'Map help'),
-    el('p', 'Drag to pan. Scroll or pinch to zoom. With map focus, use arrows to pan, + or − to zoom, and Escape to close details.'),
-    el('p', geographyNote + ' ' + boundaryNote + ' Small squares mark represented map units too small to see at this zoom.'), styled('div', 'actions', el('label', 'Zoom level ', zoomLevel), center,
-      action('Fit all locations', () => { if (viewport) { view = fitLocations(geography.locations, viewport); draw(); } })), status);
   const section = styled('section', 'map-section', styled('div', 'map-heading', el('h3', 'Map')),
-    frame, styled('div', 'map-caption', legend, caption), shadeLegend, countryNote, overflow, unmapped, controls);
+    frame, styled('div', 'map-caption', legend, caption), countryNote, overflow, unmapped);
 
   function renderTooltip() {
     const location = scene?.visible.find(item => item.key === hovered);
@@ -106,10 +116,12 @@ export function reviewMap() {
     if (tooltip.hidden) return;
     described = buttons.get(hovered);
     described?.setAttribute('aria-describedby', tooltip.id);
-    tooltip.replaceChildren(el('strong', locationTitle(location)), el('span', roleSummary(location.nodes)),
+    tooltip.replaceChildren(...location.sites.map(site => el('div', el('strong', siteTitle(site)),
+      el('div', siteCounts(site)), ...siteEvidence(site, labels))), el('span', roleSummary(location.nodes)),
       el('span', uniqueCount(location.nodes)));
     tooltip.style.left = clamp(location.x - tooltip.offsetWidth / 2, 2, viewport.width - tooltip.offsetWidth - 2) + 'px';
-    tooltip.style.top = (location.y > tooltip.offsetHeight + 12 ? location.y - tooltip.offsetHeight - 8 : location.y + 8) + 'px';
+    const top = location.y > tooltip.offsetHeight + 12 ? location.y - tooltip.offsetHeight - 8 : location.y + 8;
+    tooltip.style.top = clamp(top, 2, viewport.height - tooltip.offsetHeight - 2) + 'px';
   }
 
   function showSummary(key) {
@@ -164,11 +176,11 @@ export function reviewMap() {
     const restore = panel.contains(document.activeElement) ? document.activeElement.dataset.mapNode : undefined;
     const closeButton = action('Close', () => close());
     closeButton.setAttribute('aria-label', 'Close map details');
-    const title = el('h4', location ? locationTitle(location) : 'Choose a location');
+    const title = el('h4', location?.sites.length === 1 ? siteTitle(location.sites[0], true)
+      : location ? 'Shared registered location' : 'Choose a location');
     const content = location ? location.sites.map(site => {
       const records = site.nodes.sort((a, b) => Object.keys(roles).indexOf(a.role) - Object.keys(roles).indexOf(b.role)
         || a.id.localeCompare(b.id));
-      const owner = records.find(node => node.owner)?.owner;
       const tokens = [...new Set(records.map(node => countryToken(node.region)).filter(Boolean))];
       const countryRows = tokens.length ? tokens.map(token => {
         const group = geography.countries?.groups.find(item => item.token === token);
@@ -176,10 +188,10 @@ export function reviewMap() {
           group ? deltaNode(group.delta) : 'Comparison unavailable');
       }) : el('p', 'Country · ' + (records.find(node => node.centerIssue)?.centerIssue ?? absent));
       return styled('section', 'map-popup-site',
-        location.sites.length > 1 ? el('h5', siteHeading(site)) : null,
+        location.sites.length > 1 ? el('h5', siteTitle(site, true)) : null,
         site.count ? el('strong', 'Subnet members: ', deltaNode(site.count)) : null,
         countryRows,
-        owner ? el('p', 'Registered owner: ' + owner) : null,
+        ...siteEvidence(site, labels, true),
         el('p', roleSummary(records)), el('p', uniqueCount(records)),
         el('ul', records.map(node => {
           const button = action(roles[node.role].label + ' ' + node.label, () => {
@@ -317,11 +329,6 @@ export function reviewMap() {
     if (event.detail === 0 || !tapPoint) return;
     const point = tapPoint;
     tapPoint = undefined;
-    if (centerMode) {
-      moveAt(projection.unproject(point), middle(), view.scale);
-      center.click();
-      return;
-    }
     const hits = scene.visible.filter(item => pointDistance(item, point) <= targetRadius);
     if (hits.length === 1) open(hits[0].key);
     else if (hits.length > 1) {
@@ -353,7 +360,6 @@ export function reviewMap() {
     if (event.key === 'Escape') {
       if (!panel.hidden) close();
       else {
-        if (centerMode) center.click();
         for (const id of pointers.keys()) {
           if (surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
         }
@@ -404,6 +410,7 @@ export function reviewMap() {
       }
       reason = message;
       geography = mapLocations(model?.members ?? [], model?.countries);
+      labels = shortIds((model?.members ?? []).map(node => node.provider).filter(Boolean));
       countryNote.textContent = model?.countries?.note ?? '';
       unmapped.hidden = !geography.unmapped.length;
       const focusKey = unmapped.contains(document.activeElement) ? document.activeElement.dataset.node : undefined;

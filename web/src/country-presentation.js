@@ -50,12 +50,12 @@ export function countryLabel(token, fallback, showToken = false) {
 }
 
 export const countryStyles = {
-  increase: { color: '#cce6d0', label: 'Country count increased' },
-  decrease: { color: '#efd5d4', label: 'Country count decreased' },
-  exit: { color: '#efd5d4', border: '#a05f65', label: 'Country count fell to zero' },
-  neutral: { color: '#d7dfda', label: 'Represented · no directional shading' },
+  increase: { color: '#bfe2c4' },
+  decrease: { color: '#edc9c8' },
+  exit: { color: '#edc9c8', border: '#a05f65' },
+  neutral: { color: '#d7dfda' },
 };
-export const boundaryNote = 'Natural Earth map-unit boundaries are cartographic. Country shading uses recorded membership groups.';
+export const boundaryNote = 'Natural Earth map-unit boundaries are cartographic. Country shading uses recorded membership groups. Green shows increases and red shows decreases. A dashed border marks a country falling to zero. Small squares mark represented map units too small to see at the current zoom.';
 
 export function countryComparison(rows, dimension) {
   if (!dimension?.distinct) return { groups: [], shades: {}, note: 'Country shading awaits the replicated comparison.' };

@@ -142,8 +142,9 @@ test('snapshot binds scope and accepted digest to a deterministic all-role scene
   assert.match(markdown, /confirmed-digest/);
   assert.match(markdown, /\]\(map\.png\)/);
   assert.match(markdown, /site \\\| &lt;test&gt;/);
-  assert.match(markdown, /Unchanged nodes \(1\)/);
-  assert.doesNotMatch(markdown, /Reviewer vote|Reviewer summary|Reviewer attribution|https:\/\//);
+  assert.match(markdown, /Other Nodes \(1\)/);
+  assert.match(markdown, /^\|  \| two \|/m);
+  assert.doesNotMatch(markdown, /Reviewer vote|Reviewer summary|Reviewer attribution|https:\/\/(?!dashboard\.internetcomputer\.org\/)/);
   assert.match(reviewMarkdown(snapshot, { vote: 'Adopt', summary: 'Opinion', attribution: 'Reviewer' }), /Reviewer vote\n\nAdopt/);
 });
 

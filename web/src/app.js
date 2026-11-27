@@ -1,4 +1,5 @@
 import { activeReplay, connect, liveError, replays, result } from './client.js';
+import { proposalHeading } from './dashboard.js';
 import { replayLabel } from './detail-model.js';
 import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
@@ -153,7 +154,7 @@ search.addEventListener('submit', event => {
   const mapHost = map.section;
   map.update();
   reportContainer.replaceChildren(styled('div', 'workspace waiting-workspace',
-    styled('section', 'review-header', el('h2', ids.length === 1 ? 'Proposal #' + ids[0] : 'Proposals ' + ids.map(id => '#' + id).join(' + '))),
+    styled('section', 'review-header', el('h2', proposalHeading(ids))),
     styled('div', 'review-grid', styled('div', 'map-card', mapHost))));
   clearInterval(timer);
   timer = undefined;

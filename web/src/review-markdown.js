@@ -1,4 +1,5 @@
-import { boundaryNote, countryMarkdown, countryStyles, countryToken } from './country-presentation.js';
+import { boundaryNote, countryMarkdown, countryToken } from './country-presentation.js';
+import { dashboardUrl } from './dashboard.js';
 import { calculationNote, comparisonCaption, criteriaNote, distanceHelp, distanceTitle, distributionTables, geographyNote,
   governanceText, nodeFields, nodeHeaders, replayLabel, replayRegistryText, roles } from './detail-model.js';
 import { mapCoverage, mapLocations, siteLabel } from './review-map.js';
@@ -38,28 +39,35 @@ function escape(text) {
 }
 
 export function markdownTable({ headers, rows }) {
-  const line = cells => '| ' + cells.map(escape).join(' | ') + ' |';
+  const line = cells => '| ' + cells.map(cell => cell?.href ? '[' + escape(cell.text) + '](' + cell.href + ')' : escape(cell)).join(' | ') + ' |';
   return [line(headers), line(headers.map(() => '---')), ...rows.map(line)].join('\n');
 }
 
 const list = rows => rows.map(row => '- ' + escape(row)).join('\n');
 const collapsed = (title, contents) => '<details>\n<summary>' + title + '</summary>\n\n' + contents + '\n\n</details>';
+const renderedLink = (text, href) => href ? { text, href } : text;
+const markdownLink = (entity, id, label = id) => {
+  const href = dashboardUrl(entity, id);
+  return href ? '[' + escape(label) + '](' + href + ')' : escape(label);
+};
 
 export function reviewMarkdown(model, { vote = '', summary = '', attribution = '' } = {}) {
   const { scope, members, dimensions, distances, geography } = model;
   const unchanged = members.filter(node => node.role === 'Retained');
   const changed = members.filter(node => node.role !== 'Retained');
-  const rows = nodes => nodes.map(node => nodeFields(node).map(field => field.country
-    ? countryMarkdown(field.value, field.text) : field.text));
+  const rows = nodes => nodes.map(node => [node.role === 'Retained' ? '' : roles[node.role].label,
+    ...nodeFields(node).map(field => field.country ? countryMarkdown(field.value, field.text)
+      : renderedLink(field.text, dashboardUrl(field.entity, field.value)))]);
   const regionRows = [...new Map(members.filter(node => node.region).map(node =>
-    [JSON.stringify([node.dc, node.region]), [node.dc ?? '—', node.region, countryToken(node.region) ?? '—']])).values()];
+    [JSON.stringify([node.dc, node.region]), [renderedLink(node.dc ?? '—', dashboardUrl('center', node.dc)),
+      node.region, countryToken(node.region) ?? '—']])).values()];
   const countryRows = model.countries?.groups.map(group => [countryMarkdown(group.token), group.delta.text]) ?? [];
   const thresholds = dimensions.find(item => item.thresholds?.[0] !== undefined || item.thresholds?.[1] !== undefined)?.thresholds;
   const threshold = thresholds?.[0] === thresholds?.[1] ? thresholds?.[0] : thresholds?.map(value => value ?? 'Unavailable').join(' → ');
   const partial = dimensions.filter(item => item.partial).map(item => item.label + ' members with missing grouping: ' + item.unknown.text);
   const blocks = [
-    '# Proposal review · ' + scope.ids.map(id => '#' + id).join(' + '),
-    escape(reportScope(model)), 'Subnet `' + scope.subnet + '`',
+    '# Proposal review · ' + scope.ids.map(id => markdownLink('proposal', id, '#' + id)).join(' + '),
+    escape(reportScope(model)), 'Subnet ' + markdownLink('subnet', scope.subnet),
     model.replay && escape(replayLabel(model.replay)),
     vote.trim() && '## Reviewer vote\n\n' + escape(vote.trim()),
     summary.trim() && '## Reviewer summary\n\n' + summary.trim().split(/\n\s*\n/).map(escape).join('\n\n'),
@@ -72,12 +80,13 @@ export function reviewMarkdown(model, { vote = '', summary = '', attribution = '
     model.replay?.roleSupplement && 'Synthetic NNS-role supplement · ' + escape(model.replay.roleSupplement),
     '## Map', '![Map of registered node locations for the selected comparison](map.png)',
     'Add (green) · Remove (red) · Unchanged (blue). ' + mapCoverage(geography) + '. ' + geographyNote,
-    Object.values(countryStyles).map(style => style.label).join(' · ') + '. Dashed border marks a country falling to zero. ' + boundaryNote,
+    boundaryNote,
     model.countries?.note,
     geography.changed.length && 'Changed sites · ' + geography.changed.map(siteLabel).map(escape).join(' · '),
     '## Node changes',
-    changed.length ? markdownTable({ headers: nodeHeaders, rows: rows(changed).map((row, index) => [roles[changed[index].role].label, ...row]) })
+    changed.length ? markdownTable({ headers: nodeHeaders, rows: rows(changed) })
       : 'No membership changes in the selected comparison.',
+    collapsed('Other Nodes (' + unchanged.length + ')', markdownTable({ headers: nodeHeaders, rows: rows(unchanged) })),
     '## Decentralisation', comparisonCaption,
     ...distributionTables.flatMap(({ key, title, help }) => [
       '### ' + title, help,
@@ -90,8 +99,6 @@ export function reviewMarkdown(model, { vote = '', summary = '', attribution = '
       rows: [distances.columns.map(column => column.delta.text)] }),
     distances?.coverage, criteriaNote,
     countryRows.length && collapsed('Recorded country membership', markdownTable({ headers: ['Country (recorded token)', 'Subnet members'], rows: countryRows })),
-    '## Unchanged nodes',
-    collapsed('Unchanged nodes (' + unchanged.length + ')', markdownTable({ headers: nodeHeaders.slice(1), rows: rows(unchanged) })),
     '## Sources and calculation',
     'Membership preview revision `' + model.previewRevision + '`.',
     'Calculation input SHA-256 `' + scope.inputHash + '` · analysis v' + model.analysisVersion + '.',

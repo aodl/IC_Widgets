@@ -20,6 +20,8 @@ The frontend loads its own HTML, CSS and JavaScript. The pinned `@icp-sdk/core` 
 
 The runtime audit excludes external scripts, stylesheets, remote fonts, flag CDNs, map tiles, reverse geocoders, country APIs, analytics, telemetry and external image hosting. The production regression denies other requests with browser interception and DNS disabled. It loads the exact embedded assets from the IC HTTP gateway, independently verifies their v2 certification and restricts requests to that frontend and its reviewer protocol routes. The embedded local profile uses the replica trust root via the local IC status endpoint. Production builds use the pinned mainnet trust root. Embedded builds reject replay manifests. Cartographic render keys and browser country names never change recorded grouping identities, counts or calculations.
 
+Official Dashboard entity links are optional navigation. Widgets never retrieve or preload Dashboard content. Each link uses an already recorded identity, and absent or unsupported routes leave that identity available locally.
+
 ## Embedded frontend releases
 
 Install and upgrade build the HTTP v2 certification tree from the immutable assets. Only the `http_request` query is public. HTML uses no-store and content-hashed JavaScript and CSS use immutable caching. The deployable artifact is the deterministic gzip package. Compare its SHA-256 with the module hash when those exact compressed bytes are installed. [Build and migration evidence](EMBEDDED_FRONTEND.md)

@@ -108,8 +108,8 @@ try {
       await page.getByText(/41 locations loading/).waitFor();
       assert.equal(await page.getByText(/Unmapped nodes/).isVisible(), false);
       await page.locator('.topology-card:not(.node-changes)').getByText('Loading', { exact: true }).waitFor();
-      await page.getByText('Map help', { exact: true }).click();
-      await page.getByLabel('Zoom level').selectOption('2');
+      await page.locator('.map-frame').focus();
+      await page.keyboard.press('+');
       await page.locator('.node-changes').getByRole('button', { name: /kaoz3/ }).click();
       const panel = page.locator('.inspector');
       await panel.getByLabel('Full node principal').waitFor();
@@ -121,7 +121,7 @@ try {
     }
     await finished(page);
     await page.getByText(/41 unique nodes across both states · 38\/41 located/).waitFor();
-    assert.equal(await page.locator('.map-frame').getAttribute('data-map-scale'), '2');
+    assert.equal(await page.locator('.map-frame').getAttribute('data-map-scale'), '1.5');
     const panel = page.locator('.inspector');
     await panel.getByText('Not recorded on-chain', { exact: true }).first().waitFor();
     assert.match(await panel.textContent(), /Digital Realty/);
