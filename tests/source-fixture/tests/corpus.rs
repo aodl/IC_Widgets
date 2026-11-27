@@ -157,13 +157,37 @@ fn recorded_reply_and_constructed_lifecycles_remain_distinct() {
         if let Some(fault) = &case.fault {
             assert!(!fault.is_empty());
         }
+        let mut activity_ids = BTreeSet::new();
+        for activity in &case.activity {
+            let id = historical::decimal(&activity.id);
+            assert!(activity_ids.insert(id), "duplicate Activity proposal #{id}");
+            let full = activity.info(false);
+            let listed = activity.info(true);
+            assert_eq!(full.id.unwrap().id, id);
+            assert_eq!(listed.id.unwrap().id, id);
+            if let Some(executable) = full.executable() {
+                let listed = listed.executable().unwrap();
+                assert_eq!(listed.nns_function, executable.nns_function);
+                if activity.omit_list_payload {
+                    assert!(listed.payload.is_empty());
+                } else {
+                    assert_eq!(listed.payload, executable.payload);
+                }
+            }
+        }
         if case.lifecycle != "recorded-open" {
             let proposals = case
                 .proposal_ids
                 .iter()
                 .zip(case.function_ids)
                 .map(|(id, function)| {
-                    let info = historical::proposal(id, function, &case.lifecycle);
+                    let info = match case.activity.iter().find(|activity| &activity.id == id) {
+                        Some(activity) => {
+                            assert_eq!(activity.function, Some(function));
+                            activity.info(false)
+                        }
+                        None => historical::proposal(id, function, &case.lifecycle),
+                    };
                     let id = info.id.unwrap().id;
                     (id, encode_one(Some(info)).unwrap())
                 })

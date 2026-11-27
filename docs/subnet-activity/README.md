@@ -1,6 +1,6 @@
 # Subnet Activity and review checks
 
-The frozen implementation is `5aeece635652ddccdfbb87ae2a2a4ac892670e96`. [Hosted CI for the exact source](https://github.com/aodl/IC_Widgets/actions/runs/46074044777) · [Separate catalogue production release](https://github.com/aodl/IC_Widgets/tree/5f0f11ef98a99a4983a2b6015917f8b3fc911b34/docs/release-candidates/catalogue-4cdb714/production) Activity adds a new optional review response field and a bounded reviewer update. The production reviewer still uses its canonical Governance, Registry and management sources. The legacy collector and stable-state schema are unchanged.
+The frozen implementation is `5aeece635652ddccdfbb87ae2a2a4ac892670e96`. [Initial hosted run for the exact source](https://github.com/aodl/IC_Widgets/actions/runs/46074044777) · [Separate catalogue production release](https://github.com/aodl/IC_Widgets/tree/5f0f11ef98a99a4983a2b6015917f8b3fc911b34/docs/release-candidates/catalogue-4cdb714/production) Activity adds a new optional review response field and a bounded reviewer update. The production reviewer still uses its canonical Governance, Registry and management sources. The legacy collector and stable-state schema are unchanged.
 
 ## Governance observation
 
@@ -33,6 +33,8 @@ Connected proposal-view Performance follows the exact before/proposed union by d
 The capture generator accepts case IDs after the output filename. Regenerate batches against separate disposable reviewer installs to stay within the public request allowance. Combine their case maps only when the generated versions and input fingerprints match.
 
 ## Replicated verification
+
+The first hosted run stopped at native Clippy because the independent corpus test had no path for the new synthetic fixture records. The review branch updates that test to validate omitted list payloads and use the same synthetic proposal decoder as the fixture. The frontend, reviewer, engine and runtime fixture source remain identical to the frozen implementation. [Review branch workflow runs](https://github.com/aodl/IC_Widgets/actions/workflows/check.yml?query=branch%3Acodex%2Fsubnet-activity)
 
 The historical replay suite passed through the source fixture and production-source protection. The accepted comparison outputs matched the published catalogue across all 12 earlier interactive cases. The three new cases returned the following results from the disposable reviewer.
 
