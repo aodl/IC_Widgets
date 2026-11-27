@@ -39,6 +39,17 @@ The legacy module used for rehearsal matched the observed production module hash
 
 Chromium completed proposal 144954 using the embedded local profile and the real gateway. The restricted browser observed ten reviewer IC calls for the normal review and one local replica trust-root request. Map interaction and report generation made zero additional IC calls and zero external requests.
 
+## Production package with the map and node presentation follow-up
+
+Frontend source revision `1ee93e057297afbfb3c2b7c7343ce831ec96acef` produced the following artifacts with the same pinned inputs and production reviewer.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Raw Wasm | 1,871,539 | `ce433efac680d863ba5ee19147c84abb3a3b93c24a07361ef28ae6465f8761f2` |
+| Gzip install package | 706,507 | `f7ca9c1590679acc93776158793f1fdf823a13aa48d3c2936126a1e83027cca2` |
+
+The disposable frontend installed from this gzip reported `f7ca9c1590679acc93776158793f1fdf823a13aa48d3c2936126a1e83027cca2` as its module hash. Eleven HTTP v2 responses from the local gateway passed cryptographic verification. [Membership replay evidence](review-fixtures/MAP_NODE_PRESENTATION.md)
+
 ## Disposable local migration and network regression
 
 Start the standard asset canister in the existing local harness:
