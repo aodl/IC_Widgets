@@ -1,5 +1,7 @@
 # Production release candidate
 
+The standalone Membership candidate is frozen at `b8014c8d264928a3ed8f16338fb5d4dc9a494489`. The exact install packages, manifests and verification transcripts are published with PR #10. [Release evidence and downloads](release-candidates/membership-b8014c8/README.md)
+
 The certified mainnet observations on 27 November 2026 used the pinned IC root and a read-only protocol call. Both canisters reported the same existing controller set. The observed module hashes matched the SHA-256 of the previously installed gzip packages retained for rollback.
 
 | Canister | Current ID | Certified UTC | Installed module SHA-256 |

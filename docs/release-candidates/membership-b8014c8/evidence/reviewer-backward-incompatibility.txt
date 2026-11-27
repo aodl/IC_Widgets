@@ -1,0 +1,1 @@
+Error: Method compare_membership_context is only in the expected type

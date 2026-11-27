@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized] target(s) in 2.46s
+     Running tests/voting_upgrade.rs (target/debug/deps/voting_upgrade-623b54959f06f322)
+
+running 1 test
+2026-11-27T17:05:50.725546Z  INFO pocket_ic_server: The PocketIC server is listening on port 46711
+Frontend upgraded second and rolled back first. Host refusal and all three prior asset bodies verified.
+Restored exact prior reviewer. Controller settings, stable pages, checkpoint and retained evidence matched.
+Exact old and new compressed artifacts verified. Cursor 4270, target 65958, unpublished. All 9 fixture observations (including head 1 and last Registry observation 9), a 1434-byte Governance blob, full controller settings and 1793 stable pages preserved. Collector remained disabled and without a lease across 24h.
+test exact_deployed_module_preserves_paused_checkpoint_on_upgrade ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 40.97s

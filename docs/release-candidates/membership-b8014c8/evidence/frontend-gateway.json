@@ -1,0 +1,107 @@
+{
+  "port": "4991",
+  "frontend": "ulvla-h7777-77774-qaacq-cai",
+  "reviewer": "uzt4z-lp777-77774-qaabq-cai",
+  "origin": "http://ulvla-h7777-77774-qaacq-cai.localhost:4991",
+  "paths": [
+    "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+    "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js"
+  ],
+  "observed": [
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "certification": 2
+    },
+    {
+      "method": "GET",
+      "path": "/index.html",
+      "status": 200,
+      "certification": 2
+    },
+    {
+      "method": "GET",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "status": 200,
+      "certification": 2
+    },
+    {
+      "method": "HEAD",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "status": 200,
+      "certification": 2
+    },
+    {
+      "method": "GET",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "status": 200,
+      "certification": 2
+    },
+    {
+      "method": "HEAD",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "status": 200,
+      "certification": 2
+    },
+    {
+      "method": "HEAD",
+      "path": "/",
+      "status": 200,
+      "certification": 2
+    },
+    {
+      "method": "GET",
+      "path": "/app.js",
+      "status": 404,
+      "certification": 2
+    },
+    {
+      "method": "GET",
+      "path": "/.ic-assets.json5",
+      "status": 404,
+      "certification": 2
+    },
+    {
+      "method": "GET",
+      "path": "/unmatched/nested/path",
+      "status": 404,
+      "certification": 2
+    },
+    {
+      "method": "HEAD",
+      "path": "/unmatched/nested/path",
+      "status": 404,
+      "certification": 2
+    }
+  ],
+  "rawOrigin": "http://ulvla-h7777-77774-qaacq-cai.raw.localhost:4991",
+  "rawRefusals": [
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 403
+    },
+    {
+      "method": "HEAD",
+      "path": "/",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/?canisterId=ulvla-h7777-77774-qaacq-cai",
+      "status": 503,
+      "origin": "http://raw.localhost:4991"
+    }
+  ]
+}

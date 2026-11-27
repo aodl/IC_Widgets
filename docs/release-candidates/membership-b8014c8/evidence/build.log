@@ -1,0 +1,429 @@
+Source b8014c8d264928a3ed8f16338fb5d4dc9a494489
+Reviewer s34gv-3qaaa-aaaar-qcifa-cai
+rustc 1.96.0 (ac68faa20 2026-05-25)
+binary: rustc
+commit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96
+commit-date: 2026-05-25
+host: x86_64-unknown-linux-gnu
+release: 1.96.0
+LLVM version: 22.1.2
+v24.15.0
+libprotoc 3.12.4
+gzip 1.10
+vendor/ic/LICENSE: OK
+vendor/ic/rs/nns/governance/canister/governance.did: OK
+vendor/ic/rs/protobuf/def/messaging/xnet/v1/mixed_hash_tree.proto: OK
+vendor/ic/rs/protobuf/def/registry/api_boundary_node/v1/api_boundary_node.proto: OK
+vendor/ic/rs/protobuf/def/registry/crypto/v1/crypto.proto: OK
+vendor/ic/rs/protobuf/def/registry/dc/v1/dc.proto: OK
+vendor/ic/rs/protobuf/def/registry/node/v1/node.proto: OK
+vendor/ic/rs/protobuf/def/registry/node_operator/v1/node_operator.proto: OK
+vendor/ic/rs/protobuf/def/registry/replica_version/v1/replica_version.proto: OK
+vendor/ic/rs/protobuf/def/registry/standard_engine_replica_version/v1/standard_engine_replica_version.proto: OK
+vendor/ic/rs/protobuf/def/registry/subnet/v1/subnet.proto: OK
+vendor/ic/rs/protobuf/def/registry/unassigned_nodes_config/v1/unassigned_nodes_config.proto: OK
+vendor/ic/rs/protobuf/def/types/v1/types.proto: OK
+vendor/ic/rs/registry/LICENSE: OK
+vendor/ic/rs/registry/canister/canister/registry.did: OK
+vendor/ic/rs/registry/transport/proto/ic_registry_transport/pb/v1/transport.proto: OK
+vendor/ic/LICENSE: OK
+vendor/ic/rs/nns/governance/canister/governance.did: OK
+vendor/ic/rs/protobuf/def/messaging/xnet/v1/mixed_hash_tree.proto: OK
+vendor/ic/rs/protobuf/def/registry/api_boundary_node/v1/api_boundary_node.proto: OK
+vendor/ic/rs/protobuf/def/registry/crypto/v1/crypto.proto: OK
+vendor/ic/rs/protobuf/def/registry/dc/v1/dc.proto: OK
+vendor/ic/rs/protobuf/def/registry/node/v1/node.proto: OK
+vendor/ic/rs/protobuf/def/registry/node_operator/v1/node_operator.proto: OK
+vendor/ic/rs/protobuf/def/registry/replica_version/v1/replica_version.proto: OK
+vendor/ic/rs/protobuf/def/registry/standard_engine_replica_version/v1/standard_engine_replica_version.proto: OK
+vendor/ic/rs/protobuf/def/registry/subnet/v1/subnet.proto: OK
+vendor/ic/rs/protobuf/def/registry/unassigned_nodes_config/v1/unassigned_nodes_config.proto: OK
+vendor/ic/rs/protobuf/def/types/v1/types.proto: OK
+vendor/ic/rs/registry/LICENSE: OK
+vendor/ic/rs/registry/canister/canister/registry.did: OK
+vendor/ic/rs/registry/transport/proto/ic_registry_transport/pb/v1/transport.proto: OK
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling version_check v0.9.5
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling serde_core v1.0.229
+   Compiling generic-array v0.14.7
+   Compiling serde v1.0.229
+   Compiling serde_core v1.0.229
+   Compiling autocfg v1.5.1
+   Compiling serde v1.0.229
+   Compiling autocfg v1.5.1
+   Compiling num-traits v0.2.19
+   Compiling syn v2.0.119
+   Compiling syn v2.0.119
+   Compiling syn v3.0.10
+   Compiling syn v3.0.10
+   Compiling serde_derive v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling num-traits v0.2.19
+   Compiling crc32fast v1.5.5
+   Compiling thiserror v1.0.69
+   Compiling crc32fast v1.5.5
+   Compiling thiserror v1.0.69
+   Compiling typenum v1.20.1
+   Compiling typenum v1.20.1
+   Compiling thiserror-impl v1.0.69
+   Compiling thiserror-impl v1.0.69
+   Compiling anyhow v1.0.104
+   Compiling object v0.39.1
+   Compiling binrw v0.15.2
+   Compiling object v0.39.1
+   Compiling find-msvc-tools v0.1.15
+   Compiling find-msvc-tools v0.1.15
+   Compiling binrw v0.15.2
+   Compiling shlex v2.0.1
+   Compiling binrw_derive v0.15.2
+   Compiling shlex v2.0.1
+   Compiling anyhow v1.0.104
+   Compiling binrw_derive v0.15.2
+   Compiling cc v1.11.3
+   Compiling cc v1.11.3
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling memchr v2.8.3
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling either v1.19.0
+   Compiling either v1.19.0
+   Compiling cfg-if v1.0.5
+   Compiling memchr v2.8.3
+   Compiling cfg-if v1.0.5
+   Compiling digest v0.10.7
+   Compiling paste v1.0.15
+   Compiling digest v0.10.7
+   Compiling paste v1.0.15
+   Compiling sha2 v0.10.9
+   Compiling ar_archive_writer v0.5.5
+   Compiling ar_archive_writer v0.5.5
+   Compiling sha2 v0.10.9
+   Compiling lazy_static v1.5.1
+   Compiling candid_derive v0.10.37
+   Compiling lazy_static v1.5.1
+   Compiling candid_derive v0.10.37
+   Compiling psm v0.1.32
+   Compiling psm v0.1.32
+   Compiling libc v0.2.191
+   Compiling rustversion v1.0.23
+   Compiling libc v0.2.191
+   Compiling rustversion v1.0.23
+   Compiling num-integer v0.1.47
+   Compiling num-integer v0.1.47
+   Compiling stacker v0.1.25
+   Compiling stacker v0.1.25
+   Compiling serde_bytes v0.11.19
+   Compiling serde_bytes v0.11.19
+   Compiling hex v0.4.3
+   Compiling array-init v2.1.0
+   Compiling typed-arena v2.0.2
+   Compiling ident_case v1.0.1
+   Compiling leb128 v0.2.7
+   Compiling arrayvec v0.5.2
+   Compiling cpufeatures v0.2.17
+   Compiling bytemuck v1.25.2
+   Compiling strsim v0.11.1
+   Compiling data-encoding v2.11.1
+   Compiling ident_case v1.0.1
+   Compiling typed-arena v2.0.2
+   Compiling data-encoding v2.11.1
+   Compiling leb128 v0.2.7
+   Compiling array-init v2.1.0
+   Compiling unicode-width v0.2.3
+   Compiling unicode-width v0.2.3
+   Compiling bytemuck v1.25.2
+   Compiling hex v0.4.3
+   Compiling arrayvec v0.5.2
+   Compiling pretty v0.12.5
+   Compiling cpufeatures v0.2.17
+   Compiling strsim v0.11.1
+   Compiling darling_core v0.23.0
+   Compiling ic_principal v0.1.5
+   Compiling pretty v0.12.5
+   Compiling darling_core v0.23.0
+   Compiling ic_principal v0.1.5
+   Compiling num-bigint v0.4.8
+   Compiling num-bigint v0.4.8
+   Compiling slotmap v1.1.1
+   Compiling slotmap v1.1.1
+   Compiling byteorder v1.5.0
+   Compiling byteorder v1.5.0
+   Compiling heck v0.5.0
+   Compiling heck v0.5.0
+   Compiling strum_macros v0.26.4
+   Compiling strum_macros v0.26.4
+   Compiling candid v0.10.37
+   Compiling candid v0.10.37
+   Compiling darling_macro v0.23.0
+   Compiling darling_macro v0.23.0
+   Compiling aho-corasick v1.1.5
+   Compiling aho-corasick v1.1.5
+   Compiling itoa v1.0.19
+   Compiling half v1.8.3
+   Compiling ic-cdk-executor v2.0.0
+   Compiling itoa v1.0.19
+   Compiling half v1.8.3
+   Compiling bytes v1.12.2
+   Compiling regex-syntax v0.8.12
+   Compiling ic-cdk-executor v2.0.0
+   Compiling regex-syntax v0.8.12
+   Compiling bytes v1.12.2
+   Compiling thiserror v2.0.21
+   Compiling thiserror v2.0.21
+   Compiling regex-automata v0.4.19
+   Compiling regex-automata v0.4.19
+   Compiling http v1.5.0
+   Compiling serde_cbor v0.11.2
+   Compiling http v1.5.0
+   Compiling darling v0.23.0
+   Compiling serde_cbor v0.11.2
+   Compiling strum v0.26.3
+   Compiling darling v0.23.0
+   Compiling ic-representation-independent-hash v3.2.0
+   Compiling strum v0.26.3
+   Compiling bstr v1.13.0
+   Compiling ic-certification v3.2.0
+   Compiling bstr v1.13.0
+   Compiling ic-certification v3.2.0
+   Compiling thiserror-impl v2.0.21
+   Compiling ic-representation-independent-hash v3.2.0
+   Compiling thiserror-impl v2.0.21
+   Compiling ic0 v1.2.0
+   Compiling urlencoding v2.1.3
+   Compiling ic0 v1.2.0
+   Compiling log v0.4.35
+   Compiling smallvec v1.16.6
+   Compiling smallvec v1.16.6
+   Compiling base64 v0.22.1
+   Compiling base64 v0.22.1
+   Compiling log v0.4.35
+   Compiling globset v0.4.19
+   Compiling urlencoding v2.1.3
+   Compiling ic-http-certification v3.2.0
+   Compiling ic-http-certification v3.2.0
+   Compiling globset v0.4.19
+   Compiling ic-error-types v0.2.0
+   Compiling ic-cdk-macros v0.20.3
+   Compiling ic-error-types v0.2.0
+   Compiling ic-cdk-macros v0.20.3
+   Compiling include_dir_macros v0.7.4
+   Compiling include_dir_macros v0.7.4
+   Compiling nexus-frontend v0.1.0 (<release-output>/source.dr8aU0Gh/canisters/frontend)
+   Compiling nexus-frontend v0.1.0 (<release-output>/source.BXU1feYG/canisters/frontend)
+   Compiling pin-project-lite v0.2.18
+   Compiling pin-project-lite v0.2.18
+   Compiling ic-cdk v0.20.3
+   Compiling ic-cdk v0.20.3
+   Compiling include_dir v0.7.4
+   Compiling include_dir v0.7.4
+   Compiling ic-asset-certification v3.2.0
+   Compiling ic-asset-certification v3.2.0
+    Finished `release` profile [optimized] target(s) in 4m 08s
+1873295 <release-output>/source.dr8aU0Gh/target/wasm32-unknown-unknown/release/nexus_frontend.wasm
+ 707373 <release-output>/source.dr8aU0Gh/target/wasm32-unknown-unknown/release/nexus_frontend.wasm.gz
+2580668 total
+c77bc8d6cbf7909b987a884f3a0cb1cd6a64a4a56729f6982aab59b7d3e344b1  <release-output>/source.dr8aU0Gh/target/wasm32-unknown-unknown/release/nexus_frontend.wasm
+d3c27e678ff4313972a781abafbd2ed8ef31f2824cd0b77adb85f02411cf73cc  <release-output>/source.dr8aU0Gh/target/wasm32-unknown-unknown/release/nexus_frontend.wasm.gz
+    Finished `release` profile [optimized] target(s) in 4m 09s
+   Compiling syn v3.0.10
+   Compiling either v1.19.0
+1873295 <release-output>/source.BXU1feYG/target/wasm32-unknown-unknown/release/nexus_frontend.wasm
+ 707373 <release-output>/source.BXU1feYG/target/wasm32-unknown-unknown/release/nexus_frontend.wasm.gz
+2580668 total
+c77bc8d6cbf7909b987a884f3a0cb1cd6a64a4a56729f6982aab59b7d3e344b1  <release-output>/source.BXU1feYG/target/wasm32-unknown-unknown/release/nexus_frontend.wasm
+d3c27e678ff4313972a781abafbd2ed8ef31f2824cd0b77adb85f02411cf73cc  <release-output>/source.BXU1feYG/target/wasm32-unknown-unknown/release/nexus_frontend.wasm.gz
+   Compiling typenum v1.20.1
+   Compiling syn v3.0.10
+   Compiling either v1.19.0
+   Compiling typenum v1.20.1
+   Compiling generic-array v0.14.7
+   Compiling generic-array v0.14.7
+   Compiling serde_core v1.0.229
+   Compiling serde_core v1.0.229
+   Compiling binrw_derive v0.15.2
+   Compiling serde_derive v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling binrw_derive v0.15.2
+   Compiling serde v1.0.229
+   Compiling serde v1.0.229
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling cfg-if v1.0.5
+   Compiling digest v0.10.7
+   Compiling crypto-common v0.1.7
+   Compiling num-traits v0.2.19
+   Compiling block-buffer v0.10.4
+   Compiling cfg-if v1.0.5
+   Compiling num-traits v0.2.19
+   Compiling sha2 v0.10.9
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling crc32fast v1.5.5
+   Compiling thiserror v1.0.69
+   Compiling thiserror v1.0.69
+   Compiling itertools v0.15.0
+   Compiling data-encoding v2.11.1
+   Compiling crc32fast v1.5.5
+   Compiling itertools v0.15.0
+   Compiling data-encoding v2.11.1
+   Compiling prost-derive v0.14.6
+   Compiling prost-derive v0.14.6
+   Compiling ic_principal v0.1.5
+   Compiling num-integer v0.1.47
+   Compiling ic_principal v0.1.5
+   Compiling num-integer v0.1.47
+   Compiling typed-arena v2.0.2
+   Compiling bytemuck v1.25.2
+   Compiling arrayvec v0.5.2
+   Compiling array-init v2.1.0
+   Compiling unicode-width v0.2.3
+   Compiling typed-arena v2.0.2
+   Compiling rustix v1.1.6
+   Compiling arrayvec v0.5.2
+   Compiling bytemuck v1.25.2
+   Compiling unicode-width v0.2.3
+   Compiling rustix v1.1.6
+   Compiling array-init v2.1.0
+   Compiling pretty v0.12.5
+   Compiling binrw v0.15.2
+   Compiling binrw v0.15.2
+   Compiling pretty v0.12.5
+   Compiling anyhow v1.0.104
+   Compiling anyhow v1.0.104
+   Compiling num-bigint v0.4.8
+   Compiling num-bigint v0.4.8
+   Compiling serde_bytes v0.11.19
+   Compiling hashbrown v0.17.2
+   Compiling serde_bytes v0.11.19
+   Compiling regex-syntax v0.8.12
+   Compiling regex-syntax v0.8.12
+   Compiling bitflags v2.13.2
+   Compiling equivalent v1.0.3
+   Compiling leb128 v0.2.7
+   Compiling bytes v1.12.2
+   Compiling prettyplease v0.2.37
+   Compiling leb128 v0.2.7
+   Compiling linux-raw-sys v0.12.1
+   Compiling hashbrown v0.17.2
+   Compiling foldhash v0.1.5
+   Compiling equivalent v1.0.3
+   Compiling byteorder v1.5.0
+   Compiling hex v0.4.3
+   Compiling prettyplease v0.2.37
+   Compiling byteorder v1.5.0
+   Compiling bytes v1.12.2
+   Compiling candid v0.10.37
+   Compiling foldhash v0.1.5
+   Compiling bitflags v2.13.2
+   Compiling linux-raw-sys v0.12.1
+   Compiling hex v0.4.3
+   Compiling prost v0.14.4
+   Compiling candid v0.10.37
+   Compiling indexmap v2.14.2
+   Compiling hashbrown v0.15.5
+   Compiling indexmap v2.14.2
+   Compiling hashbrown v0.15.5
+   Compiling prost v0.14.4
+   Compiling regex-automata v0.4.19
+   Compiling regex-automata v0.4.19
+   Compiling fixedbitset v0.5.9
+   Compiling once_cell v1.21.4
+   Compiling once_cell v1.21.4
+   Compiling fixedbitset v0.5.9
+   Compiling fastrand v2.5.0
+   Compiling fastrand v2.5.0
+   Compiling tempfile v3.27.0
+   Compiling petgraph v0.8.3
+   Compiling tempfile v3.27.0
+   Compiling petgraph v0.8.3
+   Compiling regex v1.13.2
+   Compiling regex v1.13.2
+   Compiling prost-types v0.14.4
+   Compiling prost-types v0.14.4
+   Compiling itertools v0.14.0
+   Compiling itertools v0.14.0
+   Compiling log v0.4.35
+   Compiling multimap v0.10.1
+   Compiling multimap v0.10.1
+   Compiling log v0.4.35
+   Compiling prost-build v0.14.4
+   Compiling prost-build v0.14.4
+   Compiling slotmap v1.1.1
+   Compiling slotmap v1.1.1
+   Compiling ic0 v1.2.0
+   Compiling smallvec v1.16.6
+   Compiling ic-cdk-executor v2.0.0
+   Compiling smallvec v1.16.6
+   Compiling ic0 v1.2.0
+   Compiling ic-cdk-executor v2.0.0
+   Compiling strum v0.26.3
+   Compiling nexus-ic-sources v0.1.0 (<release-output>/source.dr8aU0Gh/crates/ic-sources)
+   Compiling nexus-ic-sources v0.1.0 (<release-output>/source.BXU1feYG/crates/ic-sources)
+   Compiling nexus-domain v0.1.0 (<release-output>/source.dr8aU0Gh/crates/domain)
+   Compiling strum v0.26.3
+   Compiling nexus-domain v0.1.0 (<release-output>/source.BXU1feYG/crates/domain)
+   Compiling thiserror-impl v2.0.21
+   Compiling thiserror-impl v2.0.21
+   Compiling pin-project-lite v0.2.18
+   Compiling ic-cdk-timers v1.0.0
+   Compiling pin-project-lite v0.2.18
+   Compiling ic-cdk-timers v1.0.0
+   Compiling ic-cdk-macros v0.20.3
+   Compiling thiserror v2.0.21
+   Compiling ic-error-types v0.2.0
+   Compiling thiserror v2.0.21
+   Compiling ic-error-types v0.2.0
+   Compiling ic-management-canister-types v0.8.0
+   Compiling ic-management-canister-types v0.8.0
+   Compiling futures-macro v0.3.34
+   Compiling ic-cdk-macros v0.20.3
+   Compiling futures-macro v0.3.34
+   Compiling slab v0.4.12
+   Compiling futures-task v0.3.34
+   Compiling futures-core v0.3.34
+   Compiling futures-util v0.3.34
+   Compiling futures-task v0.3.34
+   Compiling slab v0.4.12
+   Compiling futures-core v0.3.34
+   Compiling futures-util v0.3.34
+   Compiling ic-cdk v0.20.3
+   Compiling ic-cdk v0.20.3
+   Compiling nexus-review-engine v0.1.0 (<release-output>/source.dr8aU0Gh/crates/review-engine)
+   Compiling nexus-review-engine v0.1.0 (<release-output>/source.BXU1feYG/crates/review-engine)
+   Compiling ic-stable-structures v0.7.2
+   Compiling ic-stable-structures v0.7.2
+   Compiling nexus-reviewer v0.1.0 (<release-output>/source.dr8aU0Gh/canisters/reviewer)
+   Compiling nexus-reviewer v0.1.0 (<release-output>/source.BXU1feYG/canisters/reviewer)
+    Finished `release` profile [optimized] target(s) in 7m 19s
+    Finished `release` profile [optimized] target(s) in 7m 25s
+     Removed 1873 files, 547.6MiB total
+     Removed 1873 files, 547.6MiB total
+1873295 first/frontend.wasm
+4849960 first/reviewer.wasm
+ 707373 first/frontend.wasm.gz
+ 918015 first/reviewer.wasm.gz
+8348643 total
+first/frontend.did: OK
+first/frontend.wasm: OK
+first/frontend.wasm.gz: OK
+first/reviewer.did: OK
+first/reviewer.wasm: OK
+first/reviewer.wasm.gz: OK
+repeat/frontend.did: OK
+repeat/frontend.wasm: OK
+repeat/frontend.wasm.gz: OK
+repeat/reviewer.did: OK
+repeat/reviewer.wasm: OK
+repeat/reviewer.wasm.gz: OK
