@@ -103,9 +103,9 @@ async fn read_subnet(
         .expect("one subnet");
     let members = &membership
         .value()
-        .ok_or_else(|| {
-            LiveError::InvalidEvidence(ReviewError::UnavailableRecord(RegistryKey::Subnet(subnet)))
-        })?
+        .ok_or(LiveError::InvalidEvidence(ReviewError::UnavailableRecord(
+            RegistryKey::Subnet(subnet),
+        )))?
         .members;
     if members.len() > NODE_LIMIT {
         return Err(LiveError::CallLimit);

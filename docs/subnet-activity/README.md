@@ -34,7 +34,7 @@ The capture generator accepts case IDs after the output filename. Regenerate bat
 
 ## Replicated verification
 
-The first hosted run stopped at native Clippy because the independent corpus test had no path for the new synthetic fixture records. The review branch updates that test to validate omitted list payloads and use the same synthetic proposal decoder as the fixture. The frontend, reviewer, engine and runtime fixture source remain identical to the frozen implementation. [Review branch workflow runs](https://github.com/aodl/IC_Widgets/actions/workflows/check.yml?query=branch%3Acodex%2Fsubnet-activity)
+The first hosted run stopped at native Clippy because the independent corpus test had no path for the new synthetic fixture records. The review branch updates that test to validate omitted list payloads and use the same synthetic proposal decoder as the fixture. The branch also uses an equivalent Option conversion in the existing subnet snapshot resolver to satisfy Clippy. The report, calculations, fixture runtime and public interface retain the frozen functionality. [Review branch workflow runs](https://github.com/aodl/IC_Widgets/actions/workflows/check.yml?query=branch%3Acodex%2Fsubnet-activity)
 
 The historical replay suite passed through the source fixture and production-source protection. The accepted comparison outputs matched the published catalogue across all 12 earlier interactive cases. The three new cases returned the following results from the disposable reviewer.
 
