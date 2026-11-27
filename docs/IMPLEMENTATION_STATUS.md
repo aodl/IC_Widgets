@@ -6,7 +6,7 @@ The local launcher serves the ordinary frontend and reviewer with a named scenar
 
 ## Factual composition and individual-node map
 
-Membership reports completion separately from evidence coverage and compares exact registered groups without selecting a policy motion. The map shows one marker per located node, with registered facility enclosures and connectors for displaced markers. PNG uses the same scene. The pinned Registry establishes the NNS role, and Governance is checked again after enrichment. [Walkthrough and source scope](clear-review/README.md)
+Membership reports completion separately from evidence coverage and compares exact registered groups without selecting a policy motion. The map keeps each node at its registered coordinates and exposes co-located identities in local popovers. Bundled Natural Earth map units are shaded from accepted recorded country counts. The report ZIP uses the same cartography, with names and flags displayed separately from raw Registry labels. The pinned Registry establishes the NNS role, and Governance is checked again after enrichment. [Walkthrough and source scope](clear-review/README.md)
 
 ## On-demand membership and performance
 

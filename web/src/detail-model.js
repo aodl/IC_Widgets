@@ -1,3 +1,4 @@
+import { countryComparison, countryToken } from './country-presentation.js';
 import { branch, hex, number, option, principal, time, words } from './view.js';
 
 export const lifecycle = { 1: 'Open', 2: 'Rejected', 3: 'Adopted', 4: 'Executed', 5: 'Failed' };
@@ -119,7 +120,7 @@ export function compositionRows(before, after) {
     const prior = new Map(groups(old).map(item => [item.label, item.count]));
     const proposed = new Map(groups(next).map(item => [item.label, item.count]));
     return [...new Set([...prior.keys(), ...proposed.keys()])].sort((a, b) => a.localeCompare(b)).map(group => ({
-      key, group, ...definition,
+      key, group, ...definition, prior: prior.get(group) ?? 0, proposed: proposed.get(group) ?? 0,
       delta: metricDelta(prior.get(group) ?? 0, proposed.get(group) ?? 0,
         { beforePartial: !!old.unknown, afterPartial: !!next.unknown }),
     }));
@@ -169,7 +170,7 @@ export function nodeFields(node) {
     { value: node.owner, issue: node.centerIssue },
     { value: node.provider, issue: node.operatorIssue, principal: true },
     { value: node.operatorId, issue: node.nodeIssue, principal: true },
-    { value: node.region?.split(',')[1]?.trim(), issue: node.centerIssue },
+    { value: countryToken(node.region), issue: node.centerIssue, country: true },
   ].map(field => ({ ...field, text: field.value || field.issue || absent }));
 }
 
@@ -259,6 +260,7 @@ export function reviewModel(live, context, evidence, section, replay) {
   const after = new Map(comparison?.selected.distributions.map(([key, row]) => [branch(key), row]));
   const composition = compositionRows(before, after);
   const dimensions = compositionDimensions(before, after);
+  const countries = countryComparison(composition, dimensions.find(item => item.key === 'RegisteredCountry'));
   const distances = distanceSummary(comparison?.baseline.distances, comparison?.selected.distances);
   const coverage = assignmentCoverage(live, context);
   const evidenceNotes = [];
@@ -283,7 +285,7 @@ export function reviewModel(live, context, evidence, section, replay) {
     'Proposed membership is conditional on the pinned evidence. Full execution validity remains unverified.',
     consistency?.reason].filter(Boolean);
   return {
-    members, composition, dimensions, distances, membership, version,
+    members, composition, dimensions, countries, distances, membership, version,
     summary: membershipSummary(members, context.before.member_count, selected.member_count,
       context.scenario.steps.length === 1 && !!context.scenario.steps[0].requested.Change), subnet, coverage, evidenceNotes, notes, calculation, replay,
     beforeCount: context.before.member_count, selectedCount: selected.member_count,

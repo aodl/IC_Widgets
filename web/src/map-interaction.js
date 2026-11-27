@@ -1,3 +1,4 @@
+import { boundaryNote, countryLabel, countryName, countryStyles, countryToken } from './country-presentation.js';
 import { absent, geographyNote, nodeFields, roles, roleSummary } from './detail-model.js';
 import { clamp, drawMap, fitLocations, mapCoverage, mapLocations, mapProjection, mapScene, pointDistance, siteLabel } from './review-map.js';
 import { action, deltaNode, el, styled } from './view.js';
@@ -7,7 +8,7 @@ const midpoint = (a, b) => b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : a;
 const world = { lon: 0, lat: 0, scale: 1 };
 const siteHeading = site => {
   const region = site.nodes.find(node => node.region)?.region.split(',').map(part => part.trim());
-  return [site.id, region && [region[2], region[1]].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Registered location';
+  return [site.id, region && [region[2], countryName(region[1])?.name].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Registered location';
 };
 const uniqueCount = nodes => nodes.length + ' unique ' + (nodes.length === 1 ? 'node' : 'nodes') + ' represented across the two states';
 const locationTitle = location => location.sites.map(siteHeading).join(' / ');
@@ -19,7 +20,7 @@ export function nodeDetails(node) {
   const status = el('span');
   status.setAttribute('role', 'status');
   const field = (label, value) => el('div', el('dt', label), el('dd', value));
-  const [, dc, owner, provider, operator] = nodeFields(node);
+  const [, dc, owner, provider, operator, country] = nodeFields(node);
   return styled('div', 'node-detail', id, action('Copy node ID', async () => {
     try {
       await navigator.clipboard.writeText(node.id);
@@ -30,6 +31,7 @@ export function nodeDetails(node) {
     }
   }), status, el('dl',
     field('Data center', dc.text), field('Registered owner', owner.text),
+    field('Country', countryLabel(country.value, country.text, true)),
     field('Registered region', node.region || node.centerIssue || absent),
     field('Provider', provider.text), field('Operator', operator.text),
     field('Coordinates', node.point ? node.point.lat + ', ' + node.point.lon : node.locationIssue || absent)));
@@ -68,10 +70,17 @@ export function reviewMap() {
   const unmapped = el('details');
   const status = styled('span', 'map-navigation-status');
   status.setAttribute('role', 'status');
+  const countryNote = styled('p', 'map-country-note');
   const legend = styled('div', 'map-legend', Object.values(roles).map(({ label, color }) => {
     const dot = styled('span', 'map-symbol');
     dot.style.background = color;
     return el('span', dot, label);
+  }));
+  const shadeLegend = styled('div', 'map-legend country-legend', Object.values(countryStyles).map(({ label, color, border }) => {
+    const swatch = styled('span', 'country-swatch');
+    swatch.style.background = color;
+    if (border) swatch.style.border = '1px dashed ' + border;
+    return el('span', swatch, label);
   }));
   const zoomLevel = el('select', [1, 2, 4, 8, 12].map(scale => Object.assign(el('option', scale + '×'), { value: scale })));
   zoomLevel.addEventListener('change', () => zoom(Number(zoomLevel.value), middle()));
@@ -84,10 +93,10 @@ export function reviewMap() {
   center.setAttribute('aria-pressed', 'false');
   const controls = styled('details', 'map-help', el('summary', 'Map help'),
     el('p', 'Drag to pan. Scroll or pinch to zoom. With map focus, use arrows to pan, + or − to zoom, and Escape to close details.'),
-    el('p', geographyNote), styled('div', 'actions', el('label', 'Zoom level ', zoomLevel), center,
+    el('p', geographyNote + ' ' + boundaryNote + ' Small squares mark represented map units too small to see at this zoom.'), styled('div', 'actions', el('label', 'Zoom level ', zoomLevel), center,
       action('Fit all locations', () => { if (viewport) { view = fitLocations(geography.locations, viewport); draw(); } })), status);
   const section = styled('section', 'map-section', styled('div', 'map-heading', el('h3', 'Map')),
-    frame, styled('div', 'map-caption', legend, caption), overflow, unmapped, controls);
+    frame, styled('div', 'map-caption', legend, caption), shadeLegend, countryNote, overflow, unmapped, controls);
 
   function renderTooltip() {
     const location = scene?.visible.find(item => item.key === hovered);
@@ -160,9 +169,16 @@ export function reviewMap() {
       const records = site.nodes.sort((a, b) => Object.keys(roles).indexOf(a.role) - Object.keys(roles).indexOf(b.role)
         || a.id.localeCompare(b.id));
       const owner = records.find(node => node.owner)?.owner;
+      const tokens = [...new Set(records.map(node => countryToken(node.region)).filter(Boolean))];
+      const countryRows = tokens.length ? tokens.map(token => {
+        const group = geography.countries?.groups.find(item => item.token === token);
+        return styled('p', 'map-country-count', 'Country members · ', countryLabel(token, absent, true), ' · ',
+          group ? deltaNode(group.delta) : 'Comparison unavailable');
+      }) : el('p', 'Country · ' + (records.find(node => node.centerIssue)?.centerIssue ?? absent));
       return styled('section', 'map-popup-site',
         location.sites.length > 1 ? el('h5', siteHeading(site)) : null,
         site.count ? el('strong', 'Subnet members: ', deltaNode(site.count)) : null,
+        countryRows,
         owner ? el('p', 'Registered owner: ' + owner) : null,
         el('p', roleSummary(records)), el('p', uniqueCount(records)),
         el('ul', records.map(node => {
@@ -387,7 +403,8 @@ export function reviewMap() {
         pins.replaceChildren();
       }
       reason = message;
-      geography = mapLocations(model?.members ?? []);
+      geography = mapLocations(model?.members ?? [], model?.countries);
+      countryNote.textContent = model?.countries?.note ?? '';
       unmapped.hidden = !geography.unmapped.length;
       const focusKey = unmapped.contains(document.activeElement) ? document.activeElement.dataset.node : undefined;
       const openNodes = new Set([...unmapped.querySelectorAll('details[open] > summary')].map(item => item.dataset.node));

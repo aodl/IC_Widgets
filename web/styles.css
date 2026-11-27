@@ -307,3 +307,13 @@ main > .performance { background: #fff; padding: .9rem; border: 1px solid var(--
   .topology-card th { overflow-wrap: normal; }
   .topology-card th .metric-help { display: block; width: max-content; }
 }
+
+/* Rows carry the direction; the action label remains visible at every width. */
+.node-row-added > td { background: #ecf7ed; }
+.node-row-removed > td { background: #fcf0ef; }
+.country-label { overflow-wrap: anywhere; }
+.country-flag { width: 1.06em; height: .8em; vertical-align: -.02em; margin-right: .28em; border-radius: 1px; }
+.country-legend { margin-block: .28rem; }
+.country-swatch { display: inline-block; width: 13px; height: 11px; border: 1px solid #84958b; }
+.map-country-note { margin-block: .25rem; color: var(--muted); font-size: .83rem; }
+.map-country-note:empty { display: none; }

@@ -22,3 +22,13 @@ CANISTER_ID_REVIEWER="$(dfx canister id --network local reviewer)" DFX_NETWORK=l
 ```
 
 `./scripts/test-m0.sh` builds the fixtures and runs the cross-subnet PocketIC tests, including the on-demand review and native blockmaking cases. Set `NEXUS_REAL_PROPOSAL_REPLY` to an existing public Candid reply for a one-addition, one-removal Governance proposal to also replay its exact payload against a synthetic local Registry. This tests the real proposal decoder and analysis path while keeping Registry verification local.
+
+## Production network regression
+
+Prepare the locked Node dependencies, Playwright with Chromium, and an isolated local replay project using `./scripts/dev-review-fixture.sh --case nns-144954-recorded-open --single`. Use the printed project directory. Optional `PLAYWRIGHT_MODULE` and `CHROMIUM_EXECUTABLE` point to prepared installations.
+
+```bash
+node web/browser-production-network.mjs "$project" "$PWD/.local/production-network"
+```
+
+The driver makes an ordinary production build with the isolated reviewer principal. When Chromium requests the bundle, the test harness replaces only the pinned mainnet trust anchor with the fixture replica public root. Production mode, the IC SDK, request signing and certificate verification remain active. The browser receives the deployed CSP and only the three local application assets. It routes approved IC calls to the isolated replica through the test harness. DNS, service workers and other browser requests are blocked. The test rejects attempted outside traffic, verifies the complete 144954 review, and checks that map interaction, flags, borders and generating the report consume no additional IC requests. No public or mainnet network is contacted by the test.

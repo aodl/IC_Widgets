@@ -117,8 +117,17 @@ try {
   await page.getByRole('button', { name: 'Sources & details' }).click();
   await page.getByText('Recorded distributions and maximum ties', { exact: true }).click();
   await page.getByText('Country', { exact: true }).filter({ visible: true }).last().click();
-  await page.getByText('Largest known groups before · CH, HK, IN, KR, US, ZA', { exact: true }).waitFor();
-  await page.getByText('Largest known groups proposed · HK, IN, KR, SE, US, ZA', { exact: true }).waitFor();
+  for (const [state, tokens] of [
+    ['before', ['CH', 'HK', 'IN', 'KR', 'US', 'ZA']], ['proposed', ['HK', 'IN', 'KR', 'SE', 'US', 'ZA']],
+  ]) {
+    const row = page.getByText(new RegExp('^Largest known groups ' + state + ' ·')).filter({ has: page.locator('[data-recorded-country]') });
+    assert.deepEqual(await row.locator('[data-recorded-country]').evaluateAll(items => items.map(item => item.dataset.recordedCountry)), tokens);
+  }
+  const country = token => page.locator('.inspector tr').filter({ has: page.locator('[data-recorded-country=' + token + ']') });
+  await country('SE').getByText('2 → 3', { exact: true }).waitFor();
+  await country('CH').getByText('3 → 2', { exact: true }).waitFor();
+  await country('HK').locator('canvas[data-drawn]').waitFor();
+  await country('IM').locator('canvas[data-drawn]').waitFor();
   await page.getByText('Method and exact inputs', { exact: true }).click();
   const wire = await download('Download calculation input (Candid)', 'recorded-calculation.didbin');
   const digest = createHash('sha256').update(wire).digest('hex');
@@ -143,10 +152,12 @@ try {
   await page.keyboard.press('Escape');
   assert.ok(!await tooltip.isVisible());
   await page.keyboard.press('Enter');
-  await popup.getByText('sh1 · Stockholm, SE', { exact: true }).waitFor();
+  await popup.getByText('sh1 · Stockholm, Sweden', { exact: true }).waitFor();
   assert.equal(await page.evaluate(() => scrollY), startScroll);
   await popup.getByText('Subnet members: 2 → 3', { exact: true }).waitFor();
   await popup.getByText('Registered owner: Digital Realty', { exact: true }).waitFor();
+  await popup.locator('.map-country-count').getByText('2 → 3', { exact: true }).waitFor();
+  await popup.locator('[data-recorded-country=SE] canvas[data-drawn]').waitFor();
   for (const node of await popup.locator('[data-map-node]').all()) {
     const id = await node.getAttribute('data-map-node');
     await node.click();
@@ -188,6 +199,11 @@ try {
   for (const [width, height] of [[1366, 900], [768, 900], [390, 844], [320, 700]]) {
     await resize(width, height);
     await fit();
+    const rowColors = await page.locator('.node-changes tbody tr').evaluateAll(rows =>
+      rows.map(row => [row.className, [...row.cells].map(cell => getComputedStyle(cell).backgroundColor)]));
+    assert.ok(rowColors.length >= 2 && rowColors.every(([name, cells]) =>
+      cells.every(color => color === (name === 'node-row-added' ? 'rgb(236, 247, 237)' : 'rgb(252, 240, 239)'))));
+    await page.locator('.node-changes [data-recorded-country=SE] canvas[data-drawn]').waitFor();
     const expectedSummary = await sh.getAttribute('data-nodes');
     assert.deepEqual(new Set(expectedSummary.split(' ')), shNodes);
     assert.equal(await page.locator('.map-pin:visible').count(), 39);
@@ -252,6 +268,7 @@ try {
   await popup.getByRole('heading', { name: 'Choose a location' }).waitFor();
   await popup.getByRole('button', { name: /^zh2 ·/ }).tap();
   assert.match(await popup.innerText(), /Subnet members: 1 → 0/);
+  await popup.locator('.map-country-count').getByText('3 → 2', { exact: true }).waitFor();
   await popup.getByRole('button', { name: /Remove tg4ec/ }).tap();
   assert.match(await popup.getByLabel('Full node principal').inputValue(), /^tg4ec/);
   await closePopup();
@@ -261,6 +278,10 @@ try {
 
   // Generate after panning and zooming. The report must use its own all-role scene.
   await exportButton().click();
+  const reportRows = page.locator('.markdown-preview :is(.node-row-added, .node-row-removed)');
+  assert.equal(await reportRows.count(), 2);
+  assert.ok(await reportRows.evaluateAll(rows => rows.every(row => [...row.cells].every(cell =>
+    getComputedStyle(cell).backgroundColor === (row.className === 'node-row-added' ? 'rgb(236, 247, 237)' : 'rgb(252, 240, 239)')))));
   const bundle = resolve(output, 'recorded-review.zip');
   await download('Download review', 'recorded-review.zip');
   assert.equal(execFileSync('unzip', ['-Z1', bundle], { encoding: 'utf8' }), 'review.md\nmap.png\n');
@@ -277,6 +298,9 @@ try {
   assert.match(markdown, /Synthetic NNS-role supplement/);
   assert.match(markdown, /41 unique nodes across both states · 41\/41 located/);
   assert.match(markdown, /Unchanged nodes \(39\)/);
+  assert.match(markdown, /🇸🇪 Sweden \(SE\) \| 2 → 3/);
+  assert.match(markdown, /🇨🇭 Switzerland \(CH\) \| 3 → 2/);
+  assert.match(markdown, /Europe,SE,Stockholm/);
   assert.match(markdown, /7367029 \| 7361847/);
   assert.match(markdown, /\]\(map\.png\)/);
   assert.doesNotMatch(markdown, /## Reviewer (vote|summary)|Full recorded distribution|Matches target|143190/);
@@ -288,9 +312,9 @@ try {
     const context = bitmap.getContext('2d');
     context.drawImage(raster, 0, 0);
     const data = context.getImageData(0, 230, bitmap.width, bitmap.height - 230).data;
-    const counts = [0, 0, 0];
+    const counts = [0, 0, 0, 0, 0];
     for (let i = 0; i < data.length; i += 4) {
-      const role = [[8, 119, 72], [173, 38, 63], [49, 94, 128]].findIndex(rgb => rgb.every((value, j) => data[i + j] === value));
+      const role = [[8, 119, 72], [173, 38, 63], [49, 94, 128], [204, 230, 208], [239, 213, 212]].findIndex(rgb => rgb.every((value, j) => data[i + j] === value));
       if (role >= 0) counts[role]++;
     }
     return counts;
@@ -499,7 +523,7 @@ try {
   assert.deepEqual(errors, []);
   const summary = { cases: ['recorded', 'multiple changes', 'unequal changes', 'paired orders', 'executed terminal', 'rejected terminal',
     'failed terminal', 'held locations', 'subnet A→B→A', 'independent browser contexts'],
-    mapChecks, recordedDigest: digest, recordedMethods, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
+    mapChecks, mapPngPalettePixels: colors, recordedDigest: digest, recordedMethods, reviewerMethods: [...calls.values()], nonLocalRequests: external.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log(JSON.stringify(summary, null, 2));
 } catch (error) {

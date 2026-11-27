@@ -1,4 +1,4 @@
-import land from './data/land.js';
+import { drawCountries } from './map-units.js';
 import { membershipSites, roleCounts, roles } from './detail-model.js';
 
 export const markerDiameter = 12;
@@ -6,7 +6,7 @@ export const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 export const pointDistance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const keyOf = ({ lon, lat }) => lon + ',' + lat;
 
-export function mapLocations(members) {
+export function mapLocations(members, countries) {
   const sites = membershipSites(members);
   const conflicts = new Set([...sites].filter(([, site]) =>
     new Set(site.nodes.filter(node => node.point).map(node => keyOf(node.point))).size > 1).map(([id]) => id));
@@ -30,7 +30,7 @@ export function mapLocations(members) {
       sites: [...new Set(location.nodes.map(node => node.dc))].sort().map(id =>
         ({ ...sites.get(id), nodes: location.nodes.filter(node => node.dc === id), id })),
     })),
-    unmapped, pending, changed, total: members.length, mapped: members.length - unmapped.length - pending,
+    unmapped, pending, changed, countries, total: members.length, mapped: members.length - unmapped.length - pending,
   };
 }
 
@@ -86,7 +86,7 @@ export function mapScene(geography, project, view) {
       place(location, String(location.nodes.length));
     }
   }
-  return { ...view, locations, visible, labels, overflow: geography.changed.filter(site => !placed.has(site.id)) };
+  return { ...view, locations, visible, labels, countries: geography.countries, overflow: geography.changed.filter(site => !placed.has(site.id)) };
 }
 
 export function mapCoverage(geography) {
@@ -106,21 +106,7 @@ export function drawMap(ctx, scene, project) {
   for (let y = -90; y <= 90; y += 30) {
     ctx.beginPath(); ctx.moveTo(0, project(0, y).y); ctx.lineTo(width, project(0, y).y); ctx.stroke();
   }
-  ctx.fillStyle = '#cfdbcd';
-  ctx.strokeStyle = '#a2b39f';
-  for (const polygon of land) {
-    ctx.beginPath();
-    for (const ring of polygon) {
-      ring.forEach(([lon, lat], index) => {
-        const point = project(lon, lat);
-        if (index === 0) ctx.moveTo(point.x, point.y);
-        else ctx.lineTo(point.x, point.y);
-      });
-      ctx.closePath();
-    }
-    ctx.fill('evenodd');
-    ctx.stroke();
-  }
+  drawCountries(ctx, scene, project);
   for (const { left, top, width, text, x, y } of scene.labels) {
     ctx.beginPath();
     ctx.moveTo(x, y);

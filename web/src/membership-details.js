@@ -1,3 +1,4 @@
+import { countryLabel } from './country-presentation.js';
 import { assignmentCoverage, calculationNote, comparisonCaption, criteriaNote, distanceHelp, distanceTitle, distributionTables,
   geographyNote, governanceText, metricDelta, nodeFields, nodeHeaders, replayRegistryText, reviewModel, reviewReadiness,
   roles, scenarioName, shortIds, thresholdNote } from './detail-model.js';
@@ -199,12 +200,13 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     if (!model?.calculation) return null;
     return disclosure('Recorded distributions and maximum ties', model.dimensions.map(item => {
       const rows = model.composition.filter(row => row.key === item.key);
-      const tied = list => list.map(group => group.label).join(', ') || 'Unavailable';
+      const label = token => item.key === 'RegisteredCountry' ? countryLabel(token, undefined, true) : token;
+      const tied = list => list.length ? list.flatMap((group, i) => [i ? ', ' : '', label(group.label)]) : 'Unavailable';
       return disclosure(item.label, el('p', item.help),
         item.partial ? el('p', 'Members with missing grouping · ', deltaNode(item.unknown)) : null,
-        el('p', 'Largest known groups before · ' + tied(item.ties[0])),
-        el('p', 'Largest known groups proposed · ' + tied(item.ties[1])),
-        table(['Recorded group', 'Subnet members'], rows.map(row => [row.group, deltaNode(row.delta)])));
+        el('p', 'Largest known groups before · ', tied(item.ties[0])),
+        el('p', 'Largest known groups proposed · ', tied(item.ties[1])),
+        table(['Recorded group', 'Subnet members'], rows.map(row => [label(row.group), deltaNode(row.delta)])));
     }));
   }
 
@@ -215,14 +217,17 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       const ids = shortIds(model.members.flatMap(node => [node.id, node.operatorId, node.provider]).filter(Boolean));
       const fields = node => nodeFields(node).map((field, index) => {
         if (index === 0) return action(ids.get(node.id), () => inspect([node.id], node.label));
+        if (field.country) return countryLabel(field.value, field.text);
         if (!field.principal || !field.value) return field.text;
         return disclosure(ids.get(field.value), el('code', field.value));
       });
       const role = node => styled('span', 'node-role role-' + node.role.toLowerCase(), roles[node.role].label);
+      const shading = node => 'node-row-' + node.role.toLowerCase();
       replace(changedNodes, el('h3', 'Node changes'), !changed.length ? el('p', 'No membership changes in this comparison.')
         : narrow.matches ? changed.map(node => table(['Field', 'Recorded value'],
-          [['Action', role(node)], ...fields(node).map((field, index) => [nodeHeaders[index + 1], field])]))
-          : table(nodeHeaders, changed.map(node => [role(node), ...fields(node)])));
+          [['Action', role(node)], ...fields(node).map((field, index) => [nodeHeaders[index + 1], field])],
+          nodeHeaders.map(() => shading(node))))
+          : table(nodeHeaders, changed.map(node => [role(node), ...fields(node)]), changed.map(shading)));
     }
 
     const state = session.section();

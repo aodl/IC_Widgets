@@ -23,14 +23,14 @@ export const words = value => value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 
 const details = (label, ...content) => el('details', el('summary', label), ...content);
 
-export function table(headers, rows) {
+export function table(headers, rows, rowClasses = []) {
   return styled('div', 'table-wrap',
     el('table', el('thead', el('tr', headers.map(label => {
       const heading = el('th', label);
       heading.scope = 'col';
       return heading;
     }))),
-      el('tbody', rows.map(row => el('tr', row.map(cell => el('td', cell)))))));
+      el('tbody', rows.map((row, index) => styled('tr', rowClasses[index] ?? '', row.map(cell => el('td', cell)))))));
 }
 
 export function sourceReceipts(result, { replay = false } = {}) {
