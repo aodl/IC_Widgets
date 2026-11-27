@@ -2,11 +2,10 @@ import { boundaryNote, countryLabel } from './country-presentation.js';
 import { dashboardLink, proposalHeading } from './dashboard.js';
 import { assignmentCoverage, calculationNote, comparisonCaption, criteriaNote, distanceHelp, distanceTitle, distributionTables,
   geographyNote, governanceText, metricDelta, replayRegistryText, reviewModel, reviewReadiness,
-  roles, scenarioName, shortIds, thresholdNote } from './detail-model.js';
+  scenarioName, shortIds, thresholdNote } from './detail-model.js';
 import { terminalOutcome } from './terminal-outcome.js';
 import { markdownEditor } from './review-export.js';
 import { help } from './review-help.js';
-import { nodeDetails } from './map-interaction.js';
 import { nodeTables } from './node-table.js';
 import { reportSnapshot } from './review-markdown.js';
 import { affectedNodes, comparisonEvidence, createReviewSession, stageLabel } from './review-session.js';
@@ -31,11 +30,6 @@ function selector(label, entries, value, changed) {
   select.setAttribute('aria-label', label);
   select.addEventListener('change', () => changed(select.value));
   return el('label', label, select);
-}
-
-function nodeButton(node, click) {
-  return action([roles[node.role].label, node.label, node.dc, node.region?.split(',')[2]?.trim(),
-    node.locationPending ? 'Location pending' : !node.point ? 'Unlocated' : null].filter(Boolean).join(' · '), click);
 }
 
 function registryRole(state, replay) {
@@ -142,6 +136,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   tools.append(exportReview, action('Sources & details', () => inspect({ type: 'sources' })), retry);
   narrow.addEventListener('change', renderTables);
 
+  const sorting = { changes: {}, other: {} };
   let selected;
   let model;
   let inspection;
@@ -184,9 +179,9 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     choose(next);
   }
 
-  function inspect(selection, title) {
+  function inspect(selection) {
     if (!inspector.contains(document.activeElement)) trigger = document.activeElement;
-    inspection = Array.isArray(selection) ? { type: 'nodes', ids: selection, title } : selection;
+    inspection = selection;
     renderInspector();
     inspector.querySelector('h3')?.focus();
   }
@@ -222,7 +217,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
 
   function renderTables() {
     nodes.hidden = !model;
-    replace(nodes, model ? nodeTables(model.members, { inspect: node => inspect([node.id], node.label) }) : null);
+    replace(nodes, model ? nodeTables(model.members, { sorting }) : null);
 
     const state = session.section();
     const loading = !model?.calculation && ['running', 'idle', 'stopping'].includes(state.work);
@@ -258,22 +253,18 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     if (!inspection) return;
     const state = session.section();
     const { type, snapshot } = inspection;
-    const node = model?.members.find(node => inspection.ids?.includes(node.id));
-    const title = inspection.title ?? (type === 'sources' ? 'Sources & details' : 'Generate review');
+    const title = type === 'sources' ? 'Sources & details' : 'Generate review';
     const heading = el('h3', title);
     heading.tabIndex = -1;
     let content;
-    if (type === 'sources') content = [model?.members.length ? disclosure('Nodes in this review (' + model.members.length + ')',
-        styled('div', 'actions', model.members.map(node => nodeButton(node, () => inspect([node.id], node.label))))) : null,
-      distributions(), evidenceView(live, state, session, selected, model, replay)];
-    else if (type === 'export') {
+    if (type === 'sources') content = [distributions(), evidenceView(live, state, session, selected, model, replay)];
+    else {
       const isCurrent = () => active() && !exportReview.disabled && inspection?.snapshot === snapshot
         && model?.calculation?.inputHash === snapshot.scope.inputHash && model?.step === snapshot.scope.step
         && model?.order === snapshot.scope.order && model?.subnet === snapshot.scope.subnet;
       content = isCurrent() ? (inspection.editor ??= markdownEditor(snapshot, selected.draft, isCurrent))
         : el('p', 'Generate the review again after the selected calculation and final Governance verification settle.');
     }
-    else if (node) content = [el('p', roles[node.role].label), nodeDetails(node)];
     const readiness = ({ Finished: 'Data loading complete', Provisional: 'Provisional · Governance check failed',
       Stopped: state.work === 'stopping' ? 'Stopping' : 'Stopped', Blocked: 'Review blocked' })[state.stage] ?? 'Review in progress';
     replace(inspector, styled('div', 'inspector-heading', heading, action('Close details', close)),

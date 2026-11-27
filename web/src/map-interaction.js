@@ -37,14 +37,14 @@ export function siteIdentities(nodes) {
 
 function siteEvidence(site, labels, links = false) {
   const { owners, providers } = siteIdentities(site.nodes);
-  const owner = (owners.length === 1 ? 'Registered owner: ' : 'Registered owners: ') + owners.join(' · ');
+  const owner = (owners.length === 1 ? 'Data center owner: ' : 'Data center owners: ') + owners.join(' · ');
   const provider = providers.flatMap(({ id, unavailable, count }, index) =>
     [index ? ' · ' : '', unavailable ?? (links ? dashboardLink('provider', id, labels.get(id)) : labels.get(id)),
       providers.length > 1 ? ' (' + count + (count === 1 ? ' node)' : ' nodes)') : '']);
   return [el('div', owner), el('div', providers.length === 1 ? 'Provider: ' : 'Providers: ', provider)];
 }
 
-export function nodeDetails(node) {
+function nodeDetails(node) {
   const id = Object.assign(el('input'), { value: node.id, readOnly: true });
   id.setAttribute('aria-label', 'Full node principal');
   const status = el('span');
@@ -61,10 +61,10 @@ export function nodeDetails(node) {
       status.textContent = document.execCommand('copy') ? 'Node ID copied.' : 'Select and copy the node ID.';
     }
   }), ' ', dashboardLink(identity.entity, identity.value, 'Node dashboard'), status, el('dl',
-    field('Data center', recorded(dc)), field('Registered owner', owner.text),
+    field('Data center', recorded(dc)), field('Data center owner', owner.text),
     field('Country', countryLabel(country.value, country.text, true)),
     field('Registered region', node.region || node.centerIssue || absent),
-    field('Provider', recorded(provider)), field('Operator', operator.text),
+    field('Node provider', dashboardLink('provider', provider.value, provider.text)), field('Operator', operator.text),
     field('Coordinates', node.point ? node.point.lat + ', ' + node.point.lon : node.locationIssue || absent)));
 }
 
