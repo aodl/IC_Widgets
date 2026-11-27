@@ -22,7 +22,8 @@ build_copy() {
     local name=$1
     local source="$scratch/$name"
     mkdir "$source"
-    git archive "$revision" Cargo.toml Cargo.lock rust-toolchain.toml canisters crates tests/source-fixture         scripts/build-frontend-wasm.sh web | tar -x -C "$source"
+    git archive "$revision" Cargo.toml Cargo.lock rust-toolchain.toml canisters crates tests/source-fixture \
+        scripts/build-frontend-wasm.sh web | tar -x -C "$source"
     ln -s "$repo/web/node_modules" "$source/web/node_modules"
     if [[ "$name" == changed-asset ]]; then
         printf '\n/* served asset hash sensitivity probe */\n' >> "$source/web/styles.css"
