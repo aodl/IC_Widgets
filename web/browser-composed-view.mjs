@@ -223,14 +223,10 @@ try {
     return inspector.locator('#report-status').getByText('Data loading complete', { exact: true });
   }
 
-  function membershipRow(id) {
-    return activity.locator('details').filter({ has: activity.getByRole('button', { name: 'Review #' + id, exact: true }) });
-  }
-
   async function review(id) {
-    const control = activity.getByRole('button', { name: 'Review #' + id, exact: true });
+    const control = activity.locator('button').filter({ hasText: new RegExp('^Review #' + id + '$') });
     if (!await control.first().isVisible()) {
-      const group = membershipRow(id);
+      const group = activity.locator('details').filter({ has: control });
       if (await group.count()) await group.first().locator(':scope > summary').click();
     }
     await control.first().click();
@@ -280,7 +276,9 @@ try {
   if (await viewSettings.isVisible()) await viewSettings.click();
   await page.getByRole('textbox', { name: 'New view name' }).fill('Subnet proposal review');
   await page.getByRole('button', { name: 'Create view', exact: true }).click();
-  for (const definition of ['activity', 'inspector', 'map', 'performance']) await page.getByLabel('Add widget').selectOption(definition);
+  for (const definition of ['inspector', 'activity', 'map', 'performance']) await page.getByLabel('Add widget').selectOption(definition);
+  await activityWidget.getByText('Widget settings', { exact: true }).click();
+  await activityWidget.getByRole('button', { name: 'Move earlier' }).click();
   async function connect(title, port, source) {
     const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
     await card.getByText('Widget settings', { exact: true }).click();
@@ -358,8 +356,8 @@ try {
   await activity.getByRole('button', { name: 'Undecided', exact: true }).click();
   const targetButtons = activity.locator('.activity-direct button');
   const [firstTarget, secondTarget] = Object.keys(expected.cases['untargeted-two-subnets'].baselines);
-  const secondButton = targetButtons.filter({ hasText: secondTarget });
-  const firstButton = targetButtons.filter({ hasText: firstTarget });
+  const secondButton = targetButtons.filter({ hasText: secondTarget.slice(0, 11) });
+  const firstButton = targetButtons.filter({ hasText: firstTarget.slice(0, 11) });
   start = calls.length;
   await secondButton.click();
   await assertConnected(start, 'untargeted-two-subnets', '132102', secondTarget);
