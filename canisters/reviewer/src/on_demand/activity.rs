@@ -283,8 +283,10 @@ async fn observe(
                         && let Ok(Some(info)) = decode_candid::<Option<ProposalInfo>>(&body)
                         && info.id.map(|id| id.id) == Some(id)
                     {
+                        if pending.contains(&id) || lifecycle(&info).is_some() {
+                            coverage.hydrated += 1;
+                        }
                         full.insert(id, (info, reply.observed_at));
-                        coverage.hydrated += 1;
                     } else {
                         let issues = if pending.contains(&id) {
                             &mut coverage.issues
@@ -456,7 +458,9 @@ async fn observe(
     let mut index = BTreeMap::<Principal, Vec<(u64, NodeReferenceRole)>>::new();
     let mut output = Vec::new();
     for (row, info, mut refs) in details {
-        if let Some(proposal) = info.proposal {
+        if row.lifecycle != ActivityLifecycle::Other
+            && let Some(proposal) = info.proposal
+        {
             coverage.textual_checked += 1;
             textual(
                 proposal.title.as_deref().unwrap_or_default(),
@@ -497,6 +501,16 @@ async fn observe(
                 }
             }
         }
+    }
+    if voting_coverage.missing_payloads
+        + voting_coverage.malformed_payloads
+        + voting_coverage.unsupported_actions
+        > 0
+    {
+        voting_coverage.issues.push(format!(
+            "Decided voting rows: {} unsupported actions, {} unavailable actions or payloads, {} malformed payloads.",
+            voting_coverage.unsupported_actions, voting_coverage.missing_payloads, voting_coverage.malformed_payloads,
+        ));
     }
     let complete = complete(&coverage);
     Ok(LiveSubnetActivity {

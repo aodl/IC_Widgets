@@ -95,7 +95,7 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, s
     content.push(el('p', 'Registry ' + (option(observation.response.registry_version) ?? 'unavailable') + ' · '
       + (option(payload.registry_complete) ? 'Pinned roster resolved' : 'Registry associations incomplete')
       + (checked > 0 ? ' · ' + checked + '/' + roster.length + ' memberships checked' : '')
-      + ' · Voting discovery ' + (option(payload.voting_pagination_complete) ? 'complete' : 'incomplete')),
+      + ' · Voting pagination ' + (option(payload.voting_pagination_complete) ? 'complete' : 'incomplete')),
     el('p', rows.membershipCount + ' distinct observed Membership proposals · ' + rows.affectedCount + ' confirmed affected subnets'
       + (rows.unresolved.length ? ' · ' + rows.unresolved.length + ' unresolved targets' : '')),
     el('details', el('summary', coverage.overview), el('ul', [...coverage.observations,
