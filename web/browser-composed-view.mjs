@@ -300,8 +300,12 @@ try {
   let start = calls.length;
   await activity.locator('.activity-direct button').first().click();
   const { subnet } = await assertConnected(start, 'nns-144954-recorded-open', '144954');
+  const desktop = page.viewportSize();
+  await page.setViewportSize({ ...desktop, height: 1900 });
   await page.screenshot({ path: resolve(directory, 'activity-review-desktop.png'), fullPage: true });
+  await page.locator('iframe[title="IC Node Map"]').evaluate(frame => frame.scrollIntoView({ block: 'center' }));
   await map.locator('.map-section').screenshot({ path: resolve(directory, 'activity-review-map.png') });
+  await page.setViewportSize(desktop);
   start = calls.length;
   await activity.getByRole('button', { name: 'Refresh discovery' }).click();
   await activity.getByRole('button', { name: 'Refresh discovery' }).waitFor();
@@ -329,7 +333,9 @@ try {
   start = calls.length;
   await inspectCurrent(subnet);
   await assertConnected(start, 'nns-144954-recorded-open');
+  await page.setViewportSize({ ...desktop, height: 1900 });
   await page.screenshot({ path: resolve(directory, 'activity-current-desktop.png'), fullPage: true });
+  await page.setViewportSize(desktop);
 
   fixture('multiple-changes');
   await activity.getByRole('button', { name: 'Refresh discovery' }).click();
@@ -347,6 +353,7 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await activityWidget.screenshot({ path: resolve(directory, 'activity-review-mobile.png') });
+  await page.locator('iframe[title="IC Node Map"]').evaluate(frame => frame.scrollIntoView({ block: 'center' }));
   await map.locator('.map-section').screenshot({ path: resolve(directory, 'activity-map-mobile.png') });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
 
