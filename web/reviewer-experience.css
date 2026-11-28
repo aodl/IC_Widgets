@@ -22,3 +22,12 @@
 .markdown-fields textarea { width: 100%; }
 .voting-observation { display: block; }
 .embed-inspector .inspector-heading h3 { scroll-margin-block-start: 3.2rem; }
+.embed-activity .activity-toolbar h2 { display: none; }
+.embed-activity .activity-toolbar { justify-content: flex-start; }
+.embed-activity .activity-navigator { padding: .63rem; }
+.embed-activity .activity-navigator :is(p, summary, small) { font-size: .82rem; line-height: 1.35; }
+.embed-activity .activity-navigator .controls { gap: .26rem; margin: .4rem 0; }
+.embed-activity .activity-navigator button { font-size: .8rem; min-height: 1.95rem; padding: .28rem .48rem; }
+.embed-activity .activity-total { font-weight: 700; color: #173d48; }
+.embed-activity .activity-registry { color: #3b5964; }
+.embed-activity .activity-navigator :is(.observation-time, .activity-registry, .activity-total) { margin: .4rem 0; }

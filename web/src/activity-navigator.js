@@ -47,6 +47,7 @@ function status(row) {
 
 export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, references, showReview, initial, read }) {
   const section = styled('section', 'card activity-navigator');
+  section.setAttribute('aria-label', 'Subnet Activity');
   section.hidden = true;
   let observation = initial && { response: initial.reply.Ok, attempt: nextActivityAttempt() };
   let issue, loading, selected, filter = 'undecided';
@@ -106,14 +107,19 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, r
     const observed = observation.response.usage.finished_at;
     const minutes = Math.max(0, Math.floor((Date.now() - Number(observed / 1_000_000n)) / 60_000));
     const relative = minutes === 0 ? 'less than a minute ago' : minutes + (minutes === 1 ? ' minute ago' : ' minutes ago');
-    content.push(styled('p', 'observation-time', 'Observation completed ' + time(observed) + ' · ' + relative),
-    el('p', 'Registry ' + (option(observation.response.registry_version) ?? 'unavailable') + ' · '
+    const observedClock = Object.assign(el('time', time(observed).replace(/\.\d+ UTC$/, ' UTC')), {
+      dateTime: new Date(Number(observed / 1_000_000n)).toISOString(), title: time(observed),
+    });
+    const countLine = styled('p', 'activity-total', rows.membershipCount
+      + ' distinct observed Membership proposals · ' + rows.affectedCount + ' confirmed affected subnets'
+      + (rows.unresolved.length ? ' · ' + rows.unresolved.length + ' unresolved targets' : ''));
+    content.push(countLine,
+    styled('p', 'observation-time', observedClock, ' · ', relative),
+    styled('p', 'activity-registry', 'Registry ' + (option(observation.response.registry_version) ?? 'unavailable') + ' · '
       + (option(payload.registry_complete) ? 'Pinned roster resolved' : 'Registry associations incomplete')
       + (checked > 0 ? ' · ' + checked + '/' + roster.length + ' memberships checked' : '')
       + ' · Voting pagination ' + (option(payload.voting_pagination_complete) ? 'complete' : 'incomplete')),
-    el('p', rows.membershipCount + ' distinct observed Membership proposals · ' + rows.affectedCount + ' confirmed affected subnets'
-      + (rows.unresolved.length ? ' · ' + rows.unresolved.length + ' unresolved targets' : '')),
-    el('details', el('summary', coverage.overview), el('ul', [...coverage.observations,
+    styled('details', 'activity-coverage', el('summary', coverage.overview), el('ul', [...coverage.observations,
       ...(option(payload.voting_issues ?? []) ?? []).map(issue => 'Voting discovery · ' + issue)].map(text => el('li', text)))),
     rows.membershipCount === 0 && filter !== 'all' ? el('p', option(payload.voting_pagination_complete) && !issue
       ? 'No matching Membership proposals were observed within the checked coverage.'

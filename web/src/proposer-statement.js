@@ -50,7 +50,7 @@ export function statementExcerpt(row) {
   const cleaned = lines.join('\n').trim();
   const marker = /^\s*(?:#{1,6}\s+)?\*{0,2}(?:motivation|reason|purpose)\*{0,2}(?:\s*:\s*(.*)|\s*)$/im.exec(cleaned);
   const candidate = marker
-    ? [marker[1], cleaned.slice(marker.index + marker[0].length).trim()].filter(Boolean).join('\n').trim()
+    ? (marker[1]?.trim() || cleaned.slice(marker.index + marker[0].length).trim())
     : cleaned;
   const excerpt = candidate.split(/\n\s*\n|\n\s*#{1,6}\s+/)[0]?.trim() || cleaned;
   return excerpt.length > 320 ? excerpt.slice(0, 310).replace(/\s+\S*$/, '') + '…' : excerpt;

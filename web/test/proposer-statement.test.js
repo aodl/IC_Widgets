@@ -17,6 +17,6 @@ test('proposer statements support headings and lists without creating active con
 });
 
 test('the summary leads with the proposer’s stated reason and leaves technical appendices in full text', () => {
-  assert.equal(statementExcerpt({ title: 'Replace a node', text: '# Replace a node\n\nMotivation: Decommission a site.\n\n## Comparison\nAppendix' }),
+  assert.equal(statementExcerpt({ title: 'Replace a node', text: '# Replace a node\n\nMotivation: Decommission a site.\nTechnical appendix begins on the next line.\n\n## Comparison\nAppendix' }),
     'Decommission a site.');
 });
