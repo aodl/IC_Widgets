@@ -68,6 +68,7 @@ The host forwards selection intent only. The inspector reads Governance and pins
 The disposable test adds an opt-in synthetic discovery listing to selected historical scenarios. Per-proposal replies and Registry fixture data still come from their respective source fixtures. The listing demonstrates selection and lifecycle behaviour without claiming historical scan completeness or current Open status. The fixture-only loader is absent from the production reviewer. The inspector's disposable reports identify their fixture origin.
 
 ## Proposed first hosted demonstration
+The [final creation proposal](composed-view/first-hosted-release.md) records measured costs, the approved source integration and the proposed creation-only authorization.
 
 Publish one certified Network Nexus host and four independently hosted certified IC Widgets frontends for Activity, Inspector, IC Node Map and Performance. Keep the existing standalone frontend and catalogue at their current origin. Reuse reviewer `s34gv-3qaaa-aaaar-qcifa-cai` and its public methods for discovery, current subnet snapshots, Membership review and Performance. No reviewer interface or state migration is needed. Activity and the inspector use the reviewer for sourced evidence, and Performance uses it for metrics. The map consumes only its supplied scene through the host.
 
