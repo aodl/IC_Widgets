@@ -10,12 +10,13 @@ use nexus_ic_sources::{
 use nexus_review_engine::requested_nodes;
 use serde::Deserialize;
 
-use super::{LiveError, LiveResponse, Request, RequestGuard, proposals};
+use super::{LiveError, LiveResponse, NODE_LIMIT, Request, RequestGuard, proposals};
 use crate::{Sources, store};
 
 const PAGE_LIMIT: usize = 14;
 const HYDRATION_LIMIT: usize = 72;
 const MATCH_LIMIT: usize = 256;
+const PROJECTED_REFERENCE_LIMIT: usize = 512;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, CandidType, Deserialize)]
 pub enum ActivityLifecycle {
@@ -96,6 +97,16 @@ pub struct LiveSubnetActivity {
     pub voting_issues: Option<Vec<String>>,
     pub requested_instructions: Option<Vec<(u64, i32, Hash)>>,
     pub truncated_proposals: Option<Vec<u64>>,
+    pub node_projection: Option<NodeProjection>,
+}
+
+pub type RequestedReference = (u64, Principal, NodeReferenceRole);
+
+#[derive(Debug, CandidType, Deserialize)]
+pub struct NodeProjection {
+    requested: Vec<RequestedReference>,
+    matches: Vec<ActivityMatch>,
+    omitted_matches: u32,
 }
 
 fn lifecycle(info: &ProposalInfo) -> Option<ActivityLifecycle> {
@@ -201,12 +212,40 @@ fn textual(text: &str, targets: &BTreeMap<String, Principal>, refs: &mut Referen
 }
 
 #[ic_cdk::update]
-async fn subnet_activity(selected: Vec<u64>) -> Result<LiveResponse<LiveSubnetActivity>, String> {
+async fn subnet_activity(
+    selected: Vec<u64>,
+    requested_nodes: Option<Vec<RequestedReference>>,
+) -> Result<LiveResponse<LiveSubnetActivity>, String> {
     if selected.len() > 2
         || selected.contains(&0)
         || selected.iter().collect::<BTreeSet<_>>().len() != selected.len()
     {
         return Err("Select up to two distinct positive proposal IDs.".into());
+    }
+    let projection = requested_nodes.unwrap_or_default();
+    if projection.len() > PROJECTED_REFERENCE_LIMIT
+        || projection
+            .iter()
+            .map(|row| row.1)
+            .collect::<BTreeSet<_>>()
+            .len()
+            > NODE_LIMIT
+        || projection
+            .iter()
+            .map(|row| row.0)
+            .collect::<BTreeSet<_>>()
+            .len()
+            > 2
+        || projection.iter().any(|(id, _, role)| {
+            *id == 0
+                || !matches!(
+                    role,
+                    NodeReferenceRole::Incoming | NodeReferenceRole::Outgoing
+                )
+                || (!selected.is_empty() && !selected.contains(id))
+        })
+    {
+        return Err("The discovery node filter is invalid or exceeds the supported size.".into());
     }
     let guard = RequestGuard::acquire()?;
     let mut request = Request::new(guard.0);
@@ -215,7 +254,7 @@ async fn subnet_activity(selected: Vec<u64>) -> Result<LiveResponse<LiveSubnetAc
     } else {
         Sources::canonical()
     };
-    let outcome = observe(&mut request, sources, &selected).await;
+    let outcome = observe(&mut request, sources, &selected, projection).await;
     Ok(request.finish(outcome))
 }
 
@@ -223,12 +262,14 @@ async fn observe(
     request: &mut Request,
     sources: Sources,
     selected: &[u64],
+    projection: Vec<RequestedReference>,
 ) -> Result<LiveSubnetActivity, LiveError> {
     let source = sources.governance;
     let mut coverage = ActivityCoverage::default();
     let mut requested = BTreeMap::<u64, References>::new();
     let mut instructions = Vec::new();
-    for (proposal, _) in proposals(request, source, selected).await? {
+    let read_selected = if projection.is_empty() { selected } else { &[] };
+    for (proposal, _) in proposals(request, source, read_selected).await? {
         let evidence = proposal.evidence;
         membership_roles(&proposal.action, requested.entry(evidence.id).or_default());
         instructions.push((evidence.id, evidence.function, evidence.payload_hash));
@@ -450,8 +491,13 @@ async fn observe(
             refs,
         ));
     }
+    let mut projected = BTreeMap::<u64, References>::new();
+    for &(proposal, node, role) in &projection {
+        projected.entry(proposal).or_default().insert((node, role));
+    }
     let targets = requested
         .values()
+        .chain(projected.values())
         .flatten()
         .map(|&(id, _)| (id.to_text(), id))
         .collect();
@@ -479,29 +525,16 @@ async fn observe(
         }
         output.push(row);
     }
-    let mut matches = Vec::new();
-    let mut truncated = BTreeSet::new();
-    for (proposal, refs) in requested {
-        for (node, requested_role) in refs {
-            for &(other, other_role) in index.get(&node).map(Vec::as_slice).unwrap_or_default() {
-                if other == proposal {
-                    continue;
-                }
-                if matches.len() >= MATCH_LIMIT {
-                    coverage.omitted_matches += 1;
-                    truncated.insert(proposal);
-                } else {
-                    matches.push(ActivityMatch {
-                        node,
-                        proposal,
-                        requested_role,
-                        other,
-                        other_role,
-                    });
-                }
-            }
+    let (matches, truncated, omitted) = match_references(requested, &index);
+    coverage.omitted_matches = omitted;
+    let node_projection = (!projection.is_empty()).then(|| {
+        let (matches, _, omitted) = match_references(projected, &index);
+        NodeProjection {
+            requested: projection,
+            matches,
+            omitted_matches: omitted,
         }
-    }
+    });
     if voting_coverage.missing_payloads
         + voting_coverage.malformed_payloads
         + voting_coverage.unsupported_actions
@@ -525,7 +558,39 @@ async fn observe(
         voting_issues: voting_pagination_complete.map(|_| voting_coverage.issues),
         requested_instructions: Some(instructions),
         truncated_proposals: Some(truncated.into_iter().collect()),
+        node_projection,
     })
+}
+
+fn match_references(
+    requested: BTreeMap<u64, References>,
+    index: &BTreeMap<Principal, Vec<(u64, NodeReferenceRole)>>,
+) -> (Vec<ActivityMatch>, BTreeSet<u64>, u32) {
+    let mut matches = Vec::new();
+    let mut truncated = BTreeSet::new();
+    let mut omitted = 0;
+    for (proposal, refs) in requested {
+        for (node, requested_role) in refs {
+            for &(other, other_role) in index.get(&node).map(Vec::as_slice).unwrap_or_default() {
+                if other == proposal {
+                    continue;
+                }
+                if matches.len() >= MATCH_LIMIT {
+                    omitted += 1;
+                    truncated.insert(proposal);
+                } else {
+                    matches.push(ActivityMatch {
+                        node,
+                        proposal,
+                        requested_role,
+                        other,
+                        other_role,
+                    });
+                }
+            }
+        }
+    }
+    (matches, truncated, omitted)
 }
 
 async fn discover(

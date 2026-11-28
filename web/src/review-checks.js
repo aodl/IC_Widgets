@@ -130,9 +130,10 @@ export function interactionChecks(observation) {
         + ' · Hydrated ' + coverage.hydrated + ' · Lifecycle changed ' + coverage.changed_lifecycle,
       'Unsupported actions ' + coverage.unsupported_actions + ' · Missing payloads ' + coverage.missing_payloads
         + ' · Malformed payloads ' + coverage.malformed_payloads + ' · Omitted findings ' + coverage.omitted_matches,
+      ...(observation.projected ? ['Checked the exact node identities in the accepted Membership instructions.'] : []),
       ...(observation.scope ? ['Findings restricted to accepted instructions for ' + observation.scope.map(id => '#' + id).join(', ')
         + (option(outcome.Ok.subnets ?? []) ? ' · Reused network-wide discovery.' : ' · Review-specific discovery.')] : []),
-      ...(observation.truncated ? ['The global findings limit omitted references for this review.'] : []),
+      ...(observation.truncated ? ['The findings limit omitted references for this review.'] : []),
       ...coverage.issues,
     ],
     findings, receipts: receipts.map(evidenceReceipt),
@@ -177,9 +178,36 @@ export function reviewChecksView(checks) {
 let attempt = 0;
 export const nextActivityAttempt = () => ++attempt;
 
-export function scopedActivity(observation, evidence) {
+export function discoveryScope(report, finalEvidence = report.manifest.proposals) {
+  const steps = report.scenarios.flatMap(scenario => scenario.steps);
+  const references = new Map();
+  for (const { id } of finalEvidence) {
+    const action = steps.find(step => step.proposal === id)?.requested;
+    if (!action) continue;
+    const groups = [[action.Change?.add ?? action.Add?.nodes ?? [], 'Incoming'],
+      [action.Change?.remove ?? action.Remove?.nodes ?? [], 'Outgoing']];
+    for (const [ids, role] of groups) for (const node of ids) {
+      references.set(id + '/' + principal(node) + '/' + role, [id, node, { [role]: null }]);
+    }
+  }
+  return [...references.values()];
+}
+
+const referenceKeys = rows => new Set(rows.map(([id, node, role]) => id + '/' + principal(node) + '/' + branch(role)));
+
+export function scopedActivity(observation, evidence, references = []) {
   const accepted = observation?.response?.outcome?.Ok;
   if (!accepted || (observation.error && !observation.stale)) return observation;
+  const projection = option(accepted.node_projection ?? []);
+  const provided = referenceKeys(references);
+  const echoed = referenceKeys(projection?.requested ?? []);
+  if (provided.size && provided.size === echoed.size && [...provided].every(key => echoed.has(key))) {
+    const coverage = { ...accepted.coverage, omitted_matches: projection.omitted_matches };
+    const complete = coverage.pagination_complete && !coverage.issues.length && !coverage.unsupported_actions
+      && !coverage.missing_payloads && !coverage.malformed_payloads && !projection.omitted_matches;
+    return { ...observation, scope: evidence.map(row => row.id), projected: true, truncated: projection.omitted_matches > 0,
+      response: { ...observation.response, outcome: { Ok: { ...accepted, coverage, complete, matches: projection.matches } } } };
+  }
   const instructions = option(accepted.requested_instructions ?? []) ?? [];
   const scope = evidence.map(row => row.id);
   const bound = evidence.every(row => instructions.some(([id, fn, hash]) =>
@@ -192,9 +220,9 @@ export function scopedActivity(observation, evidence) {
     } } } };
 }
 
-export function acceptScopedActivity(previous, observation, evidence) {
+export function acceptScopedActivity(previous, observation, evidence, references) {
   if (!observation || (previous?.attempt ?? -1) >= (observation.attempt ?? 0)) return previous;
-  const next = scopedActivity(observation, evidence);
+  const next = scopedActivity(observation, evidence, references);
   return next.error && previous?.response?.outcome?.Ok
     ? { ...previous, attempt: next.attempt, stale: true, error: next.error }
     : next;

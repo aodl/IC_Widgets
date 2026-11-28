@@ -9,7 +9,7 @@ import { help } from './review-help.js';
 import { nodeTables } from './node-table.js';
 import { proposalNodeSelection } from './node-snapshot.js';
 import { reportSnapshot } from './review-markdown.js';
-import { acceptScopedActivity, nextActivityAttempt, reviewCheckSummary, reviewChecksView } from './review-checks.js';
+import { acceptScopedActivity, discoveryScope, nextActivityAttempt, reviewCheckSummary, reviewChecksView } from './review-checks.js';
 import { liveError, result } from './client.js';
 import { affectedNodes, comparisonEvidence, createReviewSession, stageLabel } from './review-session.js';
 import { action, branch, deltaNode, el, hex, number, option, principal, saveFile, styled, table, time, words } from './view.js';
@@ -124,8 +124,9 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const pane = styled('section', 'card review-pane');
   pane.hidden = true;
   const checks = el('div');
+  const references = discoveryScope(report);
   let activityRunning = false;
-  let observation = acceptScopedActivity(undefined, discovered, proposals) ?? (replay && !replay.activity
+  let observation = acceptScopedActivity(undefined, discovered, proposals, references) ?? (replay && !replay.activity
     ? { error: 'This historical review has no bundled cross-proposal observation.' } : undefined);
   const tools = styled('div', 'actions review-tools');
   const header = styled('section', 'review-header',
@@ -352,11 +353,11 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     activityRunning = true;
     if (refresh) render();
     const checkActive = () => active() && session.section().work !== 'stopped';
-    const accept = next => { observation = acceptScopedActivity(observation, { attempt, ...next }, proposals); };
+    const accept = next => { observation = acceptScopedActivity(observation, { attempt, ...next }, proposals, references); };
     try {
       await session.settled();
       if (!checkActive()) return;
-      const reply = await call(checkActive, client => client.subnet_activity(proposals.map(row => row.id)));
+      const reply = await call(checkActive, client => client.subnet_activity(proposals.map(row => row.id), replay || !references.length ? [] : [references]));
       if (!checkActive() || !reply) return;
       const response = result(reply);
       accept('Err' in response.outcome ? { response, error: 'Refresh failed · ' + liveError(response.outcome.Err) } : { response });
@@ -368,8 +369,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     }
   }
 
-  return { section, session, loadActivity, acceptActivity(next) {
-    if (active()) { observation = acceptScopedActivity(observation, next, proposals); render(); }
+  return { section, session, loadActivity, references, acceptActivity(next) {
+    if (active()) { observation = acceptScopedActivity(observation, next, proposals, references); render(); }
   }, dispose: () => narrow.removeEventListener('change', renderTables), start: chooseScope, inspect, openPerformance() {
     if (!pane.contains(performance.section)) pane.replaceChildren(performance.section);
     pane.hidden = false;

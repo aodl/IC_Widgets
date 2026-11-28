@@ -42,7 +42,7 @@ function status(row) {
     deadline ? 'Voting deadline ' + time(deadline * 1_000_000_000n) : 'Voting deadline unavailable'].join(' · ');
 }
 
-export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, showReview }) {
+export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, references, showReview }) {
   const section = styled('section', 'card activity-navigator');
   section.hidden = true;
   let observation, issue, loading, selected, filter = 'undecided';
@@ -147,7 +147,8 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, s
     render();
     const active = () => ticket === generation && section.isConnected;
     try {
-      const reply = await call(active, client => client.subnet_activity([]));
+      const nodes = references();
+      const reply = await call(active, client => client.subnet_activity([], nodes?.length ? [nodes] : []));
       if (!reply || !active()) return;
       const response = result(reply);
       if ('Err' in response.outcome) throw new Error(liveError(response.outcome.Err));

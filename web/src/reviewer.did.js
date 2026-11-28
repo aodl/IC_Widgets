@@ -1234,6 +1234,13 @@ export const idlFactory = ({ IDL }) => {
     'node' : IDL.Principal,
     'proposal' : IDL.Nat64,
   });
+  const NodeProjection = IDL.Record({
+    'requested' : IDL.Vec(
+      IDL.Tuple(IDL.Nat64, IDL.Principal, NodeReferenceRole)
+    ),
+    'omitted_matches' : IDL.Nat32,
+    'matches' : IDL.Vec(ActivityMatch),
+  });
   const ActivityCoverage = IDL.Record({
     'changed_lifecycle' : IDL.Nat32,
     'executable_decoded' : IDL.Nat32,
@@ -1274,6 +1281,7 @@ export const idlFactory = ({ IDL }) => {
   const LiveSubnetActivity = IDL.Record({
     'voting_pagination_complete' : IDL.Opt(IDL.Bool),
     'subnets' : IDL.Opt(IDL.Vec(IDL.Principal)),
+    'node_projection' : IDL.Opt(NodeProjection),
     'truncated_proposals' : IDL.Opt(IDL.Vec(IDL.Nat64)),
     'complete' : IDL.Bool,
     'voting_issues' : IDL.Opt(IDL.Vec(IDL.Text)),
@@ -1464,7 +1472,16 @@ export const idlFactory = ({ IDL }) => {
         [Result_41],
         [],
       ),
-    'subnet_activity' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_43], []),
+    'subnet_activity' : IDL.Func(
+        [
+          IDL.Vec(IDL.Nat64),
+          IDL.Opt(
+            IDL.Vec(IDL.Tuple(IDL.Nat64, IDL.Principal, NodeReferenceRole))
+          ),
+        ],
+        [Result_43],
+        [],
+      ),
     'subnet_snapshot_on_demand' : IDL.Func([IDL.Principal], [Result_45], []),
   });
 };

@@ -33,6 +33,7 @@ pub use on_demand::{
     CandidateAssignment, DetailComparisonInput, DetailKeys, DetailRecords, LiveError,
     LiveMembershipComparison, LivePerformance, LiveReceipt, LiveResponse, LiveReview,
     LiveSubnetActivity, LiveSubnetSnapshot, LiveUsage, PolicySnapshot, RegistryRole,
+    RequestedReference,
 };
 pub use registry_sync::{
     Assignment, KeyPage, ProviderPage, RecordAt, RecordEvidence, RegistryBlock, RegistryLimit,

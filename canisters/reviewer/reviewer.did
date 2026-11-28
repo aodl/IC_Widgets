@@ -386,6 +386,7 @@ type LiveScope = record {
 type LiveSubnetActivity = record {
   voting_pagination_complete : opt bool;
   subnets : opt vec principal;
+  node_projection : opt NodeProjection;
   truncated_proposals : opt vec nat64;
   complete : bool;
   voting_issues : opt vec text;
@@ -518,6 +519,11 @@ type NodeMetricsHistoryRecord = record {
   timestamp_nanos : nat64;
   // Metrics of the nodes.
   node_metrics : vec NodeMetrics;
+};
+type NodeProjection = record {
+  requested : vec record { nat64; principal; NodeReferenceRole };
+  omitted_matches : nat32;
+  matches : vec ActivityMatch;
 };
 type NodeReferenceRole = variant {
   BoundaryAddition;
@@ -1248,6 +1254,9 @@ service : (opt Sources) -> {
   source_observation : (nat64) -> (Result_40);
   start_probe : (ProbeRequest) -> (Result_41);
   start_probe_with_limits : (ProbeRequest, Limits) -> (Result_41);
-  subnet_activity : (vec nat64) -> (Result_43);
+  subnet_activity : (
+      vec nat64,
+      opt vec record { nat64; principal; NodeReferenceRole },
+    ) -> (Result_43);
   subnet_snapshot_on_demand : (principal) -> (Result_45);
 }

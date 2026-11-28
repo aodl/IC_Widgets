@@ -246,7 +246,9 @@ try {
   await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).click();
   await activity.getByText(/Registry 66264.*Pinned roster resolved/).waitFor({ timeout: 90000 });
   await activity.getByText(/Governance check incomplete/).waitFor();
-  await page.locator('.review-checks').getByText(/Previous Governance observation.*could not verify/).waitFor();
+  await page.locator('.review-checks').getByText(/Governance check incomplete/).waitFor();
+  assert.ok((await page.locator('.review-checks').textContent()).includes('Checked the exact node identities'));
+  assert.doesNotMatch(await page.locator('.review-checks').textContent(), /Previous Governance observation/);
   await activity.getByRole('button', { name: 'All subnets', exact: true }).click();
   assert.equal(await activity.locator('.activity-count').count(), 98);
   await page.locator('.review-header').getByRole('link', { name: '#990001', exact: true }).waitFor();
@@ -261,6 +263,7 @@ try {
   await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).waitFor({ timeout: 90000 });
   await activity.getByText(/Governance check incomplete/).waitFor();
   await page.setViewportSize({ width: 390, height: 800 });
+  await page.getByRole('button', { name: 'Back to subnet list', exact: true }).click();
   const noProposals = activity.locator('details').filter({ has: page.getByText('No proposals for this subnet in the observed result.', { exact: true }) });
   const empty = noProposals.nth(20);
   await empty.locator('summary').click();

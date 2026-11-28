@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { Principal } from '@icp-sdk/core/principal';
 import { activityRows, rowSummary } from '../src/activity-navigator.js';
-import { acceptScopedActivity, scopedActivity } from '../src/review-checks.js';
+import { acceptScopedActivity, discoveryScope, scopedActivity } from '../src/review-checks.js';
 
 const burst = JSON.parse(readFileSync(new URL('../../docs/subnet-activity/governance-2026-11-27/observation.json', import.meta.url)));
 const target = value => Principal.fromText(value);
@@ -73,4 +73,24 @@ test('a successful scan missing the selection marks earlier finds stale and late
   const fresh = acceptScopedActivity(failed, discovery(5, [[1n, 31, hash]], []), [accepted]);
   assert.equal(fresh.stale, undefined);
   assert.deepEqual(fresh.response.outcome.Ok.matches, []);
+});
+
+test('a refresh can check accepted node identities even after the proposal leaves the list', () => {
+  const node = target(burst.proposals[0].subnet);
+  const scope = discoveryScope({ manifest: { proposals: [accepted] },
+    scenarios: [{ steps: [{ proposal: 1n, requested: { Add: { nodes: [node, node] } } }] }] });
+  const refreshed = discovery(4, [], []);
+  refreshed.response.outcome.Ok.coverage = {
+    pagination_complete: false, issues: ['bounded page was incomplete'], unsupported_actions: 0,
+    missing_payloads: 0, malformed_payloads: 0,
+  };
+  refreshed.response.outcome.Ok.node_projection = [{
+    requested: scope, matches: [{ proposal: 1n, other: 2n }], omitted_matches: 0,
+  }];
+  const scoped = scopedActivity(refreshed, [accepted], scope);
+  assert.equal(scope.length, 1);
+  assert.equal(scoped.projected, true);
+  assert.deepEqual(scoped.response.outcome.Ok.matches, [{ proposal: 1n, other: 2n }]);
+  assert.equal(scoped.response.outcome.Ok.complete, false);
+  assert.match(scopedActivity(refreshed, [accepted], [[1n, node, { Outgoing: null }]]).error, /could not verify/);
 });

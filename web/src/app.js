@@ -229,7 +229,7 @@ function startReview(ids, discovered, preferredSubnet) {
             const attempt = nextActivityAttempt();
             void (async () => {
               try {
-                const reply = await remote(active, client => client.subnet_activity(proposals.map(row => row.id)));
+                const reply = await remote(active, client => client.subnet_activity(proposals.map(row => row.id), []));
                 if (!reply || !active()) return;
                 const response = result(reply);
                 accept('Err' in response.outcome ? { response, attempt, error: liveError(response.outcome.Err) } : { response, attempt });
@@ -431,8 +431,9 @@ if (!widget && !bundledCase && !FIXTURE_REPLAY && !location.pathname.startsWith(
         window.scrollTo(0, layout.offsetTop);
       }
     },
+    references: () => activeView === 'proposal' ? current?.references : undefined,
     refreshed(observation) {
-      if (activeView !== 'proposal' || request?.ids.length !== 1 || request.stopped) return;
+      if (activeView !== 'proposal' || !request || request.stopped) return;
       if (!request.discovered || request.discovered.attempt < observation.attempt) request.discovered = observation;
       request.acceptActivity?.(observation);
     },
