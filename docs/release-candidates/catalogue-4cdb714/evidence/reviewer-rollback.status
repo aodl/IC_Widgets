@@ -1,0 +1,19 @@
+Canister status call result for reviewer.
+Status: Running
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 22_781_463 Cycles
+Memory Size: 2_229_277 Bytes
+Balance: 99_985_088_470_231 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0xbb0b3cf4d08267f1262eac26d6cde1d34b2e0b8f0331d525dd7faaab0efe21db
+Number of queries: 0
+Instructions spent in queries: 0
+Total query request payload size: 0 Bytes
+Total query response payload size: 0 Bytes
+Log visibility: controllers

@@ -1,0 +1,169 @@
+{
+  "origin": "https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net",
+  "observedAt": "2026-11-27T21:56:03.804Z",
+  "stage": "before",
+  "certified": [
+    {
+      "method": "GET",
+      "path": "/",
+      "requestPath": "/?release-check=mwzit790",
+      "status": 200,
+      "version": 2,
+      "sha256": "bde0844f39dfd8fa63358e183745bc1382cd7d1abb7fe4dfb5004b5059ad94b0",
+      "bytes": 3226,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "HEAD",
+      "path": "/",
+      "requestPath": "/?release-check=mwzit790",
+      "status": 200,
+      "version": 2,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "requestPath": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css?release-check=mwzit790",
+      "status": 200,
+      "version": 2,
+      "sha256": "7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632",
+      "bytes": 19221,
+      "mime": "text/css; charset=utf-8",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "HEAD",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "requestPath": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css?release-check=mwzit790",
+      "status": 200,
+      "version": 2,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mime": "text/css; charset=utf-8",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "requestPath": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js?release-check=mwzit790",
+      "status": 200,
+      "version": 2,
+      "sha256": "b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b",
+      "bytes": 514763,
+      "mime": "text/javascript; charset=utf-8",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "HEAD",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "requestPath": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js?release-check=mwzit790",
+      "status": 200,
+      "version": 2,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mime": "text/javascript; charset=utf-8",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/index.html",
+      "requestPath": "/index.html?release-check=mwzit790",
+      "status": 200,
+      "version": 2,
+      "sha256": "bde0844f39dfd8fa63358e183745bc1382cd7d1abb7fe4dfb5004b5059ad94b0",
+      "bytes": 3226,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/app.js",
+      "requestPath": "/app.js?release-check=mwzit790",
+      "status": 404,
+      "version": 2,
+      "sha256": "8499a90ea3d120a171f5c0b78055e52dccfd5dd337756e8dba81c885b0340408",
+      "bytes": 158,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/.ic-assets.json5",
+      "requestPath": "/.ic-assets.json5?release-check=mwzit790",
+      "status": 404,
+      "version": 2,
+      "sha256": "8499a90ea3d120a171f5c0b78055e52dccfd5dd337756e8dba81c885b0340408",
+      "bytes": 158,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/missing/nested",
+      "requestPath": "/missing/nested?release-check=mwzit790",
+      "status": 404,
+      "version": 2,
+      "sha256": "8499a90ea3d120a171f5c0b78055e52dccfd5dd337756e8dba81c885b0340408",
+      "bytes": 158,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "HEAD",
+      "path": "/missing/nested",
+      "requestPath": "/missing/nested?release-check=mwzit790",
+      "status": 404,
+      "version": 2,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    }
+  ],
+  "raw": [
+    {
+      "origin": "https://s45ab-wiaaa-aaaar-qcifq-cai.raw.icp.net",
+      "method": "GET",
+      "path": "/",
+      "status": 403,
+      "bytes": 0
+    },
+    {
+      "origin": "https://s45ab-wiaaa-aaaar-qcifq-cai.raw.icp.net",
+      "method": "HEAD",
+      "path": "/",
+      "status": 403,
+      "bytes": 0
+    },
+    {
+      "origin": "https://s45ab-wiaaa-aaaar-qcifq-cai.raw.icp.net",
+      "method": "GET",
+      "path": "/styles.7b581888ae770424ced6b760d8519d6e0cd52256f9e1afce73a0ede860b23632.css",
+      "status": 403,
+      "bytes": 0
+    },
+    {
+      "origin": "https://s45ab-wiaaa-aaaar-qcifq-cai.raw.icp.net",
+      "method": "GET",
+      "path": "/app.b99ab7b7f2b6c7595f201ddb7b5517543818e44e7e8b4c2849906baba380a14b.js",
+      "status": 403,
+      "bytes": 0
+    }
+  ]
+}

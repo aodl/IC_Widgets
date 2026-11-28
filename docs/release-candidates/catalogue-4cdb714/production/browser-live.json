@@ -1,0 +1,113 @@
+{
+  "url": "https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net/",
+  "mode": "embedded",
+  "proposal": "145077",
+  "lifecycle": "open",
+  "requests": [
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "begin_membership_review"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_registry_role"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "compare_membership_context"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "finalize_membership_review"
+    },
+    {
+      "phase": "Independent Performance",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "node_performance_on_demand"
+    }
+  ],
+  "rejected": [],
+  "browserErrors": [],
+  "violations": [],
+  "reviewMs": 75994,
+  "reviewStatus": "Data loading complete",
+  "reportContents": [
+    "map.png",
+    "review.md"
+  ],
+  "calculationSha256": "66c156c4cd02415e1c0938a77c7d032e02d41f023aab9590b26484212b373770",
+  "registryPin": "66,264",
+  "performanceMs": 3768,
+  "performanceRead": true,
+  "performanceSamples": 7,
+  "catalogueCount": 37,
+  "failure": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/Original Governance observation #144954/) to be visible\u001b[22m\n",
+  "observedAt": "2026-11-27T21:59:00.130Z"
+}
