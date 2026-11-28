@@ -1,3 +1,4 @@
+import { mountActivityNavigator } from './activity-navigator.js';
 import { activeReplay, bundledCase, connect, liveError, replays, result, testCases } from './client.js';
 import { proposalHeading } from './dashboard.js';
 import { replayLabel } from './detail-model.js';
@@ -10,7 +11,7 @@ import { comparisonFilterLabels, composedOutputs, hasProfile, readNodeFilter } f
 import { acceptNexusHost } from './widget-frame.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
 import { showTestCatalogue } from './case-catalogue.js';
-import { reviewCheckSummary, reviewChecksView, subnetActivityView } from './review-checks.js';
+import { reviewCheckSummary, reviewChecksView, scopedActivity } from './review-checks.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
 import { el, option, sourceReceipts, styled } from './view.js';
 
@@ -170,7 +171,7 @@ search.addEventListener('submit', event => {
   }
 });
 
-function startReview(ids) {
+function startReview(ids, discovered, preferredSubnet) {
   document.querySelector('#search-error').textContent = '';
   const ticket = ++generation;
   const active = () => generation === ticket;
@@ -213,7 +214,9 @@ function startReview(ids) {
             option(titles.find(row => row.id === proposal.id)?.title ?? []),
             (FIXTURE_REPLAY || bundledCase) && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, activeReplay)),
           sourceReceipts(live, { replay: !!activeReplay })));
-        if (!activeReplay || activeReplay.activity) {
+        if (discovered) {
+          reportContainer.append(reviewChecksView(reviewCheckSummary([], undefined, discovered)));
+        } else if (!activeReplay || activeReplay.activity) {
           const checks = el('div');
           reportContainer.append(checks);
           replaceTerminalChecks();
@@ -240,7 +243,7 @@ function startReview(ids) {
           if (!active()) return;
           status(state);
           if (['Blocked', 'Stopped', 'Provisional'].includes(state.stage)) unavailable(state.reason);
-        }, performance: membershipPerformance, replay: activeReplay });
+        }, performance: membershipPerformance, replay: activeReplay, discovered, preferredSubnet });
       reportContainer.replaceChildren(current.section);
       current.start();
       void current.loadActivity();
@@ -386,30 +389,24 @@ if (testCases.length) {
 if (!widget && !bundledCase && !FIXTURE_REPLAY && !location.pathname.startsWith('/test-cases')) {
   const button = el('button', 'Subnet Activity');
   button.type = 'button';
-  const panel = el('div');
-  const searchShell = document.querySelector('#proposal-search');
-  searchShell.before(panel);
-  const openProposal = id => {
-    changeView('proposal');
-    search.elements.first.value = String(id);
-    search.elements.second.value = '';
-    panel.replaceChildren();
-    startReview([id]);
-  };
-  document.querySelector('.masthead-row').append(button);
-  button.addEventListener('click', async () => {
-    const active = () => panel.isConnected;
-    button.disabled = true;
-    panel.replaceChildren(el('p', 'Observing public Governance proposals…'));
-    try {
-      const reply = await remote(active, client => client.subnet_activity([]));
-      if (!active() || !reply) return;
-      const response = result(reply);
-      panel.replaceChildren(subnetActivityView('Err' in response.outcome ? { response, error: liveError(response.outcome.Err) } : { response }, openProposal));
-    } catch (error) {
-      if (active()) panel.replaceChildren(subnetActivityView({ error: error.message }));
-    } finally {
-      button.disabled = false;
-    }
+  const navigator = mountActivityNavigator(remote, {
+    open(id, subnet, observation) {
+      changeView('proposal');
+      search.elements.first.value = String(id);
+      search.elements.second.value = '';
+      startReview([id], scopedActivity(observation, [id]), subnet);
+    },
+    refreshed(id, observation) {
+      if (String(id) === search.elements.first.value && !search.elements.second.value) {
+        current?.acceptActivity(scopedActivity(observation, [id]));
+      }
+    },
   });
+  const searchShell = document.querySelector('#proposal-search');
+  const reviewArea = el('div');
+  const layout = styled('div', 'activity-layout', navigator.section, reviewArea);
+  searchShell.before(layout);
+  reviewArea.append(searchShell, reportContainer);
+  document.querySelector('.masthead-row').append(button);
+  button.addEventListener('click', navigator.show);
 }

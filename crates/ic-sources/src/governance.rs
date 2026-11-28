@@ -53,6 +53,8 @@ pub struct ListResponse {
 pub struct ProposalInfo {
     pub id: Option<ProposalId>,
     pub status: i32,
+    pub reward_status: Option<i32>,
+    pub deadline_timestamp_seconds: Option<u64>,
     pub topic: i32,
     pub proposal_timestamp_seconds: u64,
     pub executed_timestamp_seconds: u64,

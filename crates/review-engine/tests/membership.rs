@@ -381,7 +381,7 @@ fn replicated_checks_preserve_raw_duplicates_and_use_each_immediate_state() {
         first.preconditions,
         MembershipPreconditions::IncompleteAssignmentCoverage
     );
-    assert!(first.transitions.iter().all(|row| row.margin.is_none()));
+    assert!(first.transitions.iter().all(|row| row.margin.is_some()));
 
     let rejected = run(baseline(), vec![add(&[3, 1, 3])]);
     let rejected = review_checks(&rejected, &BTreeSet::new());

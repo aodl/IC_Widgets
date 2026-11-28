@@ -136,6 +136,12 @@ fn recorded_reply_and_constructed_lifecycles_remain_distinct() {
         assert!(!case.id.is_empty());
         match &case.registry {
             historical::Baseline::CapturedWithOverlay => (),
+            historical::Baseline::ActivityArchive => {
+                let row: Option<ProposalInfo> =
+                    decode_one(historical::activity_capture(&case.proposal_ids[0]).unwrap())
+                        .unwrap();
+                assert_eq!(row.unwrap().status, 1);
+            }
             historical::Baseline::Synthetic {
                 version,
                 mutation_version,

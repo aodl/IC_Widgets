@@ -349,3 +349,15 @@ button.node-sort-heading {
 .review-checks { margin-block: .75rem; }
 .review-checks h3 { margin-top: 0; }
 .check-warning { border-inline-start: 3px solid #ad2630; padding-inline-start: .55rem; }
+
+.activity-navigator { max-height: 65vh; overflow: auto; }
+.activity-navigator details { margin-block: .2rem; }
+.activity-navigator summary { overflow-wrap: anywhere; }
+.activity-count { display: inline-block; min-width: 1.5em; text-align: center; border-radius: 1em; background: #e7eff2; }
+@media (min-width: 68rem) {
+  .activity-layout:has(.activity-navigator:not([hidden])) {
+    display: grid; grid-template-columns: minmax(15rem, 1fr) minmax(0, 3fr);
+    align-items: start; gap: 1rem;
+  }
+  .activity-navigator { max-height: 80vh; overflow: auto; }
+}

@@ -107,7 +107,7 @@ function evidenceView(live, state, session, context, model, replay) {
     (context?.failures ?? []).map(item => el('p', item.type ? stageLabel(item.type) + ' · ' + item.key + ' · ' : '', item.reason)));
 }
 
-export function mountReviewWorkspace({ live, contexts, map, mapHost, active, call, progress, performance, replay }) {
+export function mountReviewWorkspace({ live, contexts, map, mapHost, active, call, progress, performance, replay, discovered, preferredSubnet }) {
   const body = live.outcome.Ok;
   const { report } = body;
   const { proposals, registry_version: version } = report.manifest;
@@ -125,8 +125,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   pane.hidden = true;
   const checks = el('div');
   let activityRunning = false;
-  let observation = replay && !replay.activity
-    ? { error: 'This historical case has no captured cross-proposal discovery.' } : undefined;
+  let observation = discovered ?? (replay && !replay.activity
+    ? { error: 'This historical review has no bundled cross-proposal observation.' } : undefined);
   const tools = styled('div', 'actions review-tools');
   const header = styled('section', 'review-header',
     el('h2', proposalHeading(proposals.map(row => row.id))),
@@ -154,7 +154,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   let inspection;
   let trigger;
   let scenario = report.scenarios.find(row => branch(row.id) === 'AThenB') ?? report.scenarios[0];
-  let subnet;
+  let subnet = preferredSubnet;
 
   function choose(next) {
     const activeElement = document.activeElement;
@@ -319,7 +319,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
     replace(verification, selected?.state ? readinessLine(state) : null);
-    replace(checks, reviewChecksView(reviewCheckSummary(body.review_checks?.[0], selected ? branch(selected.scenario.id) : undefined, observation)));
+    replace(checks, reviewChecksView(reviewCheckSummary(body.review_checks?.[0], selected ? branch(selected.scenario.id) : undefined, observation)), !replay && observation ? action(activityRunning ? 'Refreshing discovery…' : 'Refresh review checks', () => void loadActivity(true)) : null);
     renderTables();
     map?.update(model && { key: [model.order, ...model.ids, model.subnet, model.step, model.version].join('/'),
       members: model.members, countries: model.countries }, state.consistency?.blocked ? 'Review blocked · Governance changed'
@@ -340,8 +340,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     else inspector.hidden = true;
   }
 
-  async function loadActivity() {
-    if (observation || activityRunning) return;
+  async function loadActivity(refresh = false) {
+    if ((!refresh && observation) || activityRunning) return;
     activityRunning = true;
     const checkActive = () => active() && session.section().work !== 'stopped';
     try {
@@ -359,7 +359,9 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     }
   }
 
-  return { section, session, loadActivity, dispose: () => narrow.removeEventListener('change', renderTables), start: chooseScope, inspect, openPerformance() {
+  return { section, session, loadActivity, acceptActivity(next) {
+    if (active() && next) { observation = next; render(); }
+  }, dispose: () => narrow.removeEventListener('change', renderTables), start: chooseScope, inspect, openPerformance() {
     if (!pane.contains(performance.section)) pane.replaceChildren(performance.section);
     pane.hidden = false;
     performance.visible(true);

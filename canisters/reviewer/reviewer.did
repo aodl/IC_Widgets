@@ -20,7 +20,7 @@ type ActivityCoverage = record {
   textual_checked : nat32;
   adopted_listed : nat32;
 };
-type ActivityLifecycle = variant { Open; AdoptedPendingExecution };
+type ActivityLifecycle = variant { Open; AdoptedPendingExecution; Other };
 type ActivityMatch = record {
   requested_role : NodeReferenceRole;
   other_role : NodeReferenceRole;
@@ -33,9 +33,15 @@ type ActivityProposal = record {
   title : opt text;
   topic : int32;
   function : opt int32;
+  decision : opt int32;
+  executed_at : opt nat64;
+  deadline : opt nat64;
   target_subnet : opt principal;
+  targets : opt vec principal;
+  unresolved : opt bool;
   lifecycle : ActivityLifecycle;
   motion : bool;
+  voting_open : opt bool;
   observed_at : nat64;
 };
 type Assembled = record {
@@ -378,10 +384,13 @@ type LiveScope = record {
   scenario : ScenarioId;
 };
 type LiveSubnetActivity = record {
+  voting_pagination_complete : opt bool;
+  subnets : opt vec principal;
   complete : bool;
   matches : vec ActivityMatch;
   coverage : ActivityCoverage;
   proposals : vec ActivityProposal;
+  registry_complete : opt bool;
 };
 type LiveSubnetSnapshot = record {
   subnet : principal;
@@ -511,8 +520,10 @@ type NodeReferenceRole = variant {
   RegistryRemoval;
   Textual;
   BoundaryVersionTarget;
+  HostosVersionTarget;
   Outgoing;
   NewSubnetMember;
+  RecoveryReplacement;
   BoundaryRemoval;
   Incoming;
 };
@@ -1091,6 +1102,7 @@ type SubnetRules = record {
 };
 type SubnetTransition = record {
   subnet : principal;
+  cumulative_margin : opt TransitionMargin;
   margin : opt TransitionMargin;
 };
 type SuccessfulHistory = record {

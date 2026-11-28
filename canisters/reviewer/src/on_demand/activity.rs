@@ -21,6 +21,7 @@ const MATCH_LIMIT: usize = 256;
 pub enum ActivityLifecycle {
     Open,
     AdoptedPendingExecution,
+    Other,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, CandidType, Deserialize)]
@@ -33,6 +34,8 @@ pub enum NodeReferenceRole {
     BoundaryRemoval,
     BoundaryVersionTarget,
     Textual,
+    RecoveryReplacement,
+    HostosVersionTarget,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -45,6 +48,12 @@ pub struct ActivityProposal {
     pub lifecycle: ActivityLifecycle,
     pub observed_at: u64,
     pub target_subnet: Option<Principal>,
+    pub targets: Option<Vec<Principal>>,
+    pub unresolved: Option<bool>,
+    pub decision: Option<i32>,
+    pub voting_open: Option<bool>,
+    pub deadline: Option<u64>,
+    pub executed_at: Option<u64>,
 }
 
 #[derive(Debug, CandidType, Deserialize)]
@@ -80,6 +89,9 @@ pub struct LiveSubnetActivity {
     pub complete: bool,
     pub proposals: Vec<ActivityProposal>,
     pub matches: Vec<ActivityMatch>,
+    pub subnets: Option<Vec<Principal>>,
+    pub voting_pagination_complete: Option<bool>,
+    pub registry_complete: Option<bool>,
 }
 
 fn lifecycle(info: &ProposalInfo) -> Option<ActivityLifecycle> {
@@ -98,6 +110,12 @@ type References = BTreeSet<(Principal, NodeReferenceRole)>;
 #[derive(CandidType, Deserialize)]
 struct NodesPayload {
     node_ids: Vec<Principal>,
+}
+
+#[derive(CandidType, Deserialize)]
+struct RecoveryPayload {
+    subnet_id: Principal,
+    replacement_nodes: Option<Vec<Principal>>,
 }
 
 fn membership_roles(action: &MembershipAction, refs: &mut References) {
@@ -138,9 +156,21 @@ fn executable(
         refs.extend(nodes.into_iter().map(|id| (id, role)));
         return Ok(Some(None));
     }
+    if action.nns_function == 6 {
+        let payload: RecoveryPayload = decode_candid(&action.payload)?;
+        refs.extend(
+            payload
+                .replacement_nodes
+                .unwrap_or_default()
+                .into_iter()
+                .map(|id| (id, NodeReferenceRole::RecoveryReplacement)),
+        );
+        return Ok(Some(Some(payload.subnet_id)));
+    }
     let role = match action.nns_function {
         1 => NodeReferenceRole::NewSubnetMember,
         18 => NodeReferenceRole::RegistryRemoval,
+        41 | 51 => NodeReferenceRole::HostosVersionTarget,
         _ => return Ok(None),
     };
     let NodesPayload { node_ids } = decode_candid(&action.payload)?;
@@ -174,15 +204,16 @@ async fn subnet_activity(selected: Vec<u64>) -> Result<LiveResponse<LiveSubnetAc
     } else {
         Sources::canonical()
     };
-    let outcome = observe(&mut request, sources.governance, &selected).await;
+    let outcome = observe(&mut request, sources, &selected).await;
     Ok(request.finish(outcome))
 }
 
 async fn observe(
     request: &mut Request,
-    source: Principal,
+    sources: Sources,
     selected: &[u64],
 ) -> Result<LiveSubnetActivity, LiveError> {
+    let source = sources.governance;
     let mut coverage = ActivityCoverage::default();
     let mut requested = BTreeMap::<u64, References>::new();
     for (proposal, _) in proposals(request, source, selected).await? {
@@ -191,71 +222,29 @@ async fn observe(
             requested.entry(proposal.evidence.id).or_default(),
         );
     }
-    let mut listed = BTreeMap::<u64, (ProposalInfo, u64)>::new();
-    let mut before = None;
-    let mut limit = governance::INITIAL_LIST_LIMIT;
-    for _ in 0..PAGE_LIMIT {
-        let mut args = governance::list_request(before, true, limit);
-        args.include_status = vec![1, 3];
-        let response = request
-            .one(
-                source,
-                "list_proposals",
-                format!("Open and adopted before {before:?}"),
-                encode_one(args).expect("Governance discovery arguments"),
-            )
-            .await;
-        let (rows, observed_at) = match response {
-            Ok(reply) => {
-                let body = match reply.body {
-                    Ok(body) => body,
-                    Err(error) => {
-                        if let Some(reduced) = governance::reduced_list_limit(limit, &error) {
-                            limit = reduced;
-                            continue;
-                        }
-                        coverage.issues.push(format!("Governance page: {error}"));
-                        break;
-                    }
-                };
-                let rows = match governance::decode_page(&body, before, limit) {
-                    Ok(rows) => rows,
-                    Err(error) => {
-                        coverage.issues.push(format!("Governance page: {error}"));
-                        break;
-                    }
-                };
-                (rows, reply.observed_at)
-            }
-            Err(error) => {
-                coverage
-                    .issues
-                    .push(format!("Governance page not admitted: {error:?}"));
-                break;
-            }
-        };
-        coverage.pages += 1;
-        if rows.is_empty() {
-            coverage.pagination_complete = true;
-            break;
-        }
-        before = rows.last().and_then(|row| row.id).map(|id| id.id);
-        coverage.oldest_listed = before;
-        for row in rows {
-            match lifecycle(&row) {
-                Some(ActivityLifecycle::Open) => coverage.open_listed += 1,
-                Some(ActivityLifecycle::AdoptedPendingExecution) => coverage.adopted_listed += 1,
-                None => continue,
-            }
-            let id = row.id.expect("validated pagination").id;
-            listed.insert(id, (row, observed_at));
+    let (mut listed, pagination_complete) = discover(request, source, false, &mut coverage).await;
+    coverage.pagination_complete = pagination_complete;
+    let pending: BTreeSet<_> = listed.keys().copied().collect();
+    let mut voting_pagination_complete = None;
+    if selected.is_empty() {
+        let (voting, complete) = discover(request, source, true, &mut coverage).await;
+        listed.extend(voting);
+        voting_pagination_complete = Some(complete);
+    }
+    for (row, _) in listed.values() {
+        match lifecycle(row) {
+            Some(ActivityLifecycle::Open) => coverage.open_listed += 1,
+            Some(ActivityLifecycle::AdoptedPendingExecution) => coverage.adopted_listed += 1,
+            _ => {}
         }
     }
-    if !coverage.pagination_complete && coverage.issues.is_empty() {
-        coverage
-            .issues
-            .push("Governance discovery reached the page limit.".into());
-    }
+    let (subnets, owners, registry_complete) = if selected.is_empty() {
+        let (subnets, owners, complete) =
+            super::registry::activity_roster(request, sources.registry).await?;
+        (Some(subnets), owners, Some(complete))
+    } else {
+        (None, BTreeMap::new(), None)
+    };
 
     // Hydrate once per potentially incomplete proposal, irrespective of how
     // many nodes or subnets will consume the observation.
@@ -268,6 +257,7 @@ async fn observe(
         })
         .map(|(&id, _)| id)
         .collect();
+    let needs_hydration: BTreeSet<_> = hydrate.iter().copied().collect();
     let mut full = BTreeMap::new();
     for batch in hydrate.chunks(8).take(HYDRATION_LIMIT / 8) {
         let replies = request
@@ -312,15 +302,25 @@ async fn observe(
 
     let mut details = Vec::new();
     for (id, row) in listed.into_iter().rev() {
-        let (info, observed_at) = full.remove(&id).unwrap_or(row);
-        let Some(lifecycle) = lifecycle(&info) else {
-            coverage.changed_lifecycle += 1;
-            continue;
-        };
+        let hydrated = full.remove(&id);
+        let missing_hydration = needs_hydration.contains(&id) && hydrated.is_none();
+        let (info, observed_at) = hydrated.unwrap_or(row);
+        let relevant = lifecycle(&info);
+        let voting_open = info.reward_status == Some(1);
+        if relevant.is_none() {
+            coverage.changed_lifecycle += u32::from(pending.contains(&id));
+            if !selected.is_empty() || !voting_open {
+                continue;
+            }
+        }
+        let lifecycle = relevant.unwrap_or(ActivityLifecycle::Other);
         let mut refs = References::new();
         let function = info.executable().map(|a| a.nns_function);
         let mut target_subnet = None;
-        if info.proposal.is_none() || info.executable().is_some_and(|a| a.payload.is_empty()) {
+        if missing_hydration
+            || info.proposal.is_none()
+            || info.executable().is_some_and(|a| a.payload.is_empty())
+        {
             coverage.missing_payloads += 1;
             coverage.issues.push(format!(
                 "Proposal #{id} has no available executable payload."
@@ -346,6 +346,35 @@ async fn observe(
         {
             membership_roles(&operation, requested.entry(id).or_default());
         }
+        let mut targets = Vec::new();
+        let mut unresolved = false;
+        if let Some(subnets) = &subnets {
+            if let Some(target) = target_subnet {
+                unresolved = !subnets.contains(&target);
+                if !unresolved {
+                    targets.push(target);
+                }
+            } else if function == Some(13) {
+                let nodes: Vec<_> = refs
+                    .iter()
+                    .filter(|(_, role)| *role == NodeReferenceRole::Outgoing)
+                    .map(|(node, _)| node)
+                    .collect();
+                unresolved = registry_complete != Some(true) || nodes.is_empty();
+                for node in nodes {
+                    if let Some(assigned) = owners.get(node) {
+                        targets.extend(assigned);
+                        unresolved |= assigned.len() != 1;
+                    } else {
+                        unresolved = true;
+                    }
+                }
+                targets.sort_unstable();
+                targets.dedup();
+            } else {
+                unresolved = matches!(function, Some(2 | 6 | 31));
+            }
+        }
         details.push((
             ActivityProposal {
                 id,
@@ -358,6 +387,13 @@ async fn observe(
                 lifecycle,
                 observed_at,
                 target_subnet,
+                targets: subnets.as_ref().map(|_| targets),
+                unresolved: subnets.as_ref().map(|_| unresolved),
+                decision: Some(info.status),
+                voting_open: info.reward_status.map(|_| voting_open),
+                deadline: info.deadline_timestamp_seconds,
+                executed_at: (info.executed_timestamp_seconds != 0)
+                    .then_some(info.executed_timestamp_seconds),
                 title: info
                     .proposal
                     .as_ref()
@@ -388,8 +424,10 @@ async fn observe(
                 textual(&motion_text, &targets, &mut refs);
             }
         }
-        for (id, role) in refs {
-            index.entry(id).or_default().push((row.id, role));
+        if row.lifecycle != ActivityLifecycle::Other {
+            for (id, role) in refs {
+                index.entry(id).or_default().push((row.id, role));
+            }
         }
         output.push(row);
     }
@@ -420,7 +458,94 @@ async fn observe(
         complete,
         proposals: output,
         matches,
+        subnets,
+        voting_pagination_complete,
+        registry_complete,
     })
+}
+
+async fn discover(
+    request: &mut Request,
+    source: Principal,
+    voting: bool,
+    coverage: &mut ActivityCoverage,
+) -> (BTreeMap<u64, (ProposalInfo, u64)>, bool) {
+    let mut listed = BTreeMap::<u64, (ProposalInfo, u64)>::new();
+    let mut complete = false;
+    let mut before = None;
+    let mut limit = governance::INITIAL_LIST_LIMIT;
+    for _ in 0..PAGE_LIMIT {
+        let mut args = governance::list_request(before, true, limit);
+        if voting {
+            args.include_reward_status = vec![1];
+        } else {
+            args.include_status = vec![1, 3];
+        }
+        let response = request
+            .one(
+                source,
+                "list_proposals",
+                format!(
+                    "{} before {before:?}",
+                    if voting {
+                        "Accepting votes"
+                    } else {
+                        "Open and adopted"
+                    }
+                ),
+                encode_one(args).expect("Governance discovery arguments"),
+            )
+            .await;
+        let (rows, observed_at) = match response {
+            Ok(reply) => {
+                let body = match reply.body {
+                    Ok(body) => body,
+                    Err(error) => {
+                        if let Some(reduced) = governance::reduced_list_limit(limit, &error) {
+                            limit = reduced;
+                            continue;
+                        }
+                        coverage.issues.push(format!("Governance page: {error}"));
+                        break;
+                    }
+                };
+                let rows = match governance::decode_page(&body, before, limit) {
+                    Ok(rows) => rows,
+                    Err(error) => {
+                        coverage.issues.push(format!("Governance page: {error}"));
+                        break;
+                    }
+                };
+                (rows, reply.observed_at)
+            }
+            Err(error) => {
+                coverage
+                    .issues
+                    .push(format!("Governance page not admitted: {error:?}"));
+                break;
+            }
+        };
+        coverage.pages += 1;
+        if rows.is_empty() {
+            complete = true;
+            break;
+        }
+        before = rows.last().and_then(|row| row.id).map(|id| id.id);
+        if !voting {
+            coverage.oldest_listed = before;
+        }
+        for row in rows {
+            let id = row.id.expect("validated pagination").id;
+            listed.insert(id, (row, observed_at));
+        }
+    }
+    if !complete && coverage.issues.is_empty() {
+        coverage
+            .issues
+            .push("Governance discovery reached the page limit.".into());
+    }
+
+    (listed, complete)
 }
 
 fn complete(coverage: &ActivityCoverage) -> bool {
@@ -440,6 +565,8 @@ mod tests {
     fn candidate(status: i32, executed: u64, action: Action) -> ProposalInfo {
         ProposalInfo {
             id: Some(ProposalId { id: 42 }),
+            reward_status: None,
+            deadline_timestamp_seconds: None,
             status,
             topic: 3,
             proposal_timestamp_seconds: 5,
@@ -511,6 +638,45 @@ mod tests {
         let mut failed = row(3, 0);
         failed.failed_timestamp_seconds = Some(9);
         assert_eq!(lifecycle(&failed), None);
+    }
+
+    #[test]
+    fn recovery_and_both_hostos_deployments_decode_full_node_ids() {
+        let target = Principal::from_slice(&[10, 2]);
+        let node = Principal::from_slice(&[11, 2]);
+        for function in [6, 41, 51] {
+            let payload = if function == 6 {
+                encode_one(RecoveryPayload {
+                    subnet_id: target,
+                    replacement_nodes: Some(vec![node]),
+                })
+                .unwrap()
+            } else {
+                encode_one(NodesPayload {
+                    node_ids: vec![node],
+                })
+                .unwrap()
+            };
+            let row = candidate(
+                1,
+                0,
+                Action::ExecuteNnsFunction(ExecuteNnsFunction {
+                    nns_function: function,
+                    payload,
+                }),
+            );
+            let mut refs = References::new();
+            let expected = if function == 6 {
+                NodeReferenceRole::RecoveryReplacement
+            } else {
+                NodeReferenceRole::HostosVersionTarget
+            };
+            assert_eq!(
+                executable(&row, &mut refs).unwrap(),
+                Some((function == 6).then_some(target))
+            );
+            assert_eq!(refs, BTreeSet::from([(node, expected)]));
+        }
     }
 
     #[test]

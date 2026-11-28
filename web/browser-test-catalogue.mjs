@@ -60,6 +60,11 @@ try {
     assert.equal(await page.locator('#search input[name=first]').inputValue(), item.proposalIds[0]);
     assert.equal(await page.getByRole('button', { name: 'Subnet overview', exact: true }).isVisible(), false);
     await page.getByRole('button', { name: 'Review', exact: true }).click();
+    const intro = await page.locator('.test-catalogue').innerText();
+    assert.doesNotMatch(intro, /\[object HTML|(?:^|\n)\s*null\s*(?:\n|$)/);
+    if (item.actionEvidence.some(entry => entry.kind === 'recorded-governance-reply' && entry.at)) {
+      await page.locator('.test-catalogue').getByText(/Original Governance observation #/).first().waitFor();
+    }
     if (item.fault === 'slow-locations') await page.locator('#report-status').getByText(/Loading data centers/).waitFor();
     const expected = / (Executed|Rejected|Failed) /.test(item.lifecycleLabel) ? 'Proposal outcome recorded' : 'Data loading complete';
     const status = page.locator('#report-status');
@@ -162,12 +167,23 @@ try {
   });
   await page.getByRole('button', { name: 'Subnet Activity', exact: true }).click();
   const activity = page.locator('section.card').filter({ has: page.getByRole('heading', { name: 'Subnet Activity' }) });
+  await activity.getByText(/Pinned roster resolved/).waitFor();
   await activity.getByText(/Governance check complete.*references found/).waitFor();
-  await activity.getByText('Known interactions', { exact: true }).click();
-  await activity.getByText(/exact textual principal reference/).waitFor();
+  await activity.locator('details').filter({ has: activity.getByRole('button', { name: 'Review #990001', exact: true }) }).locator('summary').first().click();
   await page.screenshot({ path: resolve(output, 'subnet-activity.png'), fullPage: true });
   await activity.getByRole('button', { name: 'Review #990001', exact: true }).click();
   await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
+  execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
+    'load_review_case', '("nns-145077-recorded-open")'], {
+    cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' },
+  });
+  await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).click();
+  await activity.getByText(/Registry 66264.*Pinned roster resolved/).waitFor({ timeout: 90000 });
+  await activity.getByText(/Governance check incomplete/).waitFor();
+  await activity.getByRole('button', { name: 'All subnets', exact: true }).click();
+  assert.equal(await activity.locator('.activity-count').count(), 98);
+  await page.locator('.review-header').getByText(/#990001/).waitFor();
+  await activity.screenshot({ path: resolve(output, 'recorded-burst-navigator.png') });
   assert.equal(testData.length, capturesBeforeLive);
   assert.ok(reviewerRequests.some(path => path.endsWith('/call')));
   assert.deepEqual(rejected, []);

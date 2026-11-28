@@ -1,10 +1,11 @@
 import { dashboardLink, dashboardUrl } from './dashboard.js';
 import { branch, el, option, styled, time } from './view.js';
 
-export const transitionAssumption = 'Conservative availability model. The fault budget is floor((N − 1) / 3). Model departing nodes unavailable in the before-state and incoming nodes still synchronizing in the proposed state. The smaller margin applies. A margin below one triggers a warning. These assumptions do not establish actual availability or liveness.';
+export const transitionAssumption = 'Conservative availability model. The fault budget is floor((N − 1) / 3). Model departing nodes unavailable in the before-state and incoming nodes still synchronizing in the proposed state. The smaller margin applies. A margin below one triggers a warning. The cumulative case keeps all earlier arrivals unavailable while they remain in the subnet. These conditional margins do not establish global assignment, execution validity or actual liveness.';
 
 const lifecycle = {
   Open: 'Open',
+  Other: 'Decided',
   AdoptedPendingExecution: 'Adopted · awaiting execution',
 };
 const roles = {
@@ -12,6 +13,7 @@ const roles = {
   RegistryRemoval: 'Registry removal', BoundaryAddition: 'API boundary addition',
   BoundaryRemoval: 'API boundary removal', BoundaryVersionTarget: 'API boundary version target',
   Textual: 'exact textual principal reference',
+  RecoveryReplacement: 'recovery replacement', HostosVersionTarget: 'HostOS deployment target',
 };
 const preconditions = {
   EstablishedInCheckedScope: 'Established within the checked membership scope',
@@ -21,6 +23,7 @@ const preconditions = {
 };
 const actionNames = {
   1: 'Create subnet', 2: 'Add nodes to subnet', 13: 'Remove nodes from subnets', 18: 'Remove Registry nodes',
+  6: 'Recover subnet', 41: 'Update node HostOS', 51: 'Deploy HostOS to nodes',
   31: 'Change subnet membership', 43: 'Add API boundary nodes', 44: 'Remove API boundary nodes',
   46: 'Change API boundary version', 47: 'Deploy API boundary version',
 };
@@ -50,10 +53,12 @@ function integrity(row) {
     : 'Add and Remove are disjoint';
   const overview = [overlap, 'Add duplicates ' + row.add_duplicates.length, 'Remove duplicates '
     + row.remove_duplicates.length, 'Membership preconditions · ' + preconditions[branch(row.preconditions)]].join(' · ');
-  const margins = row.transitions.map(item => {
+  const margins = row.transitions.flatMap(item => {
     const margin = option(item.margin);
-    return (row.transitions.length > 1 ? item.subnet.toText() + ' · ' : '')
-      + (margin ? marginText(margin) : 'Reconfiguration resilience margin unavailable');
+    const prefix = row.transitions.length > 1 ? item.subnet.toText() + ' · ' : '';
+    const cumulative = option(item.cumulative_margin);
+    return [prefix + (margin ? 'Conditional step margin · ' + marginText(margin) : 'Reconfiguration resilience margin unavailable'),
+      ...(cumulative ? [prefix + 'Cumulative unsynchronized arrivals · ' + marginText(cumulative)] : [])];
   });
   return { margins, title: 'Step ' + (row.step + 1) + ' · Proposal #' + row.proposal,
     overview, details: [
@@ -66,14 +71,14 @@ function integrity(row) {
       }),
     ],
     alert: branch(row.preconditions) !== 'EstablishedInCheckedScope' || row.add_duplicates.length > 0 || row.remove_duplicates.length > 0 || row.overlap.length > 0
-      || row.transitions.some(item => (option(item.margin)?.remaining ?? 0) < 1),
+      || row.transitions.some(item => (option(item.margin)?.remaining ?? 0) < 1 || (option(item.cumulative_margin)?.remaining ?? 1) < 1),
   };
 }
 
 export function interactionChecks(observation) {
   const { outcome, usage, receipts } = observation?.response ?? {};
   const timing = usage ? [
-    ...(receipts.length ? ['Governance source ' + receipts[0].source.toText() + ' · ' + usage.calls + ' admitted source reads'] : []),
+    ...(receipts.length ? ['Sources ' + [...new Set(receipts.map(row => row.source.toText()))].join(', ') + ' · ' + usage.calls + ' admitted reads'] : []),
     'Discovery observed ' + time(usage.started_at) + ' to ' + time(usage.finished_at),
   ] : [];
   if (!outcome?.Ok) return { overview: observation?.error
@@ -91,7 +96,7 @@ export function interactionChecks(observation) {
       + ' · ' + observed + ' · ' + roles[role] + ' in the other proposal. ' + explanation, match.other);
   });
   return {
-    overview: (complete ? 'Governance check complete within the supported evidence' : 'Governance check incomplete')
+    overview: (observation.stale ? 'Previous Governance observation · refresh failed' : complete ? 'Governance check complete within the supported evidence' : 'Governance check incomplete')
       + ' · ' + findings.length + (findings.length === 1 ? ' reference found' : ' references found'),
     observations: [
       ...timing,
@@ -119,8 +124,16 @@ const renderLine = row => row.proposal ? [row.text, ' ', dashboardLink('proposal
 
 export function reviewChecksView(checks) {
   const { instructions, interactions } = checks;
-  const visibleFindings = interactions.findings.slice(0, 3);
-  const moreFindings = interactions.findings.slice(3);
+  const groups = new Map();
+  for (const finding of interactions.findings) {
+    if (!groups.has(finding.proposal)) groups.set(finding.proposal, []);
+    groups.get(finding.proposal).push(finding);
+  }
+  const items = [...groups.values()].map(rows => rows.length === 1 ? el('li', renderLine(rows[0]))
+    : el('li', el('details', el('summary', dashboardLink('proposal', rows[0].proposal, rows[0].label),
+      ' · ' + rows.length + ' references'), el('ul', rows.map(row => el('li', row.text))))));
+  const visibleFindings = items.slice(0, 3);
+  const moreFindings = items.slice(3);
   return styled('section', 'review-checks card', el('h3', 'Review checks'),
     instructions.length ? instructions.map(row => styled('div', row.alert ? 'check-warning' : 'check-status',
       el('strong', row.title), el('p', row.overview), row.margins.map(margin => el('p', el('strong', margin))),
@@ -128,26 +141,17 @@ export function reviewChecksView(checks) {
         el('p', checks.assumption), el('ul', row.details.map(item => el('li', renderLine(item)))))))
       : el('p', 'Instruction integrity and resilience are unavailable for this review.'),
     el('p', el('strong', interactions.overview)),
-    visibleFindings.length ? el('ul', visibleFindings.map(row => el('li', renderLine(row)))) : null,
-    moreFindings.length ? el('details', el('summary', 'More cross-proposal references (' + moreFindings.length + ')'),
-      el('ul', moreFindings.map(row => el('li', renderLine(row))))) : null,
+    visibleFindings.length ? el('ul', visibleFindings) : null,
+    moreFindings.length ? el('details', el('summary', 'More related proposals (' + moreFindings.length + ')'),
+      el('ul', moreFindings)) : null,
     interactions.observations.length ? el('details', el('summary', 'Governance discovery coverage'),
       el('ul', interactions.observations.map(text => el('li', text)))) : null);
 }
 
-export function subnetActivityView(observation, openProposal) {
-  const state = interactionChecks(observation);
-  const membership = state.proposals.filter(row => [2, 13, 31].includes(option(row.function)));
-  return styled('section', 'card', el('h2', 'Subnet Activity'), el('p', state.overview),
-    state.observations.length ? el('details', el('summary', 'Discovery coverage'), el('ul', state.observations.map(s => el('li', s)))) : null,
-    Object.values(lifecycle).map(status => {
-      const rows = membership.filter(row => row.observedLifecycle === status);
-      return el('section', el('h3', status), rows.length ? el('ul', rows.map(row => el('li',
-        dashboardLink('proposal', row.id, '#' + row.id), ' · ', option(row.title) ?? row.action,
-        ' · ', row.action, option(row.target_subnet) ? [' · ', dashboardLink('subnet', option(row.target_subnet).toText())] : null,
-        ' · ', time(row.observed_at), ' ', openProposal && Object.assign(el('button', 'Review #' + row.id), {
-          type: 'button', onclick: () => openProposal(row.id),
-        })))) : el('p', 'No supported membership actions observed in this group.'));
-    }),
-    state.findings.length ? el('details', el('summary', 'Known interactions'), el('ul', state.findings.map(row => el('li', renderLine(row))))) : null);
+export function scopedActivity(observation, ids) {
+  const accepted = observation?.response?.outcome?.Ok;
+  if (!accepted || !ids.every(id => accepted.proposals.some(row => row.id === id))) return undefined;
+  return { stale: observation.stale, response: { ...observation.response, outcome: { Ok: {
+    ...accepted, matches: accepted.matches.filter(match => ids.includes(match.proposal)),
+  } } } };
 }
