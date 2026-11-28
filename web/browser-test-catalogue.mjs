@@ -255,7 +255,7 @@ try {
   await activity.screenshot({ path: resolve(output, 'recorded-burst-navigator.png') });
   failDiscovery = true;
   await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).click();
-  await activity.getByText(/Discovery failed.*Showing the previous observation/).waitFor({ timeout: 90000 });
+  await activity.getByText(/Discovery failed.*Showing the previous observation/s).waitFor({ timeout: 90000 });
   assert.equal(await activity.locator('.activity-subnet').count(), 98);
   await page.locator('.review-header').getByRole('link', { name: '#990001', exact: true }).waitFor();
   failDiscovery = false;
