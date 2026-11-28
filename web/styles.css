@@ -342,6 +342,11 @@ button.node-sort-heading {
 .map-country-note:empty { display: none; }
 
 .test-nav { display: flex; flex-wrap: wrap; gap: .75rem; }
+.masthead .test-nav a { color: #e1fbf3; white-space: nowrap; }
+@media (width < 44rem) {
+  .masthead-row { flex-wrap: wrap; justify-content: flex-start; }
+  .masthead .test-nav { order: 1; flex-basis: 100%; }
+}
 .test-catalogue { margin-block: 1rem; }
 .test-case-item { margin-block: .7rem; }
 .test-case-item p { margin-block: .2rem; }

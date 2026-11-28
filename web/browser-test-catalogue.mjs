@@ -264,6 +264,9 @@ try {
   await activity.getByText(/Governance check incomplete/).waitFor();
   await page.setViewportSize({ width: 390, height: 800 });
   await page.getByRole('button', { name: 'Back to subnet list', exact: true }).click();
+  const header = await page.locator('.masthead').boundingBox();
+  assert.ok(header.height < 110, 'Mobile navigation fits in two compact lines');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
   const noProposals = activity.locator('details').filter({ has: page.getByText('No proposals for this subnet in the observed result.', { exact: true }) });
   const empty = noProposals.nth(20);
   await empty.locator('summary').click();
