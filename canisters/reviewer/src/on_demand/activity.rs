@@ -124,6 +124,13 @@ fn membership_roles(action: &MembershipAction, refs: &mut References) {
     refs.extend(outgoing.iter().map(|&id| (id, NodeReferenceRole::Outgoing)));
 }
 
+fn supported_function(function: i32) -> bool {
+    matches!(
+        function,
+        1 | 2 | 6 | 13 | 18 | 31 | 41 | 43 | 44 | 46 | 47 | 51
+    )
+}
+
 fn executable(
     info: &ProposalInfo,
     refs: &mut References,
@@ -253,7 +260,9 @@ async fn observe(
         .rev()
         .filter(|(_, (row, _))| {
             row.proposal.as_ref().is_none_or(|p| p.action.is_none())
-                || row.executable().is_some_and(|a| a.payload.is_empty())
+                || row
+                    .executable()
+                    .is_some_and(|a| supported_function(a.nns_function) && a.payload.is_empty())
         })
         .map(|(&id, _)| id)
         .collect();
@@ -317,7 +326,9 @@ async fn observe(
         let mut refs = References::new();
         let function = info.executable().map(|a| a.nns_function);
         let mut target_subnet = None;
-        if missing_hydration
+        if function.is_some_and(|id| !supported_function(id)) {
+            coverage.unsupported_actions += 1;
+        } else if missing_hydration
             || info.proposal.is_none()
             || info.executable().is_some_and(|a| a.payload.is_empty())
         {

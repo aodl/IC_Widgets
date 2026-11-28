@@ -1,5 +1,7 @@
 # Subnet Activity and review checks
 
+This document describes the first Activity milestone. See the [completed navigator](NAVIGATOR.md) for the updated discovery scopes and resilience model.
+
 The frozen implementation is `5aeece635652ddccdfbb87ae2a2a4ac892670e96`. [Initial hosted run for the exact source](https://github.com/aodl/IC_Widgets/actions/runs/46074044777) · [Separate catalogue production release](https://github.com/aodl/IC_Widgets/tree/5f0f11ef98a99a4983a2b6015917f8b3fc911b34/docs/release-candidates/catalogue-4cdb714/production) Activity adds a new optional review response field and a bounded reviewer update. The production reviewer still uses its canonical Governance, Registry and management sources. The legacy collector and stable-state schema are unchanged.
 
 ## Governance observation

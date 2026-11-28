@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { Cbor } from '@icp-sdk/core/agent';
 import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -19,6 +20,7 @@ try {
   const allowed = new Set(gateway.observed.filter(row => row.method === 'GET' && row.status === 200).map(row => row.path));
   const rejected = [], errors = [], testData = [], reviewerRequests = [];
   let live = false;
+  let failDiscovery = false;
   await context.route('**/*', route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -31,6 +33,10 @@ try {
       (request.method() === 'POST' && protocol.test(url.pathname))
       || (request.method() === 'GET' && url.pathname === '/api/v2/status'))) {
       reviewerRequests.push(url.pathname);
+      const body = request.postDataBuffer();
+      if (failDiscovery && body && Cbor.decode(body)?.content?.method_name === 'subnet_activity') {
+        return route.fulfill({ status: 403, body: 'Simulated discovery refresh rejection' });
+      }
       return route.continue();
     }
     rejected.push(request.url());
@@ -169,7 +175,7 @@ try {
   const activity = page.locator('section.card').filter({ has: page.getByRole('heading', { name: 'Subnet Activity' }) });
   await activity.getByText(/Pinned roster resolved/).waitFor();
   await activity.getByText(/Governance check complete.*references found/).waitFor();
-  await activity.locator('details').filter({ has: activity.getByRole('button', { name: 'Review #990001', exact: true }) }).locator('summary').first().click();
+  await activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #990001$/ }) }).locator('summary').first().click();
   await page.screenshot({ path: resolve(output, 'subnet-activity.png'), fullPage: true });
   await activity.getByRole('button', { name: 'Review #990001', exact: true }).click();
   await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
@@ -184,6 +190,15 @@ try {
   assert.equal(await activity.locator('.activity-count').count(), 98);
   await page.locator('.review-header').getByText(/#990001/).waitFor();
   await activity.screenshot({ path: resolve(output, 'recorded-burst-navigator.png') });
+  failDiscovery = true;
+  await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).click();
+  await activity.getByText(/Showing the previous observation/).waitFor({ timeout: 90000 });
+  assert.equal(await activity.locator('.activity-count').count(), 98);
+  await page.locator('.review-header').getByText(/#990001/).waitFor();
+  failDiscovery = false;
+  await activity.getByRole('button', { name: 'Retry discovery', exact: true }).click();
+  await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).waitFor({ timeout: 90000 });
+  await activity.getByText(/Governance check incomplete/).waitFor();
   assert.equal(testData.length, capturesBeforeLive);
   assert.ok(reviewerRequests.some(path => path.endsWith('/call')));
   assert.deepEqual(rejected, []);
