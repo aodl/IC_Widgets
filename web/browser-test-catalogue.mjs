@@ -286,10 +286,19 @@ try {
   const archivedRow = activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #145077$/ }) });
   await archivedRow.locator('summary').first().press('Enter');
   await activity.getByRole('button', { name: 'Review #145077', exact: true }).click();
-  await activity.getByRole('button', { name: 'Next proposal', exact: true }).click();
-  await page.locator('.review-header').getByRole('link', { name: '#145076', exact: true }).waitFor();
+  const previous = activity.getByRole('button', { name: 'Previous proposal', exact: true });
+  const next = activity.getByRole('button', { name: 'Next proposal', exact: true });
+  const goForward = await previous.isDisabled();
+  // The queue now follows effective voting deadlines. The selected proposal may be the last row.
+  const startNavigation = performance.now();
+  await (goForward ? next : previous).click();
+  const other = page.locator('.review-header a').filter({ hasText: /^#(?!145077$)\d+$/ }).first();
+  await other.waitFor();
+  const anotherProposal = (await other.textContent()).trim();
+  const navigationToIdentityMs = Math.round(performance.now() - startNavigation);
   await page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 90000 });
-  await activity.getByRole('button', { name: 'Previous proposal', exact: true }).click();
+  const navigationToVerifiedMs = Math.round(performance.now() - startNavigation);
+  await (goForward ? previous : next).click();
   await page.locator('.review-header').getByRole('link', { name: '#145077', exact: true }).waitFor();
   await page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 90000 });
   execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
@@ -306,7 +315,7 @@ try {
   assert.deepEqual(errors, []);
   const summary = { origin: gateway.origin, certified: gateway.observed, rawRefusals: gateway.rawRefusals,
     results, bundledEvidenceRequests: testData.length, liveReviewerCalls: reviewerRequests.filter(path => path.endsWith('/call')).length,
-    activityOverviewVerified: true, performanceRequests, testReviewerCalls: 0, outsideRequests: rejected.length };
+    activityOverviewVerified: true, navigation: { anotherProposal, navigationToIdentityMs, navigationToVerifiedMs }, performanceRequests, testReviewerCalls: 0, outsideRequests: rejected.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log('Verified ' + summary.certified.length + ' gateway responses and ' + results.length + ' test cases.');
 } finally {
