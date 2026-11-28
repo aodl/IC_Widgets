@@ -18,6 +18,7 @@ import { action, el, option, sourceReceipts, styled } from './view.js';
 const search = document.querySelector('#search');
 const widget = EMBED_WIDGET;
 const inspectorWidget = widget?.view === 'inspector';
+const compositionFixture = LOCAL_REPLICA && inspectorWidget ? { compositionFixture: true } : undefined;
 const connectedReview = inspectorWidget || widget?.view === 'proposal';
 const reportStatus = document.querySelector('#report-status');
 const elapsed = document.querySelector('#review-elapsed');
@@ -89,7 +90,7 @@ function publishEvidence(selection, scene, issue, filterScope) {
     : { kind: 'waiting', message: 'Waiting for accepted membership evidence' };
   publishOutputs(selection ? composedOutputs(selection, scene, filterScope) : { filter: state, scene: { ...state } });
 }
-const overview = mountSubnetOverview({ call: remote, performance, replay: activeReplay,
+const overview = mountSubnetOverview({ call: remote, performance, replay: compositionFixture ?? activeReplay,
   publish: (inspectorWidget || widget?.view === 'subnet') ? publishEvidence : undefined });
 const connectedFilter = el('select', Object.entries(comparisonFilterLabels).map(([value, label]) =>
   Object.assign(el('option', label), { value })));
@@ -212,8 +213,8 @@ function startReview(ids, discovered, preferredSubnet) {
       }
       const body = live.outcome.Ok;
       const proposals = body.report.manifest.proposals;
-      const reviewReplay = LOCAL_REPLICA && inspectorWidget ? {
-        compositionFixture: true, activity: true, registryVersion: String(body.report.manifest.registry_version),
+      const reviewReplay = compositionFixture ? {
+        ...compositionFixture, activity: true, registryVersion: String(body.report.manifest.registry_version),
       } : activeReplay;
       if (proposals.length && proposals.every(terminalOutcome)) {
         map?.dispose();
