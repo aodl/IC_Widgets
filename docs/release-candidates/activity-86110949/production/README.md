@@ -1,0 +1,25 @@
+# Subnet Activity production release
+
+On 28 November 2026 the two existing canisters were upgraded in place with the exact authorized gzip packages. The verified source and test revision is `8611094901da951fbca033e7aae74d99aa6706b2`, and the artifact publication revision is `ff242a69212ff82553fb7c28102cdfc73e4ca43b`. PR #11 merged into its Activity base at `0bd45fff4fd4c9fe058bfac59dce84919edbb997`. Integration at `58175db2f77dd034cf8ecaf3c7778179cb844572` preserved the earlier catalogue ledger and left the verified build inputs unchanged. The production evidence commit advances `main` from its previous ancestor without a force-push. [Install packages and release manifest](../README.md) · [Prior catalogue deployment](../../catalogue-4cdb714/production/README.md)
+
+| Canister | Existing principal | Start–finish (UTC) | Certified installed module SHA-256 |
+| --- | --- | --- | --- |
+| Reviewer | `s34gv-3qaaa-aaaar-qcifa-cai` | 10:47:41–10:47:47 | `a9337f47cce5e294718598d0adf1d3aa33fd034f9b1a786b81d1b2f5709359d2` |
+| Frontend | `s45ab-wiaaa-aaaar-qcifq-cai` | 10:49:51–10:49:55 | `f64a81cd9d00bf734d1f992f5976b6a3d0405924b75e7273f9c6fddb3388e2e3` |
+
+Both IDs, controller sets and management settings matched preflight, including the existing freezing, allocation, limits and log visibility settings. Both prior rollback packages matched the preflight module hashes. The reviewer retained 151,060,480 stable bytes, Registry cursor 4,270 and fixed target 65,958, with 547 retained mutations and 91,057 retained value bytes. The manifest for all 24 observations and the sampled 7,267-byte retained reply from observation 14 matched byte for byte at every stage. Observation 22 lacked raw content at preflight and continued to report that same state. The collector stayed disabled, with no in-flight work and an expired authorization. [Preflight](checks-before.json) · [Reviewer upgrade](checks-reviewer-upgraded.json) · [Frontend upgrade](checks-frontend-upgraded.json) · [Final checks](checks-final.json) · [State digests](retained-state-sha256.txt)
+
+The preceding catalogue frontend completed a live review against the new reviewer before the frontend upgrade. The final gateway check independently verified 79 certified responses against the pinned IC root and checked the asset bytes against the authorized package. All six tested canister-qualified raw URLs returned HTTP 403 with empty bodies. [Compatibility trace](browser-compatibility.json) · [Gateway evidence](gateway-after.json)
+
+Subnet Activity observed 98 listed subnets at Registry 66,271, with 23 distinct undecided Membership proposals and 23 confirmed affected subnets. The 10:50:36–10:51:46 UTC discovery window completed pagination and disclosed incomplete action coverage, including 27 unsupported actions in the pending interaction scan. Current-subnet inspection loaded 13 registered members via the shared inspector. Governance was queried directly and returned Open status for proposal 145077. The live review completed at Registry 66,271, generated its ZIP, and linked Performance sent precisely the 14-node union, including the removed node. [Governance observations](current-governance.json) · [Activity and exact finite scopes](browser-live.json) · [Current-subnet capture](current-subnet.png) · [Live review](live-review.zip)
+
+The independent Performance request used an unfiltered subnet scope and returned seven samples. The permanent catalogue served all 45 entries. Two recorded reviews preserved their original timestamps and produced ZIPs with zero reviewer calls. The browser allowlist observed zero unauthorized external requests. The first verification pass stopped at an ambiguous test selector for independent Performance after completing the live checks. A scoped selector completed the remaining checks without repeating live discovery or Membership. [Independent and bundled verification](browser-remaining.json) · [Recorded 144954 ZIP](recorded-144954-review.zip) · [Recorded 145077 ZIP](recorded-145077-review.zip)
+
+| Canister | Preflight balance | Final balance | Net decrease through first post-install observation | Net decrease through final observation | Estimated final margin above freezing |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Reviewer | 2,790,126,873,677 | 2,742,294,941,920 | 41,725,792,341 | 47,831,931,757 | 2,365,892,104,480 |
+| Frontend | 2,598,244,604,731 | 2,581,240,555,341 | 16,985,330,756 | 17,004,049,390 | 2,503,747,029,621 |
+
+Balances and decreases are observed cycles. Decreases include idle burn and verification and do not isolate the install charge. Margins estimate the freezing reserve from the reported daily idle burn and threshold. No rollback, top-up, controller change or canister creation occurred. Disposable replicas and temporary preview processes were stopped.
+
+[Certified application](https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net/) · [Permanent catalogue](https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net/test-cases) · [Evidence SHA-256 manifest](SHA256SUMS)

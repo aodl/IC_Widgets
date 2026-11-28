@@ -1,0 +1,37 @@
+{
+  "Ok": {
+    "allocated_pages": "2305",
+    "enabled": false,
+    "in_flight": [],
+    "last_observation": "24",
+    "storage_page_ceiling": "3072",
+    "usage": [
+      {
+        "calls": 24,
+        "cycles_reserved": "2_651_738_554_265",
+        "initial_balance": "3_000_520_230_969",
+        "limits": {
+          "attempts": 1,
+          "calls": 24,
+          "cycle_ceiling": "2_800_000_000_000",
+          "duration_secs": 600,
+          "raw_bytes": "18874368",
+          "slices": 160
+        },
+        "measured_instructions": "1673166465",
+        "observed_balance_decrease": "122_981_296_271",
+        "raw_bytes": "2257650",
+        "slices": 36,
+        "started_at": "1795460146783481559",
+        "stop": [
+          {
+            "CallLimit": null
+          }
+        ]
+      }
+    ],
+    "verification_expires_at": [
+      "1795460743000000000"
+    ]
+  }
+}

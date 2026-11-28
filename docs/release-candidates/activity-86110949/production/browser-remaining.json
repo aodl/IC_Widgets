@@ -1,0 +1,60 @@
+{
+  "url": "https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net/",
+  "mode": "embedded",
+  "proposal": "145077",
+  "lifecycle": "open",
+  "requests": [
+    {
+      "phase": "Independent Performance",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "node_performance_on_demand",
+      "filter": {
+        "subnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+        "nodes": null
+      }
+    }
+  ],
+  "rejected": [],
+  "browserErrors": [],
+  "violations": [],
+  "performanceMs": 4583,
+  "performanceRead": true,
+  "performanceSamples": 7,
+  "catalogueCount": 45,
+  "caseHeaderObservationVisible": true,
+  "caseHeaderRenderingIssue": false,
+  "catalogue": {
+    "path": "/test-cases/nns-144954-recorded-open",
+    "entries": 45,
+    "reload": true,
+    "reportContents": [
+      "map.png",
+      "review.md"
+    ],
+    "historicalLabel": true,
+    "reviewerRequests": 0,
+    "assetRequests": [
+      "/test-cases",
+      "/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css",
+      "/app.942b03128913a4bac8c9716984595afe3e11416ce05909af41bc12d458268ad3.js",
+      "/test-cases/nns-144954-recorded-open",
+      "/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css",
+      "/app.942b03128913a4bac8c9716984595afe3e11416ce05909af41bc12d458268ad3.js",
+      "/test-cases/nns-144954-recorded-open",
+      "/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css",
+      "/app.942b03128913a4bac8c9716984595afe3e11416ce05909af41bc12d458268ad3.js",
+      "/replay.edbf066f33159b83459c037ffbe9aa52501cfc4f049fffb4b9c8d35a16cc4798.json",
+      "/test-cases/nns-145077-recorded-open",
+      "/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css",
+      "/app.942b03128913a4bac8c9716984595afe3e11416ce05909af41bc12d458268ad3.js",
+      "/replay.26d06783ef4c68c630b69a7672c5356cf17965c86253be461db23fb62aa95538.json"
+    ],
+    "recordedSecond": {
+      "path": "/test-cases/nns-145077-recorded-open",
+      "registry": "66264",
+      "reviewerRequests": 0
+    }
+  },
+  "verified": true,
+  "observedAt": "2026-11-28T10:54:10.286Z"
+}

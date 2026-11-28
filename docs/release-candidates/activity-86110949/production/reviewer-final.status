@@ -1,0 +1,19 @@
+Canister status call result for s34gv-3qaaa-aaaar-qcifa-cai.
+Status: Running
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 12_546_761_248 Cycles
+Memory Size: 153_956_661 Bytes
+Balance: 2_742_266_094_551 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0xa9337f47cce5e294718598d0adf1d3aa33fd034f9b1a786b81d1b2f5709359d2
+Number of queries: 87_380
+Instructions spent in queries: 1_475_155_062_434
+Total query request payload size: 933_062 Bytes
+Total query response payload size: 3_967_665_428 Bytes
+Log visibility: public

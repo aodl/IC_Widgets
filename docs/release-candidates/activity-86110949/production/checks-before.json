@@ -1,0 +1,56 @@
+{
+  "reviewer": {
+    "id": "s34gv-3qaaa-aaaar-qcifa-cai",
+    "moduleHash": "bb0b3cf4d08267f1262eac26d6cde1d34b2e0b8f0331d525dd7faaab0efe21db",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "settings": {
+      "compute_allocation": "0",
+      "controllers": [
+        "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+        "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+      ],
+      "freezing_threshold": "2_592_000",
+      "memory_allocation": "0",
+      "reserved_cycles_limit": "5_000_000_000_000",
+      "wasm_memory_limit": "3_221_225_472",
+      "wasm_memory_threshold": "0"
+    },
+    "certifiedObservedAt": "2026-11-28T10:47:11.658Z",
+    "managementObservedAt": "2026-11-28T10:44:41Z",
+    "stableMemoryBytes": "151060480",
+    "cycleBalance": "2790126873677",
+    "estimatedFreezingReserve": "375622979730",
+    "estimatedAboveReserve": "2414503893947",
+    "netDecreaseFromPreflight": "0"
+  },
+  "frontend": {
+    "id": "s45ab-wiaaa-aaaar-qcifq-cai",
+    "moduleHash": "b8acdc601b8d2580476a488a735fff17781937846fc782b63c7e1a87ddc166d8",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "settings": {
+      "compute_allocation": "0",
+      "controllers": [
+        "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+        "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+      ],
+      "freezing_threshold": "2_592_000",
+      "memory_allocation": "0",
+      "reserved_cycles_limit": "5_000_000_000_000",
+      "wasm_memory_limit": "3_221_225_472",
+      "wasm_memory_threshold": "0"
+    },
+    "certifiedObservedAt": "2026-11-28T10:47:11.658Z",
+    "managementObservedAt": "2026-11-28T10:44:42Z",
+    "stableMemoryBytes": "589824",
+    "cycleBalance": "2598244604731",
+    "estimatedFreezingReserve": "76141256010",
+    "estimatedAboveReserve": "2522103348721",
+    "netDecreaseFromPreflight": "0"
+  }
+}

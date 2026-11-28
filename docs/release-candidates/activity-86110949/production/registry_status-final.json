@@ -1,0 +1,27 @@
+{
+  "Ok": {
+    "attempts": 0,
+    "block": [],
+    "blocked": [],
+    "bootstrap_target": [
+      "65958"
+    ],
+    "ingested_through": "4270",
+    "last_observation": [
+      "22"
+    ],
+    "limits": [],
+    "next_due": "0",
+    "observed_head": [
+      "65958"
+    ],
+    "processed_mutations": "5330",
+    "published": [],
+    "retained_mutations": "547",
+    "retained_value_bytes": "91057",
+    "staging": [],
+    "superseded_mutations": "0",
+    "updated_at": [],
+    "wire_bytes": "2005300"
+  }
+}

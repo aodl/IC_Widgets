@@ -1,0 +1,4 @@
+a9337f47cce5e294718598d0adf1d3aa33fd034f9b1a786b81d1b2f5709359d2  install/reviewer.wasm.gz
+f64a81cd9d00bf734d1f992f5976b6a3d0405924b75e7273f9c6fddb3388e2e3  install/frontend.wasm.gz
+b8acdc601b8d2580476a488a735fff17781937846fc782b63c7e1a87ddc166d8  rollback/frontend.wasm.gz
+bb0b3cf4d08267f1262eac26d6cde1d34b2e0b8f0331d525dd7faaab0efe21db  rollback/reviewer.wasm.gz

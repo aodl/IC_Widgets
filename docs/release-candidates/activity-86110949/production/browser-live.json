@@ -1,0 +1,228 @@
+{
+  "url": "https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net/",
+  "mode": "embedded",
+  "proposal": "145077",
+  "lifecycle": "open",
+  "requests": [
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "subnet_activity"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Subnet Activity",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "subnet_snapshot_on_demand"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Current-subnet inspection",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "begin_membership_review"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_registry_role"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "compare_membership_context"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "finalize_membership_review"
+    },
+    {
+      "phase": "Linked Performance",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "node_performance_on_demand",
+      "filter": {
+        "subnet": "5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae",
+        "nodes": [
+          "ayf37-rq2hn-jiuvy-c2i3m-3kft2-v3jbe-c6mzo-f6yjy-sv52k-poii6-5ae",
+          "nusc3-gza5p-4iw7a-ea7xu-b6afg-r4sd3-saik7-io6zs-c36mg-q47ut-qae",
+          "fbypf-pftue-r2nbt-pueee-s454b-ycsuw-pjqqn-h3rh4-vlfpo-tokd5-mae",
+          "zgeaf-fcq4e-fcnht-g7mpg-sb7ff-r6awk-zvkwp-gkloc-rr6jl-ghsse-mqe",
+          "uouxk-c246i-dgxzd-ql3a5-koofn-mclrv-toplo-bg76d-l4dzk-ngb3c-nae",
+          "haeka-mchv4-zwg3j-d3sz2-k5z2x-ulfmb-kflyu-ezzlz-ckc3d-ako5j-uqe",
+          "tu7cd-aljf3-56j73-xdusu-fyjps-sgkoi-5w3fx-p3vvd-tusca-w2vyl-bqe",
+          "62yzt-726hf-rwk73-c3j6k-fjdls-7oqh5-exbnn-bvrsn-2soat-m4vg3-7ae",
+          "ihoip-fmbnl-mm4fa-pu7hu-2sbx2-mzl2f-tgzje-unnjg-bgcac-3apmo-gqe",
+          "ocvcv-56eg5-gxibh-dcgpo-unhwq-4bwmo-x7q3h-stwf2-ycfex-gdr2a-kae",
+          "zos66-lmcn7-satbv-gcdzj-q3cdf-4n6zc-2hlei-gc453-uoh7r-4sj3w-vqe",
+          "oswv7-a355p-a5jlp-ko7pj-arrs2-rghho-dti4z-xgptn-szn55-jjr46-uqe",
+          "wq5v7-ngito-7ztqs-zlf2v-ibk6f-e54em-t3hou-x24kz-v5j77-6vo72-kqe",
+          "ssfqq-s2yvo-mtunz-ok6ih-wbtxo-p42ie-mlm2u-g33bu-fm6kj-rpz2s-kae"
+        ]
+      }
+    }
+  ],
+  "rejected": [],
+  "browserErrors": [],
+  "violations": [],
+  "activity": {
+    "summary": [
+      "Registry 66271 · Pinned roster resolved · Voting pagination complete",
+      "23 distinct observed Membership proposals · 23 confirmed affected subnets"
+    ],
+    "coverage": "Governance check incomplete · 0 references found\nSources rrkah-fqaaa-aaaaa-aaaaq-cai, rwlgt-iiaaa-aaaaa-aaaaa-cai · 21 admitted reads\nDiscovery observed 2026-11-28 10:50:36.225 UTC to 2026-11-28 10:51:46.538 UTC\nPagination complete · 6 pages · oldest listed #340 · Open 29 · Adopted awaiting execution 21\nTitle, summary and supported motion text checked for 50 proposals · Supported actions decoded 23 · Hydrated 0 · Lifecycle changed 0\nUnsupported actions 27 · Missing payloads 0 · Malformed payloads 0 · Omitted findings 0\nVoting discovery · Decided voting rows: 62 unsupported actions, 0 unavailable actions or payloads, 0 malformed payloads.",
+    "rosterCount": 98
+  },
+  "subnetSnapshot": [
+    "Subnet 5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae",
+    "13 members · Registry 66,271",
+    "Registry evidence observed 2026-11-28 10:52:14.664 UTC",
+    "Map",
+    "Member",
+    "13 registered members · 13/13 located"
+  ],
+  "subnetSnapshotReads": 1,
+  "reviewMs": 51897,
+  "reviewStatus": "Data loading complete",
+  "reportContents": [
+    "map.png",
+    "review.md"
+  ],
+  "calculationSha256": "b94e6112f0b6c3db1c4b57465a072c58b7802a0535e21688453fe4728b09cbb3",
+  "registryPin": "66,271",
+  "linkedPerformance": {
+    "nodes": 14,
+    "removed": 1,
+    "filter": "membership-union"
+  },
+  "failure": "locator.fill: Error: strict mode violation: getByLabel('Subnet principal') resolved to 2 elements:\n    1) <input required=\"\" name=\"subnet\" spellcheck=\"false\"/> aka getByLabel('Subnet overview').getByLabel('Subnet principal')\n    2) <input required=\"\" name=\"subnet\"/> aka getByRole('textbox', { name: 'Subnet principal' })\n\nCall log:\n\u001b[2m  - waiting for getByLabel('Subnet principal')\u001b[22m\n",
+  "observedAt": "2026-11-28T10:53:17.077Z"
+}

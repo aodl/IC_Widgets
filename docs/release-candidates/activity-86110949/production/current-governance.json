@@ -1,0 +1,16 @@
+{
+  "before": {
+    "id": "145077",
+    "observedStatus": 1,
+    "nnsFunction": 31,
+    "deadlineTimestampSeconds": "1796143100",
+    "observedAt": "2026-11-28T10:45:14Z"
+  },
+  "postinstall-observation": {
+    "id": "145077",
+    "observedStatus": 1,
+    "nnsFunction": 31,
+    "deadlineTimestampSeconds": "1796143100",
+    "observedAt": "2026-11-28T10:50:05Z"
+  }
+}

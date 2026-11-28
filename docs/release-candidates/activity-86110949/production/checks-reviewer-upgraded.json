@@ -1,0 +1,29 @@
+{
+  "reviewer": {
+    "id": "s34gv-3qaaa-aaaar-qcifa-cai",
+    "moduleHash": "a9337f47cce5e294718598d0adf1d3aa33fd034f9b1a786b81d1b2f5709359d2",
+    "controllers": [
+      "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+      "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+    ],
+    "settings": {
+      "compute_allocation": "0",
+      "controllers": [
+        "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+        "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+      ],
+      "freezing_threshold": "2_592_000",
+      "memory_allocation": "0",
+      "reserved_cycles_limit": "5_000_000_000_000",
+      "wasm_memory_limit": "3_221_225_472",
+      "wasm_memory_threshold": "0"
+    },
+    "certifiedObservedAt": "2026-11-28T10:47:53.579Z",
+    "managementObservedAt": "2026-11-28T10:47:47Z",
+    "stableMemoryBytes": "151060480",
+    "cycleBalance": "2748401081336",
+    "estimatedFreezingReserve": "375220512540",
+    "estimatedAboveReserve": "2373180568796",
+    "netDecreaseFromPreflight": "41725792341"
+  }
+}

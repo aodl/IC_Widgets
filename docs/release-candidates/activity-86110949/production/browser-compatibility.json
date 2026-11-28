@@ -1,0 +1,84 @@
+{
+  "url": "https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net/",
+  "mode": "embedded",
+  "proposal": "145077",
+  "lifecycle": "open",
+  "requests": [
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "begin_membership_review"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v3/canister/s34gv-3qaaa-aaaar-qcifa-cai/read_state"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_context_detail_page"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "membership_registry_role"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "compare_membership_context"
+    },
+    {
+      "phase": "Membership",
+      "pathname": "/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "method": "finalize_membership_review"
+    }
+  ],
+  "rejected": [],
+  "browserErrors": [],
+  "violations": [],
+  "reviewMs": 57850,
+  "reviewStatus": "Data loading complete",
+  "reportContents": [
+    "map.png",
+    "review.md"
+  ],
+  "calculationSha256": "c9d4cc653af254c34c2d7ebf9003715f26d35b2fb1bfc5a13c119eeb1d8261b1",
+  "registryPin": "66,271",
+  "verified": true,
+  "observedAt": "2026-11-28T10:49:24.490Z"
+}
