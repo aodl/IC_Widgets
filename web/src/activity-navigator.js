@@ -168,6 +168,8 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, r
   }
   return { section, show() {
     section.hidden = !section.hidden;
-    if (loadOnShow && !section.hidden && !observation && !loading) void load();
+    if (section.hidden) return;
+    if (loadOnShow && !observation && !loading) void load();
+    else render();
   } };
 }
