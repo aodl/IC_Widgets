@@ -254,7 +254,7 @@ try {
     if (id) await membershipStatus().waitFor({ timeout: 150_000 });
     else await inspector.locator('#subnet-status').getByText('Subnet loaded.', { exact: true }).waitFor({ timeout: 150_000 });
     const sample = members[0];
-    await map.locator('[data-nodes~="' + sample + '"], summary[data-node="' + sample + '"]').first().waitFor();
+    await map.locator('[data-nodes~="' + sample + '"], summary[data-node="' + sample + '"]').first().waitFor({ state: 'attached' });
     const located = await map.locator('.map-pin').evaluateAll(pins => pins.flatMap(pin => pin.dataset.nodes.split(' ')));
     const unmapped = await map.locator('summary[data-node]').evaluateAll(rows => rows.map(row => row.dataset.node));
     assert.deepEqual(sorted([...located, ...unmapped]), sorted(members));
@@ -313,6 +313,7 @@ try {
   await activity.getByText(/1 distinct observed Membership proposal/).waitFor();
   timings.warmArrivalMs = measure(arrival);
   assert.equal(calls.length, beforeWarm);
+  assert.equal(await page.locator('#current > section:not([hidden]) .widgets.three-column').count(), 1);
   await page.screenshot({ path: resolve(directory, 'activity-warm-arrival.png') });
   await inspector.getByText('Select a proposal or subnet to inspect.', { exact: true }).waitFor();
   assert.equal(calls.filter(row => row.origin === widgets[6].origin && row.method === 'begin_membership_review').length, 0);
