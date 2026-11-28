@@ -55,7 +55,7 @@ struct FrontendRehearsal {
     id: Principal,
     old_wasm: Vec<u8>,
     new_wasm: Vec<u8>,
-    files: Vec<(&'static str, Vec<u8>)>,
+    files: Vec<(String, Vec<u8>)>,
     settings: Vec<u8>,
 }
 
@@ -77,40 +77,62 @@ impl FrontendRehearsal {
             encode_args(()).unwrap(),
             Some(primary),
         );
-        let files = [
-            ("/index.html", "text/html"),
-            ("/app.js", "text/javascript"),
-            ("/styles.css", "text/css"),
-        ]
-        .into_iter()
-        .map(|(key, content_type)| {
-            let content = fs::read(directory.join("legacy-assets").join(&key[1..])).unwrap();
-            pic.update_call(
-                id,
-                primary,
-                "store",
-                encode_one(StoreAsset {
-                    key: key.into(),
-                    content_type: content_type.into(),
-                    content_encoding: "identity".into(),
-                    sha256: Some(sha256(&content).to_vec()),
-                    content: content.clone(),
-                })
-                .unwrap(),
-            )
-            .unwrap();
-            (key, content)
-        })
-        .collect();
+        let files = if directory.join("legacy-assets").is_dir() {
+            [
+                ("/index.html", "text/html"),
+                ("/app.js", "text/javascript"),
+                ("/styles.css", "text/css"),
+            ]
+            .into_iter()
+            .map(|(key, content_type)| {
+                let content = fs::read(directory.join("legacy-assets").join(&key[1..])).unwrap();
+                pic.update_call(
+                    id,
+                    primary,
+                    "store",
+                    encode_one(StoreAsset {
+                        key: key.into(),
+                        content_type: content_type.into(),
+                        content_encoding: "identity".into(),
+                        sha256: Some(sha256(&content).to_vec()),
+                        content: content.clone(),
+                    })
+                    .unwrap(),
+                )
+                .unwrap();
+                (key.to_owned(), content)
+            })
+            .collect()
+        } else {
+            Vec::new()
+        };
         let settings =
             encode_one(&pic.canister_status(id, Some(primary)).unwrap().settings).unwrap();
-        let frontend = Self {
+        let mut frontend = Self {
             id,
             old_wasm,
             new_wasm,
             files,
             settings,
         };
+        if frontend.files.is_empty() {
+            let response = frontend.request(pic, "/", "certified.localhost");
+            assert_eq!(response.status_code, 200);
+            let html = std::str::from_utf8(&response.body).unwrap();
+            let assets: Vec<_> = html
+                .split('"')
+                .filter(|path| path.starts_with("./app.") || path.starts_with("./styles."))
+                .map(|path| {
+                    let path = &path[1..];
+                    let asset = frontend.request(pic, path, "certified.localhost");
+                    assert_eq!(asset.status_code, 200, "{path}");
+                    (path.to_owned(), asset.body)
+                })
+                .collect();
+            assert_eq!(assets.len(), 2);
+            frontend.files.push(("/".into(), response.body));
+            frontend.files.extend(assets);
+        }
         frontend.verify_legacy(pic, primary);
         frontend
     }

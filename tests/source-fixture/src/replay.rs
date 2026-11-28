@@ -28,6 +28,7 @@ struct Replay {
     fault: Option<String>,
     activity: Vec<historical::ActivityFixture>,
     archived: bool,
+    untargeted_activity_probe: bool,
     failure_active: bool,
 }
 
@@ -80,6 +81,26 @@ pub fn activity(request: &ListRequest) -> Option<ListResponse> {
                 !proposal_info.is_empty(),
                 "Original Governance discovery ended after one captured page"
             );
+            return Some(ListResponse { proposal_info });
+        }
+        if replay.untargeted_activity_probe {
+            let id = 132_102;
+            let info: Option<nexus_ic_sources::governance::ProposalInfo> =
+                candid::decode_one(&replay.proposals[&id]).unwrap();
+            let proposal_info = info
+                .into_iter()
+                .filter(|row| {
+                    request.before_proposal.is_none_or(|before| id < before.id)
+                        && (request.include_status.is_empty()
+                            || request.include_status.contains(&row.status))
+                        && (request.include_reward_status.is_empty()
+                            || request.include_reward_status.contains(&1))
+                })
+                .map(|mut row| {
+                    row.reward_status = Some(1);
+                    row
+                })
+                .collect();
             return Some(ListResponse { proposal_info });
         }
         assert!(
@@ -219,6 +240,7 @@ fn load_review_case(id: String) {
         fault: case.fault,
         activity: case.activity,
         archived,
+        untargeted_activity_probe: id == "untargeted-two-subnets",
         failure_active: false,
     }));
 }

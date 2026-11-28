@@ -129,7 +129,7 @@ try {
     await producer.locator(id ? '#report-status' : '#subnet-status').getByText(
       id ? 'Data loading complete' : 'Subnet loaded.', { exact: true }).waitFor({ timeout: 150_000 });
     await performance.locator('#performance-context').getByText(new RegExp(
-      (id ? 'Proposal #' + id + '.*Before and proposed members' : 'Existing members') + '.*' + filter.length + ' nodes')).waitFor();
+      (id ? 'Proposal #' + id + '.*All related nodes' : 'Existing') + '.*' + filter.length + ' nodes')).waitFor();
     await performance.getByText('Source receipts', { exact: true }).waitFor();
     assert.equal(await producer.locator('.map-frame').count(), 0);
     assert.equal(await page.locator('iframe[title="IC Node Map"]').getAttribute('src'), mapOrigin + '/embed');
@@ -160,7 +160,7 @@ try {
     if (id === '144940') {
       const start = calls.length;
       await producer.getByLabel('Connected Performance scope').selectOption('proposed-membership');
-      await performance.locator('#performance-context').getByText(/Proposed members.*5 nodes/).waitFor();
+      await performance.locator('#performance-context').getByText(/Proposed.*5 nodes/).waitFor();
       await performance.getByText('Source receipts', { exact: true }).waitFor();
       const scopedReads = calls.slice(start).filter(row => row.method === 'node_performance_on_demand');
       assert.equal(scopedReads.length, 1);

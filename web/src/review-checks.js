@@ -1,5 +1,5 @@
 import { dashboardLink, dashboardUrl } from './dashboard.js';
-import { branch, el, option, styled, time } from './view.js';
+import { branch, el, hex, option, principal, styled, time } from './view.js';
 
 export const transitionAssumption = 'Conservative availability model. The fault budget is floor((N − 1) / 3). Model departing nodes unavailable in the before-state and incoming nodes still synchronizing in the proposed state. The smaller margin applies. A margin below one triggers a warning. The cumulative case keeps all earlier arrivals unavailable while they remain in the subnet. These conditional margins do not establish global assignment, execution validity or actual liveness.';
 
@@ -44,8 +44,19 @@ function marginText(margin) {
       : margin.remaining + (margin.remaining === 1 ? ' additional fault tolerable · ' : ' additional faults tolerable · ') + margin.further_faults_to_exceed + ' would exceed the modeled budget';
 }
 
+export const receiptHeaders = ['ID', 'Method', 'Item', 'Canister', 'Observed at', 'Argument SHA-256', 'Reply SHA-256', 'Bytes', 'Rejection'];
+export const evidenceReceipt = row => [String(row.id), row.method, row.item, principal(row.source), time(row.observed_at),
+  hex(row.argument_hash), option(row.reply_hash) ? hex(option(row.reply_hash)) : '—', String(row.reply_bytes), option(row.reject) ?? '—'];
+
 const side = value => value.members + ' members, budget ' + value.fault_budget + ', modeled unavailable '
   + value.modeled_unavailable + ', remaining ' + value.remaining;
+
+function arithmetic(label, subnet, margin) {
+  const limiting = margin.before.remaining === margin.proposed.remaining ? 'both states'
+    : margin.before.remaining < margin.proposed.remaining ? 'before' : 'proposed';
+  return line(label + ' · ' + subnet + ' · Before · ' + side(margin.before) + ' · Proposed · ' + side(margin.proposed)
+    + ' · Limiting side: ' + limiting + ' · Margin ' + margin.remaining);
+}
 
 function integrity(row) {
   const duplicate = (label, ids) => label + (ids.length ? ids.map(id => id.toText()).join(', ') : 'none');
@@ -67,7 +78,15 @@ function integrity(row) {
       line(duplicate('Overlapping principals · ', row.overlap)),
       ...row.transitions.flatMap(item => {
         const margin = option(item.margin);
-        return margin ? [line(item.subnet.toText() + ' · Before · ' + side(margin.before) + ' · Proposed · ' + side(margin.proposed))] : [];
+        const cumulative = option(item.cumulative_margin);
+        const earlier = option(item.earlier_arrivals ?? []);
+        const subnet = item.subnet.toText();
+        return [
+          ...(margin ? [arithmetic('Individual step', subnet, margin)] : []),
+          ...(cumulative ? [arithmetic('Cumulative', subnet, cumulative),
+            line('Earlier arrivals modeled · ' + (earlier ? earlier.map(principal).join(', ') || 'none' : 'identities unavailable')
+              + '. Each contributes only to states where present.')] : []),
+        ];
       }),
     ],
     alert: branch(row.preconditions) !== 'EstablishedInCheckedScope' || row.add_duplicates.length > 0 || row.remove_duplicates.length > 0 || row.overlap.length > 0
@@ -76,13 +95,13 @@ function integrity(row) {
 }
 
 export function interactionChecks(observation) {
-  const { outcome, usage, receipts } = observation?.response ?? {};
+  const { outcome, usage, receipts = [] } = observation?.response ?? observation?.failedResponse ?? {};
   const timing = usage ? [
     ...(receipts.length ? ['Sources ' + [...new Set(receipts.map(row => row.source.toText()))].join(', ') + ' · ' + usage.calls + ' admitted reads'] : []),
     'Discovery observed ' + time(usage.started_at) + ' to ' + time(usage.finished_at),
   ] : [];
-  if (!outcome?.Ok) return { overview: observation?.error
-    ? 'Governance check incomplete · ' + observation.error : 'Governance check pending.', observations: timing, findings: [], proposals: [] };
+  if (!observation?.response?.outcome?.Ok) return { overview: observation?.error
+    ? 'Governance check incomplete · ' + observation.error : 'Governance check pending.', observations: timing, findings: [], proposals: [], receipts: [] };
   const { coverage, complete, matches, proposals } = outcome.Ok;
   const byId = new Map(proposals.map(row => [String(row.id), row]));
   const findings = matches.map(match => {
@@ -90,13 +109,17 @@ export function interactionChecks(observation) {
     const role = branch(match.other_role);
     const observed = other ? lifecycle[branch(other.lifecycle)] + ' · ' + actionName(other) + ' · topic ' + other.topic
       + ' · observed ' + time(other.observed_at) : 'Proposal details unavailable';
+    const requestedRole = branch(match.requested_role);
     const explanation = role === 'Textual' ? 'The principal appears in proposal text. Inspect its context.'
-      : 'The same node appears in both executable instructions. Review how the proposed actions could interact.';
+
+      : (requestedRole === 'Incoming' && role === 'Outgoing') || (requestedRole === 'Outgoing' && role === 'Incoming')
+        ? 'A requested departure and arrival concern the same node. Applicability could depend on execution order.'
+        : 'Both executable instructions reference this node. Inspect the proposed operations and their applicability.';
     return line(match.node.toText() + ' · ' + roles[branch(match.requested_role)] + ' in #' + match.proposal
       + ' · ' + observed + ' · ' + roles[role] + ' in the other proposal. ' + explanation, match.other);
   });
   return {
-    overview: (observation.stale ? 'Previous Governance observation · refresh failed' : complete ? 'Governance check complete within the supported evidence' : 'Governance check incomplete')
+    overview: (observation.stale ? 'Previous Governance observation · ' + observation.error + (complete ? '' : ' · Previous coverage incomplete') : complete ? 'Governance check complete within the supported evidence' : 'Governance check incomplete')
       + ' · ' + findings.length + (findings.length === 1 ? ' reference found' : ' references found'),
     observations: [
       ...timing,
@@ -107,17 +130,20 @@ export function interactionChecks(observation) {
         + ' · Hydrated ' + coverage.hydrated + ' · Lifecycle changed ' + coverage.changed_lifecycle,
       'Unsupported actions ' + coverage.unsupported_actions + ' · Missing payloads ' + coverage.missing_payloads
         + ' · Malformed payloads ' + coverage.malformed_payloads + ' · Omitted findings ' + coverage.omitted_matches,
+      ...(observation.scope ? ['Findings restricted to accepted instructions for ' + observation.scope.map(id => '#' + id).join(', ')
+        + (option(outcome.Ok.subnets ?? []) ? ' · Reused network-wide discovery.' : ' · Review-specific discovery.')] : []),
+      ...(observation.truncated ? ['The global findings limit omitted references for this review.'] : []),
       ...coverage.issues,
     ],
-    findings,
+    findings, receipts: receipts.map(evidenceReceipt),
     proposals: proposals.map(row => ({ ...row, action: actionName(row), observedLifecycle: lifecycle[branch(row.lifecycle)] })),
   };
 }
 
 export function reviewCheckSummary(rows, order, observation) {
-  const { overview, observations, findings } = interactionChecks(observation);
+  const { overview, observations, findings, receipts } = interactionChecks(observation);
   return { instructions: (rows ?? []).filter(row => branch(row.scenario) === order).map(integrity),
-    assumption: transitionAssumption, interactions: { overview, observations, findings } };
+    assumption: transitionAssumption, interactions: { overview, observations, findings, receipts } };
 }
 
 const renderLine = row => row.proposal ? [row.text, ' ', dashboardLink('proposal', row.proposal, 'Other proposal ' + row.label)] : row.text;
@@ -148,10 +174,28 @@ export function reviewChecksView(checks) {
       el('ul', interactions.observations.map(text => el('li', text)))) : null);
 }
 
-export function scopedActivity(observation, ids) {
+let attempt = 0;
+export const nextActivityAttempt = () => ++attempt;
+
+export function scopedActivity(observation, evidence) {
   const accepted = observation?.response?.outcome?.Ok;
-  if (!accepted || !ids.every(id => accepted.proposals.some(row => row.id === id))) return undefined;
-  return { stale: observation.stale, response: { ...observation.response, outcome: { Ok: {
-    ...accepted, matches: accepted.matches.filter(match => ids.includes(match.proposal)),
-  } } } };
+  if (!accepted || (observation.error && !observation.stale)) return observation;
+  const instructions = option(accepted.requested_instructions ?? []) ?? [];
+  const scope = evidence.map(row => row.id);
+  const bound = evidence.every(row => instructions.some(([id, fn, hash]) =>
+    id === row.id && fn === row.function && hex(hash) === hex(row.payload_hash)));
+  if (!bound) return { attempt: observation.attempt, failedResponse: observation.response, error: 'Discovery could not verify the accepted executable instructions in the new observation' };
+  const truncated = option(accepted.truncated_proposals ?? []) ?? [];
+  return { ...observation, scope, truncated: truncated.some(id => scope.includes(id)),
+    response: { ...observation.response, outcome: { Ok: {
+      ...accepted, matches: accepted.matches.filter(match => scope.includes(match.proposal)),
+    } } } };
+}
+
+export function acceptScopedActivity(previous, observation, evidence) {
+  if (!observation || (previous?.attempt ?? -1) >= (observation.attempt ?? 0)) return previous;
+  const next = scopedActivity(observation, evidence);
+  return next.error && previous?.response?.outcome?.Ok
+    ? { ...previous, attempt: next.attempt, stale: true, error: next.error }
+    : next;
 }

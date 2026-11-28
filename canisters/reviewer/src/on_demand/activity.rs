@@ -2,7 +2,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use candid::{CandidType, Principal, encode_one};
-use nexus_domain::MembershipAction;
+use nexus_domain::{Hash, MembershipAction, sha256};
 use nexus_ic_sources::{
     decode_candid,
     governance::{self, Action, BoundaryAction, ProposalInfo},
@@ -92,6 +92,10 @@ pub struct LiveSubnetActivity {
     pub subnets: Option<Vec<Principal>>,
     pub voting_pagination_complete: Option<bool>,
     pub registry_complete: Option<bool>,
+    pub registry_memberships_checked: Option<u32>,
+    pub voting_issues: Option<Vec<String>>,
+    pub requested_instructions: Option<Vec<(u64, i32, Hash)>>,
+    pub truncated_proposals: Option<Vec<u64>>,
 }
 
 fn lifecycle(info: &ProposalInfo) -> Option<ActivityLifecycle> {
@@ -139,7 +143,7 @@ fn executable(
         return Ok(None);
     };
     let Action::ExecuteNnsFunction(action) = action else {
-        return Ok(Some(None));
+        return Ok(None);
     };
     if let Some(operation) = governance::membership(action)? {
         let subnet = match &operation {
@@ -223,18 +227,19 @@ async fn observe(
     let source = sources.governance;
     let mut coverage = ActivityCoverage::default();
     let mut requested = BTreeMap::<u64, References>::new();
+    let mut instructions = Vec::new();
     for (proposal, _) in proposals(request, source, selected).await? {
-        membership_roles(
-            &proposal.action,
-            requested.entry(proposal.evidence.id).or_default(),
-        );
+        let evidence = proposal.evidence;
+        membership_roles(&proposal.action, requested.entry(evidence.id).or_default());
+        instructions.push((evidence.id, evidence.function, evidence.payload_hash));
     }
     let (mut listed, pagination_complete) = discover(request, source, false, &mut coverage).await;
     coverage.pagination_complete = pagination_complete;
     let pending: BTreeSet<_> = listed.keys().copied().collect();
     let mut voting_pagination_complete = None;
+    let mut voting_coverage = ActivityCoverage::default();
     if selected.is_empty() {
-        let (voting, complete) = discover(request, source, true, &mut coverage).await;
+        let (voting, complete) = discover(request, source, true, &mut voting_coverage).await;
         listed.extend(voting);
         voting_pagination_complete = Some(complete);
     }
@@ -245,14 +250,6 @@ async fn observe(
             _ => {}
         }
     }
-    let (subnets, owners, registry_complete) = if selected.is_empty() {
-        let (subnets, owners, complete) =
-            super::registry::activity_roster(request, sources.registry).await?;
-        (Some(subnets), owners, Some(complete))
-    } else {
-        (None, BTreeMap::new(), None)
-    };
-
     // Hydrate once per potentially incomplete proposal, irrespective of how
     // many nodes or subnets will consume the observation.
     let hydrate: Vec<_> = listed
@@ -289,9 +286,12 @@ async fn observe(
                         full.insert(id, (info, reply.observed_at));
                         coverage.hydrated += 1;
                     } else {
-                        coverage
-                            .issues
-                            .push(format!("Proposal #{id} could not be hydrated."));
+                        let issues = if pending.contains(&id) {
+                            &mut coverage.issues
+                        } else {
+                            &mut voting_coverage.issues
+                        };
+                        issues.push(format!("Proposal #{id} could not be hydrated."));
                     }
                 }
             }
@@ -309,6 +309,27 @@ async fn observe(
             .push("Proposal hydration reached the request limit.".into());
     }
 
+    // Only valid untargeted removals need individual subnet membership records.
+    // Resolve after hydration so omitted but recoverable actions use the same pin.
+    let (subnets, owners, registry_complete, memberships_checked) = if selected.is_empty() {
+        let resolve_removals = listed.iter().any(|(id, row)| {
+            let info = &full.get(id).unwrap_or(row).0;
+            (lifecycle(info).is_some() || info.reward_status == Some(1))
+                && info.executable().is_some_and(|action| {
+                    action.nns_function == 13
+                        && matches!(
+                            governance::membership(action),
+                            Ok(Some(MembershipAction::Remove { .. }))
+                        )
+                })
+        });
+        let (subnets, owners, complete, checked) =
+            super::registry::activity_roster(request, sources.registry, resolve_removals).await?;
+        (Some(subnets), owners, Some(complete), Some(checked))
+    } else {
+        (None, BTreeMap::new(), None, None)
+    };
+
     let mut details = Vec::new();
     for (id, row) in listed.into_iter().rev() {
         let hydrated = full.remove(&id);
@@ -322,30 +343,41 @@ async fn observe(
                 continue;
             }
         }
+        let action_coverage = if relevant.is_some() {
+            &mut coverage
+        } else {
+            &mut voting_coverage
+        };
         let lifecycle = relevant.unwrap_or(ActivityLifecycle::Other);
         let mut refs = References::new();
         let function = info.executable().map(|a| a.nns_function);
         let mut target_subnet = None;
         if function.is_some_and(|id| !supported_function(id)) {
-            coverage.unsupported_actions += 1;
+            action_coverage.unsupported_actions += 1;
         } else if missing_hydration
-            || info.proposal.is_none()
+            || info
+                .proposal
+                .as_ref()
+                .is_none_or(|row| row.action.is_none())
             || info.executable().is_some_and(|a| a.payload.is_empty())
         {
-            coverage.missing_payloads += 1;
-            coverage.issues.push(format!(
+            action_coverage.missing_payloads += 1;
+            action_coverage.issues.push(format!(
                 "Proposal #{id} has no available executable payload."
             ));
-        } else {
+        } else if !matches!(
+            info.proposal.as_ref().and_then(|row| row.action.as_ref()),
+            Some(Action::Motion { .. })
+        ) {
             match executable(&info, &mut refs) {
                 Ok(Some(target)) => {
-                    coverage.executable_decoded += 1;
+                    action_coverage.executable_decoded += 1;
                     target_subnet = target;
                 }
-                Ok(None) => coverage.unsupported_actions += 1,
+                Ok(None) => action_coverage.unsupported_actions += 1,
                 Err(_) => {
-                    coverage.malformed_payloads += 1;
-                    coverage.issues.push(format!(
+                    action_coverage.malformed_payloads += 1;
+                    action_coverage.issues.push(format!(
                         "Proposal #{id} has an undecodable supported payload."
                     ));
                 }
@@ -356,6 +388,7 @@ async fn observe(
             && selected.is_empty()
         {
             membership_roles(&operation, requested.entry(id).or_default());
+            instructions.push((id, action.nns_function, sha256(&action.payload)));
         }
         let mut targets = Vec::new();
         let mut unresolved = false;
@@ -443,6 +476,7 @@ async fn observe(
         output.push(row);
     }
     let mut matches = Vec::new();
+    let mut truncated = BTreeSet::new();
     for (proposal, refs) in requested {
         for (node, requested_role) in refs {
             for &(other, other_role) in index.get(&node).map(Vec::as_slice).unwrap_or_default() {
@@ -451,6 +485,7 @@ async fn observe(
                 }
                 if matches.len() >= MATCH_LIMIT {
                     coverage.omitted_matches += 1;
+                    truncated.insert(proposal);
                 } else {
                     matches.push(ActivityMatch {
                         node,
@@ -472,6 +507,10 @@ async fn observe(
         subnets,
         voting_pagination_complete,
         registry_complete,
+        registry_memberships_checked: memberships_checked,
+        voting_issues: voting_pagination_complete.map(|_| voting_coverage.issues),
+        requested_instructions: Some(instructions),
+        truncated_proposals: Some(truncated.into_iter().collect()),
     })
 }
 

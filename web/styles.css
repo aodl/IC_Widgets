@@ -363,3 +363,13 @@ button.node-sort-heading {
 }
 .review-checks { padding: .65rem .85rem; }
 .review-checks p { margin-block: .25rem; }
+
+.activity-row-meta { display: block; margin-inline-start: 1.2rem; font-weight: 400; }
+.activity-direct button { width: 100%; margin-block: .12rem; text-align: start; }
+.activity-back { display: none; }
+@media (width < 68rem) {
+  .activity-layout:has(.activity-navigator:not([hidden])):not(.activity-inspecting) .activity-review { display: none; }
+  .activity-layout.activity-inspecting .activity-navigator { display: none; }
+  .activity-layout.activity-inspecting .activity-back { display: inline-block; margin-block-end: .5rem; }
+  .activity-navigator { max-height: 78vh; }
+}

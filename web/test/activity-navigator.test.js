@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { Principal } from '@icp-sdk/core/principal';
-import { activityRows } from '../src/activity-navigator.js';
-import { scopedActivity } from '../src/review-checks.js';
+import { activityRows, rowSummary } from '../src/activity-navigator.js';
+import { acceptScopedActivity, scopedActivity } from '../src/review-checks.js';
 
 const burst = JSON.parse(readFileSync(new URL('../../docs/subnet-activity/governance-2026-11-27/observation.json', import.meta.url)));
 const target = value => Principal.fromText(value);
 const row = (id, targets, decision = 1, voting = true, unresolved = false, fn = 31) =>
-  ({ id: BigInt(id), targets: [targets.map(target)], decision: [decision], voting_open: [voting], unresolved: [unresolved], function: [fn] });
+  ({ id: BigInt(id), targets: [targets.map(target)], decision: [decision], voting_open: [voting], unresolved: [unresolved], function: [fn],
+    lifecycle: decision === 3 ? { AdoptedPendingExecution: null } : decision === 1 ? { Open: null } : { Other: null }, deadline: [] });
 
 test('recorded burst maps to five registered subnets without filling unobserved counts', () => {
   const proposals = burst.proposals.map(item => row(item.id, [item.subnet]));
@@ -30,17 +31,46 @@ test('multi-subnet removals appear under each target and retain unresolved assoc
   assert.deepEqual(voting.bySubnet.get(a), [removal,executed]);
   assert.deepEqual(voting.bySubnet.get(b), [removal]);
   assert.deepEqual(voting.unresolved, [removal]);
+  assert.equal(voting.membershipCount, 2);
+  assert.equal(voting.affectedCount, 2);
 });
 
-test('reuse scopes references to the current selection and retains failed refresh and incomplete coverage', () => {
-  const [a] = burst.proposals;
-  const proposal = row(1,[a.subnet]);
-  const response = { outcome: { Ok: { proposals: [proposal], complete: false,
-    matches: [{proposal:1n},{proposal:2n}] } } };
-  const observation = { response, stale: true };
-  const accepted = scopedActivity(observation,[1n]);
-  assert.equal(accepted.stale,true);
-  assert.equal(accepted.response.outcome.Ok.complete,false);
-  assert.deepEqual(accepted.response.outcome.Ok.matches,[{proposal:1n}]);
-  assert.equal(scopedActivity(observation,[2n]),undefined);
+test('earliest voting deadline excludes closed proposals and separately counts adopted work', () => {
+  const closed = { ...row(1, [], 3, false), deadline: [10n] };
+  const open = { ...row(2, []), deadline: [20n] };
+  const decided = { ...row(3, [], 4), deadline: [15n] };
+  assert.deepEqual(rowSummary([closed, open, decided]), { deadline: 15n, awaiting: 1 });
+});
+
+const hash = Uint8Array.from([5, 8]);
+const accepted = { id: 1n, function: 31, payload_hash: hash };
+function discovery(attempt, instructions, matches = [{ proposal: 1n }, { proposal: 2n }]) {
+  return { attempt, response: { usage: { finished_at: BigInt(attempt) }, outcome: { Ok: {
+    requested_instructions: [instructions], truncated_proposals: [[1n]], complete: false, matches,
+  } } } };
+}
+
+test('discovery findings bind to the accepted executable function and payload in every selected proposal', () => {
+  const candidate = discovery(1, [[1n, 31, hash]]);
+  const scoped = scopedActivity(candidate, [accepted]);
+  assert.deepEqual(scoped.response.outcome.Ok.matches, [{ proposal: 1n }]);
+  assert.equal(scoped.truncated, true);
+  assert.match(scopedActivity(candidate, [accepted, { ...accepted, id: 2n }]).error, /could not verify/);
+  assert.match(scopedActivity(candidate, [{ ...accepted, function: 2 }]).error, /could not verify/);
+  assert.match(scopedActivity(candidate, [{ ...accepted, payload_hash: [9] }]).error, /could not verify/);
+});
+
+test('a successful scan missing the selection marks earlier finds stale and late attempts cannot replace them', () => {
+  const first = acceptScopedActivity(undefined, discovery(1, [[1n, 31, hash]]), [accepted]);
+  const missing = acceptScopedActivity(first, discovery(3, [[2n, 31, hash]]), [accepted]);
+  assert.equal(missing.stale, true);
+  assert.equal(missing.response.usage.finished_at, 1n);
+  assert.match(missing.error, /could not verify/);
+  assert.equal(acceptScopedActivity(missing, discovery(2, [[1n, 31, hash]]), [accepted]), missing);
+  const failed = acceptScopedActivity(missing, { attempt: 4, error: 'Refresh failed · network' }, [accepted]);
+  assert.equal(failed.response, first.response);
+  assert.equal(failed.error, 'Refresh failed · network');
+  const fresh = acceptScopedActivity(failed, discovery(5, [[1n, 31, hash]], []), [accepted]);
+  assert.equal(fresh.stale, undefined);
+  assert.deepEqual(fresh.response.outcome.Ok.matches, []);
 });

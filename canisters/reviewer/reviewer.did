@@ -386,11 +386,15 @@ type LiveScope = record {
 type LiveSubnetActivity = record {
   voting_pagination_complete : opt bool;
   subnets : opt vec principal;
+  truncated_proposals : opt vec nat64;
   complete : bool;
+  voting_issues : opt vec text;
   matches : vec ActivityMatch;
+  registry_memberships_checked : opt nat32;
   coverage : ActivityCoverage;
   proposals : vec ActivityProposal;
   registry_complete : opt bool;
+  requested_instructions : opt vec record { nat64; int32; blob };
 };
 type LiveSubnetSnapshot = record {
   subnet : principal;
@@ -1101,6 +1105,7 @@ type SubnetRules = record {
   sev_enabled : bool;
 };
 type SubnetTransition = record {
+  earlier_arrivals : opt vec principal;
   subnet : principal;
   cumulative_margin : opt TransitionMargin;
   margin : opt TransitionMargin;

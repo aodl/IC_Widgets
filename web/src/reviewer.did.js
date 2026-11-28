@@ -326,6 +326,7 @@ export const idlFactory = ({ IDL }) => {
     'remaining' : IDL.Int32,
   });
   const SubnetTransition = IDL.Record({
+    'earlier_arrivals' : IDL.Opt(IDL.Vec(IDL.Principal)),
     'subnet' : IDL.Principal,
     'cumulative_margin' : IDL.Opt(TransitionMargin),
     'margin' : IDL.Opt(TransitionMargin),
@@ -1273,11 +1274,17 @@ export const idlFactory = ({ IDL }) => {
   const LiveSubnetActivity = IDL.Record({
     'voting_pagination_complete' : IDL.Opt(IDL.Bool),
     'subnets' : IDL.Opt(IDL.Vec(IDL.Principal)),
+    'truncated_proposals' : IDL.Opt(IDL.Vec(IDL.Nat64)),
     'complete' : IDL.Bool,
+    'voting_issues' : IDL.Opt(IDL.Vec(IDL.Text)),
     'matches' : IDL.Vec(ActivityMatch),
+    'registry_memberships_checked' : IDL.Opt(IDL.Nat32),
     'coverage' : ActivityCoverage,
     'proposals' : IDL.Vec(ActivityProposal),
     'registry_complete' : IDL.Opt(IDL.Bool),
+    'requested_instructions' : IDL.Opt(
+      IDL.Vec(IDL.Tuple(IDL.Nat64, IDL.Int32, IDL.Vec(IDL.Nat8)))
+    ),
   });
   const Result_42 = IDL.Variant({
     'Ok' : LiveSubnetActivity,

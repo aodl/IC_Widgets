@@ -1,4 +1,4 @@
-use candid::{CandidType, Principal};
+use candid::{CandidType, Principal, Reserved};
 use nexus_domain::MembershipAction;
 use serde::Deserialize;
 
@@ -47,8 +47,8 @@ pub struct ListResponse {
     pub proposal_info: Vec<ProposalInfo>,
 }
 
-// A width projection of the pinned DID. Unrecognized action variants become
-// absent in this projection. Preserve the exact outer response for later decoding.
+// The pinned Action tags distinguish recognized but unsupported variants from
+// an absent action. Reserved skips fields that the reviewer does not interpret.
 #[derive(CandidType, Deserialize)]
 pub struct ProposalInfo {
     pub id: Option<ProposalId>,
@@ -67,7 +67,7 @@ impl ProposalInfo {
     pub fn executable(&self) -> Option<&ExecuteNnsFunction> {
         match self.proposal.as_ref()?.action.as_ref()? {
             Action::ExecuteNnsFunction(action) => Some(action),
-            Action::Motion { .. } => None,
+            _ => None,
         }
     }
 }
@@ -83,6 +83,27 @@ pub struct Proposal {
 pub enum Action {
     ExecuteNnsFunction(ExecuteNnsFunction),
     Motion { motion_text: String },
+    RegisterKnownNeuron(Reserved),
+    DeregisterKnownNeuron(Reserved),
+    ManageNeuron(Reserved),
+    UpdateCanisterSettings(Reserved),
+    InstallCode(Reserved),
+    StopOrStartCanister(Reserved),
+    CreateServiceNervousSystem(Reserved),
+    RewardNodeProvider(Reserved),
+    OpenSnsTokenSwap(Reserved),
+    SetSnsTokenSwapOpenTimeWindow(Reserved),
+    SetDefaultFollowees(Reserved),
+    RewardNodeProviders(Reserved),
+    ManageNetworkEconomics(Reserved),
+    ApproveGenesisKyc(Reserved),
+    AddOrRemoveNodeProvider(Reserved),
+    FulfillSubnetRentalRequest(Reserved),
+    BlessAlternativeGuestOsVersion(Reserved),
+    TakeCanisterSnapshot(Reserved),
+    LoadCanisterSnapshot(Reserved),
+    CreateCanisterAndInstallCode(Reserved),
+    UpdateStandardEngineReplicaVersion(Reserved),
 }
 
 #[derive(CandidType, Deserialize)]
@@ -225,6 +246,7 @@ mod tests {
         enum WiderAction {
             ExecuteNnsFunction(ExecuteNnsFunction),
             Unsupported { value: String },
+            ManageNeuron { neuron: u64 },
         }
         #[derive(CandidType)]
         struct WiderProposal {
@@ -247,6 +269,11 @@ mod tests {
             payload: vec![],
         }));
         assert!(decode_candid::<Proposal>(&known).unwrap().action.is_some());
+        let unsupported = make(WiderAction::ManageNeuron { neuron: 42 });
+        assert!(matches!(
+            decode_candid::<Proposal>(&unsupported).unwrap().action,
+            Some(Action::ManageNeuron(_))
+        ));
         let unknown = make(WiderAction::Unsupported {
             value: "test".into(),
         });

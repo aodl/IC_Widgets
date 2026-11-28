@@ -9,7 +9,7 @@ import { help } from './review-help.js';
 import { nodeTables } from './node-table.js';
 import { proposalNodeSelection } from './node-snapshot.js';
 import { reportSnapshot } from './review-markdown.js';
-import { reviewCheckSummary, reviewChecksView } from './review-checks.js';
+import { acceptScopedActivity, nextActivityAttempt, reviewCheckSummary, reviewChecksView } from './review-checks.js';
 import { liveError, result } from './client.js';
 import { affectedNodes, comparisonEvidence, createReviewSession, stageLabel } from './review-session.js';
 import { action, branch, deltaNode, el, hex, number, option, principal, saveFile, styled, table, time, words } from './view.js';
@@ -125,7 +125,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   pane.hidden = true;
   const checks = el('div');
   let activityRunning = false;
-  let observation = discovered ?? (replay && !replay.activity
+  let observation = acceptScopedActivity(undefined, discovered, proposals) ?? (replay && !replay.activity
     ? { error: 'This historical review has no bundled cross-proposal observation.' } : undefined);
   const tools = styled('div', 'actions review-tools');
   const header = styled('section', 'review-header',
@@ -319,7 +319,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
     replace(verification, selected?.state ? readinessLine(state) : null);
-    replace(checks, reviewChecksView(reviewCheckSummary(body.review_checks?.[0], selected ? branch(selected.scenario.id) : undefined, observation)), !replay && observation ? action(activityRunning ? 'Refreshing discovery…' : 'Refresh review checks', () => void loadActivity(true)) : null);
+    replace(checks, reviewChecksView(reviewCheckSummary(body.review_checks?.[0], selected ? branch(selected.scenario.id) : undefined, observation)), !replay ? refreshActivityButton() : null);
     renderTables();
     map?.update(model && { key: [model.order, ...model.ids, model.subnet, model.step, model.version].join('/'),
       members: model.members, countries: model.countries }, state.consistency?.blocked ? 'Review blocked · Governance changed'
@@ -340,19 +340,28 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     else inspector.hidden = true;
   }
 
+  function refreshActivityButton() {
+    const button = action(activityRunning ? 'Refreshing discovery…' : 'Refresh review checks', () => void loadActivity(true));
+    button.disabled = activityRunning;
+    return button;
+  }
+
   async function loadActivity(refresh = false) {
     if ((!refresh && observation) || activityRunning) return;
+    const attempt = nextActivityAttempt();
     activityRunning = true;
+    if (refresh) render();
     const checkActive = () => active() && session.section().work !== 'stopped';
+    const accept = next => { observation = acceptScopedActivity(observation, { attempt, ...next }, proposals); };
     try {
       await session.settled();
       if (!checkActive()) return;
       const reply = await call(checkActive, client => client.subnet_activity(proposals.map(row => row.id)));
       if (!checkActive() || !reply) return;
       const response = result(reply);
-      observation = 'Err' in response.outcome ? { response, error: liveError(response.outcome.Err) } : { response };
+      accept('Err' in response.outcome ? { response, error: 'Refresh failed · ' + liveError(response.outcome.Err) } : { response });
     } catch (error) {
-      observation = { error: error.message };
+      if (checkActive()) accept({ error: 'Refresh failed · ' + error.message });
     } finally {
       activityRunning = false;
       if (checkActive()) render();
@@ -360,10 +369,11 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   }
 
   return { section, session, loadActivity, acceptActivity(next) {
-    if (active() && next) { observation = next; render(); }
+    if (active()) { observation = acceptScopedActivity(observation, next, proposals); render(); }
   }, dispose: () => narrow.removeEventListener('change', renderTables), start: chooseScope, inspect, openPerformance() {
     if (!pane.contains(performance.section)) pane.replaceChildren(performance.section);
     pane.hidden = false;
+    performance.useMembership();
     performance.visible(true);
   } };
 }

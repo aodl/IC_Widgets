@@ -1,6 +1,6 @@
 import { liveError, result } from './client.js';
 import { dashboardLink } from './dashboard.js';
-import { interactionChecks } from './review-checks.js';
+import { interactionChecks, nextActivityAttempt } from './review-checks.js';
 import { action, el, option, styled, time } from './view.js';
 
 const decisions = { 1: 'Undecided', 2: 'Rejected', 3: 'Adopted', 4: 'Adopted', 5: 'Adopted' };
@@ -18,7 +18,16 @@ export function activityRows(payload, filter) {
     for (const target of targets) bySubnet.get(target)?.push(row);
     if (!targets.length || option(row.unresolved)) unresolved.push(row);
   }
-  return { bySubnet, unresolved };
+  const membership = proposals.filter(supported);
+  return { bySubnet, unresolved, membershipCount: membership.length,
+    affectedCount: [...bySubnet.values()].filter(rows => rows.some(supported)).length };
+}
+
+export function rowSummary(proposals) {
+  const deadlines = proposals.filter(row => option(row.voting_open) === true)
+    .map(row => option(row.deadline)).filter(value => value > 0n);
+  return { deadline: deadlines.reduce((first, deadline) => first === undefined || deadline < first ? deadline : first, undefined),
+    awaiting: proposals.filter(row => 'AdoptedPendingExecution' in row.lifecycle).length };
 }
 
 function status(row) {
@@ -33,7 +42,7 @@ function status(row) {
     deadline ? 'Voting deadline ' + time(deadline * 1_000_000_000n) : 'Voting deadline unavailable'].join(' · ');
 }
 
-export function mountActivityNavigator(call, { open, refreshed }) {
+export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, showReview }) {
   const section = styled('section', 'card activity-navigator');
   section.hidden = true;
   let observation, issue, loading, selected, filter = 'undecided';
@@ -44,9 +53,11 @@ export function mountActivityNavigator(call, { open, refreshed }) {
     selected = { id: row.id, subnet };
     render();
     open(row.id, subnet, observation);
+    showReview();
   }
 
   function render() {
+    const top = section.scrollTop;
     const payload = observation?.response?.outcome?.Ok;
     const refresh = action(loading ? 'Refreshing…' : issue ? 'Retry discovery' : 'Refresh discovery', load);
     refresh.disabled = !!loading;
@@ -78,27 +89,59 @@ export function mountActivityNavigator(call, { open, refreshed }) {
     const next = action('Next proposal', () => move(1));
     previous.disabled = index <= 0;
     next.disabled = index < 0 || index + 1 >= sequence.length;
+    const pending = payload.proposals.filter(row => subnetAction(row) && 'AdoptedPendingExecution' in row.lifecycle);
+    const checked = option(payload.registry_memberships_checked ?? []);
+    const roster = option(payload.subnets ?? []) ?? [];
     content.push(el('p', 'Registry ' + (option(observation.response.registry_version) ?? 'unavailable') + ' · '
       + (option(payload.registry_complete) ? 'Pinned roster resolved' : 'Registry associations incomplete')
+      + (checked > 0 ? ' · ' + checked + '/' + roster.length + ' memberships checked' : '')
       + ' · Voting discovery ' + (option(payload.voting_pagination_complete) ? 'complete' : 'incomplete')),
-    el('details', el('summary', coverage.overview), el('ul', coverage.observations.map(text => el('li', text)))),
-    selected ? styled('div', 'controls', el('strong', 'Selected #' + selected.id), previous, next) : null,
+    el('p', rows.membershipCount + ' distinct observed Membership proposals · ' + rows.affectedCount + ' confirmed affected subnets'
+      + (rows.unresolved.length ? ' · ' + rows.unresolved.length + ' unresolved targets' : '')),
+    el('details', el('summary', coverage.overview), el('ul', [...coverage.observations,
+      ...(option(payload.voting_issues ?? []) ?? []).map(issue => 'Voting discovery · ' + issue)].map(text => el('li', text)))),
+    pending.length && filter !== 'all' ? el('details', el('summary', 'Adopted awaiting execution (' + pending.length + ')'),
+      el('ul', pending.map(row => renderProposal(row, ids(row).length === 1 ? ids(row)[0] : undefined)))) : null,
+    selected ? styled('div', 'controls', el('strong', selected.id === undefined
+      ? 'Selected subnet ' + selected.subnet.slice(0, 11) + '…' : 'Selected #' + selected.id), previous, next) : null,
     ...entries.map(([subnet, proposals]) => {
       const label = subnet === selected?.subnet ? 'Selected subnet ' : 'Subnet ';
-      const detail = el('details', el('summary', label, subnet.slice(0, 11) + '… ',
-        styled('span', 'activity-count', String(proposals.length))),
-      el('p', dashboardLink('subnet', subnet, 'Open subnet on the IC Dashboard')),
-      proposals.length ? el('ul', proposals.map(row => renderProposal(row, subnet))) : el('p', 'No observed proposals in this filter.'));
+      const { deadline, awaiting } = rowSummary(proposals);
+      const row = () => [label, subnet.slice(0, 11) + '… ', styled('span', 'activity-count', String(proposals.length)),
+        deadline || awaiting ? styled('small', 'activity-row-meta', [
+          deadline ? 'Vote by ' + time(deadline * 1_000_000_000n) : '', awaiting ? awaiting + ' awaiting execution' : '',
+        ].filter(Boolean).join(' · ')) : null];
+      const reviewable = proposals.filter(supported);
+      if (filter !== 'all' && proposals.length === 1 && reviewable.length === 1) {
+        const control = action(row(), () => choose(reviewable[0], subnet));
+        if (subnet === selected?.subnet) control.classList.add('activity-selection-focus');
+        return styled('div', 'activity-direct', control);
+      }
+      const inspect = action('Inspect current membership', () => {
+        selected = { subnet };
+        render();
+        inspectSubnet(subnet);
+        showReview();
+      });
+      const summary = el('summary', row());
+      if (subnet === selected?.subnet) summary.classList.add('activity-selection-focus');
+      const detail = el('details', summary,
+        filter === 'all' ? inspect : null,
+        el('p', dashboardLink('subnet', subnet, 'Open subnet on the IC Dashboard')),
+        proposals.length ? el('ul', proposals.map(item => renderProposal(item, subnet)))
+          : el('p', 'No proposals for this subnet in the observed result.'));
       detail.open = expanded.has(subnet) || subnet === selected?.subnet;
       detail.addEventListener('toggle', () => detail.open ? expanded.add(subnet) : expanded.delete(subnet));
       return detail;
     }), rows.unresolved.length ? el('details', el('summary', 'Unresolved targets (' + rows.unresolved.length + ')'),
       el('ul', rows.unresolved.map(row => renderProposal(row, undefined)))) : null);
     section.replaceChildren(...content.filter(Boolean));
+    section.scrollTop = top;
   }
 
   async function load() {
     const ticket = ++generation;
+    const attempt = nextActivityAttempt();
     loading = true;
     issue = undefined;
     render();
@@ -108,15 +151,15 @@ export function mountActivityNavigator(call, { open, refreshed }) {
       if (!reply || !active()) return;
       const response = result(reply);
       if ('Err' in response.outcome) throw new Error(liveError(response.outcome.Err));
-      observation = { response };
-      if (selected) refreshed(selected.id, observation);
+      observation = { response, attempt };
+      refreshed(observation);
     } catch (error) {
       if (active()) {
         issue = error.message;
         if (observation) {
-          observation = { ...observation, stale: true };
-          if (selected) refreshed(selected.id, observation);
+          observation = { ...observation, attempt, stale: true, error: 'Refresh failed · ' + issue };
         }
+        refreshed(observation ?? { attempt, error: 'Refresh failed · ' + issue });
       }
     } finally {
       if (active()) { loading = false; render(); }

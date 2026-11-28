@@ -2,6 +2,7 @@ import { boundaryNote, countryMarkdown, countryToken } from './country-presentat
 import { dashboardUrl } from './dashboard.js';
 import { calculationNote, comparisonCaption, criteriaNote, distanceHelp, distanceTitle, distributionTables, geographyNote,
   governanceText, nodeFields, nodeHeaders, replayLabel, replayRegistryText, roles } from './detail-model.js';
+import { evidenceReceipt, receiptHeaders } from './review-checks.js';
 import { mapCoverage, mapLocations, siteLabel } from './review-map.js';
 import { hex, number, option, principal, time } from './view.js';
 
@@ -10,10 +11,9 @@ export function reportSnapshot(model, receipts, reviewChecks) {
     summary, notes, governance, replay, previewRevision, evidenceNotes } = model;
   const { inputHash, analysis_version: analysisVersion } = model.calculation;
   const scope = { ids, order, step, state: stateLabel, subnet, registry: String(version), inputHash };
-  const sources = receipts.flatMap(({ response }) => (response?.receipts ?? []).map(row => [
-    row.method, row.item, principal(row.source), time(row.observed_at),
-    option(row.reply_hash) ? hex(option(row.reply_hash)) : option(row.reject) ?? 'Unavailable',
-  ]));
+  const sources = receipts.flatMap(({ response, type }) => (response?.receipts ?? []).map(row =>
+    [type === 'Lifecycle' ? 'Final Governance verification' : type ? 'Registry enrichment · ' + type
+      : row.method === 'get_proposal_info' ? 'Membership preview · Governance' : 'Membership preview · Registry', ...evidenceReceipt(row)]));
   const snapshot = structuredClone({ scope, scenario, stateLabel, version, members, dimensions, countries, distances, membership,
     summary, notes, evidenceNotes, reviewChecks, governance: governance.map(({ id, lifecycle_status, observed_at_nanos, payload_hash }) => ({
       id, lifecycle_status, observed_at_nanos, payload_hash: Array.from(payload_hash),
@@ -82,7 +82,7 @@ export function reviewMarkdown(model, { vote = '', summary = '', attribution = '
       '## Review checks',
       model.reviewChecks.assumption,
       ...model.reviewChecks.instructions.flatMap(row => [
-        '### ' + escape(row.title), escape(row.overview), ...row.margins.map(escape), ...row.details.map(item => '- ' + escape(item.text)),
+        '### ' + escape(row.title), escape(row.overview), ...row.margins.map(escape), collapsed('Instruction and margin arithmetic', row.details.map(item => '- ' + escape(item.text)).join('\n')),
       ]),
       escape(model.reviewChecks.interactions.overview),
       ...model.reviewChecks.interactions.observations.map(text => '- ' + escape(text)),
@@ -119,9 +119,12 @@ export function reviewMarkdown(model, { vote = '', summary = '', attribution = '
       markdownTable({ headers: ['Distance', 'Before', 'Proposed'],
         rows: distances.columns.map(column => [column.label, ...column.metres.map(value => value ?? 'Unavailable')]) })),
     regionRows.length && collapsed('Registered geography evidence', markdownTable({ headers: ['Data center', 'Original Registry region', 'Country token'], rows: regionRows })),
-    model.sources.length && collapsed('Session source receipts (' + model.sources.length + ')',
-      markdownTable({ headers: ['Method', 'Item', 'Canister', model.replay?.bundled ? 'Fixture capture time' : model.replay ? 'Replay delivery time' : 'Observed at', 'Reply SHA-256 or issue'],
-        rows: model.sources })),
+    model.sources.length && collapsed('Membership and Registry source receipts (' + model.sources.length + ')',
+      markdownTable({ headers: ['Evidence stage', ...receiptHeaders], rows: model.sources })),
+    model.reviewChecks?.interactions.receipts?.length && collapsed('Accepted Governance discovery source receipts ('
+      + model.reviewChecks.interactions.receipts.length + ')',
+      markdownTable({ headers: receiptHeaders, rows: model.reviewChecks.interactions.receipts })),
+
   ];
   return blocks.filter(Boolean).join('\n\n') + '\n';
 }

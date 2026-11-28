@@ -276,7 +276,16 @@ fn hex(hash: &Hash) -> String {
 pub(super) async fn activity_roster(
     request: &mut Request,
     source: Principal,
-) -> Result<(Vec<Principal>, BTreeMap<Principal, Vec<Principal>>, bool), LiveError> {
+    resolve_removals: bool,
+) -> Result<
+    (
+        Vec<Principal>,
+        BTreeMap<Principal, Vec<Principal>>,
+        bool,
+        u32,
+    ),
+    LiveError,
+> {
     let version = pinned_head(request, source).await?;
     let mut resolver = Resolver {
         request,
@@ -292,7 +301,11 @@ pub(super) async fn activity_roster(
         .into_iter()
         .collect();
     let mut owners = BTreeMap::<_, Vec<_>>::new();
+    if !resolve_removals {
+        return Ok((listed, owners, true, 0));
+    }
     let mut complete = true;
+    let mut checked = 0;
     for batch in listed.chunks(16) {
         match resolver
             .read(
@@ -304,6 +317,7 @@ pub(super) async fn activity_roster(
             Ok(records) => {
                 for (&subnet, record) in batch.iter().zip(records) {
                     if let Some(value) = record.value() {
+                        checked += 1;
                         for &member in &value.members {
                             owners.entry(member).or_default().push(subnet);
                         }
@@ -318,5 +332,5 @@ pub(super) async fn activity_roster(
             }
         }
     }
-    Ok((listed, owners, complete))
+    Ok((listed, owners, complete, checked))
 }

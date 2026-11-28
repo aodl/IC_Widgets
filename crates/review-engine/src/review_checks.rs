@@ -34,6 +34,7 @@ pub struct SubnetTransition {
     pub subnet: Principal,
     pub margin: Option<TransitionMargin>,
     pub cumulative_margin: Option<TransitionMargin>,
+    pub earlier_arrivals: Option<Vec<Principal>>,
 }
 
 #[derive(Debug, PartialEq, Eq, CandidType, Deserialize)]
@@ -153,11 +154,11 @@ pub fn review_checks(
                             view.after_steps.get(index - 1).and_then(Option::as_ref)
                         };
                         let proposed = view.after_steps.get(index).and_then(Option::as_ref);
-                        let (margin, cumulative_margin) =
+                        let (margin, cumulative_margin, earlier_arrivals) =
                             if matches!(step.outcome, StepOutcome::Applied { .. }) {
-                                before
-                                    .zip(proposed)
-                                    .map_or((None, None), |(before, proposed)| {
+                                before.zip(proposed).map_or(
+                                    (None, None, None),
+                                    |(before, proposed)| {
                                         let mut earlier = BTreeSet::new();
                                         let mut previous: BTreeSet<_> =
                                             view.baseline.members.iter().copied().collect();
@@ -179,15 +180,18 @@ pub fn review_checks(
                                                     )
                                                 })
                                                 .flatten(),
+                                            (index > 0).then(|| earlier.into_iter().collect()),
                                         )
-                                    })
+                                    },
+                                )
                             } else {
-                                (None, None)
+                                (None, None, None)
                             };
                         SubnetTransition {
                             subnet,
                             margin,
                             cumulative_margin,
+                            earlier_arrivals,
                         }
                     })
                     .collect();

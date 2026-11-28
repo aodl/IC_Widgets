@@ -12,12 +12,12 @@ function receipt(row) {
   });
 }
 
-export function nodeSelection({ kind, subnet, revision, registryVersion, selected, incoming = [], outgoing = [],
+export function nodeSelection({ kind, subnet, revision, registryVersion, selected, before = selected, incoming = [], outgoing = [],
   affected = [], label, observation, coverage }) {
   const nodes = items => Object.freeze(Array.from(items, id => id.toText?.() ?? id));
   return Object.freeze({
     profile: nodeSelectionProfile, kind, subnet, revision, registryVersion: String(registryVersion), label,
-    nodes: Object.freeze({ selected: nodes(selected), incoming: nodes(incoming), outgoing: nodes(outgoing), affected: nodes(affected) }),
+    nodes: Object.freeze({ selected: nodes(selected), before: nodes(before), incoming: nodes(incoming), outgoing: nodes(outgoing), affected: nodes(affected) }),
     observation, coverage,
   });
 }
@@ -25,7 +25,7 @@ export function nodeSelection({ kind, subnet, revision, registryVersion, selecte
 export function proposalNodeSelection(model, context, affected, receipts) {
   return nodeSelection({
     kind: 'comparison', subnet: model.subnet, revision: model.calculation.inputHash, registryVersion: model.version,
-    selected: model.calculation.comparison.selected.members, incoming: model.calculation.comparison.selected.added,
+    selected: model.calculation.comparison.selected.members, before: model.calculation.comparison.baseline.members, incoming: model.calculation.comparison.selected.added,
     outgoing: model.calculation.comparison.selected.removed, affected, label: model.scenario + ' · ' + model.stateLabel,
     observation: Object.freeze({ kind: model.replay ? 'replay' : 'replicated',
       originalRegistryFrom: model.replay?.registryFrom ?? null, originalRegistryTo: model.replay?.registryTo ?? null,
