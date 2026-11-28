@@ -1,0 +1,23 @@
+.activity-toolbar { display: flex; justify-content: space-between; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.activity-toolbar h2 { font-size: 1.13rem; margin: 0; }
+.activity-toolbar button { min-height: 2rem; }
+.activity-progress, .observation-time { margin: .45rem 0; color: #3b5964; }
+.activity-title { display: block; margin-bottom: .18rem; overflow-wrap: anywhere; }
+.activity-subnet { font-size: .81rem; overflow-wrap: anywhere; }
+.proposal-title { color: #142e3b; font-size: clamp(1.04rem, 2.25vw, 1.4rem); width: 100%; }
+.proposal-purpose { margin: .65rem 0; }
+.proposer-statement { border-inline-start: .23rem solid #7ca4a5; background: #f0f6f6; padding: .6rem .8rem; overflow-wrap: anywhere; }
+.proposer-statement + .proposer-statement { margin-top: .55rem; }
+.proposer-statement :is(h3, h4, p, ul) { margin: .25rem 0 .5rem; }
+.proposer-statement h3 { font-size: .92rem; }
+.proposer-full { margin-block: .45rem; }
+.recent-review { background: #fff6e1; }
+.embedded .container { width: calc(100% - 1.3rem); }
+.embedded .activity-navigator { max-height: none; overflow: visible; }
+.embed-inspector .review-tools { position: sticky; top: 0; z-index: 3; margin: .52rem 0; background: #f2f6f6; padding: .35rem; border-radius: .4rem; }
+.embed-inspector .review-header { overflow: visible; }
+.embed-inspector .review-header h2 { font-size: 1.35rem; }
+.embed-inspector #report:not(:empty) { padding-bottom: .8rem; }
+.markdown-fields { margin: .6rem 0; }
+.markdown-fields textarea { width: 100%; }
+.voting-observation { display: block; }

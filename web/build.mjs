@@ -45,7 +45,9 @@ const bundle = await build({
 });
 if (embedded) {
   const javascript = bundle.outputFiles[0].contents;
-  const stylesheet = await readFile('styles.css');
+  const css = await readFile('styles.css');
+  const stylesheet = widget?.view === 'map' ? css
+    : Buffer.concat([css, Buffer.from('\n'), await readFile('reviewer-experience.css')]);
   const filename = (prefix, extension, bytes) =>
     prefix + '.' + createHash('sha256').update(bytes).digest('hex') + '.' + extension;
   const script = filename('app', 'js', javascript);
@@ -65,5 +67,8 @@ if (embedded) {
     .map(([name, bytes]) => writeFile(join(embedOutput, name), bytes, { flag: 'wx' })));
 } else {
   await mkdir(output, { recursive: true });
-  await Promise.all(['index.html', 'styles.css', '.ic-assets.json5'].map(file => cp(file, join(output, file))));
+  await Promise.all([
+    ...['index.html', '.ic-assets.json5'].map(file => cp(file, join(output, file))),
+    writeFile(join(output, 'styles.css'), (await readFile('styles.css', 'utf8')) + '\n' + await readFile('reviewer-experience.css', 'utf8')),
+  ]);
 }

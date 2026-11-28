@@ -6,7 +6,7 @@ import { evidenceReceipt, receiptHeaders } from './review-checks.js';
 import { mapCoverage, mapLocations, siteLabel } from './review-map.js';
 import { hex, number, option, principal, time } from './view.js';
 
-export function reportSnapshot(model, receipts, reviewChecks) {
+export function reportSnapshot(model, receipts, reviewChecks, proposalText = []) {
   const { ids, order, step, scenario, stateLabel, subnet, version, members, dimensions, countries, distances, membership,
     summary, notes, governance, replay, previewRevision, evidenceNotes } = model;
   const { inputHash, analysis_version: analysisVersion } = model.calculation;
@@ -15,7 +15,7 @@ export function reportSnapshot(model, receipts, reviewChecks) {
     [type === 'Lifecycle' ? 'Final Governance verification' : type ? 'Registry enrichment · ' + type
       : row.method === 'get_proposal_info' ? 'Membership preview · Governance' : 'Membership preview · Registry', ...evidenceReceipt(row)]));
   const snapshot = structuredClone({ scope, scenario, stateLabel, version, members, dimensions, countries, distances, membership,
-    summary, notes, evidenceNotes, reviewChecks, governance: governance.map(({ id, lifecycle_status, observed_at_nanos, payload_hash }) => ({
+    summary, notes, evidenceNotes, reviewChecks, proposalText, governance: governance.map(({ id, lifecycle_status, observed_at_nanos, payload_hash }) => ({
       id, lifecycle_status, observed_at_nanos, payload_hash: Array.from(payload_hash),
     })), replay, previewRevision, analysisVersion, sources });
   snapshot.geography = mapLocations(snapshot.members, snapshot.countries);
@@ -72,6 +72,12 @@ export function reviewMarkdown(model, { vote = '', summary = '', attribution = '
     vote.trim() && '## Reviewer vote\n\n' + escape(vote.trim()),
     summary.trim() && '## Reviewer summary\n\n' + summary.trim().split(/\n\s*\n/).map(escape).join('\n\n'),
     attribution.trim() && '**Reviewer attribution** ' + escape(attribution.trim()),
+    ...(model.proposalText ?? []).flatMap(row => [
+      '## Proposer’s stated purpose · #' + row.id,
+      row.title && escape(row.title),
+      row.text.trim().split(/\n\s*\n/).map(escape).join('\n\n'),
+      row.truncated && 'The captured proposer statement was truncated.',
+    ]),
     '## Summary', escape(model.summary), escape(model.membership), escape(model.notes[0] ?? ''), list(model.evidenceNotes ?? []),
     '## Evidence scope',
     'Pinned Registry version **' + number(model.version) + '**. Governance checked after the selected comparisons.',

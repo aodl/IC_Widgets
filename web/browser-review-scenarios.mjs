@@ -96,7 +96,7 @@ async function holdPage(page, accepts) {
   };
 }
 const status = page => page.locator('#report-status');
-const finished = page => status(page).getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });
+const finished = page => status(page).getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 120000 });
 
 try {
   await test('Held data-center page keeps counts truthful and preserves the inspector and map camera', 1, async (page, send) => {
@@ -289,7 +289,6 @@ try {
     await step.selectOption('1');
     await page.locator('.review-summary > strong').filter({ hasText: /50 → 51 members/ }).waitFor();
     await page.getByRole('button', { name: 'Generate review', exact: true }).click();
-    await page.getByText('Reviewer commentary (optional)', { exact: true }).click();
     await page.getByLabel('Reviewer vote', { exact: true }).fill('Order A assessment');
     const firstMarkdown = await page.getByLabel('Generated Markdown', { exact: true }).inputValue();
     await order.selectOption('BThenA');

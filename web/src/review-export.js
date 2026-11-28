@@ -1,6 +1,7 @@
 import { boundaryNote, countryLabel } from './country-presentation.js';
 import { dashboardLink, proposalHeading } from './dashboard.js';
 import { comparisonCaption, distanceTitle, distributionTables, governanceText, replayLabel, roles } from './detail-model.js';
+import { proposerStatement } from './proposer-statement.js';
 import { nodeTables } from './node-table.js';
 import { reviewChecksView } from './review-checks.js';
 import { drawMap, fitLocations, mapCoverage, mapProjection, mapScene, siteLabel } from './review-map.js';
@@ -122,7 +123,7 @@ export function markdownEditor(snapshot, draft, isCurrent) {
   update();
   const preview = styled('article', 'markdown-preview',
     el('h4', 'Review · ', proposalHeading(snapshot.scope.ids)),
-    el('p', reportScope(snapshot)), reviewer, el('h4', 'Summary'), el('p', snapshot.summary), el('p', snapshot.membership),
+    el('p', reportScope(snapshot)), reviewer, (snapshot.proposalText ?? []).map(proposerStatement), el('h4', 'Summary'), el('p', snapshot.summary), el('p', snapshot.membership),
     el('h4', 'Evidence scope'), el('p', 'Pinned Registry ' + number(snapshot.version) + ' · Subnet ',
       dashboardLink('subnet', snapshot.scope.subnet)),
     snapshot.governance.map(item => el('p', governanceText(item, snapshot.replay, true))),
@@ -155,25 +156,36 @@ export function markdownEditor(snapshot, draft, isCurrent) {
           source.open = true;
           raw.focus({ preventScroll: true });
           raw.select();
-          if (document.execCommand('copy')) {
+          let copied = false;
+          try { copied = document.execCommand('copy'); } catch { /* Keep the selected text available. */ }
+          if (copied) {
             source.open = wasOpen;
             copyButton.focus({ preventScroll: true });
             status.textContent = 'Review Markdown copied.';
           } else status.textContent = 'Select and copy the generated Markdown from the field.';
         }
       }),
-      action('Download review', async () => {
-        const markdown = raw.value;
-        const map = await png;
-        if (!isCurrent()) return;
-        if (!map) { status.textContent = 'Could not generate the map image.'; return; }
-        const bytes = new Uint8Array(await map.arrayBuffer());
-        if (!isCurrent()) return;
-        const content = reviewZip([['review.md', new TextEncoder().encode(markdown)], ['map.png', bytes]]);
-        saveFile('proposal-' + snapshot.scope.ids.join('-') + '-step-' + snapshot.scope.step + '-review.zip', content, 'application/zip');
+      action('Download review', async event => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        status.textContent = 'Preparing review package…';
+        try {
+          const markdown = raw.value;
+          const map = await png;
+          if (!isCurrent()) return;
+          if (!map) throw new Error('Could not generate the map image.');
+          const bytes = new Uint8Array(await map.arrayBuffer());
+          if (!isCurrent()) return;
+          const content = reviewZip([['review.md', new TextEncoder().encode(markdown)], ['map.png', bytes]]);
+          saveFile('proposal-' + snapshot.scope.ids.join('-') + '-step-' + snapshot.scope.step + '-review.zip', content, 'application/zip');
+          status.textContent = 'Review package sent to your browser’s downloads.';
+        } catch (error) {
+          status.textContent = 'Download failed · ' + error.message;
+        } finally {
+          button.disabled = false;
+        }
       }), el('span', 'Attach map.png when posting.')), status,
-    el('details', el('summary', 'Reviewer commentary (optional)'),
-      styled('div', 'markdown-fields', el('label', 'Reviewer vote', vote), el('label', 'Reviewer summary', summary),
-        el('label', 'Reviewer attribution', attribution))),
+    styled('div', 'markdown-fields', el('label', 'Reviewer vote', vote), el('label', 'Reviewer summary', summary),
+      el('label', 'Reviewer attribution', attribution)),
     preview, source);
 }

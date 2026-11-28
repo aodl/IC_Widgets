@@ -84,7 +84,7 @@ try {
       }
     }
     if (item.fault === 'slow-locations') await page.locator('#report-status').getByText(/Loading data centers/).waitFor();
-    const expected = / (Executed|Rejected|Failed) /.test(item.lifecycleLabel) ? 'Proposal outcome recorded' : 'Data loading complete';
+    const expected = / (Executed|Rejected|Failed) /.test(item.lifecycleLabel) ? 'Proposal outcome recorded' : 'Membership calculation complete';
     const status = page.locator('#report-status');
     await status.getByText(expected, { exact: true }).waitFor().catch(async error => {
       throw new Error(item.id + ' · ' + await status.textContent(), { cause: error });
@@ -92,7 +92,7 @@ try {
     assert.deepEqual(testData.slice(before), ['/' + item.asset]);
     const generate = page.getByRole('button', { name: 'Generate review', exact: true });
     let report = false;
-    if (expected === 'Data loading complete') {
+    if (expected === 'Membership calculation complete') {
       if (item.id === 'separate-add-remove') {
         await page.getByLabel('Proposal order').selectOption('BThenA');
         await page.getByLabel('Membership state').selectOption('1');
@@ -103,11 +103,11 @@ try {
         const first = await subnet.inputValue();
         await subnet.selectOption({ index: 1 });
         assert.notEqual(await subnet.inputValue(), first);
-        await status.getByText('Data loading complete', { exact: true }).waitFor();
+        await status.getByText('Membership calculation complete', { exact: true }).waitFor();
       }
       if (item.id === 'review-checks-combined') {
         await page.getByLabel('Proposal order').selectOption('BThenA');
-        await status.getByText('Data loading complete', { exact: true }).waitFor();
+        await status.getByText('Membership calculation complete', { exact: true }).waitFor();
         await page.locator('.review-checks').getByText(/Add and Remove overlap/).first().waitFor();
       }
       await generate.click();
@@ -212,7 +212,7 @@ try {
   assert.equal(await page.locator('.test-catalogue').count(), 0);
   await page.locator('#search input[name=first]').fill('144954');
   await page.getByRole('button', { name: 'Review', exact: true }).click();
-  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 90000 });
   await page.locator('.review-checks').getByText(/Governance check incomplete/).waitFor();
   await verifyPerformance(40, 40, 41, false);
   execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
@@ -226,7 +226,7 @@ try {
   await activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #990001$/ }) }).locator('summary').first().press('Enter');
   await page.screenshot({ path: resolve(output, 'subnet-activity.png'), fullPage: true });
   await activity.getByRole('button', { name: 'Review #990001', exact: true }).click();
-  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 90000 });
   await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
   failDiscovery = true;
   const refreshChecks = page.getByRole('button', { name: 'Refresh review checks', exact: true });
@@ -288,17 +288,17 @@ try {
   await activity.getByRole('button', { name: 'Review #145077', exact: true }).click();
   await activity.getByRole('button', { name: 'Next proposal', exact: true }).click();
   await page.locator('.review-header').getByRole('link', { name: '#145076', exact: true }).waitFor();
-  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 90000 });
   await activity.getByRole('button', { name: 'Previous proposal', exact: true }).click();
   await page.locator('.review-header').getByRole('link', { name: '#145077', exact: true }).waitFor();
-  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 90000 });
   execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
     'load_review_case', '("multiple-changes")'], {
     cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' },
   });
   await page.locator('#search input[name=first]').fill('144940');
   await page.getByRole('button', { name: 'Review', exact: true }).click();
-  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 90000 });
   await verifyPerformance(5, 5, 7, true);
   assert.equal(testData.length, capturesBeforeLive);
   assert.ok(reviewerRequests.some(path => path.endsWith('/call')));

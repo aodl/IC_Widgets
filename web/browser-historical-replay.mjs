@@ -68,7 +68,7 @@ page.on('request', request => {
 const count = method => [...calls.values()].filter(name => name === method).length;
 const review = () => page.getByRole('button', { name: 'Review', exact: true }).click();
 const exportButton = () => page.getByRole('button', { name: 'Generate review', exact: true });
-const settled = () => page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });
+const settled = () => page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 120000 });
 const select = async name => {
   await page.getByLabel('Replay scenario').selectOption(name);
   await page.waitForURL('**/?case=' + name);
@@ -662,7 +662,7 @@ try {
       await tab.goto(concurrencyUrl.toString());
       await tab.getByRole('button', { name: 'Review', exact: true }).click();
     };
-    const tabFinished = tab => tab.locator('#report-status').getByText('Data loading complete', { exact: true })
+    const tabFinished = tab => tab.locator('#report-status').getByText('Membership calculation complete', { exact: true })
       .waitFor({ timeout: 120000 });
     try {
       await start(first);

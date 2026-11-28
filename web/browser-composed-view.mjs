@@ -76,7 +76,12 @@ for (const widget of widgets) {
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE, args: ['--no-sandbox'] });
 try {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, serviceWorkers: 'block' });
+  const page = await browser.newPage({ viewport: { width: 1348, height: 926 }, serviceWorkers: 'block', acceptDownloads: true });
+  const timings = {};
+  const workflow = {};
+  const now = () => globalThis.performance.now();
+  const measure = start => Math.round(now() - start);
+  const activeFrame = name => '#current > section:not([hidden]) iframe[title="' + name + '"]';
   page.setDefaultTimeout(45_000);
   const denied = [], errors = [], calls = [];
   let rejectActivity = false;
@@ -124,13 +129,13 @@ try {
   const expected = JSON.parse(await readFile(new URL('../tests/source-fixture/data/historical/expected.json', import.meta.url), 'utf8'));
   const catalogue = JSON.parse(await readFile(resolve(project, 'nexus-catalogue.json'), 'utf8'));
   await page.goto(host.origin);
-  const membership = page.frameLocator('iframe[title="Membership"]');
-  const overview = page.frameLocator('iframe[title="Subnet overview"]');
-  const performance = page.frameLocator('iframe[title="Performance"]');
-  const map = page.frameLocator('iframe[title="IC Node Map"]');
+  const membership = page.frameLocator(activeFrame('Membership'));
+  const overview = page.frameLocator(activeFrame('Subnet overview'));
+  const performance = page.frameLocator(activeFrame('Performance'));
+  const map = page.frameLocator(activeFrame('IC Node Map'));
   const verifiedViews = [];
   async function performanceSettled() {
-    await performance.getByRole('button', { name: 'Read blockmaking samples', exact: true }).locator('xpath=self::*[not(@disabled)]').waitFor();
+    await performance.locator('#performance-form button:not([disabled])').waitFor();
     return performance.locator('#performance-status').textContent();
   }
   const sorted = values => [...values].sort();
@@ -146,12 +151,12 @@ try {
     if (await tab.getAttribute('aria-pressed') !== 'true') await tab.click();
     const producer = id ? membership : overview;
     await producer.locator(id ? '#report-status' : '#subnet-status').getByText(
-      id ? 'Data loading complete' : 'Subnet loaded.', { exact: true }).waitFor({ timeout: 150_000 });
+      id ? 'Membership calculation complete' : 'Subnet loaded.', { exact: true }).waitFor({ timeout: 150_000 });
     await performance.locator('#performance-context').getByText(new RegExp(
       (id ? 'Proposal #' + id + '.*All related nodes' : 'Existing') + '.*' + filter.length + ' nodes')).waitFor();
     const performanceStatus = await performanceSettled();
     assert.equal(await producer.locator('.map-frame').count(), 0);
-    assert.equal(await page.locator('iframe[title="IC Node Map"]').getAttribute('src'), mapOrigin + '/embed');
+    assert.equal(await page.locator(activeFrame('IC Node Map')).getAttribute('src'), mapOrigin + '/embed');
     await map.locator('.map-pin').first().waitFor();
     const located = await map.locator('.map-pin').evaluateAll(pins => pins.flatMap(pin => pin.dataset.nodes.split(' ')));
     const unmapped = await map.locator('summary[data-node]').evaluateAll(rows => rows.map(row => row.dataset.node));
@@ -195,6 +200,7 @@ try {
   await view('Existing subnet', 'nns-144954-recorded-open');
   await view('Recorded review', 'nns-144954-recorded-open', '144954');
   await view('Multiple changes', 'multiple-changes', '144940');
+  await page.getByRole('button', { name: 'Edit dashboard' }).click();
   await page.getByRole('button', { name: 'Save dashboard' }).click();
   await page.getByText('Dashboard saved in this browser.', { exact: true }).waitFor();
   const saved = await page.evaluate(id => JSON.parse(localStorage.getItem('network-nexus.dashboard.v1.' + id)), catalogue.dashboard.id);
@@ -213,14 +219,14 @@ try {
     });
   }
   fixture('nns-144954-recorded-open');
-  const activity = page.frameLocator('iframe[title="Subnet Activity"]');
-  const inspector = page.frameLocator('iframe[title="Membership inspector"]');
+  const activity = page.frameLocator(activeFrame('Subnet Activity'));
+  const inspector = page.frameLocator(activeFrame('Membership inspector'));
   const activityWidget = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Subnet Activity', exact: true }) });
   const scope = inspector.getByLabel('Connected Performance scope');
   const activityViews = [];
 
   function membershipStatus() {
-    return inspector.locator('#report-status').getByText('Data loading complete', { exact: true });
+    return inspector.locator('#report-status').getByText('Membership calculation complete', { exact: true });
   }
 
   async function review(id) {
@@ -262,7 +268,7 @@ try {
     assert.equal(reads[0].subnet, subnet);
     assert.deepEqual(sorted(reads[0].nodes), sorted(members));
     assert.equal(reads[0].origin, performanceOrigin);
-    assert.equal(await page.locator('iframe[title="IC Node Map"]').getAttribute('src'), mapOrigin + '/embed');
+    assert.equal(await page.locator(activeFrame('IC Node Map')).getAttribute('src'), mapOrigin + '/embed');
     activityViews.push({ id: id ?? 'current-subnet', existing: baseline.length, proposed: state?.members.length, metrics: reads[0], performanceStatus });
     return { subnet, state };
   }
@@ -270,13 +276,21 @@ try {
   const dashboardSettings = page.getByText('Dashboard settings', { exact: true });
   if (await dashboardSettings.isVisible()) await dashboardSettings.click();
   await page.getByRole('textbox', { name: 'New dashboard name' }).fill('Guest review workspace');
+  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Create dashboard', exact: true }).click();
-  await page.getByText('Choose a widget to start building this view.').waitFor();
+  await page.getByText('This view is empty. Open Edit dashboard to add widgets.').waitFor();
   const viewSettings = page.getByText('View settings', { exact: true });
   if (await viewSettings.isVisible()) await viewSettings.click();
   await page.getByRole('textbox', { name: 'New view name' }).fill('Subnet proposal review');
   await page.getByRole('button', { name: 'Create view', exact: true }).click();
-  for (const definition of ['inspector', 'activity', 'map', 'performance']) await page.getByLabel('Add widget').selectOption(definition);
+  for (const definition of ['inspector', 'map', 'performance']) await page.locator('#current > section:not([hidden])').getByLabel('Add widget').selectOption(definition);
+  const cold = now();
+  await page.locator('#current > section:not([hidden])').getByLabel('Add widget').selectOption('activity');
+  await activity.getByText('Checking Governance proposals and resolving affected subnets against the Registry.').waitFor();
+  timings.initialProgressMs = measure(cold);
+  await page.screenshot({ path: resolve(directory, 'activity-cold-arrival.png') });
+  await activity.getByText(/1 distinct observed Membership proposal/).waitFor();
+  timings.coldDiscoveryMs = measure(cold);
   await activityWidget.getByText('Widget settings', { exact: true }).click();
   await activityWidget.getByRole('button', { name: 'Move earlier' }).click();
   async function connect(title, port, source) {
@@ -287,28 +301,76 @@ try {
   await connect('Membership inspector', 'subject', 'Subnet Activity · subject');
   await connect('IC Node Map', 'scene', 'Membership inspector · scene');
   await connect('Performance', 'filter', 'Membership inspector · filter');
-  await page.getByLabel('Layout').selectOption('two-column');
+  await page.locator('#current > section:not([hidden])').getByLabel('Layout').selectOption('two-column');
   await page.getByRole('button', { name: 'Save dashboard' }).click();
   await page.getByText('Dashboard saved in this browser.', { exact: true }).waitFor();
-  await page.reload();
-  await page.getByRole('heading', { name: 'Guest review workspace' }).waitFor();
-  assert.equal(await page.getByRole('button', { name: 'Subnet proposal review' }).getAttribute('aria-pressed'), 'true');
-  await activity.getByRole('button', { name: 'Load activity', exact: true }).click();
   await activity.getByText(/1 distinct observed Membership proposal/).waitFor();
+  const arrival = now();
+  const beforeWarm = calls.length;
+  await page.reload();
+  await page.getByLabel('Dashboard', { exact: true }).getByRole('option', { name: 'Guest review workspace' }).waitFor({ state: 'attached' });
+  assert.equal(await page.getByRole('button', { name: 'Subnet proposal review' }).getAttribute('aria-pressed'), 'true');
+  await activity.getByText(/1 distinct observed Membership proposal/).waitFor();
+  timings.warmArrivalMs = measure(arrival);
+  assert.equal(calls.length, beforeWarm);
+  await page.screenshot({ path: resolve(directory, 'activity-warm-arrival.png') });
   await inspector.getByText('Select a proposal or subnet to inspect.', { exact: true }).waitFor();
   assert.equal(calls.filter(row => row.origin === widgets[6].origin && row.method === 'begin_membership_review').length, 0);
   let start = calls.length;
+  const selectionStarted = now();
   await activity.locator('.activity-direct button').first().click();
+  await inspector.getByRole('heading', { name: 'Proposer’s stated purpose' }).first().waitFor();
+  timings.firstPurposeMs = measure(selectionStarted);
+  await membershipStatus().waitFor();
+  timings.membershipReadyMs = measure(selectionStarted);
   const { subnet } = await assertConnected(start, 'nns-144954-recorded-open', '144954');
+  timings.performanceSettledMs = measure(selectionStarted);
+  const stable = calls.length;
+  const framesBefore = await page.locator('#current > section:not([hidden]) iframe').evaluateAll(frames => frames.map((frame, index) => {
+    frame.dataset.reconcileProof = String(index);
+    return [frame.title, frame.dataset.reconcileProof];
+  }).sort());
+  const viewTab = page.getByRole('button', { name: 'Subnet proposal review', exact: true });
+  await viewTab.click();
+  await page.getByRole('button', { name: 'Edit dashboard' }).click();
+  await page.getByText('Dashboard settings', { exact: true }).click();
+  await page.getByRole('textbox', { name: 'Dashboard name', exact: true }).fill('Daily review');
+  await page.getByRole('button', { name: 'Rename dashboard' }).click();
+  await page.getByText('View settings', { exact: true }).click();
+  await page.getByRole('textbox', { name: 'View name', exact: true }).fill('Daily queue');
+  await page.getByRole('button', { name: 'Rename view' }).click();
+  await page.locator('#current > section:not([hidden])').getByLabel('Layout').selectOption('three-column');
+  await page.locator('article').filter({ hasText: 'IC Node Map' }).getByText('Widget settings').click();
+  await page.locator('article').filter({ hasText: 'IC Node Map' }).getByRole('button', { name: 'Move earlier' }).click();
+  await page.locator('article').filter({ hasText: 'IC Node Map' }).getByRole('button', { name: 'Move earlier' }).click();
+  await page.getByRole('button', { name: 'Save dashboard' }).click();
+  await page.getByText('Dashboard saved in this browser.', { exact: true }).waitFor();
+  await page.screenshot({ path: resolve(directory, 'dashboard-editing.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Done editing' }).click();
+  assert.deepEqual(await page.locator('#current > section:not([hidden]) iframe').evaluateAll(frames =>
+    frames.map(frame => [frame.title, frame.dataset.reconcileProof]).sort()), framesBefore);
+  assert.equal(calls.length, stable);
+  workflow.presentationEditCalls = calls.length - stable;
+  assert.equal(await membershipStatus().count(), 1);
+  assert.equal(await activity.getByText(/Selected #144954/).count(), 1);
+  workflow.activityCoverage = await activity.locator('details').first().innerText();
+  const retryStart = calls.length;
+  await performance.locator('#performance-form button').click();
+  await performanceSettled();
+  const retryCalls = calls.slice(retryStart);
+  assert.deepEqual(retryCalls.map(call => call.method), ['node_performance_on_demand']);
+  assert.equal(retryCalls[0].nodes.length, 41);
   const desktop = page.viewportSize();
   await page.setViewportSize({ ...desktop, height: 1900 });
   await page.screenshot({ path: resolve(directory, 'activity-review-desktop.png'), fullPage: true });
-  await page.locator('iframe[title="IC Node Map"]').evaluate(frame => frame.scrollIntoView({ block: 'center' }));
+  await page.locator(activeFrame('IC Node Map')).evaluate(frame => frame.scrollIntoView({ block: 'center' }));
   await map.locator('.map-section').screenshot({ path: resolve(directory, 'activity-review-map.png') });
   await page.setViewportSize(desktop);
   start = calls.length;
+  const refreshStarted = now();
   await activity.getByRole('button', { name: 'Refresh discovery' }).click();
   await activity.getByRole('button', { name: 'Refresh discovery' }).waitFor();
+  timings.activityRefreshMs = measure(refreshStarted);
   assert.equal(calls.slice(start).filter(row => row.method === 'begin_membership_review').length, 0);
   assert.equal(await membershipStatus().count(), 1);
   rejectActivity = true;
@@ -320,6 +382,22 @@ try {
   await activity.getByRole('button', { name: 'Refresh discovery' }).waitFor();
 
   await inspector.getByRole('button', { name: 'Generate review', exact: true }).first().click();
+  await inspector.getByRole('textbox', { name: 'Reviewer summary' }).fill('Review conclusion from the embedded rehearsal.');
+  await inspector.getByRole('button', { name: 'Copy Markdown' }).click();
+  const copied = inspector.getByText('Review Markdown copied.');
+  const fallback = inspector.getByText('Select and copy the generated Markdown from the field.');
+  await copied.or(fallback).waitFor();
+  if (await copied.count()) {
+    workflow.clipboard = 'Copied and read back';
+    await page.context().grantPermissions(['clipboard-read'], { origin: host.origin });
+    assert.match(await page.evaluate(() => navigator.clipboard.readText()), /Review conclusion from the embedded rehearsal/);
+  } else {
+    workflow.clipboard = 'Manual copy fallback selected the exact text';
+    const selected = await inspector.getByRole('textbox', { name: 'Generated Markdown' }).evaluate(field =>
+      field.value.slice(field.selectionStart, field.selectionEnd));
+    assert.match(selected, /Review conclusion from the embedded rehearsal/);
+  }
+  await page.screenshot({ path: resolve(directory, 'review-export-editor.png'), fullPage: true });
   const download = page.waitForEvent('download');
   await inspector.getByRole('button', { name: 'Download review', exact: true }).click();
   const archive = resolve(directory, 'activity-review-144954.zip');
@@ -328,6 +406,7 @@ try {
   assert.match(markdown, /Disposable composition rehearsal · fixture evidence/);
   assert.match(markdown, /40 members · Add 1 · Remove 1 · Unchanged 39/);
   assert.match(markdown, /map\.png/);
+  assert.match(markdown, /Review conclusion from the embedded rehearsal/);
   assert.equal(execFileSync('unzip', ['-p', archive, 'map.png']).subarray(1, 4).toString(), 'PNG');
 
   start = calls.length;
@@ -351,9 +430,11 @@ try {
   assert.equal(explicit.length, 1);
   assert.deepEqual(sorted(explicit[0].nodes), sorted(state.members));
 
+  await page.setViewportSize({ width: 900, height: 850 });
+  await page.screenshot({ path: resolve(directory, 'review-tablet.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await activityWidget.screenshot({ path: resolve(directory, 'activity-review-mobile.png') });
-  await page.locator('iframe[title="IC Node Map"]').evaluate(frame => frame.scrollIntoView({ block: 'center' }));
+  await page.locator(activeFrame('IC Node Map')).evaluate(frame => frame.scrollIntoView({ block: 'center' }));
   await map.locator('.map-section').screenshot({ path: resolve(directory, 'activity-map-mobile.png') });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
 
@@ -379,7 +460,10 @@ try {
   });
   holdMembership = { arrived, release: new Promise(resolve => { release = resolve; }) };
   try {
+    const revisit = now();
     await secondButton.click();
+    await inspector.getByText('Previous accepted review · rechecking current evidence').waitFor();
+    timings.repeatSummaryMs = measure(revisit);
     await held;
     await map.locator('#map-widget-status').getByText('Waiting for resolved map evidence.').waitFor();
     assert.equal(await performance.getByRole('button', { name: 'Read blockmaking samples' }).isDisabled(), true);
@@ -392,8 +476,9 @@ try {
   }
   await assertConnected(start, 'untargeted-two-subnets', undefined, firstTarget);
 
+  await page.getByRole('button', { name: 'Edit dashboard' }).click();
   await activityWidget.getByText('Widget settings', { exact: true }).click();
-  await activityWidget.getByRole('button', { name: 'Retry widget' }).click();
+  await activityWidget.getByRole('button', { name: 'Reconnect widget' }).click();
   await inspector.getByText('Select a proposal or subnet to inspect.', { exact: true }).waitFor();
   await map.locator('#map-widget-status').getByText('Waiting for resolved map evidence.').waitFor();
   assert.equal(await performance.getByRole('button', { name: 'Read blockmaking samples' }).isDisabled(), true);
@@ -405,13 +490,13 @@ try {
     const id = localStorage.getItem('network-nexus.last-dashboard');
     return JSON.parse(localStorage.getItem('network-nexus.dashboard.v1.' + id));
   });
-  const savedView = guest.views.find(view => view.title === 'Subnet proposal review');
-  assert.deepEqual(savedView.widgets.map(row => row.definition), ['inspector', 'map', 'performance']);
+  const savedView = guest.views.find(view => view.title === 'Daily queue');
+  assert.deepEqual(savedView.widgets.map(row => row.definition), ['map', 'inspector', 'performance']);
   assert.equal(savedView.bindings.length, 2);
   assert.deepEqual(savedView.inputs, []);
   assert.deepEqual(denied, []);
   assert.deepEqual(errors, []);
-  const summary = { host: host.origin, mapOrigin, certified, views: verifiedViews, activityViews, explicitProposed: explicit[0], calls, denied };
+  const summary = { timings, workflow, host: host.origin, mapOrigin, certified, views: verifiedViews, activityViews, explicitProposed: explicit[0], calls, denied };
   await writeFile(resolve(directory, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log('Verified ' + certified.length + ' certified responses, the same map origin in all views, and exact finite Performance requests.');
 

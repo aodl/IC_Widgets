@@ -13,7 +13,7 @@ import { reviewContexts, serializeCalls } from './review-session.js';
 import { showTestCatalogue } from './case-catalogue.js';
 import { acceptScopedActivity, nextActivityAttempt, reviewCheckSummary, reviewChecksView } from './review-checks.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
-import { action, el, option, sourceReceipts, styled } from './view.js';
+import { action, branch, el, hex, option, principal, sourceReceipts, styled, time } from './view.js';
 
 const search = document.querySelector('#search');
 const widget = EMBED_WIDGET;
@@ -85,10 +85,12 @@ function publishOutputs(outputs) {
   latestOutputs = outputs;
   publishScope?.(outputs);
 }
-function publishEvidence(selection, scene, issue, filterScope) {
+function publishEvidence(selection, scene, issue, filterScope, deferFilter) {
   const state = issue ? { kind: 'unavailable', retryable: true, reason: issue.slice(0, 240) }
     : { kind: 'waiting', message: 'Waiting for accepted membership evidence' };
-  publishOutputs(selection ? composedOutputs(selection, scene, filterScope) : { filter: state, scene: { ...state } });
+  const outputs = selection ? composedOutputs(selection, scene, filterScope) : { filter: state, scene: { ...state } };
+  if (selection && deferFilter) outputs.filter = { kind: 'loading', message: 'Waiting for the inspector’s cross-proposal search' };
+  publishOutputs(outputs);
 }
 const overview = mountSubnetOverview({ call: remote, performance, replay: compositionFixture ?? activeReplay,
   publish: (inspectorWidget || widget?.view === 'subnet') ? publishEvidence : undefined });
@@ -97,14 +99,21 @@ const connectedFilter = el('select', Object.entries(comparisonFilterLabels).map(
 const connectedFilterControl = el('label', 'Connected Performance scope', connectedFilter);
 connectedFilterControl.hidden = true;
 let connectedEvidence;
+let filterDeferred = false;
 connectedFilter.addEventListener('change', () => {
-  if (connectedEvidence) publishEvidence(...connectedEvidence, undefined, connectedFilter.value);
+  if (connectedEvidence) publishEvidence(...connectedEvidence, undefined, connectedFilter.value, filterDeferred);
 });
 const membershipPerformance = connectedReview ? { ...performance, filterControl: connectedFilterControl,
-  scope(selection, scene) {
+  scope(selection, scene, deferFilter) {
+    filterDeferred = !!deferFilter;
     connectedEvidence = selection ? [selection, scene] : undefined;
     connectedFilterControl.hidden = !selection;
-    publishEvidence(selection, scene, undefined, connectedFilter.value);
+    publishEvidence(selection, scene, undefined, connectedFilter.value, filterDeferred);
+  },
+  releaseFilter() {
+    if (!filterDeferred || !connectedEvidence) return;
+    filterDeferred = false;
+    publishEvidence(...connectedEvidence, undefined, connectedFilter.value);
   },
 } : performance;
 
@@ -116,7 +125,7 @@ const phases = {
   Role: 'Reading the pinned Registry role',
   Comparison: 'Comparison · Calculating supported states',
   Lifecycle: 'Comparison · Checking Governance again',
-  Finished: 'Data loading complete', Provisional: 'Provisional · Governance check failed',
+  Finished: 'Membership calculation complete', Provisional: 'Provisional · Governance check failed',
   Observed: 'Proposal outcome recorded', Blocked: 'Could not produce a review', Stopped: 'Stopped',
 };
 
@@ -179,8 +188,41 @@ search.addEventListener('submit', event => {
   }
 });
 
-function startReview(ids, discovered, preferredSubnet) {
+const drafts = new Map();
+const recentReviews = new Map();
+const recentFor = 5 * 60_000;
+function draftFor(report, context) {
+  const key = JSON.stringify([report.manifest.proposals.map(row => [String(row.id), hex(row.payload_hash)]),
+    principal(context.subnet), branch(context.scenario.id), context.index]);
+  const draft = drafts.get(key) ?? {};
+  drafts.delete(key);
+  drafts.set(key, draft);
+  while (drafts.size > 12) drafts.delete(drafts.keys().next().value);
+  return draft;
+}
+
+function activityHint(input, proposal) {
+  const hint = input?.display;
+  if (!hint || hint.proposal !== proposal || typeof hint.title !== 'string' || hint.title.length > 400
+      || typeof hint.observed !== 'string' || !/^\d{1,19}$/.test(hint.observed)) return;
+  const deadline = typeof hint.deadline === 'string' && /^\d{1,11}$/.test(hint.deadline)
+    ? time(BigInt(hint.deadline) * 1_000_000_000n) : undefined;
+  return { title: hint.title, label: ['Activity queue · observed ' + time(BigInt(hint.observed)),
+    deadline && 'Recorded voting deadline ' + deadline].filter(Boolean).join(' · ') };
+}
+
+function startReview(ids, discovered, preferredSubnet, hint) {
   document.querySelector('#search-error').textContent = '';
+  const key = JSON.stringify([ids.map(String), preferredSubnet]);
+  const previous = connectedReview ? recentReviews.get(key) : undefined;
+  const recent = previous && Date.now() - previous.saved < recentFor ? previous : undefined;
+  let prior;
+  function rememberReview(snapshot) {
+    recentReviews.delete(key);
+    recentReviews.set(key, { ...snapshot, saved: Date.now() });
+    while (recentReviews.size > 4) recentReviews.delete(recentReviews.keys().next().value);
+    prior?.remove();
+  }
   const ticket = ++generation;
   const active = () => generation === ticket;
   current?.session.stop();
@@ -194,14 +236,29 @@ function startReview(ids, discovered, preferredSubnet) {
   const mapHost = map?.section;
   map?.update();
   reportContainer.replaceChildren(styled('div', 'workspace waiting-workspace',
-    styled('section', 'review-header', el('h2', proposalHeading(ids))),
+    styled('section', 'review-header', el('h2', proposalHeading(ids)),
+      hint?.title ? styled('p', 'proposal-title', hint.title) : null,
+      hint ? styled('p', 'muted', hint.label) : null),
     mapHost ? styled('div', 'review-grid', styled('div', 'map-card', mapHost)) : null));
+  if (recent) {
+    prior = styled('section', 'card recent-review',
+      el('h3', 'Previous accepted review · rechecking current evidence'),
+      el('p', recent.title), el('p', recent.comparison), el('p', recent.summary),
+      el('small', 'Registry ' + recent.registry + ' · Last verified ' + recent.observed.join(', ')));
+    reportContainer.prepend(prior);
+  }
   clearInterval(timer);
   timer = undefined;
   status({ work: 'running', stage: 'Preview' });
   previewTask = (async () => {
+    const waiting = () => active() && !thisRequest.stopped;
     try {
-      const response = await remote(() => active() && !thisRequest.stopped, client => client.begin_membership_review(ids));
+      let response = await remote(waiting, client => client.begin_membership_review(ids));
+      if (response?.Err === 'another on-demand request is running' && waiting()) {
+        reportStatus.textContent = 'Waiting to start Membership while the reviewer finishes another request…';
+        await new Promise(resolve => setTimeout(resolve, 1800));
+        if (waiting()) response = await remote(waiting, client => client.begin_membership_review(ids));
+      }
       if (!active() || !response || thisRequest.stopped) return;
       const live = result(response);
       if ('Err' in live.outcome) {
@@ -266,16 +323,26 @@ function startReview(ids, discovered, preferredSubnet) {
         progress: state => {
           if (!active()) return;
           status(state);
-          if (['Blocked', 'Stopped', 'Provisional'].includes(state.stage)) unavailable(state.reason);
-        }, performance: membershipPerformance, replay: reviewReplay, discovered: thisRequest.discovered, preferredSubnet });
+          if (['Blocked', 'Stopped', 'Provisional'].includes(state.stage)) {
+            unavailable(state.reason);
+            if (prior?.isConnected) prior.querySelector('h3').textContent = 'Previous accepted review · current verification unavailable';
+          }
+        }, performance: membershipPerformance, replay: reviewReplay, discovered: thisRequest.discovered, preferredSubnet,
+        draftFor: connectedReview ? draftFor : undefined, rememberReview: connectedReview ? rememberReview : undefined });
       thisRequest.acceptActivity = current.acceptActivity;
-      reportContainer.replaceChildren(current.section);
+      // Keep the previous result visible only while a matching executable proposal
+      // is being recalculated. This snapshot can never supply a map, filter, or export.
+      if (prior && recent.payloads.every((hash, i) => proposals[i] && hex(proposals[i].payload_hash) === hash)) {
+        reportContainer.replaceChildren(prior, current.section);
+      } else reportContainer.replaceChildren(current.section);
       current.start();
       void current.loadActivity();
     } catch (error) {
       if (!active() || thisRequest.stopped) return;
+      if (prior?.isConnected) prior.querySelector('h3').textContent = 'Previous accepted review · current verification unavailable';
       map?.update(undefined, 'The map needs supported membership evidence for this review.');
       status({ work: 'settled', stage: 'Blocked', reason: error.message });
+      reportContainer.append(action('Retry selected review', () => startReview(ids, discovered, preferredSubnet, hint)));
       unavailable(error.message);
     } finally {
       if (active() && thisRequest.stopped) {
@@ -334,6 +401,7 @@ function unavailable(reason) {
 }
 
 if (widget) {
+  document.body.classList.add('embedded', 'embed-' + widget.view);
   document.querySelector('.masthead').hidden = true;
   document.querySelector('#view-switch').hidden = true;
   if (inspectorWidget) {
@@ -371,7 +439,8 @@ if (widget) {
       const loading = { kind: 'loading', message: 'Resolving authoritative membership evidence' };
       publishOutputs({ scene: loading, filter: loading });
       if (subject.kind === 'subnet') overview.load(subject.subnet);
-      else startReview(subject.proposalIds.map(BigInt), undefined, subject.subnet);
+      else startReview(subject.proposalIds.map(BigInt), undefined, subject.subnet,
+        activityHint(input, subject.proposalIds.length === 1 ? subject.proposalIds[0] : undefined));
     });
   } else if (widget.view === 'performance') {
     document.querySelector('#proposal-search').hidden = true;
@@ -380,7 +449,7 @@ if (widget) {
       let selection;
       try {
         if (input?.kind === 'ready') selection = readNodeFilter(input);
-        performance.follow(selection, input?.kind === 'unavailable' ? input.reason : undefined);
+        performance.follow(selection, input?.kind === 'unavailable' ? input.reason : input?.message);
       } catch (error) {
         performance.follow(undefined, error.message);
       }

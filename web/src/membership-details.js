@@ -8,6 +8,7 @@ import { markdownEditor } from './review-export.js';
 import { help } from './review-help.js';
 import { nodeTables } from './node-table.js';
 import { proposalNodeSelection } from './node-snapshot.js';
+import { proposerStatement, statements } from './proposer-statement.js';
 import { reportSnapshot } from './review-markdown.js';
 import { acceptScopedActivity, discoveryScope, nextActivityAttempt, reviewCheckSummary, reviewChecksView } from './review-checks.js';
 import { liveError, result } from './client.js';
@@ -15,6 +16,11 @@ import { affectedNodes, comparisonEvidence, createReviewSession, stageLabel } fr
 import { action, branch, deltaNode, el, hex, number, option, principal, saveFile, styled, table, time, words } from './view.js';
 
 const disclosure = (title, ...content) => el('details', el('summary', title), ...content);
+// Scoped to this inspector document. The exact accepted executable hashes and
+// projected node roles bind reuse. A new payload, replay or failed scan misses.
+const discoveryCache = new Map();
+const discoveryFreshFor = 120_000;
+
 const subnetTypes = { 1: 'Application subnet', 2: 'System subnet', 4: 'Verified application subnet', 5: 'Cloud Engine subnet' };
 
 function replace(node, ...children) {
@@ -107,11 +113,13 @@ function evidenceView(live, state, session, context, model, replay) {
     (context?.failures ?? []).map(item => el('p', item.type ? stageLabel(item.type) + ' · ' + item.key + ' · ' : '', item.reason)));
 }
 
-export function mountReviewWorkspace({ live, contexts, map, mapHost, active, call, progress, performance, replay, discovered, preferredSubnet }) {
+export function mountReviewWorkspace({ live, contexts, map, mapHost, active, call, progress, performance, replay, discovered, preferredSubnet, draftFor, rememberReview }) {
   const body = live.outcome.Ok;
   const { report } = body;
   const { proposals, registry_version: version } = report.manifest;
   const contextLine = styled('div', 'proposal-meta');
+  const proposalText = statements(body.proposal_text);
+  const purpose = styled('div', 'proposal-purpose', proposalText.map(proposerStatement));
   const controls = styled('div', 'controls review-controls');
   const limit = styled('p', 'coverage-notice');
   const summary = styled('div', 'review-summary');
@@ -125,26 +133,33 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   pane.hidden = true;
   const checks = el('div');
   const references = discoveryScope(report);
+  const discoveryKey = replay ? undefined : JSON.stringify([
+    proposals.map(row => [String(row.id), row.function, hex(row.payload_hash)]),
+    references.map(([id, node, role]) => [String(id), principal(node), branch(role)]).sort(),
+  ]);
   let activityRunning = false;
   let observation = acceptScopedActivity(undefined, discovered, proposals, references) ?? (replay && !replay.activity
     ? { error: 'This historical review has no bundled cross-proposal observation.' } : undefined);
   const tools = styled('div', 'actions review-tools');
   const header = styled('section', 'review-header',
     el('h2', proposalHeading(proposals.map(row => row.id))),
-    contextLine, controls, verification, summary, limit, performance.filterControl);
+    contextLine, tools, verification, controls, summary, purpose, limit, performance.filterControl);
   const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost, nodes), topology);
-  const section = styled('div', 'workspace', header, checks, grid, tools, inspector, pane);
+  const section = styled('div', 'workspace', header, inspector, checks, grid, pane);
   const session = createReviewSession({ live, contexts, active, call, progress, updated: render });
   const exportReview = action('Generate review', () => {
     if (exportReview.disabled || !active()) return;
     const snapshot = reportSnapshot(model, [{ response: live }, ...session.receipts],
-      reviewCheckSummary(body.review_checks?.[0], model.order, observation));
+      reviewCheckSummary(body.review_checks?.[0], model.order, observation ?? {
+        error: 'Cross-proposal search was still in progress when this report was prepared.',
+      }), proposalText);
     inspect({ type: 'export', snapshot });
   });
   const retry = action('Retry failed evidence', () => {
     session.retry();
     void loadActivity();
   });
+  exportReview.classList.add('primary');
   tools.append(exportReview, action('Sources & details', () => inspect({ type: 'sources' })), retry);
   narrow.addEventListener('change', renderTables);
 
@@ -161,6 +176,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     const activeElement = document.activeElement;
     if (next !== selected) nodes.querySelector('.other-nodes')?.removeAttribute('open');
     selected = next;
+    if (draftFor && selected?.state) selected.draft = draftFor(report, selected);
     inspection = undefined;
     trigger = undefined;
     published = undefined;
@@ -256,9 +272,9 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
 
   function readinessLine(state) {
     const result = reviewReadiness(selected, state);
-    return styled('p', 'review-outcomes', state.stage === 'Provisional' ? 'Data loading complete · ' : '',
-      'Calculation · ', el('strong', result.calculation),
-      ' · Governance · ', el('strong', result.governance));
+    return styled('p', 'review-outcomes', 'Membership calculation · ', el('strong', result.calculation),
+      ' · Selected proposal · ', el('strong', result.governance),
+      model?.finalVerified && model.calculation && state.work === 'settled' ? ' · Ready to prepare' : '');
   }
 
   function renderInspector() {
@@ -278,8 +294,9 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       content = isCurrent() ? (inspection.editor ??= markdownEditor(snapshot, selected.draft, isCurrent))
         : el('p', 'Generate the review again after the selected calculation and final Governance verification settle.');
     }
-    const readiness = ({ Finished: 'Data loading complete', Provisional: 'Provisional · Governance check failed',
+    const readiness = ({ Finished: 'Membership calculation complete', Provisional: 'Provisional · Governance check failed',
       Stopped: state.work === 'stopping' ? 'Stopping' : 'Stopped', Blocked: 'Review blocked' })[state.stage] ?? 'Review in progress';
+    if (type === 'export' && inspection.editor === content && inspector.contains(content)) return;
     replace(inspector, styled('div', 'inspector-heading', heading, action('Close details', close)),
       styled('p', 'inspector-readiness', readiness), selected?.state ? readinessLine(state) : null, content);
   }
@@ -290,9 +307,20 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     const evidence = canSimulate ? selected.calculation?.evidence ?? comparisonEvidence(state.records,
       [...selected.before.members, ...selected.state.members]) : undefined;
     model = canSimulate ? reviewModel(live, selected, evidence, state, replay) : undefined;
-    const title = (option(body.proposal_text ?? []) ?? []).map(row => option(row.title)).filter(Boolean).join(' · ');
-    replace(contextLine, title ? el('span', title) : null,
-      el('span', (state.final ?? proposals).map(row => governanceText(row, replay)).join(' · ')));
+    const title = proposalText.map(row => row.title).filter(Boolean).join(' · ');
+    const activity = observation?.response?.outcome?.Ok;
+    const votes = proposals.flatMap(proposal => {
+      const row = activity?.proposals.find(item => item.id === proposal.id);
+      if (!row) return [];
+      const deadline = option(row.deadline);
+      const voting = option(row.voting_open);
+      return [styled('small', 'voting-observation', '#' + row.id + ' · '
+        + (voting === true ? 'Voting open' : voting === false ? 'Voting closed' : 'Voting status unavailable')
+        + (deadline ? ' · Vote by ' + time(deadline * 1_000_000_000n) : '')
+        + ' · Observed ' + time(row.observed_at))];
+    });
+    replace(contextLine, title ? styled('strong', 'proposal-title', title) : null,
+      el('span', (state.final ?? proposals).map(row => governanceText(row, replay)).join(' · ')), votes);
     const nns = option(state.role?.nns_subnet ?? []);
     const selectedSubnet = selected ? principal(selected.subnet) : undefined;
     const kind = selected?.rules?.kind;
@@ -312,6 +340,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     exportReview.hidden = grid.hidden;
     replace(summary,
       model ? [el('strong', model.membership), el('p', model.summary)] : terminal.length ? terminal : el('strong', 'Proposed membership unavailable'),
+      model?.dimensions.filter(item => item.coefficient?.direction && !item.partial).slice(0, 2).map(item =>
+        el('p', item.label + ' concentration coefficient · ', deltaNode(item.coefficient))),
       subnetLabel && !terminal.length ? el('span', dashboardLink('subnet', selectedSubnet, subnetLabel), ' · Registry ' + number(version), ' ',
         model ? '· ' + (model.ids.length > 1 ? model.scenario + ' · ' : '') + model.stateLabel + ' ' : '',
         help('Registry snapshot', 'The version used for every Registry record in this review. Governance has its own observation times.')) : null,
@@ -320,21 +350,33 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
     replace(verification, selected?.state ? readinessLine(state) : null);
-    replace(checks, reviewChecksView(reviewCheckSummary(body.review_checks?.[0], selected ? branch(selected.scenario.id) : undefined, observation)), !replay ? refreshActivityButton() : null);
+    replace(checks, reviewChecksView(reviewCheckSummary(body.review_checks?.[0], selected ? branch(selected.scenario.id) : undefined, observation)), activityRunning ? el('p', 'Cross-proposal search in progress.') : null, !replay ? refreshActivityButton() : null);
     renderTables();
     map?.update(model && { key: [model.order, ...model.ids, model.subnet, model.step, model.version].join('/'),
       members: model.members, countries: model.countries }, state.consistency?.blocked ? 'Review blocked · Governance changed'
       : 'Map unavailable · Required membership evidence');
     const ready = model?.calculation && model.finalVerified && state.work === 'settled';
-    exportReview.disabled = !ready || !observation;
+    // Historical fixture reporting keeps its established, deterministic evidence gates.
+    exportReview.disabled = !ready || (!!replay && !replay.compositionFixture && !observation);
+    exportReview.title = exportReview.disabled ? 'Requires a settled calculation and selected-proposal verification.' : '';
+    exportReview.setAttribute('aria-describedby', 'review-readiness');
+    verification.id = 'review-readiness';
     if (!ready && published) {
       published = undefined;
       performance.scope(undefined);
     } else if (ready && published !== model.calculation.inputHash) {
       published = model.calculation.inputHash;
+      rememberReview?.({
+        title: proposalText.map(row => row.title).filter(Boolean).join(' · '),
+        proposalIds: model.ids.map(String), subnet: model.subnet, registry: String(model.version), order: model.order,
+        step: model.step, digest: model.calculation.inputHash, payloads: proposals.map(row => hex(row.payload_hash)),
+        observed: state.final.map(row => time(row.observed_at_nanos)), comparison: model.membership, summary: model.summary,
+      });
       const wire = body.scopes.find(row => branch(row.scenario) === model.order && principal(row.subnet) === model.subnet);
       performance.scope(proposalNodeSelection(model, selected, affectedNodes(selected, wire),
-        [live, ...session.receipts.flatMap(row => row.response ? [row.response] : [])]), model);
+        [live, ...session.receipts.flatMap(row => row.response ? [row.response] : [])]), model, activityRunning);
+    } else if (ready && !activityRunning) {
+      performance.releaseFilter?.();
     }
     retry.hidden = !state.retryable;
     if (inspection) renderInspector();
@@ -357,11 +399,21 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     try {
       await session.settled();
       if (!checkActive()) return;
+      const cached = discoveryCache.get(discoveryKey);
+      if (!refresh && cached && Date.now() - cached.observed < discoveryFreshFor) {
+        accept({ response: cached.response });
+        return;
+      }
       const requested = references.length && (!replay || replay.compositionFixture) ? [references] : [];
       const reply = await call(checkActive, client => client.subnet_activity(proposals.map(row => row.id), requested));
       if (!checkActive() || !reply) return;
       const response = result(reply);
       accept('Err' in response.outcome ? { response, error: 'Refresh failed · ' + liveError(response.outcome.Err) } : { response });
+      if (discoveryKey && observation?.response?.outcome?.Ok && !observation.stale && observation.attempt === attempt) {
+        discoveryCache.delete(discoveryKey);
+        discoveryCache.set(discoveryKey, { response, observed: Number(response.usage.finished_at / 1_000_000n) });
+        while (discoveryCache.size > 4) discoveryCache.delete(discoveryCache.keys().next().value);
+      }
     } catch (error) {
       if (checkActive()) accept({ error: 'Refresh failed · ' + error.message });
     } finally {

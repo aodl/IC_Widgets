@@ -51,7 +51,7 @@ try {
   await page.locator('[name=first]').fill('144954');
   await page.getByRole('button', { name: 'Review', exact: true }).click();
   const reviewStatus = page.locator('#report-status');
-  await reviewStatus.getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 }).catch(async error => {
+  await reviewStatus.getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 90000 }).catch(async error => {
     throw new Error('Review status: ' + await reviewStatus.textContent(), { cause: error });
   });
   const count = protocol.length;

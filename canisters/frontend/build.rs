@@ -16,6 +16,8 @@ fn main() {
         "src",
         "index.html",
         "node-map.html",
+        "activity.html",
+        "reviewer-experience.css",
         "styles.css",
         "build.mjs",
         "widget-build.mjs",

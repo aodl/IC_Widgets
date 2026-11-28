@@ -51,7 +51,7 @@ try {
   await page.getByRole('heading', { name: 'Map' }).waitFor();
   await page.getByText('40 members · Add 1 · Remove 1 · Unchanged 39', { exact: true }).waitFor();
   const previewMs = Date.now() - began;
-  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 120000 });
+  await page.locator('#report-status').getByText('Membership calculation complete', { exact: true }).waitFor({ timeout: 120000 });
   const reviewMs = Date.now() - began;
   const observedPhases = await page.evaluate(() => window.reviewPhases);
   const stageTime = prefix => {
