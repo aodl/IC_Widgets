@@ -175,7 +175,7 @@ try {
   const activity = page.locator('section.card').filter({ has: page.getByRole('heading', { name: 'Subnet Activity' }) });
   await activity.getByText(/Pinned roster resolved/).waitFor();
   await activity.getByText(/Governance check complete.*references found/).waitFor();
-  await activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #990001$/ }) }).locator('summary').first().click();
+  await activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #990001$/ }) }).locator('summary').first().press('Enter');
   await page.screenshot({ path: resolve(output, 'subnet-activity.png'), fullPage: true });
   await activity.getByRole('button', { name: 'Review #990001', exact: true }).click();
   await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
@@ -199,6 +199,15 @@ try {
   await activity.getByRole('button', { name: 'Retry discovery', exact: true }).click();
   await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).waitFor({ timeout: 90000 });
   await activity.getByText(/Governance check incomplete/).waitFor();
+  const archivedRow = activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #145077$/ }) });
+  await archivedRow.locator('summary').first().press('Enter');
+  await activity.getByRole('button', { name: 'Review #145077', exact: true }).click();
+  await activity.getByRole('button', { name: 'Next proposal', exact: true }).click();
+  await page.locator('.review-header').getByText(/#145076/).waitFor();
+  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await activity.getByRole('button', { name: 'Previous proposal', exact: true }).click();
+  await page.locator('.review-header').getByText(/#145077/).waitFor();
+  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
   assert.equal(testData.length, capturesBeforeLive);
   assert.ok(reviewerRequests.some(path => path.endsWith('/call')));
   assert.deepEqual(rejected, []);

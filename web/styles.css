@@ -361,3 +361,5 @@ button.node-sort-heading {
   }
   .activity-navigator { max-height: 80vh; overflow: auto; }
 }
+.review-checks { padding: .65rem .85rem; }
+.review-checks p { margin-block: .25rem; }

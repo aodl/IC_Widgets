@@ -85,8 +85,9 @@ export function mountActivityNavigator(call, { open, refreshed }) {
     selected ? styled('div', 'controls', el('strong', 'Selected #' + selected.id), previous, next) : null,
     ...entries.map(([subnet, proposals]) => {
       const label = subnet === selected?.subnet ? 'Selected subnet ' : 'Subnet ';
-      const detail = el('details', el('summary', label, dashboardLink('subnet', subnet, subnet.slice(0, 11) + '…'),
-        ' ', styled('span', 'activity-count', String(proposals.length))),
+      const detail = el('details', el('summary', label, subnet.slice(0, 11) + '… ',
+        styled('span', 'activity-count', String(proposals.length))),
+      el('p', dashboardLink('subnet', subnet, 'Open subnet on the IC Dashboard')),
       proposals.length ? el('ul', proposals.map(row => renderProposal(row, subnet))) : el('p', 'No observed proposals in this filter.'));
       detail.open = expanded.has(subnet) || subnet === selected?.subnet;
       detail.addEventListener('toggle', () => detail.open ? expanded.add(subnet) : expanded.delete(subnet));
