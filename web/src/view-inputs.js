@@ -18,3 +18,23 @@ export function proposalInput(first, second) {
   }
   return Object.freeze({ profile: proposalInputProfile, value: Object.freeze(ids.map(String)) });
 }
+
+export const inspectionSubjectProfile = Object.freeze({ id: 'urn:ic-widgets:inspection-subject', major: 1 });
+
+export function readInspectionSubject(input) {
+  const value = input?.value;
+  const invalid = () => new Error('Supply a current subnet principal or one or two exact proposal IDs.');
+  if (input?.kind !== 'ready' || input.profile?.id !== inspectionSubjectProfile.id
+      || input.profile.major !== inspectionSubjectProfile.major || !value || Array.isArray(value)) throw invalid();
+  const subnet = Object.hasOwn(value, 'subnet') ? subnetInput(value.subnet).value : undefined;
+  if (subnet !== value.subnet) throw invalid();
+  if (value.kind === 'subnet' && subnet && Object.keys(value).every(key => ['kind', 'subnet'].includes(key))) {
+    return { kind: 'subnet', subnet };
+  }
+  if (value.kind !== 'proposals' || !Array.isArray(value.proposalIds) || ![1, 2].includes(value.proposalIds.length)
+      || !value.proposalIds.every(id => typeof id === 'string')
+      || !Object.keys(value).every(key => ['kind', 'proposalIds', 'subnet'].includes(key))) throw invalid();
+  const proposalIds = proposalInput(value.proposalIds[0], value.proposalIds[1] ?? '').value;
+  if (proposalIds.length !== value.proposalIds.length || !proposalIds.every((id, index) => id === value.proposalIds[index])) throw invalid();
+  return { kind: 'proposals', proposalIds, ...(subnet && { subnet }) };
+}

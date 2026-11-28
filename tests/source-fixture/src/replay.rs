@@ -30,6 +30,7 @@ struct Replay {
     archived: bool,
     untargeted_activity_probe: bool,
     failure_active: bool,
+    composition_listing: bool,
 }
 
 pub fn clear() {
@@ -100,6 +101,30 @@ pub fn activity(request: &ListRequest) -> Option<ListResponse> {
                     row.reward_status = Some(1);
                     row
                 })
+                .collect();
+            return Some(ListResponse { proposal_info });
+        }
+        if replay.composition_listing && replay.activity.is_empty() {
+            // A synthetic discovery supplement for the disposable composition
+            // rehearsal. Individual proposal reads still return fixture bytes.
+            let cursor = request.before_proposal.map_or(u64::MAX, |id| id.id);
+            let proposal_info = replay
+                .proposals
+                .range(..cursor)
+                .rev()
+                .filter_map(|(_, bytes)| {
+                    let mut row: nexus_ic_sources::governance::ProposalInfo =
+                        candid::decode_one::<Option<_>>(bytes).unwrap()?;
+                    row.reward_status = Some(1);
+                    (request.include_status.is_empty()
+                        || request.include_status.contains(&row.status))
+                    .then_some(row)
+                })
+                .filter(|_| {
+                    request.include_reward_status.is_empty()
+                        || request.include_reward_status.contains(&1)
+                })
+                .take(request.limit as usize)
                 .collect();
             return Some(ListResponse { proposal_info });
         }
@@ -242,7 +267,15 @@ fn load_review_case(id: String) {
         archived,
         untargeted_activity_probe: id == "untargeted-two-subnets",
         failure_active: false,
+        composition_listing: false,
     }));
+}
+
+/// Opt into synthetic listing only for the disposable composition harness.
+#[ic_cdk::update]
+fn load_composition_case(id: String) {
+    load_review_case(id);
+    REPLAY.with_borrow_mut(|state| state.as_mut().unwrap().composition_listing = true);
 }
 
 /// The harness triggers lifecycle and transport changes at a specific phase.
