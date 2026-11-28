@@ -80,6 +80,7 @@ try {
   page.setDefaultTimeout(45_000);
   const denied = [], errors = [], calls = [];
   let rejectActivity = false;
+  let holdMembership;
   const origins = new Set([...producerOrigins, performanceOrigin, widgets[5].origin, widgets[6].origin]);
   const reviewers = new Set([host.reviewer, execFileSync('dfx', ['canister', 'id', '--network', 'local', 'reviewer_second'], {
     cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' }, encoding: 'utf8',
@@ -95,6 +96,13 @@ try {
       if (rejectActivity && url.origin === widgets[5].origin && url.pathname.endsWith('/call')
           && Cbor.decode(new Uint8Array(req.postDataBuffer())).content.method_name === 'subnet_activity') {
         return route.fulfill({ status: 403, body: 'Simulated discovery failure' });
+      }
+      if (holdMembership && url.origin === widgets[6].origin && url.pathname.endsWith('/call')
+          && Cbor.decode(new Uint8Array(req.postDataBuffer())).content.method_name === 'begin_membership_review') {
+        const held = holdMembership;
+        holdMembership = undefined;
+        held.arrived();
+        return held.release.then(() => route.continue());
       }
       return route.continue();
     }
@@ -243,7 +251,8 @@ try {
     const members = [...new Set([...baseline, ...(state?.members ?? [])])];
     if (id) await membershipStatus().waitFor({ timeout: 150_000 });
     else await inspector.locator('#subnet-status').getByText('Subnet loaded.', { exact: true }).waitFor({ timeout: 150_000 });
-    await map.locator('.map-pin').first().waitFor();
+    const sample = members[0];
+    await map.locator('[data-nodes~="' + sample + '"], summary[data-node="' + sample + '"]').first().waitFor();
     const located = await map.locator('.map-pin').evaluateAll(pins => pins.flatMap(pin => pin.dataset.nodes.split(' ')));
     const unmapped = await map.locator('summary[data-node]').evaluateAll(rows => rows.map(row => row.dataset.node));
     assert.deepEqual(sorted([...located, ...unmapped]), sorted(members));
@@ -262,9 +271,13 @@ try {
     return { subnet, state };
   }
 
+  const dashboardSettings = page.getByText('Dashboard settings', { exact: true });
+  if (await dashboardSettings.isVisible()) await dashboardSettings.click();
   await page.getByRole('textbox', { name: 'New dashboard name' }).fill('Guest review workspace');
   await page.getByRole('button', { name: 'Create dashboard', exact: true }).click();
   await page.getByText('Choose a widget to start building this view.').waitFor();
+  const viewSettings = page.getByText('View settings', { exact: true });
+  if (await viewSettings.isVisible()) await viewSettings.click();
   await page.getByRole('textbox', { name: 'New view name' }).fill('Subnet proposal review');
   await page.getByRole('button', { name: 'Create view', exact: true }).click();
   for (const definition of ['activity', 'inspector', 'map', 'performance']) await page.getByLabel('Add widget').selectOption(definition);
@@ -290,6 +303,7 @@ try {
   await activity.locator('.activity-direct button').first().click();
   const { subnet } = await assertConnected(start, 'nns-144954-recorded-open', '144954');
   await page.screenshot({ path: resolve(directory, 'activity-review-desktop.png'), fullPage: true });
+  await map.locator('.map-section').screenshot({ path: resolve(directory, 'activity-review-map.png') });
   start = calls.length;
   await activity.getByRole('button', { name: 'Refresh discovery' }).click();
   await activity.getByRole('button', { name: 'Refresh discovery' }).waitFor();
@@ -334,8 +348,8 @@ try {
   assert.deepEqual(sorted(explicit[0].nodes), sorted(state.members));
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator('iframe[title="Subnet Activity"]').scrollIntoViewIfNeeded();
-  await page.screenshot({ path: resolve(directory, 'activity-review-mobile.png'), fullPage: true });
+  await activityWidget.screenshot({ path: resolve(directory, 'activity-review-mobile.png') });
+  await map.locator('.map-section').screenshot({ path: resolve(directory, 'activity-map-mobile.png') });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
 
   fixture('untargeted-two-subnets');
@@ -352,6 +366,22 @@ try {
   start = calls.length;
   await firstButton.click();
   await assertConnected(start, 'untargeted-two-subnets', '132102', firstTarget);
+
+  let arrived, release;
+  const held = new Promise(resolve => { arrived = resolve; });
+  holdMembership = { arrived, release: new Promise(resolve => { release = resolve; }) };
+  await secondButton.click();
+  await held;
+  try {
+    await map.locator('#map-widget-status').getByText('Waiting for resolved map evidence.').waitFor();
+    assert.equal(await performance.getByRole('button', { name: 'Read blockmaking samples' }).isDisabled(), true);
+    start = calls.length;
+    await inspectCurrent(firstTarget);
+  } finally {
+    release();
+  }
+  await assertConnected(start, 'untargeted-two-subnets', undefined, firstTarget);
+
   await activityWidget.getByText('Widget settings', { exact: true }).click();
   await activityWidget.getByRole('button', { name: 'Retry widget' }).click();
   await inspector.getByText('Select a proposal or subnet to inspect.', { exact: true }).waitFor();
