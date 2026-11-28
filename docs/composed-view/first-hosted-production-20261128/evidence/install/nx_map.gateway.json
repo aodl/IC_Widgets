@@ -1,0 +1,48 @@
+{
+  "alias": "nx_map",
+  "origin": "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net",
+  "verifiedAt": "2026-11-28T15:46:44.500Z",
+  "certified": [
+    {
+      "path": "/embed",
+      "status": 200,
+      "version": 2,
+      "bytes": 628,
+      "sha256": "106b8853e52de2aa5bfa9b98216e9469171c88def01fa612b331978a11bd39e8",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net",
+      "cacheControl": "public, no-cache, no-store"
+    },
+    {
+      "path": "/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css",
+      "status": 200,
+      "version": 2,
+      "bytes": 21377,
+      "sha256": "65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net",
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "path": "/app.aef7c33053e264f27db0a10d71c0523a9dfd31a61cb81480eaebb9c7eaa5bc57.js",
+      "status": 200,
+      "version": 2,
+      "bytes": 247387,
+      "sha256": "aef7c33053e264f27db0a10d71c0523a9dfd31a61cb81480eaebb9c7eaa5bc57",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net",
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "path": "/test-cases",
+      "status": 404,
+      "version": 2,
+      "bytes": 152,
+      "sha256": "dc418a6f18b3fbb7cdefde887902282c81ce78286d49b42037b2b94ab416f96f",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net",
+      "cacheControl": "public, no-cache, no-store"
+    }
+  ],
+  "raw": {
+    "origin": "https://mnmf6-dqaaa-aaaas-am2da-cai.raw.icp.net",
+    "status": 403,
+    "bytes": 0
+  }
+}

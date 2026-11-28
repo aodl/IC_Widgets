@@ -1,0 +1,39 @@
+{
+  "host": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net",
+  "startedAt": "2026-11-28T15:52:46.105Z",
+  "calls": [
+    {
+      "stage": "Single-flight retry",
+      "method": "node_performance_on_demand",
+      "subnet": "4ecnw-byqwz-dtgss-ua2mh-pfvs7-c3lct-gtf4e-hnu75-j7eek-iifqm-sqe",
+      "nodes": [
+        "vw36t-lgksm-5cgtg-ait3y-sy25v-gdtsq-en6oe-md35y-a7cji-uiryt-3ae",
+        "rwze6-4mvpx-o5pdv-3sujg-2szcx-223oi-f3jnl-jx27g-2qs22-dmt2j-jae",
+        "lpkij-6jgir-sukcx-6kplx-qddla-ufncr-e3m2p-kikly-bcwzd-mtslj-4ae",
+        "hhixb-o5xrj-s5pty-esitz-m6s46-wgsez-c7thd-6h27w-7hikq-ae5n7-pae",
+        "ns7kv-kp2mu-mw7yi-krd4z-eqcvq-qeeej-mxtwb-c2ujq-xtq6x-orzoj-3qe",
+        "c3syk-l56ky-owcvg-y4ogf-3qfti-elv4e-2bqp7-k5v32-ibzm6-o4k6s-eqe",
+        "b5pgw-6wtjo-dzwgu-zkfz6-3l5f3-cw6ka-y4crr-dikku-fkjbe-lfzki-qae",
+        "5ttnf-xhdip-7e2uw-iuikh-5dlli-r6jdc-nxjp7-bjumm-5usid-rpiqn-jqe",
+        "7f5c7-l7cuq-7jnfc-yexo3-bytd3-yf6xa-ctk76-wywln-jsy2n-ds2lp-tqe",
+        "rfe2u-pdp5u-frzdb-r2ga3-5jept-24323-5pere-7lerg-toh4w-cwdsl-cqe",
+        "m4e6a-3t7oi-ooshc-2b2vq-56xpu-pyo7q-qafn2-3sem2-cvtck-6xfqy-vae",
+        "o42ny-ab3zt-iknyx-eo4ji-utgbe-xmae4-ybmwp-wdkzt-efffe-oq6nh-oae",
+        "4vwpn-budhw-o2kvm-axlue-sr5lt-vy3be-ammju-rw22w-w4qtn-sns52-3qe",
+        "6jidn-uqgyz-hl2l3-ou2rg-slu73-iztvd-yhdu7-hjfuz-cy4wc-jvoqc-uae",
+        "gfeqv-7ndps-okvma-qxwsi-ozk4x-b5wyp-hzwmb-v6g5t-dmen4-aff4d-zae"
+      ]
+    }
+  ],
+  "denied": [],
+  "errors": [],
+  "checks": {
+    "proposal": "145075",
+    "exactFiniteNodes": 15,
+    "status": "",
+    "samples": 7,
+    "retriedWithoutRepeatingReview": true
+  },
+  "completed": true,
+  "finishedAt": "2026-11-28T15:54:00.689Z"
+}

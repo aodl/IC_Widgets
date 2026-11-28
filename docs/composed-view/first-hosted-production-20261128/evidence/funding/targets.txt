@@ -1,0 +1,5 @@
+nx_activity mdoiw-yaaaa-aaaas-am2ca-cai 365000000000 215110350494
+nx_inspector mepoc-vyaaa-aaaas-am2cq-cai 365000000000 215110250457
+nx_map mnmf6-dqaaa-aaaas-am2da-cai 365000000000 215110150420
+nx_performance mkndk-oiaaa-aaaas-am2dq-cai 365000000000 215110030375
+nx_host 5i3qr-tyaaa-aaaar-qcjaq-cai 915000000000 765289838148

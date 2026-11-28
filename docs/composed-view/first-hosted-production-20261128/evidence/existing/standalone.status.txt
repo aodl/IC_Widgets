@@ -1,0 +1,19 @@
+Canister status call result for s45ab-wiaaa-aaaar-qcifq-cai.
+Status: Running
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 2_583_117_524 Cycles
+Memory Size: 4_840_394 Bytes
+Balance: 2_580_708_261_450 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0xf64a81cd9d00bf734d1f992f5976b6a3d0405924b75e7273f9c6fddb3388e2e3
+Number of queries: 578
+Instructions spent in queries: 1_091_932_372
+Total query request payload size: 182_512 Bytes
+Total query response payload size: 4_466_682 Bytes
+Log visibility: public

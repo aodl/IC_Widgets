@@ -1,0 +1,65 @@
+{
+  "origin": "https://s45ab-wiaaa-aaaar-qcifq-cai.icp.net",
+  "certified": [
+    {
+      "method": "GET",
+      "path": "/",
+      "requestPath": "/?release-check=mx0l5dqw",
+      "status": 200,
+      "version": 2,
+      "sha256": "946211e3d3222cd4839ed5f791bd77517e76e073c9627d7320fdcd325ad04962",
+      "bytes": 3678,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css",
+      "requestPath": "/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css?release-check=mx0l5dqw",
+      "status": 200,
+      "version": 2,
+      "sha256": "65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31",
+      "bytes": 21377,
+      "mime": "text/css; charset=utf-8",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/app.942b03128913a4bac8c9716984595afe3e11416ce05909af41bc12d458268ad3.js",
+      "requestPath": "/app.942b03128913a4bac8c9716984595afe3e11416ce05909af41bc12d458268ad3.js?release-check=mx0l5dqw",
+      "status": 200,
+      "version": 2,
+      "sha256": "942b03128913a4bac8c9716984595afe3e11416ce05909af41bc12d458268ad3",
+      "bytes": 593436,
+      "mime": "text/javascript; charset=utf-8",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases",
+      "requestPath": "/test-cases?release-check=mx0l5dqw",
+      "status": 200,
+      "version": 2,
+      "sha256": "e07f3f5d84657e6b79ef936414f2a04fe7121ceafa2415266ac3feff778a940e",
+      "bytes": 3676,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self';     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    },
+    {
+      "method": "GET",
+      "path": "/test-cases/nns-144954-recorded-open",
+      "requestPath": "/test-cases/nns-144954-recorded-open?release-check=mx0l5dqw",
+      "status": 200,
+      "version": 2,
+      "sha256": "e07f3f5d84657e6b79ef936414f2a04fe7121ceafa2415266ac3feff778a940e",
+      "bytes": 3676,
+      "mime": "text/html; charset=utf-8",
+      "cacheControl": "public, no-cache, no-store",
+      "contentSecurityPolicy": "default-src 'self'; connect-src 'self';     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    }
+  ]
+}
