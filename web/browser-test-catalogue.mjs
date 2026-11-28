@@ -177,7 +177,7 @@ try {
   async function verifyPerformance(existingCount, proposedCount, relatedCount, explicit) {
     const rows = await page.locator('.review-node-tables tbody tr').evaluateAll(items => items.map(row => ({
       role: row.className,
-      id: new URL(row.querySelector('a[href*="/node/"]').href).pathname.split('/').pop(),
+      id: new URL(row.querySelector('a[href*="/network/nodes/"]').href).pathname.split('/').pop(),
     })));
     const existing = rows.filter(row => !row.role.includes('added')).map(row => row.id).sort();
     const proposed = rows.filter(row => !row.role.includes('removed')).map(row => row.id).sort();
@@ -223,6 +223,13 @@ try {
   await page.screenshot({ path: resolve(output, 'subnet-activity.png'), fullPage: true });
   await activity.getByRole('button', { name: 'Review #990001', exact: true }).click();
   await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
+  failDiscovery = true;
+  const refreshChecks = page.getByRole('button', { name: 'Refresh review checks', exact: true });
+  await refreshChecks.click();
+  await page.locator('.review-checks').getByText(/Previous Governance observation.*Refresh failed.*4 references found/).waitFor();
+  failDiscovery = false;
+  await refreshChecks.click();
   await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
   execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
     'load_review_case', '("nns-145077-recorded-open")'], {
