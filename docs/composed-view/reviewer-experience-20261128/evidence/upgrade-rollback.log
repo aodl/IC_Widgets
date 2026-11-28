@@ -1,0 +1,25 @@
+Running dfx start for version 0.31.0
+Using project-specific network 'local' defined in /home/codexdev/src/IC_Widgets_Activity/.local/ux-release-ready/disposable.vgmvNL/dfx.json
+Replica API running in the background on 127.0.0.1:4996
+nx_activity canister created with canister id: uqqxf-5h777-77774-qaaaa-cai
+Installed code for canister nx_activity, with canister ID uqqxf-5h777-77774-qaaaa-cai
+nx_inspector canister created with canister id: u6s2n-gx777-77774-qaaba-cai
+Installed code for canister nx_inspector, with canister ID u6s2n-gx777-77774-qaaba-cai
+nx_map canister created with canister id: uzt4z-lp777-77774-qaabq-cai
+Installed code for canister nx_map, with canister ID uzt4z-lp777-77774-qaabq-cai
+nx_performance canister created with canister id: umunu-kh777-77774-qaaca-cai
+Installed code for canister nx_performance, with canister ID umunu-kh777-77774-qaaca-cai
+nx_host canister created with canister id: ulvla-h7777-77774-qaacq-cai
+Installed code for canister nx_host, with canister ID ulvla-h7777-77774-qaacq-cai
+Upgraded code for canister nx_activity, with canister ID uqqxf-5h777-77774-qaaaa-cai
+Upgraded code for canister nx_inspector, with canister ID u6s2n-gx777-77774-qaaba-cai
+Upgraded code for canister nx_performance, with canister ID umunu-kh777-77774-qaaca-cai
+Upgraded code for canister nx_host, with canister ID ulvla-h7777-77774-qaacq-cai
+Verified 23 certificate-v2 responses, four canonical widget frames, and browser origin isolation.
+Upgraded code for canister nx_host, with canister ID ulvla-h7777-77774-qaacq-cai
+Upgraded code for canister nx_performance, with canister ID umunu-kh777-77774-qaaca-cai
+Upgraded code for canister nx_inspector, with canister ID u6s2n-gx777-77774-qaaba-cai
+Upgraded code for canister nx_activity, with canister ID uqqxf-5h777-77774-qaaaa-cai
+Previous packages restored, map unchanged.
+Using project-specific network 'local' defined in /home/codexdev/src/IC_Widgets_Activity/.local/ux-release-ready/disposable.vgmvNL/dfx.json
+All local network processes stopped

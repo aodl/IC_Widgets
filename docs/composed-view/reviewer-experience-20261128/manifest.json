@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-28",
+  "status": "candidate for approval",
+  "productionModified": false,
+  "source": {
+    "networkNexus": "7cd98067e92573e02b0c46846f638950c872dd84",
+    "icWidgets": "523074f81e1d3630574217ddad72570efa84503c"
+  },
+  "browserTestRevision": "523074f81e1d3630574217ddad72570efa84503c",
+  "catalogueSha256": "f69511730918b207ef7ffe28c6faaaaeb481036b2d9a304ce970fa38418b1e20",
+  "installOrder": [
+    "nx_activity",
+    "nx_inspector",
+    "nx_performance",
+    "nx_host"
+  ],
+  "rollbackOrder": [
+    "nx_host",
+    "nx_performance",
+    "nx_inspector",
+    "nx_activity"
+  ],
+  "previousPackages": "https://github.com/aodl/IC_Widgets/tree/580d94288909518ecf8c62294cd1b5e5f0c58dca/docs/composed-view/first-hosted-install-candidate",
+  "packages": [
+    {
+      "alias": "nx_activity",
+      "canister": "mdoiw-yaaaa-aaaas-am2ca-cai",
+      "subnet": "European application",
+      "origin": "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net",
+      "file": "packages/nx_activity.wasm.gz",
+      "installedModuleSha256": "1ad34f8eb5d0e334fc0d75240b5fc72c61392e3420d1a659a00653dde21f48e1",
+      "gzipBytes": 529250,
+      "uncompressedWasmSha256": "e23d1e2ad0b2f1c3707373ad9fd697692917e50e7027edf5fb86f9b211dd09df",
+      "wasmBytes": 1614637,
+      "previousInstalledModuleSha256": "a6376142e539f82da5cc7f84df9fdb1c0a2ce3aa080d2b8816fd18a68f46a67b"
+    },
+    {
+      "alias": "nx_inspector",
+      "canister": "mepoc-vyaaa-aaaas-am2cq-cai",
+      "subnet": "European application",
+      "origin": "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net",
+      "file": "packages/nx_inspector.wasm.gz",
+      "installedModuleSha256": "94c08ebb009f758243bbdc5820b7ec5dd673ddb9512526f41b5c2e10b76c9787",
+      "gzipBytes": 729566,
+      "uncompressedWasmSha256": "b3712bf2079fe6efea21cf3b111cd122cbe8fc4847c191f0bcf12278cd82b823",
+      "wasmBytes": 1937453,
+      "previousInstalledModuleSha256": "ad33060a928977a8b86ce2452ad4876d0da309d6ea8930905ac49ab0b2366aa9"
+    },
+    {
+      "alias": "nx_performance",
+      "canister": "mkndk-oiaaa-aaaas-am2dq-cai",
+      "subnet": "European application",
+      "origin": "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net",
+      "file": "packages/nx_performance.wasm.gz",
+      "installedModuleSha256": "7b76ac8a34fd6975404d06cb8508fde0cea7f506af8d3870020135388eea8958",
+      "gzipBytes": 729564,
+      "uncompressedWasmSha256": "1f777b57aafff154050d6a41b789a21dd785d6abb2022e284cb19be9c5b21f50",
+      "wasmBytes": 1937453,
+      "previousInstalledModuleSha256": "e62658ca0ecd41509f29a712432e830806a9d8d79dfe06383ee01c315afe8e96"
+    },
+    {
+      "alias": "nx_host",
+      "canister": "5i3qr-tyaaa-aaaar-qcjaq-cai",
+      "subnet": "Fiduciary",
+      "origin": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net",
+      "file": "packages/nx_host.wasm.gz",
+      "installedModuleSha256": "dc7849cef29461b8d2daf96026c3ac4af73090b6c2354046a715ae5e9699c1fe",
+      "gzipBytes": 448007,
+      "uncompressedWasmSha256": "3fe214583a51871d9793e8416ab15320bd875ceec6272b52b1645299287dc1af",
+      "wasmBytes": 1368812,
+      "previousInstalledModuleSha256": "3b513f90ec66a0371df6a1cdf6ce28a56a30be2f86b955578ecc6e79bef75ccb"
+    }
+  ],
+  "remainAtProduction": [
+    {
+      "alias": "nx_map",
+      "canister": "mnmf6-dqaaa-aaaas-am2da-cai",
+      "installedModuleSha256": "be49747fbd8a16a3c1bd7cb30c5cb3c1671987b1c5e73da7512c9b19bfac92d4"
+    },
+    {
+      "alias": "reviewer",
+      "canister": "s34gv-3qaaa-aaaar-qcifa-cai",
+      "installedModuleSha256": "a9337f47cce5e294718598d0adf1d3aa33fd034f9b1a786b81d1b2f5709359d2"
+    },
+    {
+      "alias": "standalone",
+      "canister": "s45ab-wiaaa-aaaar-qcifq-cai",
+      "installedModuleSha256": "f64a81cd9d00bf734d1f992f5976b6a3d0405924b75e7273f9c6fddb3388e2e3"
+    }
+  ],
+  "composedBrowserHostRevision": "11eb4cca809517aa6f4687d02166cf5f57269179",
+  "hostedCI": {
+    "networkNexus": "https://github.com/aodl/Network_Nexus/actions/runs/46172126454",
+    "icWidgets": "https://github.com/aodl/IC_Widgets/actions/runs/46171624365"
+  }
+}

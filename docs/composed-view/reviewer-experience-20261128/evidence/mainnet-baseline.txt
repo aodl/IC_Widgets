@@ -1,0 +1,77 @@
+Fresh mainnet read-only canister status observations taken on 28 November 2026 UTC.
+Canister 5i3qr-tyaaa-aaaar-qcjaq-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 2_373_540_409 Cycles
+Memory Size: 1_703_855 Bytes
+Balance: 902_366_733_759 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Module hash: 0x3b513f90ec66a0371df6a1cdf6ce28a56a30be2f86b955578ecc6e79bef75ccb
+
+Canister mdoiw-yaaaa-aaaas-am2ca-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 916_327_190 Cycles
+Memory Size: 2_048_188 Bytes
+Balance: 359_930_218_536 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Module hash: 0xa6376142e539f82da5cc7f84df9fdb1c0a2ce3aa080d2b8816fd18a68f46a67b
+
+Canister mepoc-vyaaa-aaaas-am2cq-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 929_741_777 Cycles
+Memory Size: 2_573_261 Bytes
+Balance: 359_497_233_145 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Module hash: 0xad33060a928977a8b86ce2452ad4876d0da309d6ea8930905ac49ab0b2366aa9
+
+Canister mkndk-oiaaa-aaaas-am2dq-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 929_741_777 Cycles
+Memory Size: 2_573_261 Bytes
+Balance: 359_497_233_174 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Module hash: 0xe62658ca0ecd41509f29a712432e830806a9d8d79dfe06383ee01c315afe8e96
+
+Canister mnmf6-dqaaa-aaaas-am2da-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 918_768_663 Cycles
+Memory Size: 2_143_752 Bytes
+Balance: 359_738_662_719 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Module hash: 0xbe49747fbd8a16a3c1bd7cb30c5cb3c1671987b1c5e73da7512c9b19bfac92d4
+
+Canister s34gv-3qaaa-aaaar-qcifa-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 12_546_761_248 Cycles
+Memory Size: 153_956_661 Bytes
+Balance: 2_720_227_063_714 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Module hash: 0xa9337f47cce5e294718598d0adf1d3aa33fd034f9b1a786b81d1b2f5709359d2
+
+Canister s45ab-wiaaa-aaaar-qcifq-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 2_583_117_524 Cycles
+Memory Size: 4_840_394 Bytes
+Balance: 2_580_568_042_175 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Module hash: 0xf64a81cd9d00bf734d1f992f5976b6a3d0405924b75e7273f9c6fddb3388e2e3

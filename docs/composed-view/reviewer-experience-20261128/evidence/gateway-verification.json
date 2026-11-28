@@ -1,0 +1,246 @@
+{
+  "certified": [
+    {
+      "alias": "nx_activity",
+      "localCanister": "uqqxf-5h777-77774-qaaaa-cai",
+      "publicUrl": "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net/embed",
+      "status": 200,
+      "certification": 2,
+      "sha256": "2dd7bfca9c62478bdb44e97fc99e38f7f64104eedda6193eb6e662cfa7615267",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_activity",
+      "localCanister": "uqqxf-5h777-77774-qaaaa-cai",
+      "publicUrl": "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net/styles.37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b.css",
+      "status": 200,
+      "certification": 2,
+      "sha256": "37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_activity",
+      "localCanister": "uqqxf-5h777-77774-qaaaa-cai",
+      "publicUrl": "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net/app.3c7c5fb5e1b993ae15566123cdb4122e96423726ac89c9d4d42231a928866eff.js",
+      "status": 200,
+      "certification": 2,
+      "sha256": "3c7c5fb5e1b993ae15566123cdb4122e96423726ac89c9d4d42231a928866eff",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_activity",
+      "localCanister": "uqqxf-5h777-77774-qaaaa-cai",
+      "publicUrl": "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net/test-cases",
+      "status": 404,
+      "certification": 2,
+      "sha256": "dc418a6f18b3fbb7cdefde887902282c81ce78286d49b42037b2b94ab416f96f",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_host",
+      "localCanister": "ulvla-h7777-77774-qaacq-cai",
+      "publicUrl": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/",
+      "status": 200,
+      "certification": 2,
+      "sha256": "c33dbf2c447bd75f563422cad516932a9aee448f61f62b263bed41e12a81a8e5",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src https://*.icp.net; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "alias": "nx_host",
+      "localCanister": "ulvla-h7777-77774-qaacq-cai",
+      "publicUrl": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/app.js",
+      "status": 200,
+      "certification": 2,
+      "sha256": "997d4825647cdd06ee59334ff15c0f9fb706c470554ebee4c5c2297be077a4a0",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src https://*.icp.net; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "alias": "nx_host",
+      "localCanister": "ulvla-h7777-77774-qaacq-cai",
+      "publicUrl": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/styles.css",
+      "status": 200,
+      "certification": 2,
+      "sha256": "f6634bc8fa3f25f31dc30c8df45deb840bf53baddab720ae93384ae4c654d474",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src https://*.icp.net; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "alias": "nx_host",
+      "localCanister": "ulvla-h7777-77774-qaacq-cai",
+      "publicUrl": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/bridge.js",
+      "status": 200,
+      "certification": 2,
+      "sha256": "58f6d5b308768dc618b804edfb76d0641114c1805270b82d83b2db7ae54a8d94",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src https://*.icp.net; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "alias": "nx_host",
+      "localCanister": "ulvla-h7777-77774-qaacq-cai",
+      "publicUrl": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/composition.js",
+      "status": 200,
+      "certification": 2,
+      "sha256": "54731c4360170a1ab45f897c8150b06cf3f7c7ae112973e97539acd881eebe4d",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src https://*.icp.net; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "alias": "nx_host",
+      "localCanister": "ulvla-h7777-77774-qaacq-cai",
+      "publicUrl": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/storage.js",
+      "status": 200,
+      "certification": 2,
+      "sha256": "5ee40061d4e04441fac8342f65874ed78016b11286638d38cea78f9452040a5a",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src https://*.icp.net; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "alias": "nx_host",
+      "localCanister": "ulvla-h7777-77774-qaacq-cai",
+      "publicUrl": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/catalogue.json",
+      "status": 200,
+      "certification": 2,
+      "sha256": "f69511730918b207ef7ffe28c6faaaaeb481036b2d9a304ce970fa38418b1e20",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-src https://*.icp.net; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "alias": "nx_inspector",
+      "localCanister": "u6s2n-gx777-77774-qaaba-cai",
+      "publicUrl": "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net/embed",
+      "status": 200,
+      "certification": 2,
+      "sha256": "7718bdf9457ba083dd8931ab585f6fc6b053f5d722f27af398da4c5497ca6939",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_inspector",
+      "localCanister": "u6s2n-gx777-77774-qaaba-cai",
+      "publicUrl": "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net/styles.37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b.css",
+      "status": 200,
+      "certification": 2,
+      "sha256": "37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_inspector",
+      "localCanister": "u6s2n-gx777-77774-qaaba-cai",
+      "publicUrl": "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net/app.41d8721fa74673574e63effad45ebfd47e272a466d08e851c936db3c5bff760e.js",
+      "status": 200,
+      "certification": 2,
+      "sha256": "41d8721fa74673574e63effad45ebfd47e272a466d08e851c936db3c5bff760e",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_inspector",
+      "localCanister": "u6s2n-gx777-77774-qaaba-cai",
+      "publicUrl": "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net/test-cases",
+      "status": 404,
+      "certification": 2,
+      "sha256": "dc418a6f18b3fbb7cdefde887902282c81ce78286d49b42037b2b94ab416f96f",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_map",
+      "localCanister": "uzt4z-lp777-77774-qaabq-cai",
+      "publicUrl": "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net/embed",
+      "status": 200,
+      "certification": 2,
+      "sha256": "106b8853e52de2aa5bfa9b98216e9469171c88def01fa612b331978a11bd39e8",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_map",
+      "localCanister": "uzt4z-lp777-77774-qaabq-cai",
+      "publicUrl": "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css",
+      "status": 200,
+      "certification": 2,
+      "sha256": "65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_map",
+      "localCanister": "uzt4z-lp777-77774-qaabq-cai",
+      "publicUrl": "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net/app.aef7c33053e264f27db0a10d71c0523a9dfd31a61cb81480eaebb9c7eaa5bc57.js",
+      "status": 200,
+      "certification": 2,
+      "sha256": "aef7c33053e264f27db0a10d71c0523a9dfd31a61cb81480eaebb9c7eaa5bc57",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_map",
+      "localCanister": "uzt4z-lp777-77774-qaabq-cai",
+      "publicUrl": "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net/test-cases",
+      "status": 404,
+      "certification": 2,
+      "sha256": "dc418a6f18b3fbb7cdefde887902282c81ce78286d49b42037b2b94ab416f96f",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_performance",
+      "localCanister": "umunu-kh777-77774-qaaca-cai",
+      "publicUrl": "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net/embed",
+      "status": 200,
+      "certification": 2,
+      "sha256": "597e325881114e334cce0a74472f907b5ca0203f45861afa44c65b56c60caf35",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_performance",
+      "localCanister": "umunu-kh777-77774-qaaca-cai",
+      "publicUrl": "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net/styles.37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b.css",
+      "status": 200,
+      "certification": 2,
+      "sha256": "37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_performance",
+      "localCanister": "umunu-kh777-77774-qaaca-cai",
+      "publicUrl": "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net/app.9baf9a9635ab4e8d74aa77503c05cf3b87ede1b01d364f5179921e8369860ede.js",
+      "status": 200,
+      "certification": 2,
+      "sha256": "9baf9a9635ab4e8d74aa77503c05cf3b87ede1b01d364f5179921e8369860ede",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    },
+    {
+      "alias": "nx_performance",
+      "localCanister": "umunu-kh777-77774-qaaca-cai",
+      "publicUrl": "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net/test-cases",
+      "status": 404,
+      "certification": 2,
+      "sha256": "dc418a6f18b3fbb7cdefde887902282c81ce78286d49b42037b2b94ab416f96f",
+      "csp": "default-src 'self'; connect-src 'self' https://icp-api.io;     script-src 'self'; style-src 'self'; style-src-attr 'none'; worker-src 'none'; frame-src 'none';     object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net"
+    }
+  ],
+  "canonicalOriginBrowser": {
+    "browserRequests": [
+      "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/",
+      "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/styles.css",
+      "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/app.js",
+      "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/bridge.js",
+      "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/composition.js",
+      "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/storage.js",
+      "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net/catalogue.json",
+      "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net/embed",
+      "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net/embed",
+      "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net/embed",
+      "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net/embed",
+      "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net/styles.37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b.css",
+      "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net/styles.37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b.css",
+      "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net/app.3c7c5fb5e1b993ae15566123cdb4122e96423726ac89c9d4d42231a928866eff.js",
+      "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net/app.41d8721fa74673574e63effad45ebfd47e272a466d08e851c936db3c5bff760e.js",
+      "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net/styles.65e2db98ce8bd110e74ac2a1eebd54e509f9c48970035956ac1db06aabe0fd31.css",
+      "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net/app.aef7c33053e264f27db0a10d71c0523a9dfd31a61cb81480eaebb9c7eaa5bc57.js",
+      "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net/styles.37d2dbff899be360e0f1fb1c5078aa2d9a44c373468db25efb1c67f6cb7a743b.css",
+      "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net/app.9baf9a9635ab4e8d74aa77503c05cf3b87ede1b01d364f5179921e8369860ede.js",
+      "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net/embed"
+    ],
+    "protocolBlocked": [
+      "https://icp-api.io/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "https://icp-api.io/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "https://icp-api.io/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call",
+      "https://icp-api.io/api/v4/canister/s34gv-3qaaa-aaaar-qcifa-cai/call"
+    ],
+    "denied": [],
+    "connectedWidgets": 4,
+    "blankGuest": true,
+    "foreignFrameRejected": true,
+    "relay": "Browser requests fulfilled from independently certified disposable gateway responses"
+  }
+}

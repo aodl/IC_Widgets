@@ -1,0 +1,39 @@
+v24.15.0
+rustc 1.96.0 (ac68faa20 2026-05-25)
+binary: rustc
+commit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96
+commit-date: 2026-05-25
+host: x86_64-unknown-linux-gnu
+release: 1.96.0
+LLVM version: 22.1.2
+gzip 1.10
+All four Wasm, gzip and Candid files matched byte-for-byte between separately staged locked builds.
+Final application builds used independent source archives and a shared locked Cargo dependency cache. Earlier widget builds additionally exercised fresh Cargo targets.
+Each extracted public Candid interface passed didc check in both directions.
+The map package matched the installed production bytes. The last changes do not enter the independent map profile.
+3fe214583a51871d9793e8416ab15320bd875ceec6272b52b1645299287dc1af  nx_host.wasm
+dc7849cef29461b8d2daf96026c3ac4af73090b6c2354046a715ae5e9699c1fe  nx_host.wasm.gz
+a05b8fe59cae045610e388eca42a71d6c18cd1ec2043cba6e2b72f874b11536b  nx_host.did
+1368812 nx_host.wasm
+ 448007 nx_host.wasm.gz
+1816819 total
+e23d1e2ad0b2f1c3707373ad9fd697692917e50e7027edf5fb86f9b211dd09df  nx_activity.wasm
+1ad34f8eb5d0e334fc0d75240b5fc72c61392e3420d1a659a00653dde21f48e1  nx_activity.wasm.gz
+a05b8fe59cae045610e388eca42a71d6c18cd1ec2043cba6e2b72f874b11536b  nx_activity.did
+1614637 nx_activity.wasm
+ 529250 nx_activity.wasm.gz
+2143887 total
+b3712bf2079fe6efea21cf3b111cd122cbe8fc4847c191f0bcf12278cd82b823  nx_inspector.wasm
+94c08ebb009f758243bbdc5820b7ec5dd673ddb9512526f41b5c2e10b76c9787  nx_inspector.wasm.gz
+a05b8fe59cae045610e388eca42a71d6c18cd1ec2043cba6e2b72f874b11536b  nx_inspector.did
+1937453 nx_inspector.wasm
+ 729566 nx_inspector.wasm.gz
+2667019 total
+1f777b57aafff154050d6a41b789a21dd785d6abb2022e284cb19be9c5b21f50  nx_performance.wasm
+7b76ac8a34fd6975404d06cb8508fde0cea7f506af8d3870020135388eea8958  nx_performance.wasm.gz
+a05b8fe59cae045610e388eca42a71d6c18cd1ec2043cba6e2b72f874b11536b  nx_performance.did
+1937453 nx_performance.wasm
+ 729564 nx_performance.wasm.gz
+2667017 total
+
+Published Candid files have trailing comment whitespace removed. Both compatibility directions were checked again after that normalization.

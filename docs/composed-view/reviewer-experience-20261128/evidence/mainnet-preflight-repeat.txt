@@ -1,0 +1,25 @@
+Read-only repeat observation at 2026-11-28T17:40:37Z
+
+5i3qr-tyaaa-aaaar-qcjaq-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Idle cycles burned per day: 2_373_540_409 Cycles
+Balance: 902_304_893_601 Cycles
+Module hash: 0x3b513f90ec66a0371df6a1cdf6ce28a56a30be2f86b955578ecc6e79bef75ccb
+
+mdoiw-yaaaa-aaaas-am2ca-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Idle cycles burned per day: 916_327_190 Cycles
+Balance: 359_906_299_668 Cycles
+Module hash: 0xa6376142e539f82da5cc7f84df9fdb1c0a2ce3aa080d2b8816fd18a68f46a67b
+
+mepoc-vyaaa-aaaas-am2cq-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Idle cycles burned per day: 929_741_777 Cycles
+Balance: 359_472_992_571 Cycles
+Module hash: 0xad33060a928977a8b86ce2452ad4876d0da309d6ea8930905ac49ab0b2366aa9
+
+mkndk-oiaaa-aaaas-am2dq-cai
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe
+Idle cycles burned per day: 929_741_777 Cycles
+Balance: 359_472_992_600 Cycles
+Module hash: 0xe62658ca0ecd41509f29a712432e830806a9d8d79dfe06383ee01c315afe8e96
