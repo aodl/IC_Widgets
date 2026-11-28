@@ -250,13 +250,13 @@ try {
   assert.ok((await page.locator('.review-checks').textContent()).includes('Checked the exact node identities'));
   assert.doesNotMatch(await page.locator('.review-checks').textContent(), /Previous Governance observation/);
   await activity.getByRole('button', { name: 'All subnets', exact: true }).click();
-  assert.equal(await activity.locator('.activity-count').count(), 98);
+  assert.equal(await activity.locator('.activity-subnet').count(), 98);
   await page.locator('.review-header').getByRole('link', { name: '#990001', exact: true }).waitFor();
   await activity.screenshot({ path: resolve(output, 'recorded-burst-navigator.png') });
   failDiscovery = true;
   await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).click();
-  await activity.getByText(/Showing the previous observation/).waitFor({ timeout: 90000 });
-  assert.equal(await activity.locator('.activity-count').count(), 98);
+  await activity.getByText(/Discovery failed.*Showing the previous observation/).waitFor({ timeout: 90000 });
+  assert.equal(await activity.locator('.activity-subnet').count(), 98);
   await page.locator('.review-header').getByRole('link', { name: '#990001', exact: true }).waitFor();
   failDiscovery = false;
   await activity.getByRole('button', { name: 'Retry discovery', exact: true }).click();
