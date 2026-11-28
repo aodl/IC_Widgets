@@ -204,6 +204,12 @@ impl FrontendRehearsal {
             assert_eq!(refusal.status_code, 403, "{host}");
             assert!(refusal.body.is_empty());
         }
+        // Allow the management canister's install-code instruction debit to
+        // replenish before trying a second upgrade of the embedded frontend.
+        pic.advance_time(Duration::from_secs(600));
+        for _ in 0..16 {
+            pic.tick();
+        }
         pic.upgrade_canister(
             self.id,
             self.old_wasm.clone(),
