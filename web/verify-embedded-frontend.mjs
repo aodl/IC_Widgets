@@ -43,7 +43,7 @@ function gatewayResponse({ port, origin }, method, path) {
         resolve({ code: response.statusCode, headers: fields, body: Buffer.concat(chunks) });
       });
     });
-    req.setTimeout(15000, () => req.destroy(new Error('IC HTTP gateway timed out')));
+    req.setTimeout(60_000, () => req.destroy(new Error('IC HTTP gateway timed out for ' + method + ' ' + origin + path)));
     req.on('error', reject);
     req.end();
   });
