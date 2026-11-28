@@ -231,7 +231,9 @@ try {
   failDiscovery = true;
   const refreshChecks = page.getByRole('button', { name: 'Refresh review checks', exact: true });
   await refreshChecks.click();
-  await page.locator('.review-checks').getByText(/Previous Governance observation.*Refresh failed.*4 references found/).waitFor();
+  const checks = page.locator('.review-checks');
+  await checks.getByText(/Previous Governance observation.*Refresh failed.*4 references found/s).waitFor({ timeout: 90000 })
+    .catch(async error => { throw new Error('Individual refresh · ' + await checks.innerText(), { cause: error }); });
   failDiscovery = false;
   await refreshChecks.click();
   await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
