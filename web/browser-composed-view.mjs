@@ -283,7 +283,7 @@ try {
   if (await viewSettings.isVisible()) await viewSettings.click();
   await page.getByRole('textbox', { name: 'New view name' }).fill('Subnet proposal review');
   await page.getByRole('button', { name: 'Create view', exact: true }).click();
-  for (const definition of ['inspector', 'map', 'performance']) await page.locator('#current > section:not([hidden])').getByLabel('Add widget').selectOption(definition);
+  await page.locator('#current > section:not([hidden])').getByLabel('Layout').selectOption('three-column');
   const cold = now();
   await page.locator('#current > section:not([hidden])').getByLabel('Add widget').selectOption('activity');
   await activity.getByText('Checking Governance proposals and resolving affected subnets against the Registry.').waitFor();
@@ -291,8 +291,9 @@ try {
   await page.screenshot({ path: resolve(directory, 'activity-cold-arrival.png') });
   await activity.getByText(/1 distinct observed Membership proposal/).waitFor();
   timings.coldDiscoveryMs = measure(cold);
-  await activityWidget.getByText('Widget settings', { exact: true }).click();
-  await activityWidget.getByRole('button', { name: 'Move earlier' }).click();
+  for (const definition of ['inspector', 'map', 'performance']) {
+    await page.locator('#current > section:not([hidden])').getByLabel('Add widget').selectOption(definition);
+  }
   async function connect(title, port, source) {
     const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
     await card.getByText('Widget settings', { exact: true }).click();
@@ -301,7 +302,6 @@ try {
   await connect('Membership inspector', 'subject', 'Subnet Activity · subject');
   await connect('IC Node Map', 'scene', 'Membership inspector · scene');
   await connect('Performance', 'filter', 'Membership inspector · filter');
-  await page.locator('#current > section:not([hidden])').getByLabel('Layout').selectOption('two-column');
   await page.getByRole('button', { name: 'Save dashboard' }).click();
   await page.getByText('Dashboard saved in this browser.', { exact: true }).waitFor();
   await activity.getByText(/1 distinct observed Membership proposal/).waitFor();
@@ -339,10 +339,15 @@ try {
   await page.getByText('View settings', { exact: true }).click();
   await page.getByRole('textbox', { name: 'View name', exact: true }).fill('Daily queue');
   await page.getByRole('button', { name: 'Rename view' }).click();
-  await page.locator('#current > section:not([hidden])').getByLabel('Layout').selectOption('three-column');
-  await page.locator('article').filter({ hasText: 'IC Node Map' }).getByText('Widget settings').click();
-  await page.locator('article').filter({ hasText: 'IC Node Map' }).getByRole('button', { name: 'Move earlier' }).click();
-  await page.locator('article').filter({ hasText: 'IC Node Map' }).getByRole('button', { name: 'Move earlier' }).click();
+  const layout = page.locator('#current > section:not([hidden])').getByLabel('Layout');
+  await layout.selectOption('two-column');
+  await layout.selectOption('three-column');
+  const mapCard = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'IC Node Map', exact: true }) });
+  const inspectorCard = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Membership inspector', exact: true }) });
+  await mapCard.getByText('Widget settings').click();
+  await mapCard.getByRole('button', { name: 'Move earlier' }).click();
+  await inspectorCard.getByText('Widget settings').click();
+  await inspectorCard.getByRole('button', { name: 'Move earlier' }).click();
   await page.getByRole('button', { name: 'Save dashboard' }).click();
   await page.getByText('Dashboard saved in this browser.', { exact: true }).waitFor();
   await page.screenshot({ path: resolve(directory, 'dashboard-editing.png'), fullPage: true });
@@ -353,10 +358,13 @@ try {
   workflow.presentationEditCalls = calls.length - stable;
   assert.equal(await membershipStatus().count(), 1);
   assert.equal(await activity.getByText(/Selected #144954/).count(), 1);
-  workflow.activityCoverage = await activity.locator('details').first().innerText();
+  workflow.activityCoverage = await activity.locator('details').first().textContent();
+  await page.evaluate(() => scrollTo(0, 0));
+  await page.screenshot({ path: resolve(directory, 'activity-review-desktop.png') });
   const retryStart = calls.length;
   await performance.locator('#performance-form button').click();
   await performanceSettled();
+  console.log('Retained frames across presentation edits.');
   const retryCalls = calls.slice(retryStart);
   assert.deepEqual(retryCalls.map(call => call.method), ['node_performance_on_demand']);
   assert.equal(retryCalls[0].nodes.length, 41);
@@ -399,6 +407,7 @@ try {
   }
   await page.screenshot({ path: resolve(directory, 'review-export-editor.png'), fullPage: true });
   const download = page.waitForEvent('download');
+  console.log('Verified clipboard action:', workflow.clipboard);
   await inspector.getByRole('button', { name: 'Download review', exact: true }).click();
   const archive = resolve(directory, 'activity-review-144954.zip');
   await (await download).saveAs(archive);
@@ -433,6 +442,8 @@ try {
   await page.setViewportSize({ width: 900, height: 850 });
   await page.screenshot({ path: resolve(directory, 'review-tablet.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('navigation', { name: 'Jump to widget' }).getByRole('button', { name: 'Membership inspector' }).click();
+  await page.screenshot({ path: resolve(directory, 'dashboard-mobile.png') });
   await activityWidget.screenshot({ path: resolve(directory, 'activity-review-mobile.png') });
   await page.locator(activeFrame('IC Node Map')).evaluate(frame => frame.scrollIntoView({ block: 'center' }));
   await map.locator('.map-section').screenshot({ path: resolve(directory, 'activity-map-mobile.png') });
@@ -491,7 +502,7 @@ try {
     return JSON.parse(localStorage.getItem('network-nexus.dashboard.v1.' + id));
   });
   const savedView = guest.views.find(view => view.title === 'Daily queue');
-  assert.deepEqual(savedView.widgets.map(row => row.definition), ['map', 'inspector', 'performance']);
+  assert.deepEqual(savedView.widgets.map(row => row.definition), ['inspector', 'map', 'performance']);
   assert.equal(savedView.bindings.length, 2);
   assert.deepEqual(savedView.inputs, []);
   assert.deepEqual(denied, []);

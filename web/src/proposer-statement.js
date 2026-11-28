@@ -43,15 +43,27 @@ export function statements(rows) {
   }));
 }
 
+export function statementExcerpt(row) {
+  const text = row.text.trim();
+  const lines = text.split(/\r?\n/);
+  if (lines[0]?.replace(/^#+\s+/, '').trim() === row.title) lines.shift();
+  const cleaned = lines.join('\n').trim();
+  const marker = /^\s*(?:#{1,6}\s+)?\*{0,2}(?:motivation|reason|purpose)\*{0,2}(?:\s*:\s*(.*)|\s*)$/im.exec(cleaned);
+  const candidate = marker
+    ? [marker[1], cleaned.slice(marker.index + marker[0].length).trim()].filter(Boolean).join('\n').trim()
+    : cleaned;
+  const excerpt = candidate.split(/\n\s*\n|\n\s*#{1,6}\s+/)[0]?.trim() || cleaned;
+  return excerpt.length > 320 ? excerpt.slice(0, 310).replace(/\s+\S*$/, '') + '…' : excerpt;
+}
+
 export function proposerStatement(row) {
   const text = row.text.trim();
-  const original = el('details', el('summary', 'Read proposer’s full statement'),
-    styled('div', 'proposer-full', renderStatement(text)),
-    row.truncated ? el('p', 'This captured statement was truncated.') : null,
-    dashboardLink('proposal', row.id, 'Open original proposal on the IC Dashboard'));
-  const cleaned = text.replace(/^\s*#{1,6}\s+(?:summary|motivation|reason|proposal)\s*\r?\n/i, '');
-  const short = cleaned.length <= 560 ? cleaned : cleaned.slice(0, 550).replace(/\s+\S*$/, '') + '…';
+  const excerpt = statementExcerpt(row);
   return styled('section', 'proposer-statement',
-    el('h3', 'Proposer’s stated purpose'), short ? renderStatement(short) : el('p', 'No proposer statement was captured.'),
-    cleaned.length > 560 || row.truncated ? original : el('p', dashboardLink('proposal', row.id, 'Open original proposal on the IC Dashboard')));
+    el('h3', 'Proposer’s stated purpose'), excerpt ? renderStatement(excerpt) : el('p', 'No proposer statement was captured.'),
+    (excerpt !== text || row.truncated) ? el('details', el('summary', 'Read proposer’s full statement'),
+      styled('div', 'proposer-full', renderStatement(text)),
+      row.truncated ? el('p', 'This captured statement was truncated.') : null,
+      dashboardLink('proposal', row.id, 'Open original proposal on the IC Dashboard'))
+      : el('p', dashboardLink('proposal', row.id, 'Open original proposal on the IC Dashboard')));
 }

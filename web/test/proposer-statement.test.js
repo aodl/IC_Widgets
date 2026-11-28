@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { renderStatement } from '../src/proposer-statement.js';
+import { renderStatement, statementExcerpt } from '../src/proposer-statement.js';
 
 test('proposer statements support headings and lists without creating active content or resource URLs', () => {
   class Element {
@@ -14,4 +14,9 @@ test('proposer statements support headings and lists without creating active con
   const tags = value => value instanceof Element ? [value.tag, ...value.children.flatMap(tags)] : [];
   assert.deepEqual(blocks.flatMap(tags), ['h4', 'p', 'strong', 'ul', 'li', 'code', 'li', 'li', 'li']);
   assert.match(JSON.stringify(blocks), /<script>alert\(1\)<\/script>/);
+});
+
+test('the summary leads with the proposer’s stated reason and leaves technical appendices in full text', () => {
+  assert.equal(statementExcerpt({ title: 'Replace a node', text: '# Replace a node\n\nMotivation: Decommission a site.\n\n## Comparison\nAppendix' }),
+    'Decommission a site.');
 });

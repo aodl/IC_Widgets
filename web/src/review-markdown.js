@@ -3,6 +3,7 @@ import { dashboardUrl } from './dashboard.js';
 import { calculationNote, comparisonCaption, criteriaNote, distanceHelp, distanceTitle, distributionTables, geographyNote,
   governanceText, nodeFields, nodeHeaders, replayLabel, replayRegistryText, roles } from './detail-model.js';
 import { evidenceReceipt, receiptHeaders } from './review-checks.js';
+import { statementExcerpt } from './proposer-statement.js';
 import { mapCoverage, mapLocations, siteLabel } from './review-map.js';
 import { hex, number, option, principal, time } from './view.js';
 
@@ -75,7 +76,8 @@ export function reviewMarkdown(model, { vote = '', summary = '', attribution = '
     ...(model.proposalText ?? []).flatMap(row => [
       '## Proposer’s stated purpose · #' + row.id,
       row.title && escape(row.title),
-      row.text.trim().split(/\n\s*\n/).map(escape).join('\n\n'),
+      escape(statementExcerpt(row)),
+      '[Full proposer statement](' + dashboardUrl('proposal', row.id) + ')',
       row.truncated && 'The captured proposer statement was truncated.',
     ]),
     '## Summary', escape(model.summary), escape(model.membership), escape(model.notes[0] ?? ''), list(model.evidenceNotes ?? []),

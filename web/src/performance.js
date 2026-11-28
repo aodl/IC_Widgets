@@ -74,7 +74,8 @@ export function mountPerformance(call, { connected = false } = {}) {
   }
 
   function display(data, filter) {
-    status.textContent = 'Err' in data.outcome ? liveError(data.outcome.Err) : '';
+    status.textContent = 'Err' in data.outcome ? ('Source' in data.outcome.Err
+      ? 'Blockmaking samples are unavailable for this subnet and period. See source receipts.' : liveError(data.outcome.Err)) : '';
     if ('Ok' in data.outcome) renderPerformance(data.outcome.Ok, filter, output);
     output.append(sourceReceipts(data));
   }
