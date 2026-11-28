@@ -1,0 +1,27 @@
+[
+  {
+    "name": "nx_host",
+    "canisterId": "5i3qr-tyaaa-aaaar-qcjaq-cai",
+    "certifiedSubnet": "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae"
+  },
+  {
+    "name": "nx_activity",
+    "canisterId": "mdoiw-yaaaa-aaaas-am2ca-cai",
+    "certifiedSubnet": "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe"
+  },
+  {
+    "name": "nx_inspector",
+    "canisterId": "mepoc-vyaaa-aaaas-am2cq-cai",
+    "certifiedSubnet": "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe"
+  },
+  {
+    "name": "nx_map",
+    "canisterId": "mnmf6-dqaaa-aaaas-am2da-cai",
+    "certifiedSubnet": "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe"
+  },
+  {
+    "name": "nx_performance",
+    "canisterId": "mkndk-oiaaa-aaaas-am2dq-cai",
+    "certifiedSubnet": "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe"
+  }
+]

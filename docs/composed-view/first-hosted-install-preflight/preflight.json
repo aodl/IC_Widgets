@@ -1,0 +1,62 @@
+[
+  {
+    "name": "nx_host",
+    "id": "5i3qr-tyaaa-aaaar-qcjaq-cai",
+    "balance": 149728536936,
+    "emptyIdlePerDay": 2260530203,
+    "emptyFreezingReserve": 67815906090,
+    "prepayment": 784628461538,
+    "minimumBalance": 852444367628,
+    "minimumShortfall": 702715830692,
+    "packageSha256": "3b513f90ec66a0371df6a1cdf6ce28a56a30be2f86b955578ecc6e79bef75ccb",
+    "gzipBytes": 445779
+  },
+  {
+    "name": "nx_activity",
+    "id": "mdoiw-yaaaa-aaaas-am2ca-cai",
+    "balance": 149896535326,
+    "emptyIdlePerDay": 864320372,
+    "emptyFreezingReserve": 25929611160,
+    "prepayment": 300005000000,
+    "minimumBalance": 325934611160,
+    "minimumShortfall": 176038075834,
+    "packageSha256": "a6376142e539f82da5cc7f84df9fdb1c0a2ce3aa080d2b8816fd18a68f46a67b",
+    "gzipBytes": 527968
+  },
+  {
+    "name": "nx_inspector",
+    "id": "mepoc-vyaaa-aaaas-am2cq-cai",
+    "balance": 149896635363,
+    "emptyIdlePerDay": 864320372,
+    "emptyFreezingReserve": 25929611160,
+    "prepayment": 300005000000,
+    "minimumBalance": 325934611160,
+    "minimumShortfall": 176037975797,
+    "packageSha256": "ad33060a928977a8b86ce2452ad4876d0da309d6ea8930905ac49ab0b2366aa9",
+    "gzipBytes": 725361
+  },
+  {
+    "name": "nx_map",
+    "id": "mnmf6-dqaaa-aaaas-am2da-cai",
+    "balance": 149896735400,
+    "emptyIdlePerDay": 864320372,
+    "emptyFreezingReserve": 25929611160,
+    "prepayment": 300005000000,
+    "minimumBalance": 325934611160,
+    "minimumShortfall": 176037875760,
+    "packageSha256": "be49747fbd8a16a3c1bd7cb30c5cb3c1671987b1c5e73da7512c9b19bfac92d4",
+    "gzipBytes": 623532
+  },
+  {
+    "name": "nx_performance",
+    "id": "mkndk-oiaaa-aaaas-am2dq-cai",
+    "balance": 149896855445,
+    "emptyIdlePerDay": 864320372,
+    "emptyFreezingReserve": 25929611160,
+    "prepayment": 300005000000,
+    "minimumBalance": 325934611160,
+    "minimumShortfall": 176037755715,
+    "packageSha256": "e62658ca0ecd41509f29a712432e830806a9d8d79dfe06383ee01c315afe8e96",
+    "gzipBytes": 725361
+  }
+]
