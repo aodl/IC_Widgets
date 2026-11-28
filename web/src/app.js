@@ -229,7 +229,7 @@ function startReview(ids, discovered, preferredSubnet, hint) {
   current?.dispose();
   currentMap?.dispose();
   current = undefined;
-  const thisRequest = request = { ids, discovered, segment: Date.now(), elapsed: 0, stopped: false };
+  const thisRequest = request = { ids, preferredSubnet, discovered, segment: Date.now(), elapsed: 0, stopped: false };
   performance.scope(undefined);
   performance.visible(false);
   const map = currentMap = connectedReview ? undefined : nodeMap();
@@ -538,6 +538,8 @@ if (!widget && !bundledCase && !FIXTURE_REPLAY && !location.pathname.startsWith(
       changeView('proposal', false);
       search.elements.first.value = String(id);
       search.elements.second.value = '';
+      if (!request?.stopped && request?.ids.length === 1 && request.ids[0] === id
+          && request.preferredSubnet === subnet && current) return;
       startReview([id], observation, subnet);
     },
     inspectSubnet(subnet) {

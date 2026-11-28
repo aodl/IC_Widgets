@@ -54,7 +54,7 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, r
   let generation = 0;
 
   function choose(row, subnet) {
-    if (selected?.id === row.id && selected.subnet === subnet) return;
+    if (read && selected?.id === row.id && selected.subnet === subnet) return;
     selected = { id: row.id, subnet };
     render();
     open(row.id, subnet, observation, row);

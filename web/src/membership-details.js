@@ -143,9 +143,10 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const tools = styled('div', 'actions review-tools');
   const header = styled('section', 'review-header',
     el('h2', proposalHeading(proposals.map(row => row.id))),
-    contextLine, tools, verification, controls, summary, purpose, limit, performance.filterControl);
+    contextLine);
+  const overview = styled('section', 'review-overview', verification, controls, summary, purpose, limit, performance.filterControl);
   const grid = styled('div', 'review-grid', styled('div', 'map-card', mapHost, nodes), topology);
-  const section = styled('div', 'workspace', header, inspector, checks, grid, pane);
+  const section = styled('div', 'workspace', header, tools, overview, inspector, checks, grid, pane);
   const session = createReviewSession({ live, contexts, active, call, progress, updated: render });
   const exportReview = action('Generate review', () => {
     if (exportReview.disabled || !active()) return;

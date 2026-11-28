@@ -21,3 +21,4 @@
 .markdown-fields { margin: .6rem 0; }
 .markdown-fields textarea { width: 100%; }
 .voting-observation { display: block; }
+.embed-inspector .inspector-heading h3 { scroll-margin-block-start: 3.2rem; }
