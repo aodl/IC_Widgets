@@ -27,6 +27,8 @@ struct Replay {
     proposals: BTreeMap<u64, Vec<u8>>,
     fault: Option<String>,
     activity: Vec<historical::ActivityFixture>,
+    archived: bool,
+    untargeted_activity_probe: bool,
     failure_active: bool,
 }
 
@@ -53,6 +55,54 @@ pub fn governance(id: u64) -> bool {
 pub fn activity(request: &ListRequest) -> Option<ListResponse> {
     REPLAY.with_borrow(|replay| {
         let replay = replay.as_ref()?;
+        if replay.archived {
+            let original: ListResponse = candid::decode_one(include_bytes!(
+                "../../../docs/subnet-activity/governance-2026-11-27/governance-page.didbin"
+            ))
+            .unwrap();
+            let cursor = request.before_proposal.map_or(u64::MAX, |id| id.id);
+            let proposal_info: Vec<_> = original
+                .proposal_info
+                .into_iter()
+                .filter(|row| row.id.is_some_and(|id| id.id < cursor))
+                .filter(|row| {
+                    request.include_status.is_empty()
+                        || request.include_status.contains(&row.status)
+                })
+                .filter(|row| {
+                    request.include_reward_status.is_empty()
+                        || row
+                            .reward_status
+                            .is_some_and(|status| request.include_reward_status.contains(&status))
+                })
+                .take(request.limit as usize)
+                .collect();
+            assert!(
+                !proposal_info.is_empty(),
+                "Original Governance discovery ended after one captured page"
+            );
+            return Some(ListResponse { proposal_info });
+        }
+        if replay.untargeted_activity_probe {
+            let id = 132_102;
+            let info: Option<nexus_ic_sources::governance::ProposalInfo> =
+                candid::decode_one(&replay.proposals[&id]).unwrap();
+            let proposal_info = info
+                .into_iter()
+                .filter(|row| {
+                    request.before_proposal.is_none_or(|before| id < before.id)
+                        && (request.include_status.is_empty()
+                            || request.include_status.contains(&row.status))
+                        && (request.include_reward_status.is_empty()
+                            || request.include_reward_status.contains(&1))
+                })
+                .map(|mut row| {
+                    row.reward_status = Some(1);
+                    row
+                })
+                .collect();
+            return Some(ListResponse { proposal_info });
+        }
         assert!(
             !replay.activity.is_empty(),
             "No cross-proposal discovery captured for this case"
@@ -64,6 +114,13 @@ pub fn activity(request: &ListRequest) -> Option<ListResponse> {
             .filter(|row| historical::decimal(&row.id) < before)
             .filter(|row| {
                 request.include_status.is_empty() || request.include_status.contains(&row.status)
+            })
+            .filter(|row| {
+                request.include_reward_status.is_empty()
+                    || row
+                        .info(false)
+                        .reward_status
+                        .is_some_and(|value| request.include_reward_status.contains(&value))
             })
             .collect();
         rows.sort_by_key(|row| std::cmp::Reverse(historical::decimal(&row.id)));
@@ -85,6 +142,7 @@ fn load_review_case(id: String) {
         .find(|case| case.id == id)
         .expect("unknown development replay");
     assert_eq!(case.proposal_ids.len(), case.function_ids.len());
+    let archived = matches!(case.registry, historical::Baseline::ActivityArchive);
     let recorded = case.lifecycle == "recorded-open";
     let mut proposals: BTreeMap<_, _> = case
         .proposal_ids
@@ -92,9 +150,10 @@ fn load_review_case(id: String) {
         .zip(case.function_ids)
         .map(|(id, function)| {
             let bytes = if recorded {
-                assert_eq!(id, "144954");
                 assert_eq!(function, 31);
-                include_bytes!("../data/144954/governance.didbin").to_vec()
+                historical::activity_capture(id)
+                    .unwrap_or(include_bytes!("../data/144954/governance.didbin"))
+                    .to_vec()
             } else if let Some(row) = case.activity.iter().find(|row| row.id == *id) {
                 assert_eq!(row.function, Some(function));
                 encode_one(Some(row.info(false))).unwrap()
@@ -106,6 +165,14 @@ fn load_review_case(id: String) {
         })
         .collect();
     let requested = historical::requested(&proposals);
+    if archived {
+        for id in ["145077", "145076", "145075", "145071", "145063"] {
+            proposals.insert(
+                historical::decimal(id),
+                historical::activity_capture(id).unwrap().to_vec(),
+            );
+        }
+    }
     for row in &case.activity {
         proposals
             .entry(historical::decimal(&row.id))
@@ -116,6 +183,34 @@ fn load_review_case(id: String) {
         include_bytes!("../data/143190/governance.didbin").to_vec(),
     );
     match case.registry {
+        historical::Baseline::ActivityArchive => {
+            let archive: serde_json::Value = serde_json::from_str(include_str!(
+                "../../../docs/subnet-activity/governance-2026-11-27/pinned-registry-values.json"
+            ))
+            .unwrap();
+            let replies = archive["records"]
+                .as_object()
+                .unwrap()
+                .iter()
+                .map(|(key, value)| {
+                    let wire = value["replyHex"]
+                        .as_str()
+                        .unwrap()
+                        .as_bytes()
+                        .chunks_exact(2)
+                        .map(|digit| {
+                            u8::from_str_radix(std::str::from_utf8(digit).unwrap(), 16).unwrap()
+                        })
+                        .collect();
+                    (key.as_bytes().to_vec(), wire)
+                })
+                .collect();
+            VOTING_REGISTRY.set(Some(VotingRegistry {
+                version: archive["requestedVersion"].as_u64().unwrap(),
+                replies,
+                chunks: BTreeMap::new(),
+            }));
+        }
         historical::Baseline::CapturedWithOverlay => match case.fault.as_deref() {
             Some("missing-gps") => crate::set_voting_review_fixture(1),
             Some("location-reject") => crate::set_voting_review_fixture(2),
@@ -144,6 +239,8 @@ fn load_review_case(id: String) {
         proposals,
         fault: case.fault,
         activity: case.activity,
+        archived,
+        untargeted_activity_probe: id == "untargeted-two-subnets",
         failure_active: false,
     }));
 }

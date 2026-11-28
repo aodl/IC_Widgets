@@ -60,6 +60,8 @@ impl ActivityFixture {
                 id: decimal(&self.id),
             }),
             status: self.status,
+            reward_status: Some(if self.status == 1 { 1 } else { 2 }),
+            deadline_timestamp_seconds: Some(1796042112),
             topic: self.topic,
             proposal_timestamp_seconds: 1795696512,
             executed_timestamp_seconds: if self.status == 4 { 1795696513 } else { 0 },
@@ -78,6 +80,7 @@ impl ActivityFixture {
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum Baseline {
     CapturedWithOverlay,
+    ActivityArchive,
     Synthetic {
         version: String,
         mutation_version: String,
@@ -112,6 +115,16 @@ pub fn indexed(id: &str) -> Option<&'static [u8]> {
         "135053", "135310", "139792", "140279", "140280", "140988", "142743", "142931", "143100",
         "144681", "144850", "144865", "144909", "144939", "144940", "144954"
     )
+}
+
+pub fn activity_capture(id: &str) -> Option<&'static [u8]> {
+    macro_rules! archived {
+        ($($id:literal),+) => { match id {
+            $($id => Some(include_bytes!(concat!("../../../docs/subnet-activity/governance-2026-11-27/", $id, ".governance.didbin"))),)+
+            _ => None,
+        } };
+    }
+    archived!("145077", "145076", "145075", "145071", "145063")
 }
 
 pub fn decimal(value: &str) -> u64 {
@@ -219,6 +232,8 @@ pub fn proposal(id: &str, function: i32, lifecycle: &str) -> ProposalInfo {
     };
     ProposalInfo {
         id: Some(ProposalId { id }),
+        reward_status: None,
+        deadline_timestamp_seconds: None,
         status,
         topic,
         proposal_timestamp_seconds: timestamp("proposal_timestamp_seconds"),

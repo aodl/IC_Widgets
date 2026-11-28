@@ -30,7 +30,7 @@ export function showTestCatalogue(cases, row) {
   document.querySelector('#view-switch').hidden = true;
   const card = styled('section', 'card test-catalogue');
   if (row) {
-    card.append(styled('p', 'local-note', 'Bundled test case · Fixture evidence'), el('h1', row.name + ' · ' + caseIds(row)), el('p', row.purpose), ...context(row));
+    card.append(styled('p', 'local-note', 'Bundled test case · Fixture evidence'), el('h1', row.name + ' · ' + caseIds(row)), el('p', row.purpose), ...context(row).flat().filter(Boolean));
     if (row.limits) card.append(styled('p', 'muted', row.limits));
     const dropdown = el('select', cases.filter(item => item.asset).map(item =>
       Object.assign(el('option', item.name + ' · ' + caseIds(item)), { value: item.id })));

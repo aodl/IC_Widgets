@@ -59,10 +59,7 @@
       <p>Blockmaking counter coverage describes the observed samples. Uptime and health remain unverified.</p>
       <form id="performance-form">
         <label>Performance scope <select id="performance-mode"><option value="independent">Independent subnet</option><option value="follow">Follow selected membership</option></select></label>
-        <label id="performance-presets" hidden>Node filter <select id="performance-preset">
-          <option value="selected">Selected members</option><option value="incoming">Incoming</option>
-          <option value="outgoing">Outgoing</option><option value="affected">All affected nodes, including intermediate steps</option>
-        </select></label>
+        <label id="performance-presets" hidden>Node filter <select id="performance-preset"></select></label>
         <label>Subnet principal <input name="subnet" required></label>
         <label>Lookback days <input name="days" type="number" min="1" max="60" value="7" required></label>
         <button class="primary">Read blockmaking samples</button>

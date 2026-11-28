@@ -1,0 +1,25 @@
+first/frontend.did: OK
+first/frontend.wasm: OK
+first/frontend.wasm.gz: OK
+first/reviewer.did: OK
+first/reviewer.wasm: OK
+first/reviewer.wasm.gz: OK
+repeat/frontend.did: OK
+repeat/frontend.wasm: OK
+repeat/frontend.wasm.gz: OK
+repeat/reviewer.did: OK
+repeat/reviewer.wasm: OK
+repeat/reviewer.wasm.gz: OK
+Recorded baseline package verification
+.local/accept-paired/deployed-frontend.wasm.gz: OK
+docs/release-candidates/membership-b8014c8/reviewer.wasm.gz: OK
+Frontend and reviewer Candid are compatible with the recorded production consumers.
+
+running 1 test
+2026-11-28T10:32:56.034482Z  INFO pocket_ic_server: The PocketIC server is listening on port 35619
+Frontend upgraded second and rolled back first. Host refusal and all three prior asset bodies verified.
+Restored exact prior reviewer. Controller settings, stable pages, checkpoint and retained evidence matched.
+Exact old and new compressed artifacts verified. Cursor 4270, target 65958, unpublished. All 9 fixture observations (including head 1 and last Registry observation 9), a 1575-byte Governance blob, full controller settings and 1793 stable pages preserved. Collector remained disabled and without a lease across 24h.
+test exact_deployed_module_preserves_paused_checkpoint_on_upgrade ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.45s

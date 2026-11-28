@@ -2407,6 +2407,201 @@
           }
         }
       ]
+    },
+    {
+      "id": "nns-145077-recorded-open",
+      "name": "Recorded subnet replacement #145077",
+      "proposal_ids": [
+        "145077"
+      ],
+      "function_ids": [
+        31
+      ],
+      "lifecycle": "recorded-open",
+      "menu": true,
+      "fault": null,
+      "support": "local-resolver",
+      "tags": [
+        "subnet",
+        "recorded-open"
+      ],
+      "purpose": "Review the recorded Open replacement using the archived pinned Registry.",
+      "limits": "The original Governance discovery captured one page. Cross-proposal coverage is incomplete.",
+      "provenance": "Recorded Open Governance reply and pinned Registry 66,264",
+      "replay_clock_utc": "2026-11-27T20:50:51Z",
+      "replay_clock_unix_seconds": "1795812651",
+      "action_evidence": [
+        {
+          "proposal_id": "145077",
+          "kind": "recorded-governance-reply",
+          "observation_utc": "2026-11-27T20:50:51Z",
+          "activity_capture_sha256": "06b3a2f48273ccc3c113b89a8a913ab7462268646f1266a25ccd08b7fdccc410"
+        }
+      ],
+      "registry": {
+        "kind": "activity-archive",
+        "version": "66264",
+        "coverage": "98 pinned subnet rosters and complete Membership metadata",
+        "chunks": [],
+        "from_utc": "2026-11-27T20:50:52Z",
+        "to_utc": "2026-11-27T22:03:48.852Z"
+      }
+    },
+    {
+      "id": "nns-145076-recorded-open",
+      "name": "Recorded subnet replacement #145076",
+      "proposal_ids": [
+        "145076"
+      ],
+      "function_ids": [
+        31
+      ],
+      "lifecycle": "recorded-open",
+      "menu": true,
+      "fault": null,
+      "support": "local-resolver",
+      "tags": [
+        "subnet",
+        "recorded-open"
+      ],
+      "purpose": "Review the recorded Open replacement using the archived pinned Registry.",
+      "limits": "The original Governance discovery captured one page. Cross-proposal coverage is incomplete.",
+      "provenance": "Recorded Open Governance reply and pinned Registry 66,264",
+      "replay_clock_utc": "2026-11-27T20:50:51Z",
+      "replay_clock_unix_seconds": "1795812651",
+      "action_evidence": [
+        {
+          "proposal_id": "145076",
+          "kind": "recorded-governance-reply",
+          "observation_utc": "2026-11-27T20:50:51Z",
+          "activity_capture_sha256": "4b308a6bf827b1924d250807117f9e6135fd19fe14491855a50654a65b813325"
+        }
+      ],
+      "registry": {
+        "kind": "activity-archive",
+        "version": "66264",
+        "coverage": "98 pinned subnet rosters and complete Membership metadata",
+        "chunks": [],
+        "from_utc": "2026-11-27T20:50:52Z",
+        "to_utc": "2026-11-27T22:03:48.852Z"
+      }
+    },
+    {
+      "id": "nns-145075-recorded-open",
+      "name": "Recorded subnet replacement #145075",
+      "proposal_ids": [
+        "145075"
+      ],
+      "function_ids": [
+        31
+      ],
+      "lifecycle": "recorded-open",
+      "menu": true,
+      "fault": null,
+      "support": "local-resolver",
+      "tags": [
+        "subnet",
+        "recorded-open"
+      ],
+      "purpose": "Review the recorded Open replacement using the archived pinned Registry.",
+      "limits": "The original Governance discovery captured one page. Cross-proposal coverage is incomplete.",
+      "provenance": "Recorded Open Governance reply and pinned Registry 66,264",
+      "replay_clock_utc": "2026-11-27T20:50:51Z",
+      "replay_clock_unix_seconds": "1795812651",
+      "action_evidence": [
+        {
+          "proposal_id": "145075",
+          "kind": "recorded-governance-reply",
+          "observation_utc": "2026-11-27T20:50:51Z",
+          "activity_capture_sha256": "cf89c4d3c08b3dcb54b8e4c033292c62b3674fe4090edbddc037f4c987c5f476"
+        }
+      ],
+      "registry": {
+        "kind": "activity-archive",
+        "version": "66264",
+        "coverage": "98 pinned subnet rosters and complete Membership metadata",
+        "chunks": [],
+        "from_utc": "2026-11-27T20:50:52Z",
+        "to_utc": "2026-11-27T22:03:48.852Z"
+      }
+    },
+    {
+      "id": "nns-145071-recorded-open",
+      "name": "Recorded subnet replacement #145071",
+      "proposal_ids": [
+        "145071"
+      ],
+      "function_ids": [
+        31
+      ],
+      "lifecycle": "recorded-open",
+      "menu": true,
+      "fault": null,
+      "support": "local-resolver",
+      "tags": [
+        "subnet",
+        "recorded-open"
+      ],
+      "purpose": "Review the recorded Open replacement using the archived pinned Registry.",
+      "limits": "The original Governance discovery captured one page. Cross-proposal coverage is incomplete.",
+      "provenance": "Recorded Open Governance reply and pinned Registry 66,264",
+      "replay_clock_utc": "2026-11-27T20:50:51Z",
+      "replay_clock_unix_seconds": "1795812651",
+      "action_evidence": [
+        {
+          "proposal_id": "145071",
+          "kind": "recorded-governance-reply",
+          "observation_utc": "2026-11-27T20:50:51Z",
+          "activity_capture_sha256": "67cb72512da9519998010cfb21a7a399a6017539b92f7f948227f4d8463251dd"
+        }
+      ],
+      "registry": {
+        "kind": "activity-archive",
+        "version": "66264",
+        "coverage": "98 pinned subnet rosters and complete Membership metadata",
+        "chunks": [],
+        "from_utc": "2026-11-27T20:50:52Z",
+        "to_utc": "2026-11-27T22:03:48.852Z"
+      }
+    },
+    {
+      "id": "nns-145063-recorded-open",
+      "name": "Recorded subnet replacement #145063",
+      "proposal_ids": [
+        "145063"
+      ],
+      "function_ids": [
+        31
+      ],
+      "lifecycle": "recorded-open",
+      "menu": true,
+      "fault": null,
+      "support": "local-resolver",
+      "tags": [
+        "subnet",
+        "recorded-open"
+      ],
+      "purpose": "Review the recorded Open replacement using the archived pinned Registry.",
+      "limits": "The original Governance discovery captured one page. Cross-proposal coverage is incomplete.",
+      "provenance": "Recorded Open Governance reply and pinned Registry 66,264",
+      "replay_clock_utc": "2026-11-27T20:50:51Z",
+      "replay_clock_unix_seconds": "1795812651",
+      "action_evidence": [
+        {
+          "proposal_id": "145063",
+          "kind": "recorded-governance-reply",
+          "observation_utc": "2026-11-27T20:50:51Z",
+          "activity_capture_sha256": "421686a474161af7df795d888bf2ff6c0bcf374f294da9646e152611da3fad9c"
+        }
+      ],
+      "registry": {
+        "kind": "activity-archive",
+        "version": "66264",
+        "coverage": "98 pinned subnet rosters and complete Membership metadata",
+        "chunks": [],
+        "from_utc": "2026-11-27T20:50:52Z",
+        "to_utc": "2026-11-27T22:03:48.852Z"
+      }
     }
   ]
 }

@@ -1,0 +1,60 @@
+first/frontend.did: OK
+first/frontend.wasm: OK
+first/frontend.wasm.gz: OK
+first/reviewer.did: OK
+first/reviewer.wasm: OK
+first/reviewer.wasm.gz: OK
+repeat/frontend.did: OK
+repeat/frontend.wasm: OK
+repeat/frontend.wasm.gz: OK
+repeat/reviewer.did: OK
+repeat/reviewer.wasm: OK
+repeat/reviewer.wasm.gz: OK
+Running dfx start for version 0.31.0
+Using project-specific network 'local' defined in /home/codexdev/src/IC_Widgets_Activity/.local/review-fixtures.exact.G4ebI0LQ/dfx.json
+Replica API running in the background on 127.0.0.1:4977
+Created a wallet canister on the "local" network for user "codex_local" with ID "uqqxf-5h777-77774-qaaaa-cai"
+frontend canister created with canister id: uxrrr-q7777-77774-qaaaq-cai
+reviewer canister created with canister id: u6s2n-gx777-77774-qaaba-cai
+Installed code for canister reviewer, with canister ID u6s2n-gx777-77774-qaaba-cai
+Installed code for canister frontend, with canister ID uxrrr-q7777-77774-qaaaq-cai
+Canister status call result for reviewer.
+Status: Running
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae uqqxf-5h777-77774-qaaaa-cai
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 23_408_882 Cycles
+Memory Size: 2_290_673 Bytes
+Balance: 2_984_045_267_921 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0xa9337f47cce5e294718598d0adf1d3aa33fd034f9b1a786b81d1b2f5709359d2
+Number of queries: 0
+Instructions spent in queries: 0
+Total query request payload size: 0 Bytes
+Total query response payload size: 0 Bytes
+Log visibility: controllers
+Canister status call result for frontend.
+Status: Running
+Controllers: amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae uqqxf-5h777-77774-qaaaa-cai
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 43_303_765 Cycles
+Memory Size: 4_237_484 Bytes
+Balance: 2_993_517_616_141 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0xf64a81cd9d00bf734d1f992f5976b6a3d0405924b75e7273f9c6fddb3388e2e3
+Number of queries: 0
+Instructions spent in queries: 0
+Total query request payload size: 0 Bytes
+Total query response payload size: 0 Bytes
+Log visibility: controllers
+Using project-specific network 'local' defined in /home/codexdev/src/IC_Widgets_Activity/.local/review-fixtures.exact.G4ebI0LQ/dfx.json
+All local network processes stopped

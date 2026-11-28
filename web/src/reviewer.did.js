@@ -326,7 +326,9 @@ export const idlFactory = ({ IDL }) => {
     'remaining' : IDL.Int32,
   });
   const SubnetTransition = IDL.Record({
+    'earlier_arrivals' : IDL.Opt(IDL.Vec(IDL.Principal)),
     'subnet' : IDL.Principal,
+    'cumulative_margin' : IDL.Opt(TransitionMargin),
     'margin' : IDL.Opt(TransitionMargin),
   });
   const MembershipPreconditions = IDL.Variant({
@@ -1218,8 +1220,10 @@ export const idlFactory = ({ IDL }) => {
     'RegistryRemoval' : IDL.Null,
     'Textual' : IDL.Null,
     'BoundaryVersionTarget' : IDL.Null,
+    'HostosVersionTarget' : IDL.Null,
     'Outgoing' : IDL.Null,
     'NewSubnetMember' : IDL.Null,
+    'RecoveryReplacement' : IDL.Null,
     'BoundaryRemoval' : IDL.Null,
     'Incoming' : IDL.Null,
   });
@@ -1229,6 +1233,13 @@ export const idlFactory = ({ IDL }) => {
     'other' : IDL.Nat64,
     'node' : IDL.Principal,
     'proposal' : IDL.Nat64,
+  });
+  const NodeProjection = IDL.Record({
+    'requested' : IDL.Vec(
+      IDL.Tuple(IDL.Nat64, IDL.Principal, NodeReferenceRole)
+    ),
+    'omitted_matches' : IDL.Nat32,
+    'matches' : IDL.Vec(ActivityMatch),
   });
   const ActivityCoverage = IDL.Record({
     'changed_lifecycle' : IDL.Nat32,
@@ -1249,22 +1260,39 @@ export const idlFactory = ({ IDL }) => {
   const ActivityLifecycle = IDL.Variant({
     'Open' : IDL.Null,
     'AdoptedPendingExecution' : IDL.Null,
+    'Other' : IDL.Null,
   });
   const ActivityProposal = IDL.Record({
     'id' : IDL.Nat64,
     'title' : IDL.Opt(IDL.Text),
     'topic' : IDL.Int32,
     'function' : IDL.Opt(IDL.Int32),
+    'decision' : IDL.Opt(IDL.Int32),
+    'executed_at' : IDL.Opt(IDL.Nat64),
+    'deadline' : IDL.Opt(IDL.Nat64),
     'target_subnet' : IDL.Opt(IDL.Principal),
+    'targets' : IDL.Opt(IDL.Vec(IDL.Principal)),
+    'unresolved' : IDL.Opt(IDL.Bool),
     'lifecycle' : ActivityLifecycle,
     'motion' : IDL.Bool,
+    'voting_open' : IDL.Opt(IDL.Bool),
     'observed_at' : IDL.Nat64,
   });
   const LiveSubnetActivity = IDL.Record({
+    'voting_pagination_complete' : IDL.Opt(IDL.Bool),
+    'subnets' : IDL.Opt(IDL.Vec(IDL.Principal)),
+    'node_projection' : IDL.Opt(NodeProjection),
+    'truncated_proposals' : IDL.Opt(IDL.Vec(IDL.Nat64)),
     'complete' : IDL.Bool,
+    'voting_issues' : IDL.Opt(IDL.Vec(IDL.Text)),
     'matches' : IDL.Vec(ActivityMatch),
+    'registry_memberships_checked' : IDL.Opt(IDL.Nat32),
     'coverage' : ActivityCoverage,
     'proposals' : IDL.Vec(ActivityProposal),
+    'registry_complete' : IDL.Opt(IDL.Bool),
+    'requested_instructions' : IDL.Opt(
+      IDL.Vec(IDL.Tuple(IDL.Nat64, IDL.Int32, IDL.Vec(IDL.Nat8)))
+    ),
   });
   const Result_42 = IDL.Variant({
     'Ok' : LiveSubnetActivity,
@@ -1444,7 +1472,16 @@ export const idlFactory = ({ IDL }) => {
         [Result_41],
         [],
       ),
-    'subnet_activity' : IDL.Func([IDL.Vec(IDL.Nat64)], [Result_43], []),
+    'subnet_activity' : IDL.Func(
+        [
+          IDL.Vec(IDL.Nat64),
+          IDL.Opt(
+            IDL.Vec(IDL.Tuple(IDL.Nat64, IDL.Principal, NodeReferenceRole))
+          ),
+        ],
+        [Result_43],
+        [],
+      ),
     'subnet_snapshot_on_demand' : IDL.Func([IDL.Principal], [Result_45], []),
   });
 };

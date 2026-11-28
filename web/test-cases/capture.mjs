@@ -85,7 +85,7 @@ for (const row of interactive.filter(row => !caseIds.length || caseIds.includes(
       row.id + ' settlement captured · ' + (session.section().consistency?.reason ?? statuses.join(', ')));
   }
   if (row.activity?.length) {
-    const check = await client.subnet_activity(row.proposal_ids.map(BigInt));
+    const check = await client.subnet_activity(row.proposal_ids.map(BigInt), []);
     assert.ok(check.Ok?.outcome.Ok, row.id + ' Governance discovery captured');
   }
   capture.cases[row.id] = { replies, pages };

@@ -33,6 +33,8 @@ pub struct TransitionMargin {
 pub struct SubnetTransition {
     pub subnet: Principal,
     pub margin: Option<TransitionMargin>,
+    pub cumulative_margin: Option<TransitionMargin>,
+    pub earlier_arrivals: Option<Vec<Principal>>,
 }
 
 #[derive(Debug, PartialEq, Eq, CandidType, Deserialize)]
@@ -59,8 +61,16 @@ fn duplicates(nodes: &[Principal]) -> Vec<Principal> {
 }
 
 pub fn transition_margin(before: &[Principal], proposed: &[Principal]) -> Option<TransitionMargin> {
-    let from: BTreeSet<_> = before.iter().collect();
-    let to: BTreeSet<_> = proposed.iter().collect();
+    margin_with_unsynchronized(before, proposed, &BTreeSet::new())
+}
+
+fn margin_with_unsynchronized(
+    before: &[Principal],
+    proposed: &[Principal],
+    earlier: &BTreeSet<Principal>,
+) -> Option<TransitionMargin> {
+    let from: BTreeSet<_> = before.iter().copied().collect();
+    let to: BTreeSet<_> = proposed.iter().copied().collect();
     if from.is_empty() || to.is_empty() || from.len() != before.len() || to.len() != proposed.len()
     {
         return None;
@@ -75,8 +85,18 @@ pub fn transition_margin(before: &[Principal], proposed: &[Principal]) -> Option
             remaining: fault_budget as i32 - modeled_unavailable as i32,
         }
     };
-    let before = side(from.len(), from.difference(&to).count());
-    let proposed = side(to.len(), to.difference(&from).count());
+    let before = side(
+        from.len(),
+        from.iter()
+            .filter(|node| !to.contains(node) || earlier.contains(node))
+            .count(),
+    );
+    let proposed = side(
+        to.len(),
+        to.iter()
+            .filter(|node| !from.contains(node) || earlier.contains(node))
+            .count(),
+    );
     let remaining = before.remaining.min(proposed.remaining);
     Some(TransitionMargin {
         before,
@@ -134,16 +154,45 @@ pub fn review_checks(
                             view.after_steps.get(index - 1).and_then(Option::as_ref)
                         };
                         let proposed = view.after_steps.get(index).and_then(Option::as_ref);
-                        let margin = if preconditions
-                            == MembershipPreconditions::EstablishedInCheckedScope
-                        {
-                            before.zip(proposed).and_then(|(before, proposed)| {
-                                transition_margin(&before.members, &proposed.members)
-                            })
-                        } else {
-                            None
-                        };
-                        SubnetTransition { subnet, margin }
+                        let (margin, cumulative_margin, earlier_arrivals) =
+                            if matches!(step.outcome, StepOutcome::Applied { .. }) {
+                                before.zip(proposed).map_or(
+                                    (None, None, None),
+                                    |(before, proposed)| {
+                                        let mut earlier = BTreeSet::new();
+                                        let mut previous: BTreeSet<_> =
+                                            view.baseline.members.iter().copied().collect();
+                                        for state in view.after_steps.iter().take(index).flatten() {
+                                            let now: BTreeSet<_> =
+                                                state.members.iter().copied().collect();
+                                            earlier.retain(|node| now.contains(node));
+                                            earlier.extend(now.difference(&previous).copied());
+                                            previous = now;
+                                        }
+                                        (
+                                            transition_margin(&before.members, &proposed.members),
+                                            (index > 0)
+                                                .then(|| {
+                                                    margin_with_unsynchronized(
+                                                        &before.members,
+                                                        &proposed.members,
+                                                        &earlier,
+                                                    )
+                                                })
+                                                .flatten(),
+                                            (index > 0).then(|| earlier.into_iter().collect()),
+                                        )
+                                    },
+                                )
+                            } else {
+                                (None, None, None)
+                            };
+                        SubnetTransition {
+                            subnet,
+                            margin,
+                            cumulative_margin,
+                            earlier_arrivals,
+                        }
                     })
                     .collect();
                 ReviewCheck {
@@ -181,6 +230,18 @@ mod tests {
             assert_eq!(margin.remaining, remaining);
             assert_eq!(margin.further_faults_to_exceed, further);
         }
+    }
+
+    #[test]
+    fn overlapping_steps_count_earlier_arrivals_once_even_when_departing() {
+        let before = nodes(0, 13);
+        let proposed = nodes(1, 14);
+        let earlier = BTreeSet::from([before[0], before[1]]);
+        let result = margin_with_unsynchronized(&before, &proposed, &earlier).unwrap();
+        assert_eq!(result.before.modeled_unavailable, 2);
+        assert_eq!(result.proposed.modeled_unavailable, 2);
+        assert_eq!(result.remaining, 2);
+        assert_eq!(transition_margin(&before, &proposed).unwrap().remaining, 3);
     }
 
     #[test]

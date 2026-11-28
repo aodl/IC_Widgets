@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { Cbor } from '@icp-sdk/core/agent';
+import { IDL } from '@icp-sdk/core/candid';
+import { idlFactory } from './src/reviewer.did.js';
 import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -18,7 +21,10 @@ try {
   const context = await browser.newContext({ viewport: { width: 1366, height: 900 }, serviceWorkers: 'block' });
   const allowed = new Set(gateway.observed.filter(row => row.method === 'GET' && row.status === 200).map(row => row.path));
   const rejected = [], errors = [], testData = [], reviewerRequests = [];
+  const performanceRequests = [];
+  const performanceArgs = idlFactory({ IDL }).fieldsAsObject().node_performance_on_demand.argTypes;
   let live = false;
+  let failDiscovery = false;
   await context.route('**/*', route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -31,6 +37,15 @@ try {
       (request.method() === 'POST' && protocol.test(url.pathname))
       || (request.method() === 'GET' && url.pathname === '/api/v2/status'))) {
       reviewerRequests.push(url.pathname);
+      const body = request.postDataBuffer();
+      const message = body && Cbor.decode(body)?.content;
+      if (message?.method_name === 'node_performance_on_demand') {
+        const [subnet, , nodes] = IDL.decode(performanceArgs, new Uint8Array(message.arg));
+        performanceRequests.push({ subnet: subnet.toText(), nodes: nodes[0]?.map(id => id.toText()) });
+      }
+      if (failDiscovery && message?.method_name === 'subnet_activity') {
+        return route.fulfill({ status: 403, body: 'Simulated discovery refresh rejection' });
+      }
       return route.continue();
     }
     rejected.push(request.url());
@@ -60,6 +75,14 @@ try {
     assert.equal(await page.locator('#search input[name=first]').inputValue(), item.proposalIds[0]);
     assert.equal(await page.getByRole('button', { name: 'Subnet overview', exact: true }).isVisible(), false);
     await page.getByRole('button', { name: 'Review', exact: true }).click();
+    const intro = await page.locator('.test-catalogue').innerText();
+    assert.doesNotMatch(intro, /\[object HTML|(?:^|\n)\s*null\s*(?:\n|$)/);
+    if (item.actionEvidence.some(entry => entry.kind === 'recorded-governance-reply' && entry.at)) {
+      for (const entry of item.actionEvidence.filter(row => row.kind === 'recorded-governance-reply' && row.at)) {
+        const clock = entry.at.replace('T', ' ').replace(/(?:Z|\+00:00)$/, ' UTC');
+        assert.ok(intro.includes('Original Governance observation #' + entry.id) && intro.includes(clock), intro);
+      }
+    }
     if (item.fault === 'slow-locations') await page.locator('#report-status').getByText(/Loading data centers/).waitFor();
     const expected = / (Executed|Rejected|Failed) /.test(item.lifecycleLabel) ? 'Proposal outcome recorded' : 'Data loading complete';
     const status = page.locator('#report-status');
@@ -97,7 +120,11 @@ try {
       const markdown = execFileSync('unzip', ['-p', zip, 'review.md'], { encoding: 'utf8' });
       assert.match(markdown, item.activity ? /Bundled test case · Synthetic scenario/ : /Bundled test case · Historical replay/);
       assert.match(markdown, /Fixture backend observed/);
-      assert.match(markdown, /Fixture capture time/);
+      assert.ok(markdown.includes('Membership and Registry source receipts') && markdown.includes('Observed at'));
+      for (const entry of item.actionEvidence.filter(row => row.kind === 'recorded-governance-reply' && row.at)) {
+        const original = new Date(entry.at).toISOString().replace('T', ' ').replace(/(?:\.000)?Z$/, ' UTC');
+        assert.ok(markdown.includes('Original Governance observation ' + original));
+      }
       if (item.id === 'review-checks-three-replacements') {
         assert.match(markdown, /1 additional fault tolerable · 2 would exceed/);
         assert.match(markdown, /Governance check complete.*4 references found/);
@@ -114,6 +141,10 @@ try {
         assert.match(markdown, /Add duplicates 1 · Remove duplicates 1/);
         assert.match(markdown, /removal wins under the upstream simulation/);
         assert.match(markdown, /modeled fault budget exceeded/);
+        assert.match(markdown, /Earlier arrivals modeled/);
+        assert.match(markdown, /Limiting side/);
+        assert.match(markdown, /Accepted Governance discovery source receipts/);
+        assert.match(markdown, /Argument SHA-256/);
       }
       if (item.id === 'separate-add-remove') assert.match(markdown, /Proposal #85622 then Proposal #85612.*Step 1 of 2/);
       if (item.id === 'nns-144954-recorded-open') {
@@ -147,6 +178,33 @@ try {
   await page.setViewportSize({ width: 1366, height: 900 });
   assert.equal(reviewerRequests.length, 0);
 
+  async function verifyPerformance(existingCount, proposedCount, relatedCount, explicit) {
+    const rows = await page.locator('.review-node-tables tbody tr').evaluateAll(items => items.map(row => ({
+      role: row.className,
+      id: new URL(row.querySelector('a[href*="/network/nodes/"]').href).pathname.split('/').pop(),
+    })));
+    const existing = rows.filter(row => !row.role.includes('added')).map(row => row.id).sort();
+    const proposed = rows.filter(row => !row.role.includes('removed')).map(row => row.id).sort();
+    assert.equal(existing.length, existingCount);
+    assert.equal(proposed.length, proposedCount);
+    assert.equal(rows.length, relatedCount);
+    await page.getByRole('button', { name: 'Performance', exact: true }).click();
+    const preset = page.locator('#performance-preset');
+    const initial = performanceRequests.length;
+    assert.equal(await preset.inputValue(), 'membership-union');
+    const read = page.getByRole('button', { name: 'Read blockmaking samples' });
+    await read.click();
+    await page.waitForFunction(() => !document.querySelector('#performance-form button').disabled);
+    assert.equal(performanceRequests.length, initial + 1);
+    assert.deepEqual([...performanceRequests.at(-1).nodes].sort(), rows.map(row => row.id).sort());
+    if (explicit) {
+      await preset.selectOption('proposed-membership');
+      await read.click();
+      await page.waitForFunction(() => !document.querySelector('#performance-form button').disabled);
+      assert.equal(performanceRequests.length, initial + 2);
+      assert.deepEqual([...performanceRequests.at(-1).nodes].sort(), proposed);
+    }
+  }
   const capturesBeforeLive = testData.length;
   live = true;
   await page.getByRole('link', { name: 'Live review', exact: true }).click();
@@ -156,25 +214,99 @@ try {
   await page.getByRole('button', { name: 'Review', exact: true }).click();
   await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
   await page.locator('.review-checks').getByText(/Governance check incomplete/).waitFor();
+  await verifyPerformance(40, 40, 41, false);
   execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
     'load_review_case', '("review-checks-three-replacements")'], {
     cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' },
   });
   await page.getByRole('button', { name: 'Subnet Activity', exact: true }).click();
   const activity = page.locator('section.card').filter({ has: page.getByRole('heading', { name: 'Subnet Activity' }) });
+  await activity.getByText(/Pinned roster resolved/).waitFor();
   await activity.getByText(/Governance check complete.*references found/).waitFor();
-  await activity.getByText('Known interactions', { exact: true }).click();
-  await activity.getByText(/exact textual principal reference/).waitFor();
+  await activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #990001$/ }) }).locator('summary').first().press('Enter');
   await page.screenshot({ path: resolve(output, 'subnet-activity.png'), fullPage: true });
   await activity.getByRole('button', { name: 'Review #990001', exact: true }).click();
+  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
   await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
+  failDiscovery = true;
+  const refreshChecks = page.getByRole('button', { name: 'Refresh review checks', exact: true });
+  await refreshChecks.click();
+  const checks = page.locator('.review-checks');
+  await checks.getByText(/Previous Governance observation.*Refresh failed.*4 references found/s).waitFor({ timeout: 90000 })
+    .catch(async error => { throw new Error('Individual refresh · ' + await checks.innerText(), { cause: error }); });
+  failDiscovery = false;
+  await refreshChecks.click();
+  await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
+  execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
+    'load_review_case', '("nns-145077-recorded-open")'], {
+    cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' },
+  });
+  // An unsubmitted edit is not the identity of the visible review.
+  await page.locator('#search input[name=first]').fill('144954');
+  await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).click();
+  await activity.getByText(/Registry 66264.*Pinned roster resolved/).waitFor({ timeout: 90000 });
+  await activity.getByText(/Governance check incomplete/).waitFor();
+  await page.locator('.review-checks').getByText(/Governance check incomplete/).waitFor();
+  assert.ok((await page.locator('.review-checks').textContent()).includes('Checked the exact node identities'));
+  assert.doesNotMatch(await page.locator('.review-checks').textContent(), /Previous Governance observation/);
+  await activity.getByRole('button', { name: 'All subnets', exact: true }).click();
+  assert.equal(await activity.locator('.activity-count').count(), 98);
+  await page.locator('.review-header').getByRole('link', { name: '#990001', exact: true }).waitFor();
+  await activity.screenshot({ path: resolve(output, 'recorded-burst-navigator.png') });
+  failDiscovery = true;
+  await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).click();
+  await activity.getByText(/Showing the previous observation/).waitFor({ timeout: 90000 });
+  assert.equal(await activity.locator('.activity-count').count(), 98);
+  await page.locator('.review-header').getByRole('link', { name: '#990001', exact: true }).waitFor();
+  failDiscovery = false;
+  await activity.getByRole('button', { name: 'Retry discovery', exact: true }).click();
+  await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).waitFor({ timeout: 90000 });
+  await activity.getByText(/Governance check incomplete/).waitFor();
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.getByRole('button', { name: 'Back to subnet list', exact: true }).click();
+  const header = await page.locator('.masthead').boundingBox();
+  assert.ok(header.height < 110, 'Mobile navigation fits in two compact lines');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
+  const noProposals = activity.locator('details').filter({ has: page.getByText('No proposals for this subnet in the observed result.', { exact: true }) });
+  const empty = noProposals.nth(20);
+  await empty.locator('summary').click();
+  const inspect = empty.getByRole('button', { name: 'Inspect current membership' });
+  await inspect.scrollIntoViewIfNeeded();
+  const position = await activity.evaluate(el => el.scrollTop);
+  assert.ok(position > 0);
+  await inspect.click();
+  await page.locator('#subnet-status').getByText('Subnet loaded.', { exact: true }).waitFor({ timeout: 90000 });
+  assert.equal(await activity.isVisible(), false);
+  assert.equal(await page.locator('#subnet-result .map-card').count(), 1);
+  await page.locator('#subnet-result').getByText(/members · Registry 66,264/).waitFor();
+  await page.screenshot({ path: resolve(output, 'current-subnet-mobile.png') });
+  await page.getByRole('button', { name: 'Back to subnet list', exact: true }).click();
+  assert.equal(await activity.evaluate(el => el.scrollTop), position);
+  await page.setViewportSize({ width: 1366, height: 900 });
+  const archivedRow = activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #145077$/ }) });
+  await archivedRow.locator('summary').first().press('Enter');
+  await activity.getByRole('button', { name: 'Review #145077', exact: true }).click();
+  await activity.getByRole('button', { name: 'Next proposal', exact: true }).click();
+  await page.locator('.review-header').getByRole('link', { name: '#145076', exact: true }).waitFor();
+  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await activity.getByRole('button', { name: 'Previous proposal', exact: true }).click();
+  await page.locator('.review-header').getByRole('link', { name: '#145077', exact: true }).waitFor();
+  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
+    'load_review_case', '("multiple-changes")'], {
+    cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' },
+  });
+  await page.locator('#search input[name=first]').fill('144940');
+  await page.getByRole('button', { name: 'Review', exact: true }).click();
+  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
+  await verifyPerformance(5, 5, 7, true);
   assert.equal(testData.length, capturesBeforeLive);
   assert.ok(reviewerRequests.some(path => path.endsWith('/call')));
   assert.deepEqual(rejected, []);
   assert.deepEqual(errors, []);
   const summary = { origin: gateway.origin, certified: gateway.observed, rawRefusals: gateway.rawRefusals,
     results, bundledEvidenceRequests: testData.length, liveReviewerCalls: reviewerRequests.filter(path => path.endsWith('/call')).length,
-    activityOverviewVerified: true, testReviewerCalls: 0, outsideRequests: rejected.length };
+    activityOverviewVerified: true, performanceRequests, testReviewerCalls: 0, outsideRequests: rejected.length };
   await writeFile(resolve(output, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log('Verified ' + summary.certified.length + ' gateway responses and ' + results.length + ' test cases.');
 } finally {

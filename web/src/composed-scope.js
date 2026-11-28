@@ -12,32 +12,37 @@ function ready(profile, revision, value) {
 }
 
 export const comparisonFilterLabels = Object.freeze({
-  'membership-union': 'Before and proposed members',
-  'proposed-membership': 'Proposed members',
-  'before-membership': 'Before members',
+  'membership-union': 'All related nodes',
+  'proposed-membership': 'Proposed',
+  'before-membership': 'Existing',
   'changed-membership': 'Added and removed members',
-  'incoming-membership': 'Added members',
-  'outgoing-membership': 'Removed members',
+  'incoming-membership': 'Add',
+  'outgoing-membership': 'Remove',
   'affected-membership': 'Nodes affected across steps',
 });
-const maxFilterSize = 256;
+export const maxFilterSize = 256;
+
+export function performanceNodes(selection, requestedScope) {
+  if (!selection) return undefined;
+  const { nodes } = selection;
+  if (selection.kind === 'existing') return nodes.selected;
+  switch (requestedScope) {
+    case 'membership-union': return [...new Set([...nodes.before, ...nodes.selected])];
+    case 'proposed-membership': return nodes.selected;
+    case 'before-membership': return nodes.before;
+    case 'changed-membership': return [...nodes.incoming, ...nodes.outgoing];
+    case 'incoming-membership': return nodes.incoming;
+    case 'outgoing-membership': return nodes.outgoing;
+    case 'affected-membership': return nodes.affected;
+    default: throw new Error('Unsupported Performance scope.');
+  }
+}
 
 export function composedOutputs(selection, { members, countries }, requestedScope = 'membership-union') {
-  const { kind, revision, subnet, registryVersion, label, nodes } = selection;
+  const { kind, revision, subnet, registryVersion, label } = selection;
   const { receipts, ...observation } = selection.observation ?? {};
   const scope = kind === 'existing' ? 'existing-membership' : requestedScope;
-  const filters = {
-    'existing-membership': nodes.selected,
-    'membership-union': members.map(member => member.id),
-    'proposed-membership': nodes.selected,
-    'before-membership': members.filter(member => member.role !== 'Added').map(member => member.id),
-    'changed-membership': members.filter(member => member.role !== 'Retained').map(member => member.id),
-    'incoming-membership': nodes.incoming,
-    'outgoing-membership': nodes.outgoing,
-    'affected-membership': nodes.affected,
-  };
-  if (!Object.hasOwn(filters, scope)) throw new Error('Unsupported Performance scope.');
-  const nodeIds = filters[scope];
+  const nodeIds = performanceNodes(selection, scope);
   const filter = nodeIds.length <= maxFilterSize ? ready(nodeFilterProfile, revision,
     { subnet, registryVersion, scope, label, nodeIds })
     : { kind: 'unavailable', retryable: false, reason: 'This finite filter exceeds 256 nodes. Select a narrower scope.' };

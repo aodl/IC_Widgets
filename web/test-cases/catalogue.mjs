@@ -24,7 +24,7 @@ export async function testCatalogue() {
   for (const row of replays) {
     const source = row.proposal_ids.map(id => indexed.get(id)).filter(Boolean);
     const topics = [...new Set(source.map(item => words(item.raw.topic)).filter(Boolean))];
-    if (!topics.length && row.activity?.length) topics.push('Subnet management');
+    if (!topics.length && (row.activity?.length || row.registry.kind === 'activity-archive')) topics.push('Subnet management');
     const actions = row.function_ids.map(id => actionName(functions.find(item => item.id === id)?.name) ?? 'Function ' + id);
     const actionEvidence = row.action_evidence.map(action => {
       const entry = indexed.get(action.proposal_id);
@@ -49,7 +49,7 @@ export async function testCatalogue() {
     cases.push({ id: row.id, name: row.name, proposalIds: row.proposal_ids, topic: topics.join(' / ') || 'Topic not recorded',
       actions, activity: !!row.activity?.length, purpose: row.purpose, provenance: row.provenance, kind, fault: row.fault, support: row.support,
       limits: row.limits, lifecycleLabel, registryVersion: registry.version ?? null, roleSupplement: registry.synthetic_overlay,
-      registryFrom: times[0], registryTo: times.at(-1), actionEvidence, failureReason: row.indexed_failure_reason,
+      registryFrom: registry.from_utc ?? times[0], registryTo: registry.to_utc ?? times.at(-1), actionEvidence, failureReason: row.indexed_failure_reason,
       supportLabel: bundled ? 'Interactive review' : row.support === 'production-unsupported' ? 'Classification only' : 'Automated fixture',
       asset, bundled: true });
   }

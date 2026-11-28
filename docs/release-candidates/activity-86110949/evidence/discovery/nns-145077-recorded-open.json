@@ -1,0 +1,1957 @@
+{
+  "Ok": {
+    "outcome": {
+      "Ok": {
+        "complete": false,
+        "coverage": {
+          "adopted_listed": 0,
+          "changed_lifecycle": 0,
+          "executable_decoded": 14,
+          "hydrated": 0,
+          "issues": [
+            "Governance page: call rejected: 5 - IC0503: Error from Canister uxrrr-q7777-77774-qaaaq-cai: Canister called `ic0.trap` with message: 'Panicked at 'Original Governance discovery ended after one captured page', tests/source-fixture/src/replay.rs:80:13'.\nCons"
+          ],
+          "malformed_payloads": 0,
+          "missing_payloads": 0,
+          "oldest_listed": [
+            "145062"
+          ],
+          "omitted_matches": 0,
+          "open_listed": 20,
+          "pages": 2,
+          "pagination_complete": false,
+          "textual_checked": 20,
+          "unsupported_actions": 6
+        },
+        "matches": [],
+        "node_projection": [],
+        "proposals": [
+          {
+            "deadline": [
+              "1796157119"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [],
+            "id": "145081",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Upgrade Internet Identity Frontend Canister to fbc0d62a5"
+            ],
+            "topic": 8,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796157102"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [],
+            "id": "145080",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Upgrade Internet Identity Backend Canister to fbc0d62a5"
+            ],
+            "topic": 8,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796147811"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [],
+            "id": "145079",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Upgrade the Registry Canister to Commit 3925f1e"
+            ],
+            "topic": 17,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796147779"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [],
+            "id": "145078",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Upgrade the Governance Canister to Commit 3925f1e"
+            ],
+            "topic": 17,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796143100"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145077",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae"
+            ],
+            "targets": [
+              [
+                "5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet 5kdm2"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796143091"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145076",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "4zbus-z2bmt-ilreg-xakz4-6tyre-hsqj4-slb4g-zjwqo-snjcc-iqphi-3qe"
+            ],
+            "targets": [
+              [
+                "4zbus-z2bmt-ilreg-xakz4-6tyre-hsqj4-slb4g-zjwqo-snjcc-iqphi-3qe"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet 4zbus"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796143080"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145075",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "4ecnw-byqwz-dtgss-ua2mh-pfvs7-c3lct-gtf4e-hnu75-j7eek-iifqm-sqe"
+            ],
+            "targets": [
+              [
+                "4ecnw-byqwz-dtgss-ua2mh-pfvs7-c3lct-gtf4e-hnu75-j7eek-iifqm-sqe"
+              ]
+            ],
+            "title": [
+              "Replace nodes in subnet 4ecnw"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796143065"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145074",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "2fq7c-slacv-26cgz-vzbx2-2jrcs-5edph-i5s2j-tck77-c3rlz-iobzx-mqe"
+            ],
+            "targets": [
+              [
+                "2fq7c-slacv-26cgz-vzbx2-2jrcs-5edph-i5s2j-tck77-c3rlz-iobzx-mqe"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet 2fq7c"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796139721"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145073",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "w4rem-dv5e3-widiz-wbpea-kbttk-mnzfm-tzrc7-svcj3-kbxyb-zamch-hqe"
+            ],
+            "targets": [
+              [
+                "w4rem-dv5e3-widiz-wbpea-kbttk-mnzfm-tzrc7-svcj3-kbxyb-zamch-hqe"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet w4rem"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796139711"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145072",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+            ],
+            "targets": [
+              [
+                "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet uzr34"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796139701"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145071",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "qxesv-zoxpm-vc64m-zxguk-5sj74-35vrb-tbgwg-pcird-5gr26-62oxl-cae"
+            ],
+            "targets": [
+              [
+                "qxesv-zoxpm-vc64m-zxguk-5sj74-35vrb-tbgwg-pcird-5gr26-62oxl-cae"
+              ]
+            ],
+            "title": [
+              "Replace nodes in subnet qxesv"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796139692"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145070",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "qdvhd-os4o2-zzrdw-xrcv4-gljou-eztdp-bj326-e6jgr-tkhuc-ql6v2-yqe"
+            ],
+            "targets": [
+              [
+                "qdvhd-os4o2-zzrdw-xrcv4-gljou-eztdp-bj326-e6jgr-tkhuc-ql6v2-yqe"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet qdvhd"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796139683"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145069",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae"
+            ],
+            "targets": [
+              [
+                "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet pzp6e"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796139283"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              50
+            ],
+            "id": "145068",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Elect new IC/HostOS revision (commit eb83094)"
+            ],
+            "topic": 13,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796139158"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              38
+            ],
+            "id": "145067",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Elect new IC/GuestOS revision (commit eb83094)"
+            ],
+            "topic": 13,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796138930"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145066",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "pae4o-o6dxf-xki7q-ezclx-znyd6-fnk6w-vkv5z-5lfwh-xym2i-otrrw-fqe"
+            ],
+            "targets": [
+              [
+                "pae4o-o6dxf-xki7q-ezclx-znyd6-fnk6w-vkv5z-5lfwh-xym2i-otrrw-fqe"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet pae4o"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796138922"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145065",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "opn46-zyspe-hhmyp-4zu6u-7sbrh-dok77-m7dch-im62f-vyimr-a3n2c-4ae"
+            ],
+            "targets": [
+              [
+                "opn46-zyspe-hhmyp-4zu6u-7sbrh-dok77-m7dch-im62f-vyimr-a3n2c-4ae"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet opn46"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796138912"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145064",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "lspz2-jx4pu-k3e7p-znm7j-q4yum-ork6e-6w4q6-pijwq-znehu-4jabe-kqe"
+            ],
+            "targets": [
+              [
+                "lspz2-jx4pu-k3e7p-znm7j-q4yum-ork6e-6w4q6-pijwq-znehu-4jabe-kqe"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet lspz2"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796138904"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145063",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "gmq5v-hbozq-uui6y-o55wc-ihop3-562wb-3qspg-nnijg-npqp5-he3cj-3ae"
+            ],
+            "targets": [
+              [
+                "gmq5v-hbozq-uui6y-o55wc-ihop3-562wb-3qspg-nnijg-npqp5-he3cj-3ae"
+              ]
+            ],
+            "title": [
+              "Replace nodes in subnet gmq5v"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796138895"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "145062",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861324578387674",
+            "target_subnet": [
+              "eq6en-6jqla-fbu5s-daskr-h6hx2-376n5-iqabl-qgrng-gfqmv-n3yjr-mqe"
+            ],
+            "targets": [
+              [
+                "eq6en-6jqla-fbu5s-daskr-h6hx2-376n5-iqabl-qgrng-gfqmv-n3yjr-mqe"
+              ]
+            ],
+            "title": [
+              "Replace a node in subnet eq6en"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          }
+        ],
+        "registry_complete": [
+          true
+        ],
+        "registry_memberships_checked": [
+          0
+        ],
+        "requested_instructions": [
+          [
+            {
+              "0": "145077",
+              "1": 31,
+              "2": [
+                123,
+                48,
+                235,
+                122,
+                166,
+                82,
+                245,
+                25,
+                45,
+                123,
+                7,
+                226,
+                137,
+                18,
+                202,
+                247,
+                82,
+                137,
+                165,
+                209,
+                108,
+                135,
+                199,
+                191,
+                225,
+                96,
+                55,
+                234,
+                134,
+                182,
+                144,
+                80
+              ]
+            },
+            {
+              "0": "145076",
+              "1": 31,
+              "2": [
+                249,
+                71,
+                38,
+                195,
+                74,
+                10,
+                14,
+                33,
+                86,
+                138,
+                69,
+                162,
+                108,
+                144,
+                113,
+                95,
+                37,
+                76,
+                142,
+                46,
+                193,
+                15,
+                121,
+                124,
+                162,
+                181,
+                126,
+                113,
+                128,
+                58,
+                184,
+                236
+              ]
+            },
+            {
+              "0": "145075",
+              "1": 31,
+              "2": [
+                66,
+                47,
+                111,
+                122,
+                158,
+                89,
+                131,
+                219,
+                179,
+                229,
+                159,
+                205,
+                180,
+                12,
+                225,
+                61,
+                240,
+                55,
+                251,
+                188,
+                75,
+                163,
+                128,
+                178,
+                96,
+                86,
+                138,
+                153,
+                133,
+                35,
+                236,
+                200
+              ]
+            },
+            {
+              "0": "145074",
+              "1": 31,
+              "2": [
+                96,
+                184,
+                143,
+                96,
+                222,
+                60,
+                116,
+                148,
+                213,
+                0,
+                199,
+                94,
+                162,
+                77,
+                33,
+                245,
+                171,
+                66,
+                110,
+                106,
+                152,
+                11,
+                123,
+                213,
+                173,
+                15,
+                101,
+                40,
+                84,
+                56,
+                254,
+                150
+              ]
+            },
+            {
+              "0": "145073",
+              "1": 31,
+              "2": [
+                49,
+                83,
+                250,
+                240,
+                252,
+                99,
+                154,
+                2,
+                173,
+                142,
+                62,
+                229,
+                160,
+                40,
+                222,
+                215,
+                99,
+                24,
+                122,
+                142,
+                191,
+                85,
+                96,
+                179,
+                234,
+                119,
+                221,
+                147,
+                6,
+                168,
+                239,
+                51
+              ]
+            },
+            {
+              "0": "145072",
+              "1": 31,
+              "2": [
+                86,
+                29,
+                7,
+                217,
+                139,
+                5,
+                48,
+                225,
+                227,
+                43,
+                236,
+                76,
+                10,
+                242,
+                214,
+                202,
+                245,
+                207,
+                66,
+                233,
+                86,
+                215,
+                190,
+                96,
+                191,
+                231,
+                155,
+                6,
+                59,
+                2,
+                131,
+                183
+              ]
+            },
+            {
+              "0": "145071",
+              "1": 31,
+              "2": [
+                122,
+                84,
+                231,
+                26,
+                58,
+                244,
+                94,
+                108,
+                131,
+                230,
+                75,
+                198,
+                188,
+                40,
+                145,
+                188,
+                200,
+                27,
+                18,
+                127,
+                84,
+                17,
+                61,
+                92,
+                92,
+                19,
+                163,
+                102,
+                15,
+                168,
+                144,
+                169
+              ]
+            },
+            {
+              "0": "145070",
+              "1": 31,
+              "2": [
+                227,
+                83,
+                13,
+                29,
+                205,
+                161,
+                174,
+                49,
+                97,
+                95,
+                194,
+                140,
+                56,
+                100,
+                67,
+                205,
+                83,
+                225,
+                59,
+                252,
+                71,
+                166,
+                38,
+                74,
+                107,
+                101,
+                34,
+                18,
+                171,
+                234,
+                89,
+                131
+              ]
+            },
+            {
+              "0": "145069",
+              "1": 31,
+              "2": [
+                163,
+                161,
+                204,
+                85,
+                0,
+                39,
+                105,
+                120,
+                54,
+                96,
+                139,
+                79,
+                149,
+                242,
+                9,
+                215,
+                11,
+                61,
+                203,
+                160,
+                92,
+                249,
+                103,
+                243,
+                29,
+                244,
+                153,
+                141,
+                52,
+                170,
+                159,
+                199
+              ]
+            },
+            {
+              "0": "145066",
+              "1": 31,
+              "2": [
+                9,
+                198,
+                197,
+                44,
+                18,
+                195,
+                138,
+                103,
+                249,
+                6,
+                162,
+                152,
+                129,
+                90,
+                231,
+                190,
+                233,
+                72,
+                103,
+                236,
+                235,
+                109,
+                12,
+                157,
+                111,
+                6,
+                19,
+                213,
+                94,
+                175,
+                76,
+                201
+              ]
+            },
+            {
+              "0": "145065",
+              "1": 31,
+              "2": [
+                190,
+                36,
+                60,
+                120,
+                102,
+                8,
+                115,
+                89,
+                140,
+                124,
+                180,
+                43,
+                129,
+                82,
+                222,
+                176,
+                202,
+                214,
+                31,
+                211,
+                157,
+                151,
+                151,
+                179,
+                89,
+                231,
+                93,
+                224,
+                117,
+                202,
+                52,
+                62
+              ]
+            },
+            {
+              "0": "145064",
+              "1": 31,
+              "2": [
+                145,
+                220,
+                236,
+                33,
+                235,
+                205,
+                115,
+                8,
+                117,
+                131,
+                89,
+                221,
+                142,
+                62,
+                233,
+                39,
+                137,
+                214,
+                116,
+                21,
+                10,
+                162,
+                109,
+                3,
+                76,
+                166,
+                101,
+                176,
+                116,
+                211,
+                101,
+                5
+              ]
+            },
+            {
+              "0": "145063",
+              "1": 31,
+              "2": [
+                197,
+                23,
+                224,
+                239,
+                222,
+                5,
+                231,
+                178,
+                218,
+                194,
+                78,
+                191,
+                31,
+                171,
+                123,
+                67,
+                222,
+                7,
+                7,
+                175,
+                178,
+                253,
+                3,
+                55,
+                71,
+                162,
+                240,
+                221,
+                73,
+                128,
+                59,
+                88
+              ]
+            },
+            {
+              "0": "145062",
+              "1": 31,
+              "2": [
+                35,
+                197,
+                203,
+                14,
+                84,
+                61,
+                231,
+                200,
+                207,
+                164,
+                169,
+                203,
+                91,
+                147,
+                93,
+                121,
+                184,
+                148,
+                238,
+                202,
+                123,
+                219,
+                161,
+                73,
+                11,
+                170,
+                123,
+                144,
+                76,
+                34,
+                72,
+                64
+              ]
+            }
+          ]
+        ],
+        "subnets": [
+          [
+            "re2t4-faa75-v3vhk-kdmdr-uyrkl-aik2l-ixd6u-p3fyr-zlfkc-6c5af-zae",
+            "nzvzv-iabmu-zh7of-n2hbe-lks7f-zf4xk-rjqzp-gp2xf-csdld-mbgub-rqe",
+            "brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae",
+            "plvva-cid3z-os5dn-dqp4e-7eldn-7ex5k-upqnh-mt2lb-rfwl7-pd5a6-mqe",
+            "kindg-7ygma-4ms3x-gkn7w-ya6lx-ws37e-j37rr-qk3fi-vm34u-vkeae-lae",
+            "o3ow2-2ipam-6fcjo-3j5vt-fzbge-2g7my-5fz2m-p4o2t-dwlc4-gt2q7-5ae",
+            "4ecnw-byqwz-dtgss-ua2mh-pfvs7-c3lct-gtf4e-hnu75-j7eek-iifqm-sqe",
+            "opn46-zyspe-hhmyp-4zu6u-7sbrh-dok77-m7dch-im62f-vyimr-a3n2c-4ae",
+            "eajxw-wqtf4-cck2f-bm77x-aiqjf-sn6kj-h4mtt-kwudh-b7ewy-wxjyx-hqe",
+            "lhg73-sax6z-2zank-6oer2-575lz-zgbxx-ptudx-5korm-fy7we-kh4hl-pqe",
+            "hbcn5-cazuh-24nk6-kcnyh-lny6x-crbxk-wu3ij-6wacl-mqojl-lgs3c-xae",
+            "hvf23-vy4cs-igl74-deubm-p46ji-5wxv7-rkvoc-p6nc4-foikf-e3l4y-zqe",
+            "nl6hn-ja4yw-wvmpy-3z2jx-ymc34-pisx3-3cp5z-3oj4a-qzzny-jbsv3-4qe",
+            "ugig5-mjcmi-rj4vk-ess53-pc2we-qy47e-mveq5-55dcz-p5qem-yxlvg-6ae",
+            "6vye5-ezj7m-slmma-7t6r4-v7gpk-cgll3-mv4nq-acmza-2bj7e-shbag-vae",
+            "io67a-2jmkw-zup3h-snbwi-g6a5n-rm5dn-b6png-lvdpl-nqnto-yih6l-gqe",
+            "tdbjj-ojmqk-iq6nj-25p5u-vx5zz-vsfcw-qlh5c-2xbje-dpodi-u6rvy-4qe",
+            "ejbmu-grnam-gk6ol-6irwa-htwoj-7ihfl-goimw-hlnvh-abms4-47v2e-zqe",
+            "gyklj-hjoy7-2mu4t-xvsjw-jzxqb-iiu72-wudmc-csjox-o3gou-jvmhz-sae",
+            "gmq5v-hbozq-uui6y-o55wc-ihop3-562wb-3qspg-nnijg-npqp5-he3cj-3ae",
+            "6pbhf-qzpdk-kuqbr-pklfa-5ehhf-jfjps-zsj6q-57nrl-kzhpd-mu7hc-vae",
+            "jdkui-pjpz3-3npsi-ag7zh-syo7d-tdkjx-rmkxr-xcwco-vdhpv-g655p-fqe",
+            "eq6en-6jqla-fbu5s-daskr-h6hx2-376n5-iqabl-qgrng-gfqmv-n3yjr-mqe",
+            "iz2ub-gjrvu-y5ubr-vw2mo-p4zq6-bs75z-huwgj-3vlhv-yq3zo-7qbek-iqe",
+            "5fpjj-4rss5-7vtao-z5jac-ezhut-bnuu3-syih2-7shgy-zooot-fjcep-rae",
+            "zkqpl-tzsx4-ftcwe-sxt64-evyty-5teu4-xxncl-urvsg-vwk73-zlgwo-3ae",
+            "pjljw-kztyl-46ud4-ofrj6-nzkhm-3n4nt-wi3jt-ypmav-ijqkt-gjf66-uae",
+            "ofuqa-xjv25-cuj2z-qdbn2-q6cmx-6egdh-xhoq5-gsr6j-cfx4p-sqmst-xae",
+            "uhlem-vr7qa-yib6l-6fuxl-gajs3-nc5jf-lv5ea-r5nwu-yim2k-fa2ih-qae",
+            "nx5oj-b2azr-x3alh-sgf7i-duhfw-bflus-hisa2-5n2oq-tv7sd-haspd-cae",
+            "4zbus-z2bmt-ilreg-xakz4-6tyre-hsqj4-slb4g-zjwqo-snjcc-iqphi-3qe",
+            "uzr34-akd3s-xrdag-3ql62-ocgoh-ld2ao-tamcv-54e7j-krwgb-2gm4z-oqe",
+            "nwgxr-6ses4-xcorg-yudu5-ag37q-hzicn-7hxoz-3nx5u-yk6gv-tupik-rae",
+            "hsanx-tcfas-skiqz-hstgr-bubrl-zzhii-kp53d-wwkee-heiys-m6pva-xae",
+            "5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae",
+            "eqh7m-tsn2v-n37bw-7d3hv-oezjr-aweow-douhh-vt4ef-kkg5j-6pzjz-iqe",
+            "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae",
+            "sr4zw-ukqgd-eam6d-i7jk2-7dhrb-63ifx-ast5b-haule-uqekm-lcpfs-oae",
+            "xyein-ukrli-hqej2-sk5x6-lcodm-jnyb3-wqh2a-sdl32-37j5j-au4mt-3qe",
+            "kx46l-bcvxs-ycyqt-olwgj-5luar-z4dtm-jdaqb-sclqp-sl4ev-6wd3a-cae",
+            "e66qm-3cydn-nkf4i-ml4rb-4ro6o-srm5s-x5hwq-hnprz-3meqp-s7vks-5qe",
+            "4j67r-72zxm-kakbr-a4f4b-abhjt-veaoh-ojp2z-lvpmo-v6jea-7p4rp-zqe",
+            "qdvhd-os4o2-zzrdw-xrcv4-gljou-eztdp-bj326-e6jgr-tkhuc-ql6v2-yqe",
+            "n6d35-3s4te-ez2kz-zgnz2-ajwad-gnf53-s6y5o-75jd6-lp2o4-fyv44-bae",
+            "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe",
+            "2fq7c-slacv-26cgz-vzbx2-2jrcs-5edph-i5s2j-tck77-c3rlz-iobzx-mqe",
+            "snjp4-xlbw4-mnbog-ddwy6-6ckfd-2w5a2-eipqo-7l436-pxqkh-l6fuv-vae",
+            "e6e6o-ldkbn-hy4sp-luwnq-4d7rj-nemud-vvnmt-vyw7u-dy5ae-ejzp7-oae",
+            "shefu-t3kr5-t5q3w-mqmdq-jabyv-vyvtf-cyyey-3kmo4-toyln-emubw-4qe",
+            "4ijpz-adles-eyy2p-2jrvq-ydefu-bvn6e-yfxuo-hmuf2-yi6gr-j3gss-bqe",
+            "s65em-ddmqw-yo7yj-kae2s-d76rs-lxaaf-dvj47-rk4q7-ymirp-khgqo-qae",
+            "x4jtx-5dnbo-v3exa-vzamo-teufh-qsiit-txx4g-mi76n-ckrfl-oc5a6-nae",
+            "56zwx-qdnrz-4jqvu-p4ml2-w6x53-zqtn7-jr7lh-tkszd-bse7l-7igyk-nqe",
+            "srsb3-glzoc-3nl67-47jhk-6gdra-5okok-tdxu4-pqxmd-twlfb-fmhf4-gae",
+            "l7ujh-bd3o4-uylqu-mwchj-24pbi-wktn7-tj5tj-xpuua-gknwu-4lnvs-dqe",
+            "ln7lh-ll3rw-jbwr6-xujy2-tdq6o-dqupw-utwkc-r5lub-wf7mt-mamb6-cae",
+            "csyj4-zmann-ys6ge-3kzi6-onexi-obayx-2fvak-zersm-euci4-6pslt-lae",
+            "dvug2-n4gjy-2tq6w-mr67o-7ript-rwrvn-amaxz-powr5-3wymt-dxz2c-eqe",
+            "cxapn-4ekpe-ai2tl-lxm7o-5b2fb-kdrx2-xjcvn-hewt6-mz7er-ikwec-yae",
+            "g556q-ouqsl-pzj3p-m63sb-pa7ay-mtvr3-hcclv-ljnla-lape4-rbhqp-fae",
+            "cwpwy-bmqzu-rm6g3-xvdnf-3map5-2pphy-yvq2h-yp4s3-bocgf-7vetg-5ae",
+            "3hhby-wmtmw-umt4t-7ieyg-bbiig-xiylg-sblrt-voxgt-bqckd-a75bf-rqe",
+            "uw5ql-smzbi-sadfn-urdoy-irsne-27mwo-qbzpb-3oinv-yxour-533bx-fae",
+            "ief2t-pmzo7-urbac-invnw-dfpew-wnsr7-exdkd-cpz2t-uzcil-ptkgl-yae",
+            "k44fs-gm4pv-afozh-rs7zw-cg32n-u7xov-xqyx3-2pw5q-eucnu-cosd4-uqe",
+            "x33ed-h457x-bsgyx-oqxqf-6pzwv-wkhzr-rm2j3-npodi-purzm-n66cg-gae",
+            "yinp6-35cfo-wgcd2-oc4ty-2kqpf-t4dul-rfk33-fsq3r-mfmua-m2ngh-jqe",
+            "t6fm3-a5f6u-pwt5g-tiayv-udsxf-p545i-pxcwn-lraho-fkjbo-a3omd-6ae",
+            "ggpiq-rfh4t-fd3lh-s4dln-uqkmt-krlrc-hg3i6-vljay-5bz5y-cvckj-aqe",
+            "w4asl-4nmyj-qnr7c-6cqq4-tkwmt-o26di-iupkq-vx4kt-asbrx-jzuxh-4ae",
+            "oukjn-k5p5m-mdmui-zeqql-p5pwb-ypvrt-vtuvq-g3n4s-xe5sn-kaoza-hae",
+            "ipxsx-jnrqz-6xk6q-5m627-xpbt6-uipla-ue5sc-lgpjg-6f5gc-y536u-mqe",
+            "c4isl-65rwf-emhk5-5ta5m-ngl73-rgrl3-tcc56-2hkja-4erqd-iivmy-7ae",
+            "vxvpx-nvter-nsifn-5xeoy-z6lxd-vvg2q-rmpaj-nxfko-kmz6o-lyiop-cqe",
+            "mbvwy-55tp5-enpar-oidnd-rxoox-hi6q2-bbmrv-merg2-ptuxt-lf74w-2qe",
+            "v6faj-d5zkq-ru2wd-bkhrv-fnzss-ingkc-cgipa-gyt47-5url4-khdv3-oae",
+            "mpubz-g52jc-grhjo-5oze5-qcj74-sex34-omprz-ivnsm-qvvhr-rfzpv-vae",
+            "fuqsr-in2lc-zbcjj-ydmcw-pzq7h-4xm2z-pto4i-dcyee-5z4rz-x63ji-nae",
+            "w4rem-dv5e3-widiz-wbpea-kbttk-mnzfm-tzrc7-svcj3-kbxyb-zamch-hqe",
+            "cv73p-6v7zi-u67oy-7jc3h-qspsz-g5lrj-4fn7k-xrax3-thek2-sl46v-jae",
+            "pae4o-o6dxf-xki7q-ezclx-znyd6-fnk6w-vkv5z-5lfwh-xym2i-otrrw-fqe",
+            "shght-hofmg-enhv6-35kcv-e3tgh-nddlb-pt2fo-5qfm6-mkma4-2wcj4-uqe",
+            "mth4n-igmzp-jiqzd-k2j5q-nkmum-nhela-r2sje-ipw3g-5qatt-mecma-dae",
+            "v5ibd-vgolr-2qdx3-qs5g4-gju42-dxfug-oyzzu-2owgi-mueup-c3iks-7ae",
+            "ygbgy-igomp-m3g6p-7l74h-caqan-6a64x-7khol-5r5lv-zavqk-qxecl-rae",
+            "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+            "wuvno-koqqy-e64c2-bczlg-7xsph-4tocx-eu2pb-zfhu2-2pevx-kvltj-uae",
+            "qxesv-zoxpm-vc64m-zxguk-5sj74-35vrb-tbgwg-pcird-5gr26-62oxl-cae",
+            "4utr6-xo2fz-v7fsb-t3wsg-k7sfl-cj2ba-ghdnd-kcrfo-xavdb-ebean-mqe",
+            "66ejo-p64ft-cp6de-k6z2l-lyy45-qqsiy-5gv2w-nalvu-yhpbz-u5ct6-pqe",
+            "bt3ac-b647s-af5nv-626er-ahafa-wyemo-r6qzw-dgdl5-eqmqr-bewzh-xae",
+            "qtook-6655i-kkskx-to2xn-2eia4-y7ovk-ic6xj-exqmr-3tuup-gung2-cqe",
+            "cynor-chbj3-l73yk-shwrj-hhe6l-ibkct-jsfdk-fhmda-yk6h7-lrjg2-zqe",
+            "ik5jn-wpla4-met74-tzirt-lurxz-gbmud-vaki3-nqvlk-gue2r-x4q7p-4qe",
+            "xacmx-jxm5k-rpas7-vg7a7-uvr7y-5kyob-vde6o-rcygy-57fcw-v4s3c-5qe",
+            "pmna6-jptkq-r6e72-eewfr-thfol-hk2r7-l2uvb-dlkbd-qnle6-2gt6q-nae",
+            "lspz2-jx4pu-k3e7p-znm7j-q4yum-ork6e-6w4q6-pijwq-znehu-4jabe-kqe",
+            "jtdsg-3h6gi-hs7o5-z2soi-43w3z-soyl3-ajnp3-ekni5-sw553-5kw67-nqe"
+          ]
+        ],
+        "truncated_proposals": [
+          []
+        ],
+        "voting_issues": [
+          [
+            "Governance page: call rejected: 5 - IC0503: Error from Canister uxrrr-q7777-77774-qaaaq-cai: Canister called `ic0.trap` with message: 'Panicked at 'Original Governance discovery ended after one captured page', tests/source-fixture/src/replay.rs:80:13'.\nCons"
+          ]
+        ],
+        "voting_pagination_complete": [
+          false
+        ]
+      }
+    },
+    "receipts": [
+      {
+        "argument_hash": [
+          129,
+          120,
+          225,
+          150,
+          80,
+          196,
+          71,
+          19,
+          46,
+          12,
+          161,
+          183,
+          47,
+          129,
+          230,
+          93,
+          243,
+          229,
+          32,
+          15,
+          21,
+          3,
+          139,
+          86,
+          20,
+          16,
+          147,
+          185,
+          167,
+          229,
+          83,
+          235
+        ],
+        "id": "1",
+        "item": "Open and adopted before None",
+        "method": "list_proposals",
+        "observed_at": "1795861324578387674",
+        "reject": [],
+        "reply_bytes": "36578",
+        "reply_hash": [
+          [
+            129,
+            105,
+            47,
+            69,
+            198,
+            251,
+            63,
+            104,
+            63,
+            33,
+            9,
+            16,
+            40,
+            113,
+            224,
+            59,
+            20,
+            167,
+            88,
+            15,
+            7,
+            192,
+            229,
+            158,
+            102,
+            29,
+            194,
+            177,
+            194,
+            82,
+            240,
+            45
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          170,
+          128,
+          218,
+          101,
+          11,
+          73,
+          198,
+          47,
+          190,
+          195,
+          52,
+          182,
+          7,
+          147,
+          250,
+          130,
+          191,
+          212,
+          158,
+          207,
+          38,
+          79,
+          235,
+          211,
+          5,
+          200,
+          193,
+          122,
+          92,
+          23,
+          207,
+          0
+        ],
+        "id": "2",
+        "item": "Open and adopted before Some(145072)",
+        "method": "list_proposals",
+        "observed_at": "1795861324578387674",
+        "reject": [],
+        "reply_bytes": "50287",
+        "reply_hash": [
+          [
+            110,
+            141,
+            91,
+            141,
+            80,
+            74,
+            41,
+            205,
+            63,
+            92,
+            106,
+            205,
+            194,
+            220,
+            253,
+            252,
+            250,
+            135,
+            75,
+            246,
+            107,
+            226,
+            167,
+            228,
+            84,
+            185,
+            79,
+            180,
+            194,
+            14,
+            25,
+            125
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          158,
+          58,
+          46,
+          106,
+          89,
+          134,
+          4,
+          214,
+          201,
+          84,
+          128,
+          191,
+          219,
+          62,
+          74,
+          163,
+          223,
+          6,
+          84,
+          155,
+          131,
+          36,
+          180,
+          67,
+          158,
+          134,
+          3,
+          57,
+          108,
+          2,
+          121,
+          174
+        ],
+        "id": "3",
+        "item": "Open and adopted before Some(145062)",
+        "method": "list_proposals",
+        "observed_at": "1795861324578387674",
+        "reject": [
+          "call rejected: 5 - IC0503: Error from Canister uxrrr-q7777-77774-qaaaq-cai: Canister called `ic0.trap` with message: 'Panicked at 'Original Governance discovery ended after one captured page', tests/source-fixture/src/replay.rs:80:13'.\nCons"
+        ],
+        "reply_bytes": "0",
+        "reply_hash": [],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          174,
+          20,
+          166,
+          12,
+          199,
+          73,
+          73,
+          180,
+          62,
+          99,
+          170,
+          203,
+          63,
+          79,
+          27,
+          148,
+          196,
+          73,
+          4,
+          176,
+          229,
+          219,
+          151,
+          188,
+          119,
+          251,
+          171,
+          99,
+          35,
+          39,
+          196,
+          232
+        ],
+        "id": "4",
+        "item": "Accepting votes before None",
+        "method": "list_proposals",
+        "observed_at": "1795861324578387674",
+        "reject": [],
+        "reply_bytes": "36578",
+        "reply_hash": [
+          [
+            129,
+            105,
+            47,
+            69,
+            198,
+            251,
+            63,
+            104,
+            63,
+            33,
+            9,
+            16,
+            40,
+            113,
+            224,
+            59,
+            20,
+            167,
+            88,
+            15,
+            7,
+            192,
+            229,
+            158,
+            102,
+            29,
+            194,
+            177,
+            194,
+            82,
+            240,
+            45
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          193,
+          232,
+          131,
+          104,
+          138,
+          189,
+          217,
+          233,
+          138,
+          188,
+          94,
+          0,
+          192,
+          89,
+          205,
+          253,
+          156,
+          42,
+          54,
+          211,
+          94,
+          120,
+          85,
+          40,
+          139,
+          211,
+          30,
+          153,
+          234,
+          166,
+          25,
+          175
+        ],
+        "id": "5",
+        "item": "Accepting votes before Some(145072)",
+        "method": "list_proposals",
+        "observed_at": "1795861324578387674",
+        "reject": [],
+        "reply_bytes": "50287",
+        "reply_hash": [
+          [
+            110,
+            141,
+            91,
+            141,
+            80,
+            74,
+            41,
+            205,
+            63,
+            92,
+            106,
+            205,
+            194,
+            220,
+            253,
+            252,
+            250,
+            135,
+            75,
+            246,
+            107,
+            226,
+            167,
+            228,
+            84,
+            185,
+            79,
+            180,
+            194,
+            14,
+            25,
+            125
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          200,
+          181,
+          4,
+          1,
+          160,
+          87,
+          70,
+          26,
+          254,
+          80,
+          224,
+          166,
+          200,
+          38,
+          134,
+          210,
+          131,
+          124,
+          102,
+          254,
+          68,
+          187,
+          69,
+          141,
+          36,
+          36,
+          130,
+          199,
+          97,
+          134,
+          198,
+          173
+        ],
+        "id": "6",
+        "item": "Accepting votes before Some(145062)",
+        "method": "list_proposals",
+        "observed_at": "1795861324578387674",
+        "reject": [
+          "call rejected: 5 - IC0503: Error from Canister uxrrr-q7777-77774-qaaaq-cai: Canister called `ic0.trap` with message: 'Panicked at 'Original Governance discovery ended after one captured page', tests/source-fixture/src/replay.rs:80:13'.\nCons"
+        ],
+        "reply_bytes": "0",
+        "reply_hash": [],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          227,
+          176,
+          196,
+          66,
+          152,
+          252,
+          28,
+          20,
+          154,
+          251,
+          244,
+          200,
+          153,
+          111,
+          185,
+          36,
+          39,
+          174,
+          65,
+          228,
+          100,
+          155,
+          147,
+          76,
+          164,
+          149,
+          153,
+          27,
+          120,
+          82,
+          184,
+          85
+        ],
+        "id": "7",
+        "item": "Registry head",
+        "method": "get_latest_version",
+        "observed_at": "1795861324578387674",
+        "reject": [],
+        "reply_bytes": "4",
+        "reply_hash": [
+          [
+            120,
+            219,
+            234,
+            60,
+            112,
+            28,
+            42,
+            243,
+            239,
+            181,
+            21,
+            81,
+            212,
+            104,
+            24,
+            192,
+            27,
+            83,
+            171,
+            208,
+            78,
+            4,
+            151,
+            143,
+            17,
+            109,
+            244,
+            157,
+            141,
+            93,
+            56,
+            196
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          159,
+          211,
+          187,
+          191,
+          160,
+          15,
+          72,
+          13,
+          100,
+          247,
+          9,
+          161,
+          62,
+          186,
+          191,
+          135,
+          70,
+          120,
+          63,
+          111,
+          161,
+          24,
+          162,
+          80,
+          130,
+          172,
+          23,
+          27,
+          127,
+          117,
+          245,
+          77
+        ],
+        "id": "8",
+        "item": "subnet_list",
+        "method": "get_value",
+        "observed_at": "1795861324578387674",
+        "reject": [],
+        "reply_bytes": "3055",
+        "reply_hash": [
+          [
+            231,
+            0,
+            202,
+            65,
+            56,
+            27,
+            165,
+            113,
+            247,
+            144,
+            180,
+            57,
+            135,
+            91,
+            146,
+            59,
+            72,
+            69,
+            252,
+            38,
+            156,
+            253,
+            178,
+            123,
+            161,
+            203,
+            125,
+            255,
+            102,
+            67,
+            242,
+            177
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      }
+    ],
+    "registry_version": [
+      "66264"
+    ],
+    "usage": {
+      "balance_after": "2_943_671_318_480",
+      "balance_before": "2_943_923_359_801",
+      "calls": 8,
+      "finished_at": "1795861324578387674",
+      "instructions": "45825524",
+      "peak_batch_reservation": "42_102_524_000",
+      "source_bytes": "176789",
+      "started_at": "1795861324578387674"
+    }
+  }
+}

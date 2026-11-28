@@ -272,3 +272,65 @@ impl Resolver<'_> {
 fn hex(hash: &Hash) -> String {
     hash.iter().map(|byte| format!("{byte:02x}")).collect()
 }
+
+pub(super) async fn activity_roster(
+    request: &mut Request,
+    source: Principal,
+    resolve_removals: bool,
+) -> Result<
+    (
+        Vec<Principal>,
+        BTreeMap<Principal, Vec<Principal>>,
+        bool,
+        u32,
+    ),
+    LiveError,
+> {
+    let version = pinned_head(request, source).await?;
+    let mut resolver = Resolver {
+        request,
+        source,
+        version,
+        chunks: BTreeMap::new(),
+    };
+    let roster = resolver
+        .read(vec![RecordKey::SubnetList], review_records::roster)
+        .await?;
+    let listed: Vec<_> = listed_subnets(&roster[0])
+        .map_err(LiveError::InvalidEvidence)?
+        .into_iter()
+        .collect();
+    let mut owners = BTreeMap::<_, Vec<_>>::new();
+    if !resolve_removals {
+        return Ok((listed, owners, true, 0));
+    }
+    let mut complete = true;
+    let mut checked = 0;
+    for batch in listed.chunks(16) {
+        match resolver
+            .read(
+                batch.iter().copied().map(RecordKey::Subnet).collect(),
+                review_records::subnet,
+            )
+            .await
+        {
+            Ok(records) => {
+                for (&subnet, record) in batch.iter().zip(records) {
+                    if let Some(value) = record.value() {
+                        checked += 1;
+                        for &member in &value.members {
+                            owners.entry(member).or_default().push(subnet);
+                        }
+                    } else {
+                        complete = false;
+                    }
+                }
+            }
+            Err(_) => {
+                complete = false;
+                break;
+            }
+        }
+    }
+    Ok((listed, owners, complete, checked))
+}

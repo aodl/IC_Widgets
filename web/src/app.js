@@ -1,3 +1,4 @@
+import { mountActivityNavigator } from './activity-navigator.js';
 import { activeReplay, bundledCase, connect, liveError, replays, result, testCases } from './client.js';
 import { proposalHeading } from './dashboard.js';
 import { replayLabel } from './detail-model.js';
@@ -10,9 +11,9 @@ import { comparisonFilterLabels, composedOutputs, hasProfile, readNodeFilter } f
 import { acceptNexusHost } from './widget-frame.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
 import { showTestCatalogue } from './case-catalogue.js';
-import { reviewCheckSummary, reviewChecksView, subnetActivityView } from './review-checks.js';
+import { acceptScopedActivity, nextActivityAttempt, reviewCheckSummary, reviewChecksView } from './review-checks.js';
 import { terminalOutcome, terminalSummary } from './terminal-outcome.js';
-import { el, option, sourceReceipts, styled } from './view.js';
+import { action, el, option, sourceReceipts, styled } from './view.js';
 
 const search = document.querySelector('#search');
 const widget = EMBED_WIDGET;
@@ -170,7 +171,7 @@ search.addEventListener('submit', event => {
   }
 });
 
-function startReview(ids) {
+function startReview(ids, discovered, preferredSubnet) {
   document.querySelector('#search-error').textContent = '';
   const ticket = ++generation;
   const active = () => generation === ticket;
@@ -178,7 +179,7 @@ function startReview(ids) {
   current?.dispose();
   currentMap?.dispose();
   current = undefined;
-  const thisRequest = request = { segment: Date.now(), elapsed: 0, stopped: false };
+  const thisRequest = request = { ids, discovered, segment: Date.now(), elapsed: 0, stopped: false };
   performance.scope(undefined);
   performance.visible(false);
   const map = currentMap = widget?.view === 'proposal' ? undefined : nodeMap();
@@ -213,21 +214,29 @@ function startReview(ids) {
             option(titles.find(row => row.id === proposal.id)?.title ?? []),
             (FIXTURE_REPLAY || bundledCase) && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, activeReplay)),
           sourceReceipts(live, { replay: !!activeReplay })));
-        if (!activeReplay || activeReplay.activity) {
+        if (thisRequest.discovered || !activeReplay || activeReplay.activity) {
           const checks = el('div');
           reportContainer.append(checks);
-          replaceTerminalChecks();
-          async function replaceTerminalChecks() {
-            let observation;
-            try {
-              const reply = await remote(active, client => client.subnet_activity(proposals.map(row => row.id)));
-              if (!reply || !active()) return;
-              const response = result(reply);
-              observation = 'Err' in response.outcome ? { response, error: liveError(response.outcome.Err) } : { response };
-            } catch (error) {
-              observation = { error: error.message };
-            }
-            if (active()) checks.replaceChildren(reviewChecksView(reviewCheckSummary([], undefined, observation)));
+          let observation;
+          const accept = next => {
+            if (!active()) return;
+            observation = acceptScopedActivity(observation, next, proposals);
+            checks.replaceChildren(reviewChecksView(reviewCheckSummary([], undefined, observation)));
+          };
+          thisRequest.acceptActivity = accept;
+          if (thisRequest.discovered) accept(thisRequest.discovered);
+          else {
+            const attempt = nextActivityAttempt();
+            void (async () => {
+              try {
+                const reply = await remote(active, client => client.subnet_activity(proposals.map(row => row.id), []));
+                if (!reply || !active()) return;
+                const response = result(reply);
+                accept('Err' in response.outcome ? { response, attempt, error: liveError(response.outcome.Err) } : { response, attempt });
+              } catch (error) {
+                accept({ attempt, error: error.message });
+              }
+            })();
           }
         }
         status({ work: 'settled', stage: 'Observed' });
@@ -240,7 +249,8 @@ function startReview(ids) {
           if (!active()) return;
           status(state);
           if (['Blocked', 'Stopped', 'Provisional'].includes(state.stage)) unavailable(state.reason);
-        }, performance: membershipPerformance, replay: activeReplay });
+        }, performance: membershipPerformance, replay: activeReplay, discovered: thisRequest.discovered, preferredSubnet });
+      thisRequest.acceptActivity = current.acceptActivity;
       reportContainer.replaceChildren(current.section);
       current.start();
       void current.loadActivity();
@@ -262,11 +272,12 @@ const switches = {
   proposal: document.querySelector('#proposal-view'),
   subnet: document.querySelector('#subnet-view'),
 };
-function changeView(view) {
+function changeView(view, focus = true) {
   if (activeView === view) return;
   activeView = view;
   for (const [name, button] of Object.entries(switches)) button.setAttribute('aria-pressed', String(view === name));
   generation++;
+  request = undefined;
   current?.session.stop();
   current?.dispose();
   currentMap?.dispose();
@@ -276,12 +287,14 @@ function changeView(view) {
   document.querySelector('main').append(performance.section);
   performance.visible(false);
   overview.clear();
+  performance.scope(undefined);
+  performance.useIndependent();
   reportContainer.replaceChildren();
   status({ work: 'settled' });
   elapsed.textContent = '';
   document.querySelector('#proposal-search').hidden = view !== 'proposal';
   document.querySelector('#subnet-overview').hidden = view !== 'subnet';
-  (view === 'proposal' ? search.elements.first : document.querySelector('#subnet-search input')).focus();
+  if (focus) (view === 'proposal' ? search.elements.first : document.querySelector('#subnet-search input')).focus();
 }
 for (const [view, button] of Object.entries(switches)) button.addEventListener('click', () => changeView(view));
 
@@ -290,6 +303,7 @@ independent.addEventListener('click', () => {
   if (current) {
     current.openPerformance();
   } else {
+    if (activeView === 'subnet') performance.useMembership();
     if (!performance.section.isConnected) document.querySelector('main').append(performance.section);
     performance.visible(true);
   }
@@ -386,30 +400,53 @@ if (testCases.length) {
 if (!widget && !bundledCase && !FIXTURE_REPLAY && !location.pathname.startsWith('/test-cases')) {
   const button = el('button', 'Subnet Activity');
   button.type = 'button';
-  const panel = el('div');
+  const narrow = matchMedia('(width < 68rem)');
+  let listPosition, listScroll;
+  const back = action('Back to subnet list', () => {
+    layout.classList.remove('activity-inspecting');
+    window.scrollTo(0, listPosition ?? 0);
+    navigator.section.scrollTop = listScroll ?? 0;
+    const target = navigator.section.querySelector('.activity-selection-focus') ?? button;
+    target.focus({ preventScroll: true });
+  });
+  const navigator = mountActivityNavigator(remote, {
+    open(id, subnet, observation) {
+      changeView('proposal', false);
+      search.elements.first.value = String(id);
+      search.elements.second.value = '';
+      startReview([id], observation, subnet);
+    },
+    inspectSubnet(subnet) {
+      changeView('subnet', false);
+      overview.load(subnet);
+    },
+    showReview() {
+      if (!layout.classList.contains('activity-inspecting')) {
+        listPosition = window.scrollY;
+        listScroll = navigator.section.scrollTop;
+      }
+      layout.classList.add('activity-inspecting');
+      if (narrow.matches) {
+        back.focus({ preventScroll: true });
+        window.scrollTo(0, layout.offsetTop);
+      }
+    },
+    references: () => activeView === 'proposal' ? current?.references : undefined,
+    refreshed(observation) {
+      if (activeView !== 'proposal' || !request || request.stopped) return;
+      if (!request.discovered || request.discovered.attempt < observation.attempt) request.discovered = observation;
+      request.acceptActivity?.(observation);
+    },
+  });
+  back.classList.add('activity-back');
   const searchShell = document.querySelector('#proposal-search');
-  searchShell.before(panel);
-  const openProposal = id => {
-    changeView('proposal');
-    search.elements.first.value = String(id);
-    search.elements.second.value = '';
-    panel.replaceChildren();
-    startReview([id]);
-  };
+  const reviewArea = styled('div', 'activity-review', back);
+  const layout = styled('div', 'activity-layout', navigator.section, reviewArea);
+  searchShell.before(layout);
+  reviewArea.append(searchShell, reportContainer, document.querySelector('#subnet-overview'));
   document.querySelector('.masthead-row').append(button);
-  button.addEventListener('click', async () => {
-    const active = () => panel.isConnected;
-    button.disabled = true;
-    panel.replaceChildren(el('p', 'Observing public Governance proposals…'));
-    try {
-      const reply = await remote(active, client => client.subnet_activity([]));
-      if (!active() || !reply) return;
-      const response = result(reply);
-      panel.replaceChildren(subnetActivityView('Err' in response.outcome ? { response, error: liveError(response.outcome.Err) } : { response }, openProposal));
-    } catch (error) {
-      if (active()) panel.replaceChildren(subnetActivityView({ error: error.message }));
-    } finally {
-      button.disabled = false;
-    }
+  button.addEventListener('click', () => {
+    layout.classList.remove('activity-inspecting');
+    navigator.show();
   });
 }

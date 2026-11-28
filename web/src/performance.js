@@ -1,5 +1,5 @@
 import { Principal } from '@icp-sdk/core/principal';
-import { comparisonFilterLabels } from './composed-scope.js';
+import { comparisonFilterLabels, maxFilterSize, performanceNodes } from './composed-scope.js';
 import { liveError, result } from './client.js';
 import { nodeSelectionProfile } from './node-snapshot.js';
 import { el, number, principal, renderPerformance, sourceReceipts } from './view.js';
@@ -18,23 +18,23 @@ export function mountPerformance(call, { connected = false } = {}) {
   let selection;
   let generation = 0;
   let following = connected;
-  const nodeIds = () => connected ? selection?.nodeIds
-    : selection?.nodes[selection.kind === 'existing' ? 'selected' : preset.value];
+  const nodeIds = () => connected ? selection?.nodeIds : performanceNodes(selection, preset.value);
+  preset.replaceChildren(...Object.entries(comparisonFilterLabels).map(([value, label]) =>
+    Object.assign(el('option', label), { value })));
 
   function applyScope() {
     generation++;
     output.replaceChildren();
-    if (following && selection) subnetField.value = selection.subnet;
+    if (following) subnetField.value = selection?.subnet ?? '';
     subnetField.readOnly = following;
     choices.hidden = connected || !following || selection?.kind === 'existing';
     const nodes = following ? nodeIds() : undefined;
-    const scope = connected && selection
-      ? ' · ' + (comparisonFilterLabels[selection.scope] ?? 'Existing members') : '';
+    const scope = following && selection ? ' · ' + (comparisonFilterLabels[connected ? selection.scope : preset.value] ?? 'Existing') : '';
     summary.textContent = !following ? 'Independent subnet scope.' : !selection ? 'Waiting for resolved membership evidence.'
       : selection.label + scope + ' · Registry ' + number(BigInt(selection.registryVersion)) + ' · ' + number(nodes.length)
         + (nodes.length === 1 ? ' node.' : ' nodes.');
-    submit.disabled = following && !nodes?.length;
-    status.textContent = submit.disabled ? (connected ? (selection ? 'The connected filter is empty.' : '')
+    submit.disabled = following && (!nodes?.length || nodes.length > maxFilterSize);
+    status.textContent = nodes?.length > maxFilterSize ? 'This finite filter exceeds 256 nodes. Select a narrower scope.' : submit.disabled ? (connected ? (selection ? 'The connected filter is empty.' : '')
       : 'Choose a populated membership filter or use independent scope.') : '';
   }
 
@@ -87,6 +87,19 @@ export function mountPerformance(call, { connected = false } = {}) {
   return {
     section,
     visible(show) { section.hidden = !show; },
+    useIndependent() {
+      if (connected || !following) return;
+      following = false;
+      mode.value = 'independent';
+      subnetField.value = '';
+      applyScope();
+    },
+    useMembership() {
+      if (following) return;
+      following = true;
+      mode.value = 'follow';
+      applyScope();
+    },
     follow(next, issue) {
       selection = next;
       applyScope();
@@ -98,7 +111,7 @@ export function mountPerformance(call, { connected = false } = {}) {
         throw new Error('Unsupported node selection profile.');
       }
       selection = next;
-      if (following) applyScope();
+      applyScope();
     },
   };
 }

@@ -61,6 +61,8 @@ fn proposal(id: u64, full: bool) -> ProposalInfo {
     }
     ProposalInfo {
         id: Some(ProposalId { id }),
+        reward_status: None,
+        deadline_timestamp_seconds: None,
         status: 1,
         topic: 3,
         proposal_timestamp_seconds: 100,

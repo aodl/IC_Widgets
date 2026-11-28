@@ -1,5 +1,7 @@
 # Subnet Activity and review checks
 
+This document records the first Activity milestone and its verification at the frozen source below. See the [completed navigator](NAVIGATOR.md) for the current discovery scopes, resilience model and recorded catalogue cases.
+
 The frozen implementation is `5aeece635652ddccdfbb87ae2a2a4ac892670e96`. [Initial hosted run for the exact source](https://github.com/aodl/IC_Widgets/actions/runs/46074044777) · [Separate catalogue production release](https://github.com/aodl/IC_Widgets/tree/5f0f11ef98a99a4983a2b6015917f8b3fc911b34/docs/release-candidates/catalogue-4cdb714/production) Activity adds a new optional review response field and a bounded reviewer update. The production reviewer still uses its canonical Governance, Registry and management sources. The legacy collector and stable-state schema are unchanged.
 
 ## Governance observation
@@ -20,7 +22,7 @@ The reviewer reports duplicate raw Add and Remove principals, overlap and eviden
 
 For unequal changes, let `B` and `P` be the unique before/proposed member sets. Evaluate `f(|B|) - |B \ P|` for departing members in the before-state and `f(|P|) - |P \ B|` for not-yet-synchronized arrivals in the proposed state. The reported margin is the minimum. Effective differences exclude duplicate instructions and account for overlap using the simulator’s existing outcome. Equal-size replacement of `R` members reduces to `f(N) - R`.
 
-For combined proposals the current check evaluates each affected subnet against the immediately preceding simulated membership in each order. Earlier arrivals that remain in that roster are treated as available at the next step. If they are still synchronizing, consecutive transitions can overlap and the reported per-step margin can overstate the remaining fault budget. The implementation has no synchronization-time evidence and does not carry earlier unavailable arrivals into later steps. The combined figures apply only to the modeled individual steps.
+In the first milestone the combined check evaluates each affected subnet against the immediately preceding simulated membership in each order. Earlier arrivals that remain in that roster are treated as available at the next step. If they are still synchronizing, consecutive transitions can overlap and the reported per-step margin can overstate the remaining fault budget. The implementation has no synchronization-time evidence and does not carry earlier unavailable arrivals into later steps. The combined figures apply only to the modeled individual steps.
 
 The resilience result is conditional on the modeled availability assumptions and is separate from concentration thresholds. It does not establish observed health or actual liveness. Targeted Registry review sometimes leaves incoming assignment outside the searched roster unresolved. In that case the margin is unavailable. The review retains the precondition and scope limitation.
 

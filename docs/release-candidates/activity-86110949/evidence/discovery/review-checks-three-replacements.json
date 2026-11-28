@@ -1,0 +1,921 @@
+{
+  "Ok": {
+    "outcome": {
+      "Ok": {
+        "complete": true,
+        "coverage": {
+          "adopted_listed": 2,
+          "changed_lifecycle": 0,
+          "executable_decoded": 4,
+          "hydrated": 1,
+          "issues": [],
+          "malformed_payloads": 0,
+          "missing_payloads": 0,
+          "oldest_listed": [
+            "990001"
+          ],
+          "omitted_matches": 0,
+          "open_listed": 3,
+          "pages": 2,
+          "pagination_complete": true,
+          "textual_checked": 5,
+          "unsupported_actions": 0
+        },
+        "matches": [
+          {
+            "node": "kk3lb-f3yae-ba",
+            "other": "990003",
+            "other_role": {
+              "Textual": null
+            },
+            "proposal": "990001",
+            "requested_role": {
+              "Outgoing": null
+            }
+          },
+          {
+            "node": "pgn6g-vdyai-ba",
+            "other": "990005",
+            "other_role": {
+              "Outgoing": null
+            },
+            "proposal": "990001",
+            "requested_role": {
+              "Outgoing": null
+            }
+          },
+          {
+            "node": "mcane-flyam-ba",
+            "other": "990006",
+            "other_role": {
+              "RegistryRemoval": null
+            },
+            "proposal": "990001",
+            "requested_role": {
+              "Outgoing": null
+            }
+          },
+          {
+            "node": "2uxky-wdyby-ba",
+            "other": "990002",
+            "other_role": {
+              "RegistryRemoval": null
+            },
+            "proposal": "990001",
+            "requested_role": {
+              "Incoming": null
+            }
+          },
+          {
+            "node": "pgn6g-vdyai-ba",
+            "other": "990001",
+            "other_role": {
+              "Outgoing": null
+            },
+            "proposal": "990005",
+            "requested_role": {
+              "Outgoing": null
+            }
+          }
+        ],
+        "node_projection": [],
+        "proposals": [
+          {
+            "deadline": [
+              "1796042112"
+            ],
+            "decision": [
+              3
+            ],
+            "executed_at": [],
+            "function": [
+              18
+            ],
+            "id": "990006",
+            "lifecycle": {
+              "AdoptedPendingExecution": null
+            },
+            "motion": false,
+            "observed_at": "1795861321134109924",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Adopted Registry removal"
+            ],
+            "topic": 3,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              false
+            ]
+          },
+          {
+            "deadline": [
+              "1796042112"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "990005",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861321134109924",
+            "target_subnet": [
+              "5ag63-q3yke-ba"
+            ],
+            "targets": [
+              [
+                "5ag63-q3yke-ba"
+              ]
+            ],
+            "title": [
+              "Other Open membership change"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796042112"
+            ],
+            "decision": [
+              3
+            ],
+            "executed_at": [],
+            "function": [],
+            "id": "990003",
+            "lifecycle": {
+              "AdoptedPendingExecution": null
+            },
+            "motion": true,
+            "observed_at": "1795861321134109924",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Adopted motion"
+            ],
+            "topic": 4,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              false
+            ]
+          },
+          {
+            "deadline": [
+              "1796042112"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              18
+            ],
+            "id": "990002",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861321134109924",
+            "target_subnet": [],
+            "targets": [
+              []
+            ],
+            "title": [
+              "Open Registry removal"
+            ],
+            "topic": 3,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          },
+          {
+            "deadline": [
+              "1796042112"
+            ],
+            "decision": [
+              1
+            ],
+            "executed_at": [],
+            "function": [
+              31
+            ],
+            "id": "990001",
+            "lifecycle": {
+              "Open": null
+            },
+            "motion": false,
+            "observed_at": "1795861321134109924",
+            "target_subnet": [
+              "5ag63-q3yke-ba"
+            ],
+            "targets": [
+              [
+                "5ag63-q3yke-ba"
+              ]
+            ],
+            "title": [
+              "Synthetic subnet membership change"
+            ],
+            "topic": 7,
+            "unresolved": [
+              false
+            ],
+            "voting_open": [
+              true
+            ]
+          }
+        ],
+        "registry_complete": [
+          true
+        ],
+        "registry_memberships_checked": [
+          0
+        ],
+        "requested_instructions": [
+          [
+            {
+              "0": "990005",
+              "1": 31,
+              "2": [
+                187,
+                249,
+                246,
+                126,
+                71,
+                46,
+                183,
+                156,
+                191,
+                33,
+                119,
+                8,
+                163,
+                30,
+                133,
+                212,
+                151,
+                155,
+                139,
+                12,
+                217,
+                37,
+                55,
+                233,
+                77,
+                119,
+                6,
+                33,
+                211,
+                125,
+                206,
+                253
+              ]
+            },
+            {
+              "0": "990001",
+              "1": 31,
+              "2": [
+                34,
+                150,
+                152,
+                250,
+                224,
+                85,
+                221,
+                243,
+                7,
+                102,
+                115,
+                14,
+                125,
+                9,
+                238,
+                26,
+                34,
+                172,
+                96,
+                48,
+                133,
+                20,
+                182,
+                29,
+                117,
+                10,
+                166,
+                207,
+                124,
+                188,
+                14,
+                223
+              ]
+            }
+          ]
+        ],
+        "subnets": [
+          [
+            "5ag63-q3yke-ba"
+          ]
+        ],
+        "truncated_proposals": [
+          []
+        ],
+        "voting_issues": [
+          []
+        ],
+        "voting_pagination_complete": [
+          true
+        ]
+      }
+    },
+    "receipts": [
+      {
+        "argument_hash": [
+          129,
+          120,
+          225,
+          150,
+          80,
+          196,
+          71,
+          19,
+          46,
+          12,
+          161,
+          183,
+          47,
+          129,
+          230,
+          93,
+          243,
+          229,
+          32,
+          15,
+          21,
+          3,
+          139,
+          86,
+          20,
+          16,
+          147,
+          185,
+          167,
+          229,
+          83,
+          235
+        ],
+        "id": "1",
+        "item": "Open and adopted before None",
+        "method": "list_proposals",
+        "observed_at": "1795861321134109924",
+        "reject": [],
+        "reply_bytes": "903",
+        "reply_hash": [
+          [
+            76,
+            54,
+            154,
+            69,
+            81,
+            253,
+            112,
+            43,
+            104,
+            248,
+            74,
+            82,
+            42,
+            194,
+            104,
+            172,
+            115,
+            123,
+            33,
+            177,
+            116,
+            171,
+            78,
+            169,
+            151,
+            249,
+            224,
+            90,
+            113,
+            100,
+            173,
+            131
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          175,
+          112,
+          44,
+          154,
+          3,
+          93,
+          164,
+          241,
+          255,
+          167,
+          140,
+          124,
+          192,
+          255,
+          138,
+          190,
+          148,
+          202,
+          223,
+          42,
+          20,
+          105,
+          124,
+          129,
+          62,
+          77,
+          186,
+          77,
+          19,
+          105,
+          78,
+          23
+        ],
+        "id": "2",
+        "item": "Open and adopted before Some(990001)",
+        "method": "list_proposals",
+        "observed_at": "1795861321134109924",
+        "reject": [],
+        "reply_bytes": "278",
+        "reply_hash": [
+          [
+            49,
+            93,
+            218,
+            199,
+            115,
+            207,
+            8,
+            83,
+            118,
+            235,
+            127,
+            178,
+            102,
+            15,
+            84,
+            137,
+            85,
+            24,
+            113,
+            211,
+            164,
+            56,
+            18,
+            252,
+            221,
+            201,
+            36,
+            231,
+            205,
+            130,
+            190,
+            229
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          174,
+          20,
+          166,
+          12,
+          199,
+          73,
+          73,
+          180,
+          62,
+          99,
+          170,
+          203,
+          63,
+          79,
+          27,
+          148,
+          196,
+          73,
+          4,
+          176,
+          229,
+          219,
+          151,
+          188,
+          119,
+          251,
+          171,
+          99,
+          35,
+          39,
+          196,
+          232
+        ],
+        "id": "3",
+        "item": "Accepting votes before None",
+        "method": "list_proposals",
+        "observed_at": "1795861321134109924",
+        "reject": [],
+        "reply_bytes": "648",
+        "reply_hash": [
+          [
+            95,
+            229,
+            98,
+            122,
+            108,
+            152,
+            19,
+            249,
+            112,
+            205,
+            209,
+            59,
+            246,
+            122,
+            165,
+            133,
+            47,
+            246,
+            165,
+            238,
+            77,
+            114,
+            181,
+            142,
+            238,
+            54,
+            23,
+            241,
+            51,
+            76,
+            110,
+            254
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          171,
+          194,
+          78,
+          91,
+          51,
+          78,
+          224,
+          229,
+          252,
+          150,
+          33,
+          137,
+          137,
+          44,
+          198,
+          190,
+          129,
+          250,
+          68,
+          114,
+          111,
+          31,
+          35,
+          221,
+          18,
+          190,
+          144,
+          92,
+          35,
+          224,
+          19,
+          243
+        ],
+        "id": "4",
+        "item": "Accepting votes before Some(990001)",
+        "method": "list_proposals",
+        "observed_at": "1795861321134109924",
+        "reject": [],
+        "reply_bytes": "278",
+        "reply_hash": [
+          [
+            49,
+            93,
+            218,
+            199,
+            115,
+            207,
+            8,
+            83,
+            118,
+            235,
+            127,
+            178,
+            102,
+            15,
+            84,
+            137,
+            85,
+            24,
+            113,
+            211,
+            164,
+            56,
+            18,
+            252,
+            221,
+            201,
+            36,
+            231,
+            205,
+            130,
+            190,
+            229
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          243,
+          133,
+          37,
+          219,
+          58,
+          242,
+          212,
+          52,
+          175,
+          34,
+          29,
+          198,
+          9,
+          11,
+          211,
+          216,
+          240,
+          115,
+          3,
+          111,
+          201,
+          205,
+          196,
+          42,
+          20,
+          192,
+          242,
+          73,
+          169,
+          135,
+          96,
+          177
+        ],
+        "id": "5",
+        "item": "990002",
+        "method": "get_proposal_info",
+        "observed_at": "1795861321134109924",
+        "reject": [],
+        "reply_bytes": "374",
+        "reply_hash": [
+          [
+            116,
+            201,
+            206,
+            94,
+            106,
+            54,
+            143,
+            169,
+            88,
+            78,
+            110,
+            119,
+            151,
+            24,
+            205,
+            247,
+            136,
+            187,
+            35,
+            230,
+            235,
+            116,
+            149,
+            110,
+            178,
+            3,
+            72,
+            74,
+            22,
+            83,
+            232,
+            244
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          227,
+          176,
+          196,
+          66,
+          152,
+          252,
+          28,
+          20,
+          154,
+          251,
+          244,
+          200,
+          153,
+          111,
+          185,
+          36,
+          39,
+          174,
+          65,
+          228,
+          100,
+          155,
+          147,
+          76,
+          164,
+          149,
+          153,
+          27,
+          120,
+          82,
+          184,
+          85
+        ],
+        "id": "6",
+        "item": "Registry head",
+        "method": "get_latest_version",
+        "observed_at": "1795861321134109924",
+        "reject": [],
+        "reply_bytes": "2",
+        "reply_hash": [
+          [
+            192,
+            191,
+            254,
+            170,
+            184,
+            225,
+            105,
+            72,
+            175,
+            236,
+            74,
+            198,
+            229,
+            96,
+            136,
+            216,
+            7,
+            42,
+            104,
+            208,
+            120,
+            131,
+            1,
+            181,
+            62,
+            96,
+            86,
+            14,
+            141,
+            133,
+            206,
+            88
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      },
+      {
+        "argument_hash": [
+          123,
+          1,
+          91,
+          59,
+          79,
+          106,
+          93,
+          111,
+          35,
+          84,
+          196,
+          57,
+          38,
+          3,
+          237,
+          30,
+          39,
+          173,
+          183,
+          183,
+          66,
+          38,
+          70,
+          238,
+          221,
+          33,
+          124,
+          162,
+          239,
+          133,
+          237,
+          241
+        ],
+        "id": "7",
+        "item": "subnet_list",
+        "method": "get_value",
+        "observed_at": "1795861321134109924",
+        "reject": [],
+        "reply_bytes": "9",
+        "reply_hash": [
+          [
+            64,
+            6,
+            23,
+            147,
+            199,
+            171,
+            99,
+            138,
+            7,
+            224,
+            38,
+            61,
+            12,
+            158,
+            220,
+            120,
+            39,
+            29,
+            220,
+            53,
+            130,
+            95,
+            68,
+            74,
+            151,
+            20,
+            218,
+            78,
+            101,
+            154,
+            71,
+            225
+          ]
+        ],
+        "source": "uxrrr-q7777-77774-qaaaq-cai"
+      }
+    ],
+    "registry_version": [
+      "100"
+    ],
+    "usage": {
+      "balance_after": "2_943_994_602_782",
+      "balance_before": "2_944_040_007_063",
+      "calls": 7,
+      "finished_at": "1795861321134109924",
+      "instructions": "7348196",
+      "peak_batch_reservation": "42_102_524_000",
+      "source_bytes": "2492",
+      "started_at": "1795861321134109924"
+    }
+  }
+}

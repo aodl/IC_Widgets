@@ -1,0 +1,134 @@
+{
+  "capturedGovernance": {
+    "discoveryComplete": false,
+    "discoveryPages": 1,
+    "proposalReplies": 5
+  },
+  "duplicateRosterAssignments": [],
+  "nnsSubnet": "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+  "proposals": [
+    {
+      "before": 13,
+      "effectiveIncoming": 1,
+      "effectiveOutgoing": 1,
+      "incomingAssignments": [
+        {
+          "apiBoundary": "absent",
+          "node": "ssfqq-s2yvo-mtunz-ok6ih-wbtxo-p42ie-mlm2u-g33bu-fm6kj-rpz2s-kae",
+          "subnets": []
+        }
+      ],
+      "incompleteMetadataNodes": [],
+      "missingOrUnavailable": [],
+      "proposal": "145077",
+      "proposed": 13,
+      "represented": 14,
+      "requiredKeyCount": 47,
+      "subnet": "5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae",
+      "sufficientPinnedRegistry": true
+    },
+    {
+      "before": 13,
+      "effectiveIncoming": 1,
+      "effectiveOutgoing": 1,
+      "incomingAssignments": [
+        {
+          "apiBoundary": "absent",
+          "node": "b3eje-pmc5j-yqvtm-vrg5t-uzmc3-xrxjs-7xa3c-urakj-tdal4-klkit-iqe",
+          "subnets": []
+        }
+      ],
+      "incompleteMetadataNodes": [],
+      "missingOrUnavailable": [],
+      "proposal": "145076",
+      "proposed": 13,
+      "represented": 14,
+      "requiredKeyCount": 47,
+      "subnet": "4zbus-z2bmt-ilreg-xakz4-6tyre-hsqj4-slb4g-zjwqo-snjcc-iqphi-3qe",
+      "sufficientPinnedRegistry": true
+    },
+    {
+      "before": 13,
+      "effectiveIncoming": 2,
+      "effectiveOutgoing": 2,
+      "incomingAssignments": [
+        {
+          "apiBoundary": "absent",
+          "node": "6jidn-uqgyz-hl2l3-ou2rg-slu73-iztvd-yhdu7-hjfuz-cy4wc-jvoqc-uae",
+          "subnets": []
+        },
+        {
+          "apiBoundary": "absent",
+          "node": "gfeqv-7ndps-okvma-qxwsi-ozk4x-b5wyp-hzwmb-v6g5t-dmen4-aff4d-zae",
+          "subnets": []
+        }
+      ],
+      "incompleteMetadataNodes": [],
+      "missingOrUnavailable": [],
+      "proposal": "145075",
+      "proposed": 13,
+      "represented": 15,
+      "requiredKeyCount": 52,
+      "subnet": "4ecnw-byqwz-dtgss-ua2mh-pfvs7-c3lct-gtf4e-hnu75-j7eek-iifqm-sqe",
+      "sufficientPinnedRegistry": true
+    },
+    {
+      "before": 13,
+      "effectiveIncoming": 2,
+      "effectiveOutgoing": 2,
+      "incomingAssignments": [
+        {
+          "apiBoundary": "absent",
+          "node": "7vhhj-2qrcv-n5spd-aiff6-pjrke-jetz4-trolr-icnee-yirwt-4pgtp-5ae",
+          "subnets": []
+        },
+        {
+          "apiBoundary": "absent",
+          "node": "exk6f-v2scl-a77ea-mmykb-rmogm-66rct-usltz-x6pdc-5g3y5-yiw7w-3ae",
+          "subnets": []
+        }
+      ],
+      "incompleteMetadataNodes": [],
+      "missingOrUnavailable": [],
+      "proposal": "145071",
+      "proposed": 13,
+      "represented": 15,
+      "requiredKeyCount": 52,
+      "subnet": "qxesv-zoxpm-vc64m-zxguk-5sj74-35vrb-tbgwg-pcird-5gr26-62oxl-cae",
+      "sufficientPinnedRegistry": true
+    },
+    {
+      "before": 13,
+      "effectiveIncoming": 2,
+      "effectiveOutgoing": 2,
+      "incomingAssignments": [
+        {
+          "apiBoundary": "absent",
+          "node": "flc7j-p6oyd-c5hbs-f5h3s-2lgxj-ryled-d534j-wd4em-jujlp-xpno2-jae",
+          "subnets": []
+        },
+        {
+          "apiBoundary": "absent",
+          "node": "g4xss-lbrh4-4l4mw-ehk6z-3tgfx-f2qzz-bcmiq-fxk5d-xwijm-evdhh-3qe",
+          "subnets": []
+        }
+      ],
+      "incompleteMetadataNodes": [],
+      "missingOrUnavailable": [],
+      "proposal": "145063",
+      "proposed": 13,
+      "represented": 15,
+      "requiredKeyCount": 52,
+      "subnet": "gmq5v-hbozq-uui6y-o55wc-ihop3-562wb-3qspg-nnijg-npqp5-he3cj-3ae",
+      "sufficientPinnedRegistry": true
+    }
+  ],
+  "queriedKeys": 274,
+  "recordStatuses": {
+    "absent": 16,
+    "inline": 258
+  },
+  "registryPin": 66264,
+  "rosterSubnets": 98,
+  "subnetRostersResolved": 98
+}

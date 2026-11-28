@@ -93,6 +93,12 @@ for case in replays["replays"]:
             assert identifier == evidence["proposal_id"]
             assert any(row["id"] == identifier and row["function"] == function for row in case["activity"])
             continue
+        if "activity_capture_sha256" in evidence:
+            assert case["lifecycle"] == "recorded-open" and function == 31
+            assert identifier == evidence["proposal_id"]
+            archived = ROOT.parents[2] / "docs/subnet-activity/governance-2026-11-27" / f"{decimal(identifier)}.governance.didbin"
+            assert sha256(archived.read_bytes()).hexdigest() == evidence["activity_capture_sha256"]
+            continue
         row, raw = proposals[decimal(identifier)]
         assert function == row["function_id"] and identifier == evidence["proposal_id"]
         if evidence["kind"] == "recorded-governance-reply":
@@ -111,6 +117,10 @@ for case in replays["replays"]:
         assert version == 66013 and "nns_subnet_id" in registry["synthetic_overlay"]
         reference(registry["capture"])
         reference(registry["reference"])
+    elif registry["kind"] == "activity-archive":
+        assert version == 66264 and case["menu"] and not registry["chunks"]
+        cases.add(case["id"])
+        continue
     else:
         assert registry["kind"] == "synthetic" and decimal(registry["mutation_version"]) < version
         assert set(registry["subnets"]) <= set(registry["roster"])

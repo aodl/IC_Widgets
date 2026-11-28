@@ -9,7 +9,7 @@ import { help } from './review-help.js';
 import { nodeTables } from './node-table.js';
 import { proposalNodeSelection } from './node-snapshot.js';
 import { reportSnapshot } from './review-markdown.js';
-import { reviewCheckSummary, reviewChecksView } from './review-checks.js';
+import { acceptScopedActivity, discoveryScope, nextActivityAttempt, reviewCheckSummary, reviewChecksView } from './review-checks.js';
 import { liveError, result } from './client.js';
 import { affectedNodes, comparisonEvidence, createReviewSession, stageLabel } from './review-session.js';
 import { action, branch, deltaNode, el, hex, number, option, principal, saveFile, styled, table, time, words } from './view.js';
@@ -107,7 +107,7 @@ function evidenceView(live, state, session, context, model, replay) {
     (context?.failures ?? []).map(item => el('p', item.type ? stageLabel(item.type) + ' · ' + item.key + ' · ' : '', item.reason)));
 }
 
-export function mountReviewWorkspace({ live, contexts, map, mapHost, active, call, progress, performance, replay }) {
+export function mountReviewWorkspace({ live, contexts, map, mapHost, active, call, progress, performance, replay, discovered, preferredSubnet }) {
   const body = live.outcome.Ok;
   const { report } = body;
   const { proposals, registry_version: version } = report.manifest;
@@ -124,9 +124,10 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   const pane = styled('section', 'card review-pane');
   pane.hidden = true;
   const checks = el('div');
+  const references = discoveryScope(report);
   let activityRunning = false;
-  let observation = replay && !replay.activity
-    ? { error: 'This historical case has no captured cross-proposal discovery.' } : undefined;
+  let observation = acceptScopedActivity(undefined, discovered, proposals, references) ?? (replay && !replay.activity
+    ? { error: 'This historical review has no bundled cross-proposal observation.' } : undefined);
   const tools = styled('div', 'actions review-tools');
   const header = styled('section', 'review-header',
     el('h2', proposalHeading(proposals.map(row => row.id))),
@@ -154,7 +155,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
   let inspection;
   let trigger;
   let scenario = report.scenarios.find(row => branch(row.id) === 'AThenB') ?? report.scenarios[0];
-  let subnet;
+  let subnet = preferredSubnet;
 
   function choose(next) {
     const activeElement = document.activeElement;
@@ -319,7 +320,7 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
       model?.previousAccepted ? el('p', 'Previous accepted comparison · ' + (state.work === 'running' ? 'Retry in progress' : 'Replacement unavailable')) : null,
       selected?.status === 'outside' ? el('p', 'Detail checks are outside this review’s work budget.') : null);
     replace(verification, selected?.state ? readinessLine(state) : null);
-    replace(checks, reviewChecksView(reviewCheckSummary(body.review_checks?.[0], selected ? branch(selected.scenario.id) : undefined, observation)));
+    replace(checks, reviewChecksView(reviewCheckSummary(body.review_checks?.[0], selected ? branch(selected.scenario.id) : undefined, observation)), !replay ? refreshActivityButton() : null);
     renderTables();
     map?.update(model && { key: [model.order, ...model.ids, model.subnet, model.step, model.version].join('/'),
       members: model.members, countries: model.countries }, state.consistency?.blocked ? 'Review blocked · Governance changed'
@@ -340,28 +341,40 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     else inspector.hidden = true;
   }
 
-  async function loadActivity() {
-    if (observation || activityRunning) return;
+  function refreshActivityButton() {
+    const button = action(activityRunning ? 'Refreshing discovery…' : 'Refresh review checks', () => void loadActivity(true));
+    button.disabled = activityRunning;
+    return button;
+  }
+
+  async function loadActivity(refresh = false) {
+    if ((!refresh && observation) || activityRunning) return;
+    const attempt = nextActivityAttempt();
     activityRunning = true;
+    if (refresh) render();
     const checkActive = () => active() && session.section().work !== 'stopped';
+    const accept = next => { observation = acceptScopedActivity(observation, { attempt, ...next }, proposals, references); };
     try {
       await session.settled();
       if (!checkActive()) return;
-      const reply = await call(checkActive, client => client.subnet_activity(proposals.map(row => row.id)));
+      const reply = await call(checkActive, client => client.subnet_activity(proposals.map(row => row.id), replay || !references.length ? [] : [references]));
       if (!checkActive() || !reply) return;
       const response = result(reply);
-      observation = 'Err' in response.outcome ? { response, error: liveError(response.outcome.Err) } : { response };
+      accept('Err' in response.outcome ? { response, error: 'Refresh failed · ' + liveError(response.outcome.Err) } : { response });
     } catch (error) {
-      observation = { error: error.message };
+      if (checkActive()) accept({ error: 'Refresh failed · ' + error.message });
     } finally {
       activityRunning = false;
       if (checkActive()) render();
     }
   }
 
-  return { section, session, loadActivity, dispose: () => narrow.removeEventListener('change', renderTables), start: chooseScope, inspect, openPerformance() {
+  return { section, session, loadActivity, references, acceptActivity(next) {
+    if (active()) { observation = acceptScopedActivity(observation, next, proposals, references); render(); }
+  }, dispose: () => narrow.removeEventListener('change', renderTables), start: chooseScope, inspect, openPerformance() {
     if (!pane.contains(performance.section)) pane.replaceChildren(performance.section);
     pane.hidden = false;
+    performance.useMembership();
     performance.visible(true);
   } };
 }

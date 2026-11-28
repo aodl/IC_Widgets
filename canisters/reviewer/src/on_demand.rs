@@ -9,7 +9,7 @@ use std::{
     collections::BTreeSet,
 };
 
-pub use activity::LiveSubnetActivity;
+pub use activity::{LiveSubnetActivity, RequestedReference};
 pub use detail::{
     DetailComparisonInput, DetailKeys, DetailRecords, LiveMembershipComparison, LiveSubnetSnapshot,
 };

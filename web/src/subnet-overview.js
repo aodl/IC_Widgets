@@ -33,6 +33,7 @@ export function mountSubnetOverview({ call, performance, replay, publish }) {
 
   function load(value) {
     invalidate();
+    field.value = value;
     let input;
     try {
       input = subnetInput(value);

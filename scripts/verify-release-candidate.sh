@@ -27,7 +27,8 @@ build_copy() {
     checkout=$(mktemp -d "$output/source.XXXXXXXX")
     target="$checkout/target"
     git archive "$revision" Cargo.toml Cargo.lock rust-toolchain.toml canisters crates tests/source-fixture vendor/ic \
-        scripts/build-frontend-wasm.sh web | tar -x -C "$checkout"
+        scripts/build-frontend-wasm.sh web \
+        docs/subnet-activity/governance-2026-11-27/pinned-registry-values.json | tar -x -C "$checkout"
     ln -s "$repo/web/node_modules" "$checkout/web/node_modules"
     local wasm="$target/wasm32-unknown-unknown/release"
     (

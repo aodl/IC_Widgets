@@ -23,7 +23,7 @@ test('both variants share a finite Performance selection contract, including rea
   const comparison = nodeSelection({ kind: 'comparison', registryVersion: 42n, selected: [], affected: [node], outgoing: [node] });
   assert.deepEqual(existing.profile, comparison.profile);
   assert.equal(existing.registryVersion, '18446744073709551615');
-  assert.deepEqual(existing.nodes, { selected: [], incoming: [], outgoing: [], affected: [] });
+  assert.deepEqual(existing.nodes, { selected: [], before: [], incoming: [], outgoing: [], affected: [] });
   assert.deepEqual(comparison.nodes.affected, [node.toText()]);
   assert.throws(() => comparison.nodes.selected.push(node), TypeError);
 });
@@ -32,7 +32,7 @@ test('connected Performance gets only the exact finite producer filter, includin
   const subnet = Principal.fromUint8Array(Uint8Array.of(19, 2)).toText();
   const nodes = [1, 2, 3, 4].map(id => Principal.fromUint8Array(Uint8Array.of(id, 2)).toText());
   const selected = [nodes[0], nodes[2]];
-  const selection = nodeSelection({ kind: 'comparison', registryVersion: 42n, selected, incoming: [nodes[2]],
+  const selection = nodeSelection({ kind: 'comparison', registryVersion: 42n, selected, before: nodes.slice(0, 2), incoming: [nodes[2]],
     outgoing: [nodes[1]], affected: nodes.slice(1), revision: 'digest', subnet, label: 'Test scope' });
   const members = [
     { id: nodes[0], role: 'Retained', label: 'one', point: undefined },
@@ -48,7 +48,7 @@ test('connected Performance gets only the exact finite producer filter, includin
   assert.deepEqual(readNodeFilter(filter).nodeIds, nodes.slice(0, 3));
   assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'proposed-membership').filter).nodeIds, selected);
   assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'before-membership').filter).nodeIds, nodes.slice(0, 2));
-  assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'changed-membership').filter).nodeIds, nodes.slice(1, 3));
+  assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'changed-membership').filter).nodeIds, [nodes[2], nodes[1]]);
   assert.deepEqual(readNodeFilter(composedOutputs(selection, map, 'affected-membership').filter).nodeIds, nodes.slice(1));
   assert.deepEqual(readNodeFilter({ ...filter, value: { ...filter.value, nodeIds: [] } }).nodeIds, []);
   assert.throws(() => readNodeFilter({ kind: 'waiting' }), /Invalid widget evidence/);

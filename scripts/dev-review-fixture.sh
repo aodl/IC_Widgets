@@ -108,8 +108,8 @@ for line in Path("cases.tsv").read_text().splitlines():
     lifecycle = ("Constructed " if kind == "constructed" else "Recorded ") + status.title() + " proposal"
     cases.append(dict(id=id, name=row["name"], purpose=row["purpose"], reviewer=principal, proposalIds=row["proposal_ids"],
                       provenance=row["provenance"], failureReason=row.get("indexed_failure_reason"),
-                      activity=bool(row.get("activity")), registryVersion=registry["version"], registryFrom=times[0] if times else None,
-                      registryTo=times[-1] if times else None, lifecycleLabel=lifecycle,
+                      activity=bool(row.get("activity")), registryVersion=registry["version"], registryFrom=registry.get("from_utc", times[0] if times else None),
+                      registryTo=registry.get("to_utc", times[-1] if times else None), lifecycleLabel=lifecycle,
                       roleSupplement=registry.get("synthetic_overlay"), actionEvidence=actions))
 Path("replays.json").write_text(json.dumps(dict(initial=sys.argv[2], cases=cases)) + "\n")
 PY
