@@ -1,0 +1,27 @@
+IC Widgets a3a3787326bcc2f17dd17b0fde198b3a98fe4c97
+Network Nexus b8c174b928a9c07dad7a76aa5145ca24e5ed3bfa
+Host https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net
+Reviewer s34gv-3qaaa-aaaar-qcifa-cai
+v24.15.0
+rustc 1.96.0 (ac68faa20 2026-05-25)
+binary: rustc
+commit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96
+commit-date: 2026-05-25
+host: x86_64-unknown-linux-gnu
+
+Both builds produced identical Wasm, gzip, and Candid bytes for all five packages. Candid matched the two source interfaces in both directions.
+
+dfx 0.31.0
+didc 0.4.0
+candid-extractor 0.1.6
+
+Uncompressed Wasm hashes
+429ff42e972aade3814d1ad5f275ac1fc01bad5a95acb9ea2653f0c61d95e048  nx_activity.wasm
+bb43708d8327405c832ced368f17ab65e4c55b80ce55df9cb25d8da8ed40d702  nx_host.wasm
+e6f7eb44a59c0a6f68933e55a752d32987cb05620d88fb538f58bbf33b883a9a  nx_inspector.wasm
+ea023ed61e8abcfe8709973b63daac59183ec1a18fb41508612a193bf6a1323c  nx_map.wasm
+de35f4c3d7ce65307470a06b729d5dacc2ad72be9b4662063b3f44cab90e68d9  nx_performance.wasm
+
+Disposable exact-package verification
+Verified 23 certificate-v2 responses, four canonical widget frames, and browser origin isolation.
+All local network processes stopped

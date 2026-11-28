@@ -1,0 +1,241 @@
+{
+  "widgets": [
+    {
+      "definition": "map",
+      "title": "IC Node Map",
+      "origin": "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [
+        {
+          "id": "scene",
+          "profile": {
+            "id": "urn:ic-widgets:map-scene",
+            "major": 1
+          }
+        }
+      ],
+      "outputs": [],
+      "downloads": false
+    },
+    {
+      "definition": "performance",
+      "title": "Performance",
+      "origin": "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [
+        {
+          "id": "filter",
+          "profile": {
+            "id": "urn:ic-widgets:node-filter",
+            "major": 1
+          }
+        }
+      ],
+      "outputs": [],
+      "downloads": false
+    },
+    {
+      "definition": "activity",
+      "title": "Subnet Activity",
+      "origin": "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "subject",
+          "profile": {
+            "id": "urn:ic-widgets:inspection-subject",
+            "major": 1
+          }
+        }
+      ]
+    },
+    {
+      "definition": "inspector",
+      "title": "Membership inspector",
+      "origin": "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net",
+      "path": "/embed",
+      "configuration": {
+        "version": 1,
+        "value": {}
+      },
+      "inputs": [
+        {
+          "id": "subject",
+          "profile": {
+            "id": "urn:ic-widgets:inspection-subject",
+            "major": 1
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "id": "scene",
+          "profile": {
+            "id": "urn:ic-widgets:map-scene",
+            "major": 1
+          }
+        },
+        {
+          "id": "filter",
+          "profile": {
+            "id": "urn:ic-widgets:node-filter",
+            "major": 1
+          }
+        }
+      ],
+      "downloads": true
+    }
+  ],
+  "dashboard": {
+    "version": 1,
+    "id": "nns-review",
+    "title": "NNS proposal review",
+    "revision": 0,
+    "views": [
+      {
+        "id": "activity-review",
+        "title": "Activity review",
+        "layout": "two-column",
+        "inputs": [],
+        "widgets": [
+          {
+            "id": "activity",
+            "definition": "activity",
+            "title": "Subnet Activity",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [],
+            "outputs": [
+              {
+                "id": "subject",
+                "profile": {
+                  "id": "urn:ic-widgets:inspection-subject",
+                  "major": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "inspector",
+            "definition": "inspector",
+            "title": "Membership inspector",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "subject",
+                "profile": {
+                  "id": "urn:ic-widgets:inspection-subject",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "id": "scene",
+                "profile": {
+                  "id": "urn:ic-widgets:map-scene",
+                  "major": 1
+                }
+              },
+              {
+                "id": "filter",
+                "profile": {
+                  "id": "urn:ic-widgets:node-filter",
+                  "major": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "map",
+            "definition": "map",
+            "title": "IC Node Map",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "scene",
+                "profile": {
+                  "id": "urn:ic-widgets:map-scene",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": []
+          },
+          {
+            "id": "performance",
+            "definition": "performance",
+            "title": "Performance",
+            "configuration": {
+              "version": 1,
+              "value": {}
+            },
+            "inputs": [
+              {
+                "id": "filter",
+                "profile": {
+                  "id": "urn:ic-widgets:node-filter",
+                  "major": 1
+                }
+              }
+            ],
+            "outputs": []
+          }
+        ],
+        "bindings": [
+          {
+            "from": {
+              "widget": "activity",
+              "port": "subject"
+            },
+            "to": {
+              "widget": "inspector",
+              "port": "subject"
+            }
+          },
+          {
+            "from": {
+              "widget": "inspector",
+              "port": "scene"
+            },
+            "to": {
+              "widget": "map",
+              "port": "scene"
+            }
+          },
+          {
+            "from": {
+              "widget": "inspector",
+              "port": "filter"
+            },
+            "to": {
+              "widget": "performance",
+              "port": "filter"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

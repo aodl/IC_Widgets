@@ -1,0 +1,174 @@
+{
+  "status": "awaiting-mainnet-installation-approval",
+  "sources": {
+    "networkNexus": "b8c174b928a9c07dad7a76aa5145ca24e5ed3bfa",
+    "icWidgets": "a3a3787326bcc2f17dd17b0fde198b3a98fe4c97"
+  },
+  "catalogueSHA256": "a0817a61cf44619989e027856312def779b3279d58fb1c4e3fa6c122c617c8e4",
+  "reviewer": "s34gv-3qaaa-aaaar-qcifa-cai",
+  "standalone": "s45ab-wiaaa-aaaar-qcifq-cai",
+  "funding": {
+    "icpReceived": "3.00000000",
+    "icpConverted": "2.82315987",
+    "icpConversionTransferFee": "0.00010000",
+    "icpRemaining": "0.17674013",
+    "icpLedgerConversionBlock": 40765345,
+    "cyclesMintedBeforeFee": 4058292313125,
+    "cycleDepositFee": 100000000,
+    "cyclesCreationDebits": 4058192307692,
+    "retainedNominalPerCanister": 150000000000,
+    "cyclesLedgerRoundingRemainder": 5433
+  },
+  "installOrder": [
+    "nx_activity",
+    "nx_inspector",
+    "nx_map",
+    "nx_performance",
+    "nx_host"
+  ],
+  "canisters": [
+    {
+      "name": "nx_host",
+      "canisterId": "5i3qr-tyaaa-aaaar-qcjaq-cai",
+      "canonicalOrigin": "https://5i3qr-tyaaa-aaaar-qcjaq-cai.icp.net",
+      "subnetClass": "fiduciary",
+      "subnet": "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae",
+      "controllers": [
+        "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+        "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+      ],
+      "moduleHashAtAllocation": null,
+      "cyclesAtStatus": 149994915979,
+      "creationTimestampNanoseconds": "1795870015850239612",
+      "cyclesLedgerBlock": 17348258,
+      "cyclesLedgerDebit": 1457792307692,
+      "installPackage": {
+        "file": "nx_host.wasm.gz",
+        "sha256": "3b513f90ec66a0371df6a1cdf6ce28a56a30be2f86b955578ecc6e79bef75ccb",
+        "bytes": 445779
+      },
+      "uncompressedWasm": {
+        "sha256": "bb43708d8327405c832ced368f17ab65e4c55b80ce55df9cb25d8da8ed40d702",
+        "bytes": 1360876
+      },
+      "candid": "nx_host.did"
+    },
+    {
+      "name": "nx_activity",
+      "canisterId": "mdoiw-yaaaa-aaaas-am2ca-cai",
+      "canonicalOrigin": "https://mdoiw-yaaaa-aaaas-am2ca-cai.icp.net",
+      "subnetClass": "european",
+      "subnet": "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe",
+      "controllers": [
+        "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+        "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+      ],
+      "moduleHashAtAllocation": null,
+      "cyclesAtStatus": 149998056000,
+      "creationTimestampNanoseconds": "1795870026673694603",
+      "cyclesLedgerBlock": 17348264,
+      "cyclesLedgerDebit": 650100000000,
+      "installPackage": {
+        "file": "nx_activity.wasm.gz",
+        "sha256": "a6376142e539f82da5cc7f84df9fdb1c0a2ce3aa080d2b8816fd18a68f46a67b",
+        "bytes": 527968
+      },
+      "uncompressedWasm": {
+        "sha256": "429ff42e972aade3814d1ad5f275ac1fc01bad5a95acb9ea2653f0c61d95e048",
+        "bytes": 1609261
+      },
+      "candid": "nx_activity.did"
+    },
+    {
+      "name": "nx_inspector",
+      "canisterId": "mepoc-vyaaa-aaaas-am2cq-cai",
+      "canonicalOrigin": "https://mepoc-vyaaa-aaaas-am2cq-cai.icp.net",
+      "subnetClass": "european",
+      "subnet": "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe",
+      "controllers": [
+        "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+        "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+      ],
+      "moduleHashAtAllocation": null,
+      "cyclesAtStatus": 149998056000,
+      "creationTimestampNanoseconds": "1795870036101612679",
+      "cyclesLedgerBlock": 17348271,
+      "cyclesLedgerDebit": 650100000000,
+      "installPackage": {
+        "file": "nx_inspector.wasm.gz",
+        "sha256": "ad33060a928977a8b86ce2452ad4876d0da309d6ea8930905ac49ab0b2366aa9",
+        "bytes": 725361
+      },
+      "uncompressedWasm": {
+        "sha256": "e6f7eb44a59c0a6f68933e55a752d32987cb05620d88fb538f58bbf33b883a9a",
+        "bytes": 1925549
+      },
+      "candid": "nx_inspector.did"
+    },
+    {
+      "name": "nx_map",
+      "canisterId": "mnmf6-dqaaa-aaaas-am2da-cai",
+      "canonicalOrigin": "https://mnmf6-dqaaa-aaaas-am2da-cai.icp.net",
+      "subnetClass": "european",
+      "subnet": "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe",
+      "controllers": [
+        "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+        "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+      ],
+      "moduleHashAtAllocation": null,
+      "cyclesAtStatus": 149998056000,
+      "creationTimestampNanoseconds": "1795870046322850256",
+      "cyclesLedgerBlock": 17348274,
+      "cyclesLedgerDebit": 650100000000,
+      "installPackage": {
+        "file": "nx_map.wasm.gz",
+        "sha256": "be49747fbd8a16a3c1bd7cb30c5cb3c1671987b1c5e73da7512c9b19bfac92d4",
+        "bytes": 623532
+      },
+      "uncompressedWasm": {
+        "sha256": "ea023ed61e8abcfe8709973b63daac59183ec1a18fb41508612a193bf6a1323c",
+        "bytes": 1611821
+      },
+      "candid": "nx_map.did"
+    },
+    {
+      "name": "nx_performance",
+      "canisterId": "mkndk-oiaaa-aaaas-am2dq-cai",
+      "canonicalOrigin": "https://mkndk-oiaaa-aaaas-am2dq-cai.icp.net",
+      "subnetClass": "european",
+      "subnet": "bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe",
+      "controllers": [
+        "amzih-bssz4-twanl-zf6nr-bqsnn-d7rlt-eerbc-oe7vv-uggn5-3naqo-3ae",
+        "zkkkd-i34qc-367ln-e2u7o-ezznu-dkfqh-gtfvz-cviph-6qa4v-evtfs-wqe"
+      ],
+      "moduleHashAtAllocation": null,
+      "cyclesAtStatus": 149998056000,
+      "creationTimestampNanoseconds": "1795870058411158437",
+      "cyclesLedgerBlock": 17348284,
+      "cyclesLedgerDebit": 650100000000,
+      "installPackage": {
+        "file": "nx_performance.wasm.gz",
+        "sha256": "e62658ca0ecd41509f29a712432e830806a9d8d79dfe06383ee01c315afe8e96",
+        "bytes": 725361
+      },
+      "uncompressedWasm": {
+        "sha256": "de35f4c3d7ce65307470a06b729d5dacc2ad72be9b4662063b3f44cab90e68d9",
+        "bytes": 1925549
+      },
+      "candid": "nx_performance.did"
+    }
+  ],
+  "initialSettings": {
+    "computeAllocationPercent": 0,
+    "memoryAllocationBytes": 0,
+    "freezingThresholdSeconds": 2592000,
+    "reservedCyclesLimit": 5000000000000,
+    "logVisibility": "controllers"
+  },
+  "verification": {
+    "reproducibleBuilds": 2,
+    "disposableCertifiedResponses": 23,
+    "connectedWidgetOrigins": 4,
+    "unauthorizedBrowserRequests": 0
+  }
+}
