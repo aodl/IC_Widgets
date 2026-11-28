@@ -4,7 +4,7 @@
 
 The standalone browser regression built the embedded frontend from `6fdfd18db6923ce7e36d23596e1d9667919ce7c5`. It independently validated 126 gateway responses and exercised all 45 catalogue cases. Seventeen cases generated reports. The bundled cases made zero reviewer calls and the complete browser run admitted zero unauthorized requests. The rehearsal then exercised the Activity, Membership, and finite Performance paths against disposable fixture canisters. [Standalone browser trace](standalone-regression.json)
 
-The unrelated Palette browser proof verified two views, superseded inputs, an empty ready scope, saved restoration and removal of a silent widget at host `2d0abdcfbde9a577502bde2d0ecd7bf39ace0727`. It allowed zero off-origin requests. Four host unit tests also passed.
+The unrelated Palette browser proof verified two views, superseded inputs, an empty ready scope, saved restoration and removal of a silent widget at host `2d0abdcfbde9a577502bde2d0ecd7bf39ace0727`. It allowed zero off-origin requests. Four host unit tests and 40 IC Widgets frontend unit tests also passed. The hosted IC Widgets gate passed Rust lint, the backend replay tests, and the frontend build at the runtime source revision. [Hosted CI](https://github.com/aodl/IC_Widgets/actions/runs/46139140100)
 
 ## Certified composition
 
