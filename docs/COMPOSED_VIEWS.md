@@ -1,6 +1,6 @@
 # IC Widgets composed views
 
-The standalone production release remains the baseline for Membership and Performance behavior. Use [its published evidence](release-candidates/membership-b8014c8/production/README.md) for installed hashes and rollback inputs.
+The standalone production release remains the baseline for Membership and Performance behavior. Use [its published evidence](release-candidates/activity-86110949/production/README.md) for installed hashes and rollback inputs.
 
 ## Inputs and evidence
 
@@ -36,7 +36,7 @@ Prepare the same toolchain and Chromium dependencies used by the recorded Member
 ./scripts/rehearse-composed-view.sh /path/to/Network_Nexus_Host .local/composed-view-evidence
 ```
 
-The command provisions an ephemeral loopback replica, builds dedicated certified host, Membership, Subnet overview, IC Node Map and Performance artifacts, exercises three independently loaded views and stops the replica. The Membership canisters use recorded and constructed source fixtures for each view. The frontend profiles include the exact Nexus framing origin. The standalone profile keeps its existing `frame-ancestors 'none'` policy. The host and frames exchange only declared inputs and output states through exact-origin session channels. A reload or input change supersedes old outputs. All views use [one data-only catalogue](composed-view/catalogue.example.json). The script substitutes disposable canister origins for the placeholders. [Generic host repository and contract](https://github.com/aodl/Network_Nexus/blob/main/docs/WIDGET_CONTRACT.md)
+The command provisions an ephemeral loopback replica, builds dedicated certified host and widget assets, exercises the three direct-input example views and the Activity-driven workspace and stops the replica. The Membership canisters use recorded and constructed source fixtures for each view. The frontend profiles include the exact Nexus framing origin. The standalone profile keeps its existing `frame-ancestors 'none'` policy. The host and frames exchange only declared inputs and output states through exact-origin session channels. A reload or input change supersedes old outputs. All views use [one data-only catalogue](composed-view/catalogue.example.json). The script substitutes disposable canister origins for the placeholders. [Generic host repository and contract](https://github.com/aodl/Network_Nexus/blob/codex/practical-composition/docs/WIDGET_CONTRACT.md)
 
 The real gateway test validates the certificates for the host and the separate widget embed documents, scripts and styles against the disposable IC trust root. Its Chromium allowlist admits only those certified asset URLs, local IC status and protocol calls to the two fixture reviewers. Historical subnet principals can produce missing blockmaking metrics in PocketIC. The composition test verifies the exact finite request filters and method order. The separate production release evidence records the live Performance result.
 
@@ -49,3 +49,30 @@ The earlier rehearsal at `7003ccc` verified the separately framed producers and 
 ## Repository names
 
 The active IC Widgets checkout is `~/src/IC_Widgets`. The application title and current developer documentation use IC Widgets. The earlier `~/src/Network_Nexus` checkout preserves the stable standalone release and its rollback evidence. Existing Rust package names, deployment aliases and build variables remain available for reproducibility. The generic host is a separate Git repository, checked out locally at `~/src/Network_Nexus_Host` and published as [aodl/Network_Nexus](https://github.com/aodl/Network_Nexus).
+
+## Activity-driven workspace
+
+The `activity` and `inspector` embed profiles add a fourth view to the bundled example. The same Activity navigator draws the decision and voting queues, deadlines, pending execution, unresolved targets, observed coverage, and the Registry roster. Load activity and Refresh discovery are explicit. The standalone navigator keeps its existing behaviour.
+
+Activity publishes `urn:ic-widgets:inspection-subject` major 1 as its `subject` output. It has two shapes:
+
+- `{"kind":"subnet","subnet":"<full canonical subnet principal>"}`
+- `{"kind":"proposals","proposalIds":["144954"],"subnet":"<optional full canonical target principal>"}`
+
+Proposal IDs are one or two distinct positive uint64 decimal strings in their supplied order. The navigator publishes a single proposal per selection, retaining the chosen subnet for a multi-subnet action. The inspector also accepts two IDs through a declared view input of this profile. A missing target allows the existing proposal workflow to resolve and choose its initial subnet. A provided target must occur in the executable comparison returned by the inspector's own replicated workflow. The map receives `scene` and Performance receives `filter`, with the existing profiles and finite scope semantics.
+
+Open Activity review, load Activity and choose a proposal row. To inspect current membership, switch to All subnets, expand a subnet and choose Inspect current membership. In a blank view, add the four catalogue widgets and connect `Subnet Activity · subject` to the inspector, then connect the inspector's `scene` and `filter` to the map and Performance. To enter an explicit combined review, connect the inspector to a new view input and enter an ordered `proposalIds` array in that input instead of using the Activity connection.
+
+The host forwards selection intent only. The inspector reads Governance and pins Registry itself, retaining the existing lifecycle verification and source-bound calculations. Activity discovery has no portable proof in the existing public interface that independently authenticates it to a second frame. The inspector therefore obtains its own bounded cross-proposal observation from accepted instructions. This can duplicate one discovery for a reviewed proposal. Neither widget passes caller-bound tokens or archive receipts through Network Nexus. An Activity refresh does not publish a new selection or start a new Membership calculation. Subject changes clear obsolete outputs and supersede in-flight responses. Reopening a saved view restores its wiring and leaves the Activity selection transient.
+
+The disposable test adds an opt-in synthetic discovery listing to selected historical scenarios. Per-proposal replies and Registry fixture data still come from their respective source fixtures. The listing demonstrates selection and lifecycle behaviour without claiming historical scan completeness or current Open status. The fixture-only loader is absent from the production reviewer. The inspector's disposable reports identify their fixture origin.
+
+## Proposed first hosted demonstration
+
+Publish one certified Network Nexus host and four independently hosted certified IC Widgets frontends for Activity, Inspector, IC Node Map and Performance. Keep the existing standalone frontend and catalogue at their current origin. Reuse reviewer `s34gv-3qaaa-aaaar-qcifa-cai` and its public methods for discovery, current subnet snapshots, Membership review and Performance. No reviewer interface or state migration is needed. Activity and the inspector use the reviewer for sourced evidence, and Performance uses it for metrics. The map consumes only its supplied scene through the host.
+
+After approval, reserve the five canister IDs on standard application subnets and pin the exact canonical HTTPS host and widget origins. Build the host with a trusted catalogue containing only the approved descriptors and the prepared Activity view. Pin the host in each widget's certified `frame-ancestors` policy and handshake. The host validates each trusted origin and exact embed path against its bundled descriptor. Use immutable certified Wasm assets and reject raw host access using the existing serving policies. Keep all production builds free of fixture overrides. A guest can open the certified host, try the prepared view, or build and save a blank dashboard without an account. The standalone permanent catalogue remains the place to try recorded interactive scenarios.
+
+For planning, five standard 13-node application-subnet creations cost 2.5 trillion cycles in total before installation and liquid reserves. A provisional 0.5 trillion liquid cycles per frontend after creation gives a 5 trillion initial provision plus measured installation overhead. At zero reserved compute and an illustrative 8–80 MiB of aggregate metered memory, base and storage charges are approximately 0.14–0.20 trillion cycles per 30 days for five frontends. Sum the measured memory and reported idle burn after a rehearsal with the proposed settings before requesting the final funding amount. Reviewer-driven discovery, inspection and metrics vary with usage and are charged to the existing reviewer. Check its headroom and public quotas before launch. There is no new scheduled work or off-chain service. [IC cycle costs](https://docs.internetcomputer.org/references/cycle-costs/)
+
+The proposed first release covers only the five frontend installations and a bounded certified smoke test. No mainnet actions were taken for this composition milestone.

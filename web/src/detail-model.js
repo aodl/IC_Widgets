@@ -300,6 +300,7 @@ export function reviewModel(live, context, evidence, section, replay) {
 const utc = value => value ? value.replace('T', ' ').replace(/Z$/, ' UTC') : undefined;
 
 export function replayLabel(replay) {
+  if (replay.compositionFixture) return 'Disposable composition rehearsal · fixture evidence · Registry ' + number(BigInt(replay.registryVersion));
   const label = replay.activity ? 'Synthetic scenario' : 'Historical replay';
   return [replay.bundled ? 'Bundled test case · ' + label : label, replay.lifecycleLabel, 'Registry ' + number(BigInt(replay.registryVersion))].filter(Boolean).join(' · ');
 }
@@ -312,6 +313,8 @@ export function replayRegistryText(replay) {
 export function governanceText(proposal, replay, delivery = false) {
   const status = lifecycle[proposal.lifecycle_status] ?? words(String(proposal.lifecycle_status));
   if (!replay) return '#' + proposal.id + ' · ' + status + ' observed ' + time(proposal.observed_at_nanos);
+  if (replay.compositionFixture) return '#' + proposal.id + ' · Fixture status: ' + status
+    + (delivery ? ' · Local replay served ' + time(proposal.observed_at_nanos) : '');
   const capture = replay.actionEvidence.find(row => row.id === String(proposal.id));
   const when = utc(capture?.at);
   const origin = capture?.kind === 'recorded-governance-reply' ? 'Original Governance observation'

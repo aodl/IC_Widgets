@@ -6,7 +6,7 @@ import { mountReviewWorkspace } from './membership-details.js';
 import { mountPerformance } from './performance.js';
 import { nodeMap } from './map-interaction.js';
 import { mountSubnetOverview } from './subnet-overview.js';
-import { proposalInput, proposalInputProfile, subnetInputProfile } from './view-inputs.js';
+import { proposalInput, proposalInputProfile, readInspectionSubject, subnetInputProfile } from './view-inputs.js';
 import { comparisonFilterLabels, composedOutputs, hasProfile, readNodeFilter } from './composed-scope.js';
 import { acceptNexusHost } from './widget-frame.js';
 import { reviewContexts, serializeCalls } from './review-session.js';
@@ -17,6 +17,9 @@ import { action, el, option, sourceReceipts, styled } from './view.js';
 
 const search = document.querySelector('#search');
 const widget = EMBED_WIDGET;
+const inspectorWidget = widget?.view === 'inspector';
+const compositionFixture = LOCAL_REPLICA && inspectorWidget ? { compositionFixture: true } : undefined;
+const connectedReview = inspectorWidget || widget?.view === 'proposal';
 const reportStatus = document.querySelector('#report-status');
 const elapsed = document.querySelector('#review-elapsed');
 const stop = document.querySelector('#stop-review');
@@ -77,13 +80,18 @@ const performance = mountPerformance(async (active, run) => {
 }, { connected: widget?.view === 'performance' });
 performance.visible(true);
 let publishScope;
+let latestOutputs;
+function publishOutputs(outputs) {
+  latestOutputs = outputs;
+  publishScope?.(outputs);
+}
 function publishEvidence(selection, scene, issue, filterScope) {
   const state = issue ? { kind: 'unavailable', retryable: true, reason: issue.slice(0, 240) }
     : { kind: 'waiting', message: 'Waiting for accepted membership evidence' };
-  publishScope?.(selection ? composedOutputs(selection, scene, filterScope) : { filter: state, scene: { ...state } });
+  publishOutputs(selection ? composedOutputs(selection, scene, filterScope) : { filter: state, scene: { ...state } });
 }
-const overview = mountSubnetOverview({ call: remote, performance, replay: activeReplay,
-  publish: widget?.view === 'subnet' ? publishEvidence : undefined });
+const overview = mountSubnetOverview({ call: remote, performance, replay: compositionFixture ?? activeReplay,
+  publish: (inspectorWidget || widget?.view === 'subnet') ? publishEvidence : undefined });
 const connectedFilter = el('select', Object.entries(comparisonFilterLabels).map(([value, label]) =>
   Object.assign(el('option', label), { value })));
 const connectedFilterControl = el('label', 'Connected Performance scope', connectedFilter);
@@ -92,7 +100,7 @@ let connectedEvidence;
 connectedFilter.addEventListener('change', () => {
   if (connectedEvidence) publishEvidence(...connectedEvidence, undefined, connectedFilter.value);
 });
-const membershipPerformance = widget?.view === 'proposal' ? { ...performance, filterControl: connectedFilterControl,
+const membershipPerformance = connectedReview ? { ...performance, filterControl: connectedFilterControl,
   scope(selection, scene) {
     connectedEvidence = selection ? [selection, scene] : undefined;
     connectedFilterControl.hidden = !selection;
@@ -182,7 +190,7 @@ function startReview(ids, discovered, preferredSubnet) {
   const thisRequest = request = { ids, discovered, segment: Date.now(), elapsed: 0, stopped: false };
   performance.scope(undefined);
   performance.visible(false);
-  const map = currentMap = widget?.view === 'proposal' ? undefined : nodeMap();
+  const map = currentMap = connectedReview ? undefined : nodeMap();
   const mapHost = map?.section;
   map?.update();
   reportContainer.replaceChildren(styled('div', 'workspace waiting-workspace',
@@ -205,6 +213,9 @@ function startReview(ids, discovered, preferredSubnet) {
       }
       const body = live.outcome.Ok;
       const proposals = body.report.manifest.proposals;
+      const reviewReplay = compositionFixture ? {
+        ...compositionFixture, activity: true, registryVersion: String(body.report.manifest.registry_version),
+      } : activeReplay;
       if (proposals.length && proposals.every(terminalOutcome)) {
         map?.dispose();
         const titles = option(body.proposal_text ?? []) ?? [];
@@ -212,7 +223,7 @@ function startReview(ids, discovered, preferredSubnet) {
         reportContainer.replaceChildren(styled('section', 'card terminal-outcome',
           proposals.map(proposal => terminalSummary(proposal,
             option(titles.find(row => row.id === proposal.id)?.title ?? []),
-            (FIXTURE_REPLAY || bundledCase) && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, activeReplay)),
+            (FIXTURE_REPLAY || bundledCase) && activeReplay?.proposalIds[0] === String(proposal.id) ? indexedFailure : undefined, reviewReplay)),
           sourceReceipts(live, { replay: !!activeReplay })));
         if (thisRequest.discovered || !activeReplay || activeReplay.activity) {
           const checks = el('div');
@@ -244,12 +255,19 @@ function startReview(ids, discovered, preferredSubnet) {
         return;
       }
       const contexts = reviewContexts(body.report, option(body.subnet_rules ?? []) ?? []);
+      if (inspectorWidget && preferredSubnet && !contexts.some(row => row.index && row.subnet.toText() === preferredSubnet)) {
+        const reason = 'Accepted Membership evidence does not identify the requested target subnet.';
+        status({ work: 'settled', stage: 'Blocked', reason });
+        unavailable(reason);
+        reportContainer.append(styled('section', 'card', el('h3', 'Evidence'), sourceReceipts(live)));
+        return;
+      }
       current = mountReviewWorkspace({ live, contexts, map, mapHost, active, call: remote,
         progress: state => {
           if (!active()) return;
           status(state);
           if (['Blocked', 'Stopped', 'Provisional'].includes(state.stage)) unavailable(state.reason);
-        }, performance: membershipPerformance, replay: activeReplay, discovered: thisRequest.discovered, preferredSubnet });
+        }, performance: membershipPerformance, replay: reviewReplay, discovered: thisRequest.discovered, preferredSubnet });
       thisRequest.acceptActivity = current.acceptActivity;
       reportContainer.replaceChildren(current.section);
       current.start();
@@ -272,8 +290,8 @@ const switches = {
   proposal: document.querySelector('#proposal-view'),
   subnet: document.querySelector('#subnet-view'),
 };
-function changeView(view, focus = true) {
-  if (activeView === view) return;
+function changeView(view, focus = true, reset = false) {
+  if (activeView === view && !reset) return;
   activeView = view;
   for (const [name, button] of Object.entries(switches)) button.setAttribute('aria-pressed', String(view === name));
   generation++;
@@ -318,7 +336,44 @@ function unavailable(reason) {
 if (widget) {
   document.querySelector('.masthead').hidden = true;
   document.querySelector('#view-switch').hidden = true;
-  if (widget.view === 'performance') {
+  if (inspectorWidget) {
+    if (LOCAL_REPLICA) notice.textContent = 'Disposable rehearsal · fixture evidence, not live observations.';
+    search.hidden = true;
+    document.querySelector('#subnet-search').hidden = true;
+    performance.visible(false);
+    let subjectKey;
+    acceptNexusHost(widget.host, (values, publish) => {
+      const input = values.subject;
+      let subject, issue;
+      try {
+        if (input?.kind === 'ready') subject = readInspectionSubject(input);
+        if (input?.kind === 'unavailable') issue = input.reason;
+      } catch (error) {
+        issue = error.message;
+      }
+      const key = subject && JSON.stringify(subject);
+      if (key && key === subjectKey) {
+        publishScope = publish;
+        if (latestOutputs) publish(latestOutputs);
+        return;
+      }
+      subjectKey = key;
+      publishScope = undefined;
+      connectedEvidence = undefined;
+      connectedFilter.value = 'membership-union';
+      changeView(subject?.kind === 'subnet' ? 'subnet' : 'proposal', false, true);
+      publishScope = publish;
+      if (!subject) {
+        reportStatus.textContent = issue ?? 'Select a proposal or subnet to inspect.';
+        publishEvidence(undefined, undefined, issue);
+        return;
+      }
+      const loading = { kind: 'loading', message: 'Resolving authoritative membership evidence' };
+      publishOutputs({ scene: loading, filter: loading });
+      if (subject.kind === 'subnet') overview.load(subject.subnet);
+      else startReview(subject.proposalIds.map(BigInt), undefined, subject.subnet);
+    });
+  } else if (widget.view === 'performance') {
     document.querySelector('#proposal-search').hidden = true;
     acceptNexusHost(widget.host, values => {
       const input = values.filter;

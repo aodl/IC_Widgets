@@ -42,7 +42,7 @@ function status(row) {
     deadline ? 'Voting deadline ' + time(deadline * 1_000_000_000n) : 'Voting deadline unavailable'].join(' · ');
 }
 
-export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, references, showReview }) {
+export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, references, showReview, loadOnShow = true }) {
   const section = styled('section', 'card activity-navigator');
   section.hidden = true;
   let observation, issue, loading, selected, filter = 'undecided';
@@ -53,13 +53,13 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, r
     selected = { id: row.id, subnet };
     render();
     open(row.id, subnet, observation);
-    showReview();
+    showReview?.();
   }
 
   function render() {
     const top = section.scrollTop;
     const payload = observation?.response?.outcome?.Ok;
-    const refresh = action(loading ? 'Refreshing…' : issue ? 'Retry discovery' : 'Refresh discovery', load);
+    const refresh = action(loading ? 'Refreshing…' : issue ? 'Retry discovery' : !observation && !loadOnShow ? 'Load activity' : 'Refresh discovery', load);
     refresh.disabled = !!loading;
     const filters = styled('div', 'controls', Object.entries({ undecided: 'Undecided', voting: 'Voting open', all: 'All subnets' }).map(([key, label]) => {
       const button = action(label, () => { filter = key; render(); });
@@ -121,7 +121,7 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, r
         selected = { subnet };
         render();
         inspectSubnet(subnet);
-        showReview();
+        showReview?.();
       });
       const summary = el('summary', row());
       if (subnet === selected?.subnet) summary.classList.add('activity-selection-focus');
@@ -147,20 +147,20 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, r
     render();
     const active = () => ticket === generation && section.isConnected;
     try {
-      const nodes = references();
+      const nodes = references?.();
       const reply = await call(active, client => client.subnet_activity([], nodes?.length ? [nodes] : []));
       if (!reply || !active()) return;
       const response = result(reply);
       if ('Err' in response.outcome) throw new Error(liveError(response.outcome.Err));
       observation = { response, attempt };
-      refreshed(observation);
+      refreshed?.(observation);
     } catch (error) {
       if (active()) {
         issue = error.message;
         if (observation) {
           observation = { ...observation, attempt, stale: true, error: 'Refresh failed · ' + issue };
         }
-        refreshed(observation ?? { attempt, error: 'Refresh failed · ' + issue });
+        refreshed?.(observation ?? { attempt, error: 'Refresh failed · ' + issue });
       }
     } finally {
       if (active()) { loading = false; render(); }
@@ -168,6 +168,8 @@ export function mountActivityNavigator(call, { open, inspectSubnet, refreshed, r
   }
   return { section, show() {
     section.hidden = !section.hidden;
-    if (!section.hidden && !observation && !loading) void load();
+    if (section.hidden) return;
+    if (loadOnShow && !observation && !loading) void load();
+    else render();
   } };
 }

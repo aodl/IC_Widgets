@@ -3,7 +3,7 @@ import test from 'node:test';
 import { Principal } from '@icp-sdk/core/principal';
 import { nodeSelection } from '../src/node-snapshot.js';
 import { composedOutputs, readMapScene, readNodeFilter } from '../src/composed-scope.js';
-import { proposalInput, proposalInputProfile, subnetInput, subnetInputProfile } from '../src/view-inputs.js';
+import { inspectionSubjectProfile, readInspectionSubject, proposalInput, proposalInputProfile, subnetInput, subnetInputProfile } from '../src/view-inputs.js';
 
 test('view anchors are typed separately and preserve exact proposal IDs', () => {
   const id = Principal.fromUint8Array(Uint8Array.of(41, 2));
@@ -54,4 +54,25 @@ test('connected Performance gets only the exact finite producer filter, includin
   assert.throws(() => readNodeFilter({ kind: 'waiting' }), /Invalid widget evidence/);
   assert.throws(() => readNodeFilter({ ...filter, value: { ...filter.value, nodeIds: [nodes[0], nodes[0]] } }), /Invalid finite/);
   assert.throws(() => readMapScene({ ...scene, value: { ...scene.value, members: [members[0], members[0]] } }), /Invalid finite/);
+});
+
+
+test('inspection subjects preserve exact selection, including target context and proposal order', () => {
+  const subnet = Principal.fromUint8Array(Uint8Array.of(1, 2, 1)).toText();
+  const read = (value, profile = inspectionSubjectProfile) => readInspectionSubject({ kind: 'ready', profile, value });
+  assert.deepEqual(read({ kind: 'subnet', subnet }), { kind: 'subnet', subnet });
+  const scoped = { kind: 'proposals', proposalIds: ['18446744073709551615', '144954'], subnet };
+  assert.deepEqual(read(scoped), scoped);
+  for (const value of [
+    { ...scoped, proposalIds: ['0144954'] },
+    { ...scoped, proposalIds: ['144954', '144954'] },
+    { ...scoped, proposalIds: ['144954', ''] },
+    { ...scoped, proposalIds: ['146', '147', '148'] },
+    { ...scoped, subnet: 'aaaaa-aa' },
+    { ...scoped, subnet: ' ' + subnet },
+    { ...scoped, evidence: {} },
+    { ...scoped, kind: 'subnet' },
+  ]) assert.throws(() => read(value));
+  assert.throws(() => read(scoped, { ...inspectionSubjectProfile, major: 2 }));
+  assert.throws(() => readInspectionSubject({ kind: 'waiting' }));
 });

@@ -59,9 +59,8 @@ export function mountSubnetOverview({ call, performance, replay, publish }) {
         const { selection, members, countries, version } = subnetSnapshot(response, replay);
         if (selection.subnet !== input.value) throw new Error('The subnet response does not match the requested principal.');
         const clock = time(response.usage.finished_at);
-        const detail = replay
-          ? 'Historical replay · locally observed ' + clock
-          : 'Registry evidence observed ' + clock;
+        const detail = (replay?.compositionFixture ? 'Disposable rehearsal · locally observed '
+          : replay ? 'Historical replay · locally observed ' : 'Registry evidence observed ') + clock;
         if (!publish) map = nodeMap({ existing: true });
         host.replaceChildren(styled('section', 'map-card',
           el('h2', 'Subnet ', dashboardLink('subnet', selection.subnet)),

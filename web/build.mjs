@@ -26,8 +26,10 @@ const replay = replayPath ? JSON.parse(await readFile(replayPath, 'utf8')) : nul
 const catalogue = embedded && !widget ? await testCatalogue() : { cases: [], assets: {} };
 const output = replayPath ? process.env.NEXUS_REPLAY_OUTPUT ?? 'dist' : 'dist';
 
+const widgetEntry = { map: ['src/node-map-widget.js', 'node-map.html'], activity: ['src/activity-widget.js', 'activity.html'] };
+const [entry, html] = widgetEntry[widget?.view] ?? ['src/app.js', 'index.html'];
 const bundle = await build({
-  entryPoints: [widget?.view === 'map' ? 'src/node-map-widget.js' : 'src/app.js'],
+  entryPoints: [entry],
   outfile: join(output, 'app.js'),
   bundle: true,
   minify: true,
@@ -48,7 +50,7 @@ if (embedded) {
     prefix + '.' + createHash('sha256').update(bytes).digest('hex') + '.' + extension;
   const script = filename('app', 'js', javascript);
   const style = filename('styles', 'css', stylesheet);
-  const template = await readFile(widget?.view === 'map' ? 'node-map.html' : 'index.html', 'utf8');
+  const template = await readFile(html, 'utf8');
   for (const reference of ['./app.js', './styles.css']) {
     if (template.split(reference).length !== 2) throw new Error('Expected one HTML reference to ' + reference);
   }

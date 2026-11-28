@@ -357,7 +357,8 @@ export function mountReviewWorkspace({ live, contexts, map, mapHost, active, cal
     try {
       await session.settled();
       if (!checkActive()) return;
-      const reply = await call(checkActive, client => client.subnet_activity(proposals.map(row => row.id), replay || !references.length ? [] : [references]));
+      const requested = references.length && (!replay || replay.compositionFixture) ? [references] : [];
+      const reply = await call(checkActive, client => client.subnet_activity(proposals.map(row => row.id), requested));
       if (!checkActive() || !reply) return;
       const response = result(reply);
       accept('Err' in response.outcome ? { response, error: 'Refresh failed · ' + liveError(response.outcome.Err) } : { response });
