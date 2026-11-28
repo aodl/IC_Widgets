@@ -383,7 +383,7 @@ try {
   assert.equal(await membershipStatus().count(), 1);
   rejectActivity = true;
   await activity.getByRole('button', { name: 'Refresh discovery' }).click();
-  await activity.getByText(/Showing the previous observation/).waitFor();
+  await activity.getByText(/Discovery failed.*Showing the previous observation/).waitFor();
   assert.equal(await membershipStatus().count(), 1);
   rejectActivity = false;
   await activity.getByRole('button', { name: 'Retry discovery' }).click();
