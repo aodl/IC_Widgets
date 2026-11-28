@@ -580,7 +580,8 @@
       {
         "id": "activity-review",
         "title": "Activity review",
-        "layout": "three-column",
+        "layout": "two-column",
+        "columns": 3,
         "inputs": [],
         "widgets": [
           {
