@@ -178,6 +178,7 @@ try {
   await activity.locator('details').filter({ has: page.locator('button').filter({ hasText: /^Review #990001$/ }) }).locator('summary').first().press('Enter');
   await page.screenshot({ path: resolve(output, 'subnet-activity.png'), fullPage: true });
   await activity.getByRole('button', { name: 'Review #990001', exact: true }).click();
+  await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
   await page.locator('.review-checks').getByText(/Governance check complete.*4 references found/).waitFor({ timeout: 90000 });
   execFileSync('dfx', ['canister', 'call', '--network', 'local', '--candid', 'fixture.did', 'fixture',
     'load_review_case', '("nns-145077-recorded-open")'], {
@@ -188,13 +189,13 @@ try {
   await activity.getByText(/Governance check incomplete/).waitFor();
   await activity.getByRole('button', { name: 'All subnets', exact: true }).click();
   assert.equal(await activity.locator('.activity-count').count(), 98);
-  await page.locator('.review-header').getByText(/#990001/).waitFor();
+  await page.locator('.review-header').getByRole('link', { name: '#990001', exact: true }).waitFor();
   await activity.screenshot({ path: resolve(output, 'recorded-burst-navigator.png') });
   failDiscovery = true;
   await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).click();
   await activity.getByText(/Showing the previous observation/).waitFor({ timeout: 90000 });
   assert.equal(await activity.locator('.activity-count').count(), 98);
-  await page.locator('.review-header').getByText(/#990001/).waitFor();
+  await page.locator('.review-header').getByRole('link', { name: '#990001', exact: true }).waitFor();
   failDiscovery = false;
   await activity.getByRole('button', { name: 'Retry discovery', exact: true }).click();
   await activity.getByRole('button', { name: 'Refresh discovery', exact: true }).waitFor({ timeout: 90000 });
@@ -203,10 +204,10 @@ try {
   await archivedRow.locator('summary').first().press('Enter');
   await activity.getByRole('button', { name: 'Review #145077', exact: true }).click();
   await activity.getByRole('button', { name: 'Next proposal', exact: true }).click();
-  await page.locator('.review-header').getByText(/#145076/).waitFor();
+  await page.locator('.review-header').getByRole('link', { name: '#145076', exact: true }).waitFor();
   await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
   await activity.getByRole('button', { name: 'Previous proposal', exact: true }).click();
-  await page.locator('.review-header').getByText(/#145077/).waitFor();
+  await page.locator('.review-header').getByRole('link', { name: '#145077', exact: true }).waitFor();
   await page.locator('#report-status').getByText('Data loading complete', { exact: true }).waitFor({ timeout: 90000 });
   assert.equal(testData.length, capturesBeforeLive);
   assert.ok(reviewerRequests.some(path => path.endsWith('/call')));
