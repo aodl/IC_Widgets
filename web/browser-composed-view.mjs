@@ -79,6 +79,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, serviceWorkers: 'block' });
   page.setDefaultTimeout(45_000);
   const denied = [], errors = [], calls = [];
+  let rejectActivity = false;
   const origins = new Set([...producerOrigins, performanceOrigin, widgets[5].origin, widgets[6].origin]);
   const reviewers = new Set([host.reviewer, execFileSync('dfx', ['canister', 'id', '--network', 'local', 'reviewer_second'], {
     cwd: resolve(project), env: { ...process.env, DFX_IDENTITY: 'codex_local' }, encoding: 'utf8',
@@ -90,7 +91,13 @@ try {
     if (allowed.has(req.url()) && req.method() === 'GET') return route.continue();
     const protocol = /^\/api\/v[234]\/canister\/([-a-z0-9]+)\/(?:call|read_state)$/.exec(url.pathname);
     if (origins.has(url.origin) && ((reviewers.has(protocol?.[1]) && req.method() === 'POST')
-        || (url.pathname === '/api/v2/status' && req.method() === 'GET'))) return route.continue();
+        || (url.pathname === '/api/v2/status' && req.method() === 'GET'))) {
+      if (rejectActivity && url.origin === widgets[5].origin && url.pathname.endsWith('/call')
+          && Cbor.decode(new Uint8Array(req.postDataBuffer())).content.method_name === 'subnet_activity') {
+        return route.fulfill({ status: 403, body: 'Simulated discovery failure' });
+      }
+      return route.continue();
+    }
     denied.push(req.url());
     return route.abort();
   });
@@ -114,6 +121,10 @@ try {
   const performance = page.frameLocator('iframe[title="Performance"]');
   const map = page.frameLocator('iframe[title="IC Node Map"]');
   const verifiedViews = [];
+  async function performanceSettled() {
+    await performance.getByRole('button', { name: 'Read blockmaking samples', exact: true }).locator('xpath=self::*[not(@disabled)]').waitFor();
+    return performance.locator('#performance-status').textContent();
+  }
   const sorted = values => [...values].sort();
 
   async function view(name, fixture, id) {
@@ -130,7 +141,7 @@ try {
       id ? 'Data loading complete' : 'Subnet loaded.', { exact: true }).waitFor({ timeout: 150_000 });
     await performance.locator('#performance-context').getByText(new RegExp(
       (id ? 'Proposal #' + id + '.*All related nodes' : 'Existing') + '.*' + filter.length + ' nodes')).waitFor();
-    await performance.getByText('Source receipts', { exact: true }).waitFor();
+    const performanceStatus = await performanceSettled();
     assert.equal(await producer.locator('.map-frame').count(), 0);
     assert.equal(await page.locator('iframe[title="IC Node Map"]').getAttribute('src'), mapOrigin + '/embed');
     await map.locator('.map-pin').first().waitFor();
@@ -161,7 +172,7 @@ try {
       const start = calls.length;
       await producer.getByLabel('Connected Performance scope').selectOption('proposed-membership');
       await performance.locator('#performance-context').getByText(/Proposed.*5 nodes/).waitFor();
-      await performance.getByText('Source receipts', { exact: true }).waitFor();
+      await performanceSettled();
       const scopedReads = calls.slice(start).filter(row => row.method === 'node_performance_on_demand');
       assert.equal(scopedReads.length, 1);
       explicitProposed = scopedReads[0];
@@ -169,7 +180,7 @@ try {
     }
     verifiedViews.push({ name, subnet, before: baseline.length, proposed: state?.members.length ?? null,
       added: state?.added.length ?? null, removed: state?.removed.length ?? null,
-      represented: represented.size, metrics, explicitProposed });
+      represented: represented.size, metrics, performanceStatus, explicitProposed });
   }
   // The initial view runs automatically. Open the workspace from a fresh page so
   // the same input is never submitted twice during verification.
@@ -224,9 +235,10 @@ try {
     await row.locator('..').getByRole('button', { name: 'Inspect current membership' }).click();
   }
 
-  async function assertConnected(start, fixtureName, id) {
+  async function assertConnected(start, fixtureName, id, target) {
     const oracle = expected.cases[fixtureName];
-    const [subnet, baseline] = Object.entries(oracle.baselines)[0];
+    const subnet = target ?? Object.keys(oracle.baselines)[0];
+    const baseline = oracle.baselines[subnet];
     const state = id && oracle.scenarios.A[0][subnet];
     const members = [...new Set([...baseline, ...(state?.members ?? [])])];
     if (id) await membershipStatus().waitFor({ timeout: 150_000 });
@@ -239,14 +251,14 @@ try {
     assert.equal(await activity.locator('.map-frame, #report, #performance').count(), 0);
     await performance.locator('#performance-context').getByText(new RegExp((id ? 'Proposal #' + id + '.*All related nodes' : 'Existing')
       + '.*' + members.length + ' nodes')).waitFor();
-    await performance.getByText('Source receipts', { exact: true }).waitFor();
+    const performanceStatus = await performanceSettled();
     const reads = calls.slice(start).filter(row => row.method === 'node_performance_on_demand');
     assert.equal(reads.length, 1);
     assert.equal(reads[0].subnet, subnet);
     assert.deepEqual(sorted(reads[0].nodes), sorted(members));
     assert.equal(reads[0].origin, performanceOrigin);
     assert.equal(await page.locator('iframe[title="IC Node Map"]').getAttribute('src'), mapOrigin + '/embed');
-    activityViews.push({ id: id ?? 'current-subnet', existing: baseline.length, proposed: state?.members.length, metrics: reads[0] });
+    activityViews.push({ id: id ?? 'current-subnet', existing: baseline.length, proposed: state?.members.length, metrics: reads[0], performanceStatus });
     return { subnet, state };
   }
 
@@ -273,6 +285,7 @@ try {
   await activity.getByRole('button', { name: 'Load activity', exact: true }).click();
   await activity.getByText(/1 distinct observed Membership proposal/).waitFor();
   await inspector.getByText('Select a proposal or subnet to inspect.', { exact: true }).waitFor();
+  assert.equal(calls.filter(row => row.origin === widgets[6].origin && row.method === 'begin_membership_review').length, 0);
   let start = calls.length;
   await activity.locator('.activity-direct button').first().click();
   const { subnet } = await assertConnected(start, 'nns-144954-recorded-open', '144954');
@@ -282,11 +295,24 @@ try {
   await activity.getByRole('button', { name: 'Refresh discovery' }).waitFor();
   assert.equal(calls.slice(start).filter(row => row.method === 'begin_membership_review').length, 0);
   assert.equal(await membershipStatus().count(), 1);
+  rejectActivity = true;
+  await activity.getByRole('button', { name: 'Refresh discovery' }).click();
+  await activity.getByText(/Showing the previous observation/).waitFor();
+  assert.equal(await membershipStatus().count(), 1);
+  rejectActivity = false;
+  await activity.getByRole('button', { name: 'Retry discovery' }).click();
+  await activity.getByRole('button', { name: 'Refresh discovery' }).waitFor();
 
   await inspector.getByRole('button', { name: 'Generate review', exact: true }).first().click();
   const download = page.waitForEvent('download');
   await inspector.getByRole('button', { name: 'Download review', exact: true }).click();
-  await (await download).saveAs(resolve(directory, 'activity-review-144954.zip'));
+  const archive = resolve(directory, 'activity-review-144954.zip');
+  await (await download).saveAs(archive);
+  const markdown = execFileSync('unzip', ['-p', archive, 'review.md'], { encoding: 'utf8' });
+  assert.match(markdown, /Disposable composition rehearsal · fixture evidence/);
+  assert.match(markdown, /40 members · Add 1 · Remove 1 · Unchanged 39/);
+  assert.match(markdown, /map\.png/);
+  assert.equal(execFileSync('unzip', ['-p', archive, 'map.png']).subarray(1, 4).toString(), 'PNG');
 
   start = calls.length;
   await inspectCurrent(subnet);
@@ -302,7 +328,7 @@ try {
   start = calls.length;
   await scope.selectOption('proposed-membership');
   await performance.locator('#performance-context').getByText(/Proposed.*5 nodes/).waitFor();
-  await performance.getByText('Source receipts', { exact: true }).waitFor();
+  await performanceSettled();
   const explicit = calls.slice(start).filter(row => row.method === 'node_performance_on_demand');
   assert.equal(explicit.length, 1);
   assert.deepEqual(sorted(explicit[0].nodes), sorted(state.members));
@@ -311,6 +337,21 @@ try {
   await page.locator('iframe[title="Subnet Activity"]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: resolve(directory, 'activity-review-mobile.png'), fullPage: true });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
+
+  fixture('untargeted-two-subnets');
+  await activity.getByRole('button', { name: 'Refresh discovery' }).click();
+  await activity.getByText(/1 distinct observed Membership proposals · 2 confirmed affected subnets/).waitFor();
+  await activity.getByRole('button', { name: 'Undecided', exact: true }).click();
+  const targetButtons = activity.locator('.activity-direct button');
+  const [firstTarget, secondTarget] = Object.keys(expected.cases['untargeted-two-subnets'].baselines);
+  const secondButton = targetButtons.filter({ hasText: secondTarget });
+  const firstButton = targetButtons.filter({ hasText: firstTarget });
+  start = calls.length;
+  await secondButton.click();
+  await assertConnected(start, 'untargeted-two-subnets', '132102', secondTarget);
+  start = calls.length;
+  await firstButton.click();
+  await assertConnected(start, 'untargeted-two-subnets', '132102', firstTarget);
   await activityWidget.getByText('Widget settings', { exact: true }).click();
   await activityWidget.getByRole('button', { name: 'Retry widget' }).click();
   await inspector.getByText('Select a proposal or subnet to inspect.', { exact: true }).waitFor();
