@@ -1,6 +1,6 @@
 # IC Widgets composed views
 
-The standalone production release remains the baseline for Membership and Performance behavior. Use [its published evidence](release-candidates/membership-b8014c8/production/README.md) for installed hashes and rollback inputs.
+The standalone production release remains the baseline for Membership and Performance behavior. Use [its published evidence](release-candidates/activity-86110949/production/README.md) for installed hashes and rollback inputs.
 
 ## Inputs and evidence
 
@@ -36,7 +36,7 @@ Prepare the same toolchain and Chromium dependencies used by the recorded Member
 ./scripts/rehearse-composed-view.sh /path/to/Network_Nexus_Host .local/composed-view-evidence
 ```
 
-The command provisions an ephemeral loopback replica, builds dedicated certified host, Membership, Subnet overview, IC Node Map and Performance artifacts, exercises three independently loaded views and stops the replica. The Membership canisters use recorded and constructed source fixtures for each view. The frontend profiles include the exact Nexus framing origin. The standalone profile keeps its existing `frame-ancestors 'none'` policy. The host and frames exchange only declared inputs and output states through exact-origin session channels. A reload or input change supersedes old outputs. All views use [one data-only catalogue](composed-view/catalogue.example.json). The script substitutes disposable canister origins for the placeholders. [Generic host repository and contract](https://github.com/aodl/Network_Nexus/blob/main/docs/WIDGET_CONTRACT.md)
+The command provisions an ephemeral loopback replica, builds dedicated certified host and widget assets, exercises the three direct-input example views and the Activity-driven workspace and stops the replica. The Membership canisters use recorded and constructed source fixtures for each view. The frontend profiles include the exact Nexus framing origin. The standalone profile keeps its existing `frame-ancestors 'none'` policy. The host and frames exchange only declared inputs and output states through exact-origin session channels. A reload or input change supersedes old outputs. All views use [one data-only catalogue](composed-view/catalogue.example.json). The script substitutes disposable canister origins for the placeholders. [Generic host repository and contract](https://github.com/aodl/Network_Nexus/blob/codex/practical-composition/docs/WIDGET_CONTRACT.md)
 
 The real gateway test validates the certificates for the host and the separate widget embed documents, scripts and styles against the disposable IC trust root. Its Chromium allowlist admits only those certified asset URLs, local IC status and protocol calls to the two fixture reviewers. Historical subnet principals can produce missing blockmaking metrics in PocketIC. The composition test verifies the exact finite request filters and method order. The separate production release evidence records the live Performance result.
 

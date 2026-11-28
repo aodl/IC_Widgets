@@ -198,7 +198,7 @@ try {
   await page.getByRole('button', { name: 'Save dashboard' }).click();
   await page.getByText('Dashboard saved in this browser.', { exact: true }).waitFor();
   const saved = await page.evaluate(id => JSON.parse(localStorage.getItem('network-nexus.dashboard.v1.' + id)), catalogue.dashboard.id);
-  assert.deepEqual(saved.views.map(view => view.inputs[0].value), catalogue.dashboard.views.map(view => view.inputs[0].value));
+  assert.deepEqual(saved.views.map(view => view.inputs), catalogue.dashboard.views.map(view => view.inputs));
   const settledCalls = calls.length;
   await page.getByRole('textbox', { name: 'proposals', exact: true }).fill('');
   await page.getByRole('button', { name: 'Apply proposals', exact: true }).click();
@@ -367,17 +367,22 @@ try {
   await firstButton.click();
   await assertConnected(start, 'untargeted-two-subnets', '132102', firstTarget);
 
-  let arrived, release;
-  const held = new Promise(resolve => { arrived = resolve; });
+  let arrived, release, timer;
+  const held = new Promise((resolve, reject) => {
+    arrived = resolve;
+    timer = setTimeout(() => reject(new Error('No superseded review request was observed.')), 15_000);
+  });
   holdMembership = { arrived, release: new Promise(resolve => { release = resolve; }) };
-  await secondButton.click();
-  await held;
   try {
+    await secondButton.click();
+    await held;
     await map.locator('#map-widget-status').getByText('Waiting for resolved map evidence.').waitFor();
     assert.equal(await performance.getByRole('button', { name: 'Read blockmaking samples' }).isDisabled(), true);
     start = calls.length;
     await inspectCurrent(firstTarget);
   } finally {
+    clearTimeout(timer);
+    holdMembership = undefined;
     release();
   }
   await assertConnected(start, 'untargeted-two-subnets', undefined, firstTarget);
