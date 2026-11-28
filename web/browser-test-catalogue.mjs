@@ -120,7 +120,11 @@ try {
       const markdown = execFileSync('unzip', ['-p', zip, 'review.md'], { encoding: 'utf8' });
       assert.match(markdown, item.activity ? /Bundled test case · Synthetic scenario/ : /Bundled test case · Historical replay/);
       assert.match(markdown, /Fixture backend observed/);
-      assert.match(markdown, /Fixture capture time/);
+      assert.ok(markdown.includes('Membership and Registry source receipts') && markdown.includes('Observed at'));
+      for (const entry of item.actionEvidence.filter(row => row.kind === 'recorded-governance-reply' && row.at)) {
+        const original = new Date(entry.at).toISOString().replace('T', ' ').replace(/(?:\.000)?Z$/, ' UTC');
+        assert.ok(markdown.includes('Original Governance observation ' + original));
+      }
       if (item.id === 'review-checks-three-replacements') {
         assert.match(markdown, /1 additional fault tolerable · 2 would exceed/);
         assert.match(markdown, /Governance check complete.*4 references found/);
